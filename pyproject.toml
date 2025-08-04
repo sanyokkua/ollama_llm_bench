@@ -1,0 +1,28 @@
+[project]
+name = "ollama-llm-bench"
+version = "0.1.0"
+description = "Ollama benchmark"
+authors = [
+    {name = "Oleksandr Kostenko",email = "sanyokkua@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pyqt6 (>=6.9.1,<7.0.0)",
+    "ollama (>=0.5.1,<0.6.0)"
+]
+
+
+[tool.poetry]
+packages = [
+    { include = "ollama_llm_bench", from = "src" }
+]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+pyright = "^1.1.403"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
