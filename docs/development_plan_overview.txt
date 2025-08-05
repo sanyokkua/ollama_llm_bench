@@ -1,0 +1,302 @@
+## Detailed Implementation Plan: Ollama LLM Benchmarker
+
+A comprehensive specification for an autonomous agent to implement a PyQt6 desktop application that benchmarks local LLMs via Ollama. All functionality, flows, data models, interfaces, constraints, and best practices are described in detail.
+
+---
+
+### 1. Application Overview & Use Cases
+
+**Goal:** Help users compare local LLM models (e.g., various quantizations, sizes) on tasks like coding, translation, summarization, and more. Track both inference speed (latency, tokens/sec) and qualitative accuracy (via automated LLM-based judging).
+
+**Primary Use Cases:**
+
+* Select judge model + one or more benchmark models.
+* Run standardized tasks (from YAML) per model.
+* View real-time streaming logs & progress.
+* Persist results to SQLite for later analysis.
+* Generate Markdown reports summarizing performance & quality metrics.
+
+---
+
+### 2. End-to-End UI & Control Flow
+
+The single-window UI is split into two panes:
+
+1. **Left Control Panel** (`QVBoxLayout`):
+
+   * **Judge Model (`QComboBox`)**: drop-down of available models.
+   * **Benchmark Models (`QListWidget`)**: checklist of models to test.
+   * **Refresh Button**: reload model list from Ollama.
+   * **Start Button**: initiates benchmark (enabled only when judge + ≥1 model selected).
+   * **Stop Button**: appears during a run to cancel processing.
+   * **Progress Bar (`QProgressBar`)**: shows current task count vs total.
+   * **Status Label (`QLabel`)**: text status: Idle, Inference, Judging, Completed.
+
+2. **Right Log Pane** (`QTextEdit`, read-only):
+
+   * Streams real-time logs: ping results, streaming tokens, judgments, errors.
+
+**Flow:**
+
+1. **Startup**: `main.py` configures logging → starts `QApplication` → instantiates `MainWindow`.
+2. **Model Discovery**:
+
+   * On init and when Refresh clicked, disable controls → worker thread calls `OllamaManager.list_models()` → populate ComboBox & list → re-enable.
+3. **User Selection**: enabling Start only when preconditions met.
+4. **Benchmark Launch**:
+
+   * Gather `judge_model`, `model_list`, load tasks → initialize `DataManager` & create run → bulk-insert `results` rows for model×task with status `NEW` → instantiate `BenchmarkController` in `QThread`, connect signals, start.
+5. **Real-Time Updates**: signals (`log_message`, `status_update`, `progress_update`) update UI via slots on main thread only.
+6. **Stop Handling**: `Stop` sets a flag in controller → cleanly abort loops, update DB run status to `STOPPED`, emit `benchmark_stopped`.
+7. **Completion**: on `benchmark_finished`, display Markdown report in dialog with export option → reset UI.
+
+---
+
+### 3. Data Models & Persistence
+
+#### 3.1 YAML Task Definitions (`dataset/*.yml`)
+
+Each file contains a list of tasks:
+
+```yaml
+- task_id: "sql_select_users"
+  category: "Coding"
+  sub_category: "SQL"
+  question: "Given a table 'users', write a SQL query to select names."
+  expected_answer:
+    most_expected: "SELECT name FROM users;"
+    good_answer: "SELECT users.name FROM users;"
+    pass_option: "Any valid SQL selecting 'name'."
+  incorrect_direction: "Selecting wrong column, syntax errors, wrong table."
+```
+
+**Categories & Subcategories** (expandable via YAML):
+
+1. Coding (Python, Java, TypeScript, SQL, etc.)
+2. Proofreading (formal, casual tone)
+3. Instruction Following
+4. Translation
+5. Comprehension & Context
+6. Creative Generation
+7. Knowledge Trivia
+8. Analysis & Reasoning
+9. Format Transformation (JSON, CSV, XML)
+10. Summarization
+11. RAG (contextual QA)
+12. Prompt Generation
+
+#### 3.2 Internal Data Classes (`core/task.py`)
+
+```python
+class TaskStatus(StrEnum):
+    NEW = 'NEW'
+    AWAITING_JUDGEMENT = 'AWAITING_JUDGEMENT'
+    COMPLETED = 'COMPLETED'
+    FAILED = 'FAILED'
+
+@dataclass(frozen=True)
+class ExpectedAnswer:
+    most_expected: str
+    good_answer: str
+    pass_option: str
+
+@dataclass(frozen=True)
+class BenchmarkTask:
+    task_id: str
+    category: str
+    sub_category: str
+    question: str
+    expected_answer: ExpectedAnswer
+    incorrect_direction: str
+
+@dataclass
+class Result:
+    result_id: int | None
+    run_id: int
+    model_name: str
+    task_id: str
+    question: str
+    llm_response: str
+    time_taken_ms: int
+    tokens_generated: int
+    evaluation_score: float
+    evaluation_reason: str
+    status: TaskStatus
+    error_message: str | None = None
+```
+
+#### 3.3 SQLite Schema (`DataManager`)
+
+* **`benchmark_runs`**:
+
+  * `run_id INTEGER PRIMARY KEY`
+  * `timestamp TEXT`
+  * `judge_model TEXT`
+  * `status TEXT` (`RUNNING`, `JUDGING`, `COMPLETED`, `STOPPED`)
+
+* **`results`**:
+
+  * `result_id INTEGER PRIMARY KEY`
+  * `run_id INTEGER` (FK)
+  * `model_name TEXT`
+  * `task_id TEXT`
+  * `question TEXT`
+  * `llm_response TEXT`
+  * `time_taken_ms INTEGER`
+  * `tokens_generated INTEGER`
+  * `evaluation_score REAL`
+  * `evaluation_reason TEXT`
+  * `status TEXT`
+  * `error_message TEXT`
+
+---
+
+### 4. Core Abstractions & Modules
+
+#### 4.1 `LLMAPI` Interface
+
+```python
+class LLMAPI(ABC):
+    def get_models_list(self) -> list[str]: ...
+    def ping_model(self, model_name: str) -> bool: ...
+    def generate_response(
+        self, model_name: str, question: str,
+        stream_callback: Callable[[str], None]
+    ) -> tuple[str, int]: ...
+    def judge_results(
+        self, judge_model: str, task: BenchmarkTask, response: str
+    ) -> tuple[float, str]: ...
+```
+
+#### 4.2 `BenchmarkAPI` Interface
+
+```python
+class BenchmarkAPI(ABC):
+    def validate_llm_list(self) -> tuple[bool, list[str]]: ...
+    def run_benchmark(self) -> None: ...
+    def run_judge(self) -> None: ...
+    def get_results(self) -> dict[str, list[Result]]: ...
+```
+
+#### 4.3 Concrete Implementations
+
+* **`OllamaManager`** implements `LLMAPI` using `ollama.Client()` (see Sec. 7).
+* **`DataManager`** handles all DB operations.
+* **`DatasetLoader`** (static loader) reads YAML → `BenchmarkTask`.
+* **`BenchmarkController`** implements `BenchmarkAPI` and emits Qt signals from phases.
+
+---
+
+### 5. Algorithmic Flow & Pseudo-Code
+
+#### 5.1 Inference Phase
+
+```python
+def _phase_inference(self):
+    tasks = dm.fetch_tasks_by_status(run_id, TaskStatus.NEW)
+    total = len(tasks)
+    for idx, res in enumerate(tasks, 1):
+        if stop_flag: break
+        if not llm.ping_model(res.model_name):
+            dm.update_task_to_failed(res.result_id, 'Ping failed')
+            continue
+        log(f"Running {res.task_id} on {res.model_name}")
+        start = now()
+        response, tokens = llm.generate_response(
+            res.model_name, res.question, self.emit_log)
+        ms = elapsed(start)
+        dm.update_task_to_judgement(res.result_id, response, ms, tokens)
+        self.progress_update.emit(idx, total)
+```
+
+#### 5.2 Judging Phase
+
+```python
+def _phase_judging(self):
+    tasks = dm.fetch_tasks_by_status(run_id, TaskStatus.AWAITING_JUDGEMENT)
+    total = len(tasks)
+    for idx, res in enumerate(tasks, 1):
+        if stop_flag: break
+        log(f"Judging {res.task_id}")
+        score, reason = llm.judge_results(judge_model, task_map[res.task_id], res.llm_response)
+        if score < 0:
+            dm.update_task_to_failed(res.result_id, reason)
+        else:
+            dm.update_task_to_completed(res.result_id, score, reason)
+        self.progress_update.emit(idx, total)
+```
+
+#### 5.3 Reporting Phase
+
+```python
+def _generate_markdown_report(self) -> str:
+    data = dm.get_run_results_for_report(run_id)
+    md = []
+    for model, results in data.items():
+        md.append(f"## Model: {model}\n")
+        # table header
+        for r in results:
+            md.append(f"- **{r.task_id}**: {r.time_taken_ms}ms, {r.tokens_generated} tokens, score={r.evaluation_score}\n  - reason: {r.evaluation_reason}\n")
+        # compute averages
+    return ''.join(md)
+```
+
+---
+
+### 6. Configuration, Timeouts, & Constants
+
+All constants defined in `core/config.py`:
+
+```python
+DB_FILENAME = 'benchmark_data.db'
+MODEL_PING_TIMEOUT = 10  # sec
+GENERATION_TIMEOUT = 60  # sec per task
+JUDGE_RETRY_LIMIT = 3
+LOG_LEVEL = logging.DEBUG
+```
+
+Apply timeouts with `threading.Timer` or equivalent.
+
+---
+
+### 7. Ollama Python Client (API Details)
+
+Use `ollama` package (v0.5.x):
+
+```python
+from ollama import Client
+client = Client()
+```
+
+* **`client.list()`** → list of model metadata.
+* **`client.generate(model, prompt, stream=True )`** → iterator of `{ 'response': str, 'done': bool, 'eval_count': int }`.
+* **`client.generate(stream=False)`** → single dict with `choices` and `eval_count`.
+* **Error Handling:** catch `ConnectionError`, wrap in retry/backoff.
+
+---
+
+### 8. YAML Parsing & Dataclass Mapping
+
+* **Loading**: `PyYAML.safe_load_all` → raw dicts → validate keys → instantiate `BenchmarkTask`.
+* **Saving**: `dataclasses.asdict()` → `yaml.safe_dump`.
+* **Validation**: enforce presence of `task_id`, `question`, `expected_answer`, `incorrect_direction`.
+
+---
+
+### 9. PyQt6 Threading & UI Rules
+
+* Only modify UI from main thread.
+* Use `pyqtSignal` to relay from worker (`BenchmarkController`) to `MainWindow` slots.
+* Batch high-frequency updates (e.g., streaming tokens) to avoid UI lag.
+* On stop/close: call `controller.stop()`, `thread.quit()`, `thread.wait()`.
+
+---
+
+### 10. Logging & Documentation
+
+* **main.py**: call `configure_logging()` to set up `RotatingFileHandler` & console.
+* **Per-module**: `logger = logging.getLogger(__name__)`; use `debug/info/error/exception` liberally.
+* **Docstrings**: Google style, include Args, Returns, Raises.
+* **Module READMEs** and `docs/{usage,developer}.md` with Sphinx.
+
+---
