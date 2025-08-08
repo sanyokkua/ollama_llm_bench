@@ -1,0 +1,49 @@
+- task_id: "product_catalog_text_to_json_001"
+  category: "Data Transformation"
+  sub_category: "Text to JSON"
+  question: |
+    Convert the following product description text into JSON format following these rules:
+    - Use camelCase keys
+    - Price should be a number without currency symbol
+    - In Stock should be a boolean (true/false)
+    - Tags should be an array of strings
+  input_text: |
+    Product ID: PROD-1001
+    Name: Wireless Bluetooth Headphones
+    Price: $99.99
+    Category: Electronics
+    In Stock: Yes
+    Tags: audio, bluetooth, noise-cancelling
+  expected_answer:
+    most_expected: |
+      {
+        "productId": "PROD-1001",
+        "name": "Wireless Bluetooth Headphones",
+        "price": 99.99,
+        "category": "Electronics",
+        "inStock": true,
+        "tags": ["audio", "bluetooth", "noise-cancelling"]
+      }
+    good_answer: |
+      {
+        "productId": "PROD-1001",
+        "name": "Wireless Bluetooth Headphones",
+        "price": 99.99,
+        "category": "Electronics",
+        "inStock": true,
+        "tags": ["audio","bluetooth","noise-cancelling"]
+      }
+    pass_option: |
+      {
+        "productId":"PROD-1001",
+        "name":"Wireless Bluetooth Headphones",
+        "price":99.99,
+        "category":"Electronics",
+        "inStock":true,
+        "tags":["audio","bluetooth","noise-cancelling"]
+      }
+  incorrect_direction: |
+    - Price includes currency symbol
+    - In Stock is not boolean
+    - Tags are a string, not an array
+    - Keys not in camelCase

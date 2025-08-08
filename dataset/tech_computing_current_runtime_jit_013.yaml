@@ -1,0 +1,14 @@
+- task_id: "tech_computing_current_runtime_jit_013"
+  category: "Technology & Computing"
+  sub_category: "Android Runtime"
+  question: |
+    As of Q2 2024, what specific runtime environment executes Java bytecode in Android applications, and what is the exact name of the JIT compiler currently used within this environment?
+  expected_answer:
+    most_expected: |
+      As of Q2 2024, Android applications run on the Android Runtime (ART), and the Just-In-Time compiler used within ART is called the 'Graal JIT'.
+    good_answer: |
+      Android Runtime (ART) executes Java bytecode, using the Graal JIT compiler as of mid-2024.
+    pass_option: |
+      ART is the runtime with the Graal JIT compiler for Android apps in 2024.
+  incorrect_direction: |
+    Naming Dalvik as current runtime, or incorrect JIT compiler names like 'OpenJIT' or 'ART JIT'.

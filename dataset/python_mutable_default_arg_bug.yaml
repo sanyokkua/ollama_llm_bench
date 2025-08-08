@@ -1,0 +1,33 @@
+- task_id: "python_mutable_default_arg_bug"
+  category: "Debugging"
+  sub_category: "Python"
+  question: |
+    The following Python function is intended to append an item to a list and return it. 
+    Identify and fix the bug.
+
+    ```python
+    def add_to_list(item, my_list=[]):
+        my_list.append(item)  
+        return my_list
+    ```
+  expected_answer:
+    most_expected: |
+      The bug is due to using a mutable default argument (`my_list=[]`). 
+      The default list persists between function calls, causing items to accumulate across calls.
+
+      Correct fix:
+      ```python
+      def add_to_list(item, my_list=None):
+          if my_list is None:
+              my_list = []
+          my_list.append(item)
+          return my_list
+      ```
+    good_answer: |
+      Recognizes that using a mutable default argument causes shared state between calls, 
+      and changes the default to None, initializing the list inside the function.
+    pass_option: |
+      Mentions the mutable default argument issue and suggests initializing the list inside the function.
+  incorrect_direction: |
+    Fails to identify the mutable default argument problem, changes unrelated parts of the code, 
+    or incorrectly claims the code works as intended.

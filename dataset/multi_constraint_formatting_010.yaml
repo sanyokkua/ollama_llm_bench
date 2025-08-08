@@ -1,0 +1,12 @@
+- task_id: "multi_constraint_formatting_010"
+  category: "Data Formatting"
+  sub_category: "Date Formats"
+  question: |
+    Format this date for EU (DD.MM.YYYY), US (MM/DD/YYYY), and ISO (YYYY-MM-DD) standards IN THIS ORDER. Separate formats with semicolon but NO spaces:
+    '15 March 2024'
+  expected_answer:
+    most_expected: "15.03.2024;03/15/2024;2024-03-15"
+    good_answer: "15.3.2024;3/15/2024;2024-03-15"
+    pass_option: "Any correctly formatted date string with EU, US, and ISO formats in order, separated by semicolons without spaces."
+  incorrect_direction: |
+    Formats out of order, extra spaces around semicolons, incorrect date formats, or wrong separators used.

@@ -1,0 +1,227 @@
+- task_id: "responsive_card_grid_fullwidth_second_card"
+  category: "Frontend"
+  sub_category: "HTML/CSS"
+  question: |
+    Create a responsive card grid (HTML + CSS) that meets these requirements:
+      - Desktop: 3-column grid
+      - Tablet: 2-column grid
+      - Mobile: 1-column stack
+      - **Critical constraint:** the 2nd card must always be full-width (span all columns) at every viewport size
+      - Support dark mode using `prefers-color-scheme`
+      - Smooth, GPU-accelerated hover animations (no jank)
+      - Pass WAVE accessibility checks (semantic markup, keyboard focus, color contrast for text/background)
+    Provide a complete, copy-pasteable HTML/CSS example and briefly explain why it satisfies the constraints.
+  expected_answer:
+    most_expected: |
+      <!-- index.html -->
+      <!doctype html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Responsive Card Grid — Fullwidth 2nd Card</title>
+        <style>
+          :root{
+            --bg: #ffffff;
+            --surface: #fbfdff;
+            --text: #0b1220;         /* high contrast on white */
+            --muted: #4b5563;
+            --accent: #0066cc;       /* accent with good contrast on white */
+            --card-radius: 12px;
+            --gap: 1rem;
+            --card-pad: 1rem;
+            --shadow: 0 6px 18px rgba(11,18,32,0.08);
+          }
+
+          /* Dark mode variables */
+          @media (prefers-color-scheme: dark){
+            :root{
+              --bg: #0b1220;
+              --surface: #0f1724;
+              --text: #ffffff;
+              --muted: #a9b0bd;
+              --accent: #4da3ff;
+              --shadow: 0 12px 30px rgba(0,0,0,0.6);
+            }
+          }
+
+          /* Base layout */
+          html,body{
+            height:100%;
+            margin:0;
+            background:var(--bg);
+            color:var(--text);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+            line-height:1.4;
+          }
+
+          main{
+            max-width:1200px;
+            margin:2rem auto;
+            padding:0 1rem;
+          }
+
+          h1{
+            font-size:1.5rem;
+            margin:0 0 1rem 0;
+          }
+
+          /* Grid: 3 cols desktop, 2 cols tablet, 1 col mobile */
+          .grid{
+            display:grid;
+            gap:var(--gap);
+            grid-template-columns: repeat(1, 1fr); /* mobile default */
+          }
+
+          /* tablet breakpoint (example: >= 640px) */
+          @media (min-width: 640px){
+            .grid{
+              grid-template-columns: repeat(2, 1fr);
+            }
+          }
+
+          /* desktop breakpoint (example: >= 1024px) */
+          @media (min-width: 1024px){
+            .grid{
+              grid-template-columns: repeat(3, 1fr);
+            }
+          }
+
+          /* Ensure 2nd card always spans all columns */
+          .grid > .card:nth-child(2){
+            grid-column: 1 / -1; /* spans from first to last line */
+          }
+
+          /* Card styling */
+          .card{
+            background:var(--surface);
+            border-radius:var(--card-radius);
+            padding:var(--card-pad);
+            box-shadow:var(--shadow);
+            overflow:hidden;
+            display:flex;
+            flex-direction:column;
+            min-height:120px;
+            transform: translateZ(0); /* promote to its own layer for GPU */
+            will-change: transform, opacity;
+            transition: transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms;
+            outline: none;
+          }
+
+          /* Hover/focus effects — GPU-accelerated */
+          .card:hover,
+          .card:focus-within,
+          .card:focus-visible{
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 18px 40px rgba(0,0,0,0.12);
+          }
+
+          /* Sub-elements */
+          .card h2{
+            font-size:1.1rem;
+            margin:0 0 0.5rem 0;
+          }
+          .card p{
+            margin:0;
+            color:var(--muted);
+            flex:1 0 auto;
+          }
+          .card img{
+            width:100%;
+            height:160px;
+            object-fit:cover;
+            border-radius:8px;
+            margin-bottom:0.75rem;
+          }
+
+          /* Accessible focus styles for keyboard users */
+          .card:focus-visible{
+            box-shadow: 0 0 0 3px rgba(0,102,204,0.18), 0 12px 30px rgba(0,0,0,0.12);
+          }
+
+          /* Respect reduced motion preference */
+          @media (prefers-reduced-motion: reduce){
+            .card{
+              transition: none;
+            }
+          }
+
+          /* Small utility */
+          .meta{
+            font-size:0.85rem;
+            color:var(--muted);
+            margin-top:0.75rem;
+          }
+        </style>
+      </head>
+      <body>
+        <a class="skip-link" href="#main-content" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">
+          Skip to content
+        </a>
+
+        <main id="main-content" role="main" aria-labelledby="page-title">
+          <h1 id="page-title">Projects</h1>
+
+          <section class="grid" aria-label="Project cards">
+            <!-- Card 1 -->
+            <article class="card" tabindex="0" aria-labelledby="card1-title">
+              <img src="https://via.placeholder.com/800x400" alt="Screenshot of project one" />
+              <h2 id="card1-title">Project One</h2>
+              <p>Short description — accessible contrast and semantic markup.</p>
+              <div class="meta">Updated 2025-01-01</div>
+            </article>
+
+            <!-- Card 2 (must always be full-width) -->
+            <article class="card" tabindex="0" aria-labelledby="card2-title">
+              <img src="https://via.placeholder.com/1600x400" alt="Hero image for featured project" />
+              <h2 id="card2-title">Featured Project (Always Full Width)</h2>
+              <p>This card spans all columns at every viewport size due to the CSS rule targeting nth-child(2).</p>
+              <div class="meta">Featured</div>
+            </article>
+
+            <!-- Card 3 -->
+            <article class="card" tabindex="0" aria-labelledby="card3-title">
+              <img src="https://via.placeholder.com/800x400" alt="Screenshot of project three" />
+              <h2 id="card3-title">Project Three</h2>
+              <p>Another item in the grid.</p>
+              <div class="meta">Updated 2025-01-07</div>
+            </article>
+
+            <!-- Card 4 -->
+            <article class="card" tabindex="0" aria-labelledby="card4-title">
+              <img src="https://via.placeholder.com/800x400" alt="Screenshot of project four" />
+              <h2 id="card4-title">Project Four</h2>
+              <p>Additional details about this project.</p>
+              <div class="meta">Updated 2025-02-14</div>
+            </article>
+
+            <!-- Card 5 -->
+            <article class="card" tabindex="0" aria-labelledby="card5-title">
+              <img src="https://via.placeholder.com/800x400" alt="Screenshot of project five" />
+              <h2 id="card5-title">Project Five</h2>
+              <p>More content.</p>
+              <div class="meta">Updated 2025-03-03</div>
+            </article>
+          </section>
+        </main>
+      </body>
+      </html>
+    good_answer: |
+      - Uses CSS Grid with `grid-template-columns` changed by media queries to produce 1/2/3 columns for mobile/tablet/desktop.
+      - The selector `.grid > .card:nth-child(2) { grid-column: 1 / -1; }` guarantees the second card spans all columns at every viewport width (fulfills the critical constraint).
+      - Dark mode is supported by `@media (prefers-color-scheme: dark)` variables so colors invert while preserving contrast.
+      - Hover/focus animations use `transform` and `opacity` with `translateZ(0)` and `will-change` to trigger GPU compositing (smooth, low-jank).
+      - Accessibility considerations included: semantic elements (`main`, `section`, `article`, proper headings), `alt` text on images, keyboard focusability (`tabindex="0"` and `:focus-visible` styles), skip link, and color variables chosen for high contrast (light text on dark surface and dark text on light surface).
+    pass_option: |
+      Any HTML/CSS solution that:
+        - Implements a responsive grid (1/2/3 columns) with a CSS rule ensuring the second card spans the full row (`grid-column: 1 / -1`),
+        - Supports `prefers-color-scheme` for dark mode,
+        - Uses GPU-friendly CSS properties for hover animations (e.g., `transform`),
+        - Includes basic accessibility (semantic tags, image alt text, visible keyboard focus).
+  incorrect_direction: |
+    - Using `position:absolute` or manual width hacks to make the second card full-width (breaks flow and responsiveness).
+    - Relying on `margin-left: -50%` / negative margins to fake spanning (fragile across breakpoints).
+    - Animating expensive properties such as `width`, `height`, or `top/left` (causes jank).
+    - Omitting semantic markup, missing `alt` attributes, or choosing color pairs without sufficient contrast (would fail WAVE).

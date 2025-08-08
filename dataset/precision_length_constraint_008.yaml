@@ -1,0 +1,11 @@
+- task_id: "precision_length_constraint_008"
+  category: "Text Generation"
+  sub_category: "Length and Word Constraints"
+  question: |
+    Write exactly 10 words. Each word must be 5 letters long. No punctuation. Case-insensitive count.
+  expected_answer:
+    most_expected: "Any sentence or phrase with exactly 10 words, each 5 letters long, no punctuation."
+    good_answer: "Any sentence or phrase with exactly 10 words, each 5 letters long, no punctuation."
+    pass_option: "Any sentence or phrase with exactly 10 words, each 5 letters long, no punctuation."
+  incorrect_direction: |
+    Contains words shorter or longer than 5 letters, fewer or more than 10 words, or includes punctuation.

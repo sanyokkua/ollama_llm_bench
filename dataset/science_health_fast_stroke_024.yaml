@@ -1,0 +1,14 @@
+- task_id: "science_health_fast_stroke_024"
+  category: "Science & Health"
+  sub_category: "Neurology & Emergency Medicine"
+  question: |
+    What specific medical condition does the acronym "FAST" represent in emergency stroke assessment protocols, and what exact time threshold defines the critical treatment window for administering tPA according to the American Heart Association's 2023 guidelines?
+  expected_answer:
+    most_expected: |
+      "FAST" stands for Face drooping, Arm weakness, Speech difficulty, Time to call emergency services, used for stroke detection. The critical treatment window for intravenous tPA is within 4.5 hours from symptom onset.
+    good_answer: |
+      FAST is a stroke screening tool; tPA must be given within 4.5 hours of symptoms.
+    pass_option: |
+      Stroke indicated by FAST; tPA treatment window is 4.5 hours.
+  incorrect_direction: |
+    Incorrect acronym meaning or wrong tPA time window.

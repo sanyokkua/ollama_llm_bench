@@ -1,0 +1,90 @@
+- task_id: "spring_user_crud_with_filtering_and_role"
+  category: "Backend"
+  sub_category: "Java-Spring"
+  question: |
+    Create a Spring Boot REST controller with CRUD operations for a `User` model 
+    having the following fields:
+      - `id` (Long)
+      - `name` (String)
+      - `age` (Integer)
+      - `gender` (String)
+    Requirements:
+      - `GET /users` endpoint should support optional query parameters for filtering by `name`, `age`, and `gender`.
+      - All controller methods must be accessible only to authenticated users with the `ADMIN` role.
+      - Use Spring Security annotations to enforce role-based access control.
+      - Assume you already have a `User` entity, `UserRepository` (Spring Data JPA), and basic Spring Security configuration.
+  expected_answer:
+    most_expected: |
+      import org.springframework.beans.factory.annotation.Autowired;
+      import org.springframework.http.ResponseEntity;
+      import org.springframework.security.access.prepost.PreAuthorize;
+      import org.springframework.web.bind.annotation.*;
+
+      import java.util.List;
+
+      @RestController
+      @RequestMapping("/users")
+      @PreAuthorize("hasRole('ADMIN')")
+      public class UserController {
+
+          @Autowired
+          private UserRepository userRepository;
+
+          @GetMapping
+          public List<User> getUsers(
+                  @RequestParam(required = false) String name,
+                  @RequestParam(required = false) Integer age,
+                  @RequestParam(required = false) String gender) {
+
+              if (name != null || age != null || gender != null) {
+                  return userRepository.findByFilters(name, age, gender);
+              }
+              return userRepository.findAll();
+          }
+
+          @GetMapping("/{id}")
+          public ResponseEntity<User> getUserById(@PathVariable Long id) {
+              return userRepository.findById(id)
+                      .map(ResponseEntity::ok)
+                      .orElse(ResponseEntity.notFound().build());
+          }
+
+          @PostMapping
+          public User createUser(@RequestBody User user) {
+              return userRepository.save(user);
+          }
+
+          @PutMapping("/{id}")
+          public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
+              return userRepository.findById(id)
+                      .map(user -> {
+                          user.setName(userDetails.getName());
+                          user.setAge(userDetails.getAge());
+                          user.setGender(userDetails.getGender());
+                          return ResponseEntity.ok(userRepository.save(user));
+                      })
+                      .orElse(ResponseEntity.notFound().build());
+          }
+
+          @DeleteMapping("/{id}")
+          public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+              if (!userRepository.existsById(id)) {
+                  return ResponseEntity.notFound().build();
+              }
+              userRepository.deleteById(id);
+              return ResponseEntity.noContent().build();
+          }
+      }
+    good_answer: |
+      Implements a Spring Boot REST controller for CRUD on a `User` entity, 
+      with `@PreAuthorize("hasRole('ADMIN')")` to restrict all methods to ADMIN users, 
+      and a `GET` endpoint that can filter by optional `name`, `age`, and `gender` parameters.
+      Uses `UserRepository` for persistence.
+    pass_option: |
+      Any valid Spring Boot controller with CRUD endpoints and admin-only access 
+      that supports optional filters for `GET /users`, even if repository filtering 
+      is implemented in-memory instead of with a custom query.
+  incorrect_direction: |
+    Omits role-based access control, ignores filter parameters entirely, 
+    or implements the controller without using proper Spring Boot annotations, 
+    making it non-functional in a typical Spring context.

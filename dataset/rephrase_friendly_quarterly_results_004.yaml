@@ -1,0 +1,16 @@
+- task_id: "rephrase_friendly_quarterly_results_004"
+  category: "Proofreading"
+  sub_category: "Tone Adaptation"
+  question: |
+    Rephrase the following text into a friendly tone while correcting grammar and word order:
+
+    Me and my team is excited to presents the quarterly results. We wants to discusses how this effects the bottom line for next quarter. Please finds time for meeting us.
+  expected_answer:
+    most_expected: |
+      My team and I are excited to share the quarterly results with you. We'd love to chat about how this impacts the bottom line for next quarter. Please let us know when you have time to meet.
+    good_answer: |
+      We're really excited about the quarterly results and would like to discuss how they affect next quarter's bottom line. Hope you can find some time to meet with us!
+    pass_option: |
+      A grammatically correct, friendly rephrasing inviting a meeting to discuss the quarterly results in a warm and approachable manner.
+  incorrect_direction: |
+    Responses that sound too formal, overly casual, or fail to fix grammar and clarity issues.

@@ -1,0 +1,14 @@
+- task_id: "literature_culture_harry_potter_resurrection_object_007"
+  category: "Literature & Culture"
+  sub_category: "Harry Potter Series"
+  question: |
+    In J.K. Rowling's original Harry Potter book series, what specific magical object did Harry Potter use to resurrect his parents' spirits during the Battle of Hogwarts, and in which chapter did this occur?
+  expected_answer:
+    most_expected: |
+      Harry Potter used the Resurrection Stone, embedded in the first Golden Snitch he ever caught, to summon the spirits of his parents during the Battle of Hogwarts. This occurred in "King's Cross," the 35th chapter of "Harry Potter and the Deathly Hallows."
+    good_answer: |
+      The Resurrection Stone was used by Harry to summon his parents' spirits in the "King's Cross" chapter of the final book.
+    pass_option: |
+      Harry used the Resurrection Stone in the last book, chapter "King's Cross," to see his parents' spirits.
+  incorrect_direction: |
+    Incorrect magical object (e.g., Elder Wand, Invisibility Cloak), wrong chapter, or mixing with movies instead of books.

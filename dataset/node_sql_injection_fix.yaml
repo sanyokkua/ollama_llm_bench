@@ -1,0 +1,41 @@
+- task_id: "node_sql_injection_fix"
+  category: "Security"
+  sub_category: "Node.js"
+  question: |
+    Identify and fix the security flaws in the following Node.js/Express code snippet.
+    The code retrieves user data by ID from a database, but it may be vulnerable to attack.
+
+    ```javascript
+    app.get('/user/:id', (req, res) => {  
+      db.query(`SELECT * FROM users WHERE id = ${req.params.id}`);  
+    });  
+    ```
+  expected_answer:
+    most_expected: |
+      The code is vulnerable to SQL injection because `req.params.id` is directly interpolated into the SQL query.
+      This allows an attacker to inject malicious SQL code via the URL parameter.
+
+      Fix: Use parameterized queries to prevent SQL injection, and handle errors properly.
+
+      Example fix (MySQL-style prepared statement):
+      ```javascript
+      app.get('/user/:id', (req, res) => {
+        const userId = req.params.id;
+        db.query('SELECT * FROM users WHERE id = ?', [userId], (err, results) => {
+          if (err) {
+            return res.status(500).json({ error: 'Database error' });
+          }
+          res.json(results);
+        });
+      });
+      ```
+    good_answer: |
+      Recognizes that the code is vulnerable to SQL injection and rewrites the query
+      to use parameterized/prepared statements. Mentions validating or sanitizing `req.params.id`.
+    pass_option: |
+      Mentions SQL injection as the problem and suggests using parameterized queries,
+      even if the full fixed code is not shown or error handling is minimal.
+  incorrect_direction: |
+    Fails to identify SQL injection, or suggests unrelated fixes such as changing variable names,
+    removing database access entirely, or making the query string concatenation more complex without
+    parameterization.

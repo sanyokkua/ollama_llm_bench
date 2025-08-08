@@ -1,0 +1,14 @@
+- task_id: "tech_computing_react_architecture_hooks_016"
+  category: "Technology & Computing"
+  sub_category: "Frontend Frameworks"
+  question: |
+    What architectural pattern does ReactJS fundamentally implement, and what specific year did the React team officially introduce the Hooks API that changed functional component capabilities?
+  expected_answer:
+    most_expected: |
+      ReactJS fundamentally implements the component-based architecture pattern, and the Hooks API was officially introduced in 2019.
+    good_answer: |
+      React uses component architecture and added Hooks in 2019 to enhance functional components.
+    pass_option: |
+      React’s component model and Hooks API from 2019 enable functional component state management.
+  incorrect_direction: |
+    Incorrect architectural pattern (e.g., MVC), wrong Hooks introduction year.

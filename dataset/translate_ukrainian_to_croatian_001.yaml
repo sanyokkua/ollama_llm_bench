@@ -1,0 +1,15 @@
+- task_id: "translate_ukrainian_to_croatian_001"
+  category: "Translation"
+  sub_category: "Ukrainian to Croatian"
+  question: |
+    Prevedite sljedeći tekst na hrvatski:
+    Добрий день. Я хотів би дізнатися чи можу зняти готівку з банківської карти? Потрібно зняти з картки тисячу двісті сімдесят девʼять євро.
+  expected_answer:
+    most_expected: |
+      Dobar dan. Želio bih znati mogu li podići gotovinu s bankovne kartice? Trebam podići s kartice tisuću dvjesto sedamdeset devet eura.
+    good_answer: |
+      Pozdrav, želim provjeriti mogu li podići novac s bankovne kartice. Trebam podići 1279 eura.
+    pass_option: |
+      Upit o podizanju 1279 eura gotovine s bankovne kartice.
+  incorrect_direction: |
+    Prijevod je netočan, izostavlja važan dio teksta ili mijenja iznos i valutu.

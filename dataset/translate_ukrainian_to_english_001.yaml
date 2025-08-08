@@ -1,0 +1,15 @@
+- task_id: "translate_ukrainian_to_english_001"
+  category: "Translation"
+  sub_category: "Ukrainian to English"
+  question: |
+    Translate the following text to English:
+    Добрий день. Я хотів би дізнатися чи можу зняти готівку з банківської карти? Потрібно зняти з картки тисячу двісті сімдесят девʼять євро.
+  expected_answer:
+    most_expected: |
+      Good day. I would like to know if I can withdraw cash from a bank card? I need to withdraw one thousand two hundred seventy-nine euros from the card.
+    good_answer: |
+      Hello. I want to find out if I can withdraw cash from my bank card. I need to withdraw 1,279 euros from the card.
+    pass_option: |
+      Polite inquiry about withdrawing 1279 euros in cash from a bank card.
+  incorrect_direction: |
+    Translation misses meaning, incorrect amounts, or wrong currency, or text unrelated to withdrawing money.

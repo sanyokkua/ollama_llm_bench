@@ -1,0 +1,16 @@
+- task_id: "implied_causality_detection_001"
+  category: "Reading Comprehension"
+  sub_category: "Inference"
+  question: |
+    After Maria submitted her report, the department head called an emergency meeting. Her colleagues avoided eye contact all day. When she checked her email that evening, her inbox was empty except for an automated 'Account Deactivated' notification.
+
+    What likely happened to Maria, and what contextual clues support this conclusion? Do NOT state the obvious facts from the text.
+  expected_answer:
+    most_expected: |
+      Maria was likely terminated or removed from her position. Clues include the emergency meeting immediately following her report submission, colleagues' avoidance indicating discomfort or bad news, and the deactivation of her account signaling loss of access.
+    good_answer: |
+      It appears Maria was fired or suspended, suggested by the emergency meeting, her coworkers' behavior, and the deactivated email account.
+    pass_option: |
+      Maria probably lost her job or access; the meeting, colleagues' behavior, and account deactivation hint at this.
+  incorrect_direction: |
+    Simply repeating facts without inference or stating unrelated conclusions such as Maria being promoted or transferred.

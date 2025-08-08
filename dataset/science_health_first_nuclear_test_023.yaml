@@ -1,0 +1,14 @@
+- task_id: "science_health_first_nuclear_test_023"
+  category: "Science & Health"
+  sub_category: "Nuclear History"
+  question: |
+    What was the precise date (month, day, year) and location of the first successful detonation of a nuclear weapon, and what specific code name was given to this test by the Manhattan Project?
+  expected_answer:
+    most_expected: |
+      The first successful nuclear detonation was on July 16, 1945, at the Trinity site near Alamogordo, New Mexico. The test was code-named "Trinity."
+    good_answer: |
+      July 16, 1945, Trinity site, Alamogordo, New Mexico; test name "Trinity."
+    pass_option: |
+      "Trinity" test on July 16, 1945, at Alamogordo, New Mexico.
+  incorrect_direction: |
+    Incorrect date, location, or code name.

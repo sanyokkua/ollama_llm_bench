@@ -1,0 +1,16 @@
+- task_id: "inconsistent_narrative_detection_005"
+  category: "Critical Thinking"
+  sub_category: "Narrative Consistency"
+  question: |
+    "I woke up at 6 AM for my morning run along the beach. The sunrise was beautiful as I jogged past the pier. Later, I told my friend about seeing the full moon reflecting on the water during my run. We agreed it was a magical experience."
+
+    Identify the contextual inconsistency in this narrative. Explain why it's impossible based on astronomical facts.
+  expected_answer:
+    most_expected: |
+      The inconsistency is that the narrator claims to see a full moon reflecting on the water during a morning run at sunrise. Astronomically, a full moon is visible at night, and it sets around sunrise, so it is highly unlikely or impossible to see a full moon during sunrise.
+  good_answer: |
+    The narrator cannot see the full moon reflecting on the water at sunrise since the full moon is typically visible at night and sets by sunrise.
+  pass_option: |
+    The story conflicts with moon visibility times; full moon is not seen during sunrise.
+  incorrect_direction: |
+    Failing to recognize the contradiction between seeing a full moon and sunrise timing or ignoring astronomical facts.

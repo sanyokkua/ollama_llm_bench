@@ -1,0 +1,12 @@
+- task_id: "directional_ambiguity_test_009"
+  category: "Text Transformation"
+  sub_category: "Word Replacement"
+  question: |
+    Change every 'left' to 'right' and every 'right' to 'left' in this sentence:
+    'Turn left at the corner, then take the second right. Your destination will be on the right.'
+  expected_answer:
+    most_expected: "Turn right at the corner, then take the second left. Your destination will be on the left."
+    good_answer: "Turn right at the corner then take the second left. Destination is on the left."
+    pass_option: "Any sentence where all occurrences of 'left' and 'right' are swapped, preserving original meaning."
+  incorrect_direction: |
+    Missing some swaps, or swaps reversed, or changes to words other than 'left' and 'right'.

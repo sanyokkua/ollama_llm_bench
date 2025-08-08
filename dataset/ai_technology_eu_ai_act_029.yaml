@@ -1,0 +1,14 @@
+- task_id: "ai_technology_eu_ai_act_029"
+  category: "AI & Current Technology"
+  sub_category: "AI Regulation"
+  question: |
+    What specific year did the European Union formally adopt the AI Act, and what exact date did it enter into force according to the Official Journal of the European Union?
+  expected_answer:
+    most_expected: |
+      The European Union formally adopted the AI Act in 2023. It entered into force on July 1, 2024, as published in the Official Journal of the European Union.
+    good_answer: |
+      EU AI Act adopted in 2023; entered into force July 1, 2024.
+    pass_option: |
+      AI Act adopted 2023, effective July 1, 2024.
+  incorrect_direction: |
+    Incorrect adoption year or enforcement date.

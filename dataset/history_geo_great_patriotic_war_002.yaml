@@ -1,0 +1,14 @@
+- task_id: "history_geo_great_patriotic_war_002"
+  category: "History & Geography"
+  sub_category: "World War II"
+  question: |
+    Why does Russian historiography officially recognize the Great Patriotic War as beginning on June 22, 1941, rather than September 1, 1939, and what specific event marks this date?
+  expected_answer:
+    most_expected: |
+      Russian historiography marks June 22, 1941, as the start of the Great Patriotic War because this is the date Nazi Germany launched Operation Barbarossa, the invasion of the Soviet Union. September 1, 1939, marks the start of WWII globally but the USSR's direct involvement began in 1941.
+    good_answer: |
+      The Great Patriotic War starts June 22, 1941, when Germany attacked the USSR, differing from the global WWII start in 1939.
+    pass_option: |
+      The USSR entered WWII on June 22, 1941, with Germany’s invasion, not at the general start in 1939.
+  incorrect_direction: |
+    Confusing the dates or events, such as starting the war at 1939 in Russian context or omitting Operation Barbarossa.

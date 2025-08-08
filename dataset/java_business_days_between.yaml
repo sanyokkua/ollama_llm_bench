@@ -1,0 +1,53 @@
+- task_id: "java_business_days_between"
+  category: "Coding"
+  sub_category: "Java"
+  question: |
+    Write a Java method using the Java 8+ Date/Time API to calculate 
+    the number of business days between two given dates. 
+    Requirements:
+      - Exclude weekends (Saturday, Sunday)
+      - Exclude provided public holidays
+      - Correctly handle leap years
+      - Support different time zones
+    The method should accept start and end dates, a set of holiday dates, 
+    and a `ZoneId` for the time zone.
+  expected_answer:
+    most_expected: |
+      import java.time.DayOfWeek;
+      import java.time.LocalDate;
+      import java.time.ZoneId;
+      import java.util.Set;
+
+      public static long businessDaysBetween(
+              LocalDate start, LocalDate end, Set<LocalDate> holidays, ZoneId zone) {
+          if (end.isBefore(start)) {
+              throw new IllegalArgumentException("End date must not be before start date");
+          }
+
+          long businessDays = 0;
+          LocalDate date = start;
+
+          while (!date.isAfter(end)) {
+              DayOfWeek dayOfWeek = date.getDayOfWeek();
+              if (dayOfWeek != DayOfWeek.SATURDAY &&
+                  dayOfWeek != DayOfWeek.SUNDAY &&
+                  !holidays.contains(date)) {
+                  businessDays++;
+              }
+              date = date.plusDays(1);
+          }
+
+          return businessDays;
+      }
+    good_answer: |
+      Iterates over dates between start and end using Java 8's `LocalDate` 
+      and checks for weekends and given holidays. Correctly accounts for 
+      leap years and respects the provided `ZoneId`.
+    pass_option: |
+      Any working Java method using the new Date/Time API to count business days 
+      excluding weekends and given holidays, even if leap year handling relies 
+      on the API's built-in correctness and timezone logic is minimal.
+  incorrect_direction: |
+    Uses outdated `java.util.Date`/`Calendar` APIs, fails to exclude weekends 
+    or holidays, ignores leap years, or produces incorrect results due to 
+    timezone mismanagement.

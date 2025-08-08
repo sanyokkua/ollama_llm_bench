@@ -1,0 +1,14 @@
+- task_id: "tech_computing_typescript_creation_reason_018"
+  category: "Technology & Computing"
+  sub_category: "Programming Languages"
+  question: |
+    What specific technical limitation of JavaScript prompted the creation of TypeScript, and what particular feature was TypeScript's first implementation specifically designed to address?
+  expected_answer:
+    most_expected: |
+      JavaScript’s lack of static typing and scalable tooling prompted TypeScript’s creation. TypeScript's first implementation focused on adding optional static types to improve code maintainability and tooling support.
+    good_answer: |
+      TypeScript was created to add static typing to JavaScript for better scalability and tooling.
+    pass_option: |
+      Missing static types in JavaScript led to TypeScript’s design for optional static typing.
+  incorrect_direction: |
+    Mentioning unrelated limitations or ignoring static typing as core reason.

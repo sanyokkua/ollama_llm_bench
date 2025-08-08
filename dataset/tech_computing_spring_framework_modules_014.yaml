@@ -1,0 +1,17 @@
+- task_id: "tech_computing_spring_framework_modules_014"
+  category: "Technology & Computing"
+  sub_category: "Java Frameworks"
+  question: |
+    What are the four core modules that constitute the Spring Framework's essential architecture (excluding optional extensions), and what specific problem does each solve in enterprise Java development?
+  expected_answer:
+    most_expected: |
+      1. Core Container - manages dependency injection and inversion of control.
+      2. Spring AOP - provides aspect-oriented programming for cross-cutting concerns.
+      3. Data Access/Integration - simplifies database interaction and transaction management.
+      4. Web Module - supports web applications via MVC architecture and REST.
+    good_answer: |
+      Core Container (DI), AOP (cross-cutting), Data Access (DB + transactions), Web (MVC & REST).
+    pass_option: |
+      Spring's core modules handle DI, AOP, data access, and web development in Java enterprise apps.
+  incorrect_direction: |
+    Including non-core modules or vague/missing problem descriptions.

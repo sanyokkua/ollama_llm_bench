@@ -1,0 +1,14 @@
+- task_id: "ai_technology_llm_definition_027"
+  category: "AI & Current Technology"
+  sub_category: "Large Language Models"
+  question: |
+    What is the precise technical definition of a Large Language Model (LLM) according to the 2023 ACM Computing Classification System, and what specific parameter threshold distinguishes LLMs from smaller language models in academic literature?
+  expected_answer:
+    most_expected: |
+      The 2023 ACM Computing Classification System defines a Large Language Model (LLM) as a neural network-based language model with more than 1 billion parameters, trained on extensive textual corpora using self-supervised learning.
+    good_answer: |
+      LLMs are language models exceeding 1 billion parameters, per ACM 2023 classification.
+    pass_option: |
+      Models over 1B parameters qualify as LLMs according to ACM 2023.
+  incorrect_direction: |
+    Incorrect parameter threshold or vague definition not matching ACM standards.

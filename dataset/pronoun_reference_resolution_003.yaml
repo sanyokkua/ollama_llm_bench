@@ -1,0 +1,20 @@
+- task_id: "pronoun_reference_resolution_003"
+  category: "Reading Comprehension"
+  sub_category: "Pronoun Ambiguity"
+  question: |
+    "When Dr. Chen told Dr. Alvarado that her research was flawed, she became defensive. Later, the department chair reviewed the paper and agreed with her assessment. At the faculty meeting, he publicly sided with her, which shocked everyone since they had always supported her work."
+
+    Identify who 'she', 'her', and 'he' refer to in each instance. Explain your reasoning using contextual clues. There is intentional ambiguity in one reference.
+  expected_answer:
+    most_expected: |
+      - "she" (first sentence): Dr. Alvarado (became defensive when criticized)
+      - "her research": Dr. Alvarado's research (context of criticism)
+      - "her assessment": Dr. Chen's assessment (department chair agrees with critic)
+      - "he": department chair (male pronoun, public siding)
+      - "her" (at faculty meeting): ambiguous; could be Dr. Chen or Dr. Alvarado, but likely Dr. Alvarado given "supported her work"
+  good_answer: |
+      "She" in first sentence is Dr. Alvarado, "her research" refers to Dr. Alvarado's work, "her assessment" is Dr. Chen's opinion. "He" is the department chair. The last "her" is ambiguous but probably Dr. Alvarado.
+    pass_option: |
+      Assign pronouns mostly correctly with some uncertainty on the ambiguous "her."
+  incorrect_direction: |
+    Misidentify pronouns or ignore intentional ambiguity in the last reference.

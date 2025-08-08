@@ -1,0 +1,14 @@
+- task_id: "tech_computing_typescript_release_015"
+  category: "Technology & Computing"
+  sub_category: "Programming Languages"
+  question: |
+    What specific year and month was TypeScript first made publicly available on GitHub, and what was the exact version number of its initial public release?
+  expected_answer:
+    most_expected: |
+      TypeScript was first made publicly available on GitHub in October 2012 with the initial public release version 0.8.
+    good_answer: |
+      TypeScript debuted on GitHub in October 2012 as version 0.8.
+    pass_option: |
+      October 2012, version 0.8 was TypeScript's first public release on GitHub.
+  incorrect_direction: |
+    Incorrect year/month or wrong initial version number.
