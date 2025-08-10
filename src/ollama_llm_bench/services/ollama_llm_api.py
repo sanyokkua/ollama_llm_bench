@@ -60,8 +60,8 @@ class OllamaApi(LLMApi):
             start_time = time.time()
             logger.debug(f"Starting inference for model: {model_name}")
             if on_llm_response:
-                on_llm_response(f"User prompt: {user_prompt}\n")
-                on_llm_response(f"Starting inference for model: {model_name}\n")
+                on_llm_response(f"User prompt: {user_prompt}")
+                on_llm_response(f"Starting inference for model: {model_name}")
 
             response = self._ollama_client.generate(
                 model=model_name,
@@ -77,7 +77,7 @@ class OllamaApi(LLMApi):
                     tokens_generated += len(content.split())
 
             if on_llm_response:
-                on_llm_response("LLM Response:\n")
+                on_llm_response("LLM Response:")
                 on_llm_response(full_response)
                 on_llm_response("\n")
 
@@ -86,8 +86,8 @@ class OllamaApi(LLMApi):
             time_taken_ms = int((end_time - start_time) * 1000)
             logger.debug(f"Time taken for inference: {time_taken_ms}ms")
             if on_llm_response:
-                on_llm_response(f"Inference completed for model: {model_name}\n")
-                on_llm_response(f"Time taken for inference: {time_taken_ms}ms\n")
+                on_llm_response(f"Inference completed for model: {model_name}")
+                on_llm_response(f"Time taken for inference: {time_taken_ms}ms")
 
             return InferenceResponse(
                 llm_response=full_response,
@@ -98,8 +98,8 @@ class OllamaApi(LLMApi):
         except Exception as e:
             logger.warning(f"Failed to run inference for model: {model_name}")
             if on_llm_response:
-                on_llm_response(f"Failed to run inference for model: {model_name}\n")
-                on_llm_response(f"Error: {str(e)}\n")
+                on_llm_response(f"Failed to run inference for model: {model_name}")
+                on_llm_response(f"Error: {str(e)}")
             return InferenceResponse(
                 has_error=True,
                 error_message=str(e),

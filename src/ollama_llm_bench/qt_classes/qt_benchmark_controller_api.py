@@ -182,6 +182,11 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
             # Clear current run ID if it was the one deleted
             if self._current_run_id is not None:
                 self._set_current_run_id(None)
+
+            runs = self.get_runs_list()
+            if len(runs)>0 and runs[0]:
+                latest_run = runs[0]
+                self._set_current_run_id(latest_run[0])
         except Exception as e:
             logger.error(f"Failed to delete run {self._current_run_id}: {str(e)}")
             raise

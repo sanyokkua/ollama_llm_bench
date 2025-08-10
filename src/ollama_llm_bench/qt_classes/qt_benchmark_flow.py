@@ -73,6 +73,7 @@ class BenchmarkExecutionTask(QRunnable):
     def _execute_benchmark(self) -> None:
         """Core execution logic running in worker thread"""
         try:
+            self._update_progress(0, 100)
             # 1. Load all tasks and organize by model
             all_tasks = self.data_api.retrieve_benchmark_results_for_run(self.run_id)
             self._total_tasks = len(all_tasks)
@@ -141,6 +142,7 @@ class BenchmarkExecutionTask(QRunnable):
                         # Build and execute prompt
                         self.signals.log_message.emit(f"Processing task {task.task_id} for model {model_name}")
                         self.logger.info(f"Processing task {task.task_id} for model {model_name}")
+                        self._update_progress(model_completed, model_total)
 
                         user_prompt = self.prompt_builder_api.build_prompt(task.task_id)
                         response = self.llm_api.inference(

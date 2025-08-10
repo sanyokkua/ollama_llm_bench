@@ -91,5 +91,6 @@ class NewRunWidget(QWidget):
     def set_benchmark_is_running(self, is_running: bool) -> None:
         self._start_button_new.setEnabled(not is_running)
         self._judge_dropdown_new.setEnabled(not is_running)
+        self._refresh_button_new.setEnabled(not is_running)
         self._models_list.setEnabled(not is_running)
         self._stop_button_new.setEnabled(is_running)

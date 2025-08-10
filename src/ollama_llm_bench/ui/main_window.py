@@ -14,9 +14,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Ollama LLM Benchmarker v1.0")
         self.resize(1200, 800)
 
-        # Create central widget and layout
-        central_widget = CentralWidget(ctx.get_benchmark_controller_api())
+        # Create a central widget and layout
+        central_widget = CentralWidget(ctx)
         self.setCentralWidget(central_widget)
 
-        # Set window flags for better look and feel on macOS
+        # Set window flags for a better look and feel on macOS
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.MacWindowToolBarButtonHint)

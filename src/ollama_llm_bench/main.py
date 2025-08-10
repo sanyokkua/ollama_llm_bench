@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
 
-from ollama_llm_bench.app_context import create_app_context
+from ollama_llm_bench.app_context import ContextProvider, _create_app_context
 from ollama_llm_bench.ui.main_window import MainWindow
 
 
@@ -34,7 +34,8 @@ ROOT_FOLDER_PATH = Path(__file__).parent.parent.parent
 
 def main() -> None:
     configure_logger()
-    ctx = create_app_context(ROOT_FOLDER_PATH)
+    ContextProvider.initialize(ROOT_FOLDER_PATH)
+    ctx = ContextProvider.get_context()
     app = QApplication(sys.argv)
     main_window = MainWindow(ctx)
     main_window.show()

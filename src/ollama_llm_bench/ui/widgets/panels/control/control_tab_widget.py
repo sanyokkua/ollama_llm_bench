@@ -16,6 +16,7 @@ class ControlTabWidget(QTabWidget):
     btn_prev_run_refresh_clicked = pyqtSignal()
     btn_prev_run_stop_clicked = pyqtSignal()
     btn_prev_run_start_clicked = pyqtSignal(int)
+    dropdown_run_changed = pyqtSignal(int)
 
     def __init__(self, new_run_model: NewRunWidgetModel, prev_run_model: PreviousRunWidgetModel) -> None:
         super().__init__()
@@ -31,6 +32,10 @@ class ControlTabWidget(QTabWidget):
         self._previous_benchmark_tab.btn_refresh_clicked.connect(self.btn_prev_run_refresh_clicked)
         self._previous_benchmark_tab.btn_stop_clicked.connect(self.btn_prev_run_stop_clicked)
         self._previous_benchmark_tab.btn_start_clicked.connect(self.btn_prev_run_start_clicked)
+        self._previous_benchmark_tab.dropdown_run_changed.connect(self._on_item_changed)
+
+    def _on_item_changed(self, run_id: int):
+        self.dropdown_run_changed.emit(run_id)
 
     def refresh_widgets_data_for_new_run(self, model: NewRunWidgetModel) -> None:
         self._new_benchmark_tab.refresh_widgets_data(model)

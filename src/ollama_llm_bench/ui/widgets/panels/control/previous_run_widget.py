@@ -13,6 +13,7 @@ class PreviousRunWidget(QWidget):
     btn_refresh_clicked = pyqtSignal()
     btn_stop_clicked = pyqtSignal()
     btn_start_clicked = pyqtSignal(int)
+    dropdown_run_changed = pyqtSignal(int)
 
     def __init__(self, model: PreviousRunWidgetModel) -> None:
         """Initialize the control panel."""
@@ -57,6 +58,12 @@ class PreviousRunWidget(QWidget):
     def _on_stop_clicked(self) -> None:
         self.btn_stop_clicked.emit()
         print("Stop Benchmark button clicked")
+
+    def _on_item_changed(self):
+        current_index = self._unfinished_dropdown_prev.currentIndex()
+        if current_index >= 0:
+            run_id = self._unfinished_dropdown_prev.itemData(current_index)
+            self.dropdown_run_changed.emit(run_id)
 
     def refresh_widgets_data(self, model: PreviousRunWidgetModel) -> None:
         if model is None:

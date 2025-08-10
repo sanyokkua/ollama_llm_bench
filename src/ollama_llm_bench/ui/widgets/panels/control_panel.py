@@ -24,6 +24,7 @@ class ControlPanel(QWidget):
     btn_prev_run_refresh_clicked = pyqtSignal()
     btn_prev_run_stop_clicked = pyqtSignal()
     btn_prev_run_start_clicked = pyqtSignal(int)
+    dropdown_run_changed = pyqtSignal(int)
 
     def __init__(self, model: ControlPanelModel) -> None:
         super().__init__()
@@ -32,12 +33,15 @@ class ControlPanel(QWidget):
         prev_run_model: PreviousRunWidgetModel = PreviousRunWidgetModel([])
 
         self._tab_widget = ControlTabWidget(new_run_model=new_run_model, prev_run_model=prev_run_model)
+        self._tasks_status = QLabel()
         self._progress_bar = QProgressBar()
         self._status_label = QLabel()
 
-        progress_layout = QHBoxLayout()
+        progress_layout = QVBoxLayout()
+        progress_layout.addWidget(self._tasks_status)
         progress_layout.addWidget(self._progress_bar)
         progress_layout.addWidget(self._status_label)
+        progress_layout.addStretch()
         self._progress_bar.setRange(0, 100)
 
         layout = QVBoxLayout()
@@ -51,6 +55,7 @@ class ControlPanel(QWidget):
         self._tab_widget.btn_prev_run_refresh_clicked.connect(self.btn_prev_run_refresh_clicked)
         self._tab_widget.btn_prev_run_stop_clicked.connect(self.btn_prev_run_stop_clicked)
         self._tab_widget.btn_prev_run_start_clicked.connect(self.btn_prev_run_start_clicked)
+        self._tab_widget.dropdown_run_changed.connect(lambda run_id: self.dropdown_run_changed.emit(run_id))
         self.update_state(model)
 
     def update_state(self, model: ControlPanelModel) -> None:
@@ -58,8 +63,16 @@ class ControlPanel(QWidget):
         prev_run_model: PreviousRunWidgetModel = PreviousRunWidgetModel(model.runs)
         self._tab_widget.refresh_widgets_data_for_new_run(new_run_model)
         self._tab_widget.refresh_widgets_data_for_prev_run(prev_run_model)
-        self._progress_bar.setValue(model.progress)
-        self._status_label.setText(model.status)
 
     def set_benchmark_is_running(self, is_running: bool) -> None:
         self._tab_widget.set_benchmark_is_running(is_running)
+
+    def update_progress(self, total_amount: int, completed_amount: int) -> None:
+        self._progress_bar.setMaximum(total_amount)
+        self._progress_bar.setValue(completed_amount)
+
+    def update_tasks_status(self, total_amount: int, completed_amount: int) -> None:
+        self._status_label.setText(f"Tasks: {completed_amount}/{total_amount}")
+
+    def update_status(self, status: str) -> None:
+        self._status_label.setText(status)
