@@ -4,7 +4,7 @@ import ollama
 from PyQt6.QtCore import QMutex, QMutexLocker, QThreadPool
 
 from ollama_llm_bench.core.interfaces import (
-    BenchmarkApplicationControllerApi, BenchmarkFlowApi,
+    AppContext, BenchmarkApplicationControllerApi, BenchmarkFlowApi,
     BenchmarkTaskApi, DataApi, LLMApi, PromptBuilderApi, ResultApi,
 )
 from ollama_llm_bench.qt_classes.qt_benchmark_controller_api import QtBenchmarkControllerAPI
@@ -20,7 +20,7 @@ DATA_SET_PATH = "dataset"
 DB_FILE_NAME = "db.sqlite"
 
 
-class AppContext:
+class ApplicationContext(AppContext):
     """Immutable application context container"""
     __slots__ = (
         '_ollama_llm_api', '_task_api', '_prompt_builder_api',
@@ -56,7 +56,7 @@ class AppContext:
 
 class ContextProvider:
     """PyQt6-safe singleton context provider with static access"""
-    _context: AppContext | None = None
+    _context: ApplicationContext | None = None
     _initialized = False
     _mutex = QMutex()  # Using Qt's mutex for compatibility with PyQt threading model
 
@@ -78,7 +78,7 @@ class ContextProvider:
             cls._initialized = True
 
     @classmethod
-    def get_context(cls) -> AppContext:
+    def get_context(cls) -> ApplicationContext:
         """Thread-safe context access from any thread"""
         if not cls._initialized:
             raise RuntimeError(
@@ -88,13 +88,15 @@ class ContextProvider:
         return cls._context
 
 
-def _create_app_context(root_folder: Path) -> AppContext:
+def _create_app_context(root_folder: Path) -> ApplicationContext:
     """Create context (MUST be called from main thread)"""
     data_set_path = root_folder / DATA_SET_PATH
     db_path = root_folder / DB_FILE_NAME
 
+    event_bus = QtEventBus()
+
     # Ollama client should be created in main thread per Ollama's requirements
-    ollama_client = ollama.Client()
+    ollama_client = ollama.Client(timeout=300)
     ollama_llm_api = OllamaApi(ollama_client)
 
     task_api = YamlBenchmarkTaskApi(task_folder_path=data_set_path)
@@ -121,11 +123,10 @@ def _create_app_context(root_folder: Path) -> AppContext:
         task_api=task_api,
         benchmark_flow_api=benchmark_flow_api,
         result_api=result_api,
+        event_bus=event_bus,
     )
 
-    event_bus = QtEventBus()
-
-    return AppContext(
+    return ApplicationContext(
         ollama_llm_api=ollama_llm_api,
         task_api=task_api,
         prompt_builder_api=prompt_builder_api,

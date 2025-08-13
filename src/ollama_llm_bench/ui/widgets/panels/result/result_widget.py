@@ -1,7 +1,6 @@
-from dataclasses import dataclass, field
+import logging
 from typing import List
 
-from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -15,30 +14,20 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from ollama_llm_bench.core.interfaces import AppContext
 from ollama_llm_bench.core.models import AvgSummaryTableItem, SummaryTableItem
 
-
-@dataclass(frozen=True)
-class ResultWidgetModel:
-    runs: list[tuple[int, str]] = field(default_factory=lambda: [])
-    summary_data: List[AvgSummaryTableItem] = field(default_factory=lambda: [])
-    detailed_data: List[SummaryTableItem] = field(default_factory=lambda: [])
-
+logger = logging.getLogger(__name__)
 
 TABLE_SUMMARY_HEADER = ["MODEL", "AVG. TIME (s)", "AVG. TOKENS/s", "AVG. SCORE (%)"]
 TABLE_DETAILED_HEADER = ["MODEL", "Task", "TIME (ms)", "Tokens", "TOKENS/s", "SCORE", "REASON"]
 
 
 class ResultWidget(QWidget):
-    btn_export_csv_summary_clicked = pyqtSignal()
-    btn_export_md_summary_clicked = pyqtSignal()
-    btn_export_csv_detailed_clicked = pyqtSignal()
-    btn_export_md_detailed_clicked = pyqtSignal()
-    btn_delete_run_clicked = pyqtSignal()
-    dropdown_run_changed = pyqtSignal(int)
-
-    def __init__(self, model: ResultWidgetModel):
+    def __init__(self, ctx: AppContext):
         super().__init__()
+        self._event_bus = ctx.get_event_bus()
+
         self._run_label = QLabel("Run Results:")
         self._run_dropdown = QComboBox()
         self._summary_label = QLabel("Summary: Average Performance per Model")
@@ -88,34 +77,39 @@ class ResultWidget(QWidget):
         self.setLayout(main_layout)
 
         self._summary_table.setHorizontalHeaderLabels(TABLE_SUMMARY_HEADER)
-        self._summary_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._summary_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self._detailed_table.setHorizontalHeaderLabels(TABLE_DETAILED_HEADER)
-        self._detailed_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self._detailed_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self._summary_table.setSortingEnabled(True)
+        self._detailed_table.setSortingEnabled(True)
 
         self._run_dropdown.currentIndexChanged.connect(self._on_item_changed)
-        self._delete_button.clicked.connect(self._on_delete_clicked)
-        self._summary_csv_button.clicked.connect(self.btn_export_csv_summary_clicked)
-        self._summary_md_button.clicked.connect(self.btn_export_md_summary_clicked)
-        self._detailed_csv_button.clicked.connect(self.btn_export_csv_detailed_clicked)
-        self._detailed_md_button.clicked.connect(self.btn_export_md_detailed_clicked)
+        self._delete_button.clicked.connect(lambda: self._event_bus.emit_result_btn_delete_run_clicked())
+        self._summary_csv_button.clicked.connect(lambda: self._event_bus.emit_result_btn_export_csv_summary_clicked())
+        self._summary_md_button.clicked.connect(lambda: self._event_bus.emit_result_btn_export_md_summary_clicked())
+        self._detailed_csv_button.clicked.connect(lambda: self._event_bus.emit_result_btn_export_csv_detailed_clicked())
+        self._detailed_md_button.clicked.connect(lambda: self._event_bus.emit_result_btn_export_md_detailed_clicked())
 
-        self.update_state(model)
+        self._event_bus.subscribe_app_runs_changed(self._on_runs_changed)
+        self._event_bus.subscribe_app_current_run_summary_data_changed(self._on_summary_data_changed)
+        self._event_bus.subscribe_app_current_run_detailed_data_changed(self._on_detailed_data_changed)
+        self._event_bus.subscribe_to_benchmark_is_running_events(self._on_benchmark_is_running_changed)
 
     def _on_item_changed(self):
+        logger.debug("Dropdown item changed")
         current_index = self._run_dropdown.currentIndex()
         if current_index >= 0:
             run_id = self._run_dropdown.itemData(current_index)
-            self.dropdown_run_changed.emit(run_id)
+            self._event_bus.emit_benchmark_run_id_changed_events(run_id)
+            logger.debug(f"Run ID changed to {run_id}")
+        logger.debug(f"Current index: {current_index}")
 
-    def _on_delete_clicked(self):
-        self.btn_delete_run_clicked.emit()
-
-    def _set_run_options(self, run_ids: list[tuple[int, str]]):
+    def _on_runs_changed(self, run_ids: list[tuple[int, str]]):
         self._run_dropdown.clear()
         for run_id, name in run_ids:
             self._run_dropdown.addItem(name, run_id)
 
-    def _set_summary_data(self, data: List[AvgSummaryTableItem]):
+    def _on_summary_data_changed(self, data: List[AvgSummaryTableItem]):
         self._summary_table.setRowCount(len(data))
 
         for row, item in enumerate(data):
@@ -123,8 +117,9 @@ class ResultWidget(QWidget):
             self._summary_table.setItem(row, 1, QTableWidgetItem(f"{item.avg_time_ms / 1000:.2f}"))
             self._summary_table.setItem(row, 2, QTableWidgetItem(f"{item.avg_tokens_per_second:.2f}"))
             self._summary_table.setItem(row, 3, QTableWidgetItem(f"{item.avg_score:.2f}"))
+        self._summary_table.setSortingEnabled(True)
 
-    def _set_detailed_data(self, data: List[SummaryTableItem]):
+    def _on_detailed_data_changed(self, data: List[SummaryTableItem]):
         self._detailed_table.setRowCount(len(data))
 
         for row, item in enumerate(data):
@@ -135,13 +130,9 @@ class ResultWidget(QWidget):
             self._detailed_table.setItem(row, 4, QTableWidgetItem(f"{item.tokens_per_second:.2f}"))
             self._detailed_table.setItem(row, 5, QTableWidgetItem(f"{item.score:.2f}"))
             self._detailed_table.setItem(row, 6, QTableWidgetItem(item.score_reason))
+        self._detailed_table.setSortingEnabled(True)
 
-    def update_state(self, model: ResultWidgetModel):
-        self._set_run_options(model.runs)
-        self._set_summary_data(model.summary_data)
-        self._set_detailed_data(model.detailed_data)
-
-    def set_benchmark_is_running(self, is_running: bool) -> None:
+    def _on_benchmark_is_running_changed(self, is_running: bool) -> None:
         self._run_label.setEnabled(not is_running)
         self._run_dropdown.setEnabled(not is_running)
         self._summary_label.setEnabled(not is_running)

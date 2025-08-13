@@ -1,7 +1,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMainWindow
 
-from ollama_llm_bench.app_context import AppContext
+from ollama_llm_bench.core.interfaces import AppContext
 from ollama_llm_bench.ui.widgets.central_widget import CentralWidget
 
 
@@ -20,3 +20,4 @@ class MainWindow(QMainWindow):
 
         # Set window flags for a better look and feel on macOS
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.MacWindowToolBarButtonHint)
+        ctx.get_benchmark_controller_api().send_initial_state()

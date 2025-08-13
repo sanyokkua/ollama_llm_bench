@@ -28,9 +28,9 @@ class AppResultApi(ResultApi):
         model_results = defaultdict(list)
         valid_results_count = 0
         for result in results:
-            if result.status == BenchmarkResultStatus.COMPLETED and result.time_taken_ms is not None:
-                model_results[result.model_name].append(result)
-                valid_results_count += 1
+            # if result.status == BenchmarkResultStatus.COMPLETED and result.time_taken_ms is not None:
+            model_results[result.model_name].append(result)
+            valid_results_count += 1
 
         if not valid_results_count:
             logger.warning("No valid completed results found for run ID %d", run_id)
@@ -41,7 +41,7 @@ class AppResultApi(ResultApi):
         avg_results = []
         for model_name, model_results_list in model_results.items():
             count = len(model_results_list)
-            total_time = sum(r.time_taken_ms for r in model_results_list)
+            total_time = sum(r.time_taken_ms or 0 for r in model_results_list)
             total_tokens = sum(r.tokens_generated or 0 for r in model_results_list)
             total_score = sum(r.evaluation_score or 0.0 for r in model_results_list)
 
@@ -72,20 +72,20 @@ class AppResultApi(ResultApi):
         detailed_results = []
         valid_results_count = 0
         for result in results:
-            if result.status == BenchmarkResultStatus.COMPLETED and result.time_taken_ms is not None:
-                tokens_generated = (result.tokens_generated or 0)
-                tokens_per_second = tokens_generated / result.time_taken_ms * 1000 if result.time_taken_ms > 0 else 0.0
-                score_reason = result.evaluation_reason or ""
+            # if result.status == BenchmarkResultStatus.COMPLETED and result.time_taken_ms is not None:
+            tokens_generated = (result.tokens_generated or 0)
+            tokens_per_second = tokens_generated / result.time_taken_ms * 1000 if (result.time_taken_ms or 0) > 0 else 0.0
+            score_reason = result.evaluation_reason or ""
 
-                item = SummaryTableItem(model_name=result.model_name,
-                                        task_id=result.task_id,
-                                        time_ms=result.time_taken_ms,
-                                        tokens=result.tokens_generated or 0,
-                                        tokens_per_second=tokens_per_second,
-                                        score=result.evaluation_score or 0.0,
-                                        score_reason=score_reason, )
-                detailed_results.append(item)
-                valid_results_count += 1
+            item = SummaryTableItem(model_name=result.model_name,
+                                    task_id=result.task_id,
+                                    time_ms=result.time_taken_ms,
+                                    tokens=result.tokens_generated or 0,
+                                    tokens_per_second=tokens_per_second,
+                                    score=result.evaluation_score or 0.0,
+                                    score_reason=score_reason, )
+            detailed_results.append(item)
+            valid_results_count += 1
 
         if not valid_results_count:
             logger.warning("No valid completed results found for run ID %d", run_id)

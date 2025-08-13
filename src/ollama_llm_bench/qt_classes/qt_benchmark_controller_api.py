@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Callable, Optional
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject
 
 from ollama_llm_bench.core.interfaces import (
     BenchmarkApplicationControllerApi,
@@ -12,24 +12,19 @@ from ollama_llm_bench.core.interfaces import (
 from ollama_llm_bench.core.models import (
     AvgSummaryTableItem,
     BenchmarkResult,
-    BenchmarkRun,
+    BenchmarkResultStatus, BenchmarkRun,
     BenchmarkRunStatus,
     ReporterStatusMsg,
     SummaryTableItem,
 )
 from ollama_llm_bench.qt_classes.meta_class import MetaQObjectABC
+from ollama_llm_bench.qt_classes.qt_event_bus import QtEventBus
+from ollama_llm_bench.ui.widgets.panels.control.new_run_widget import NewRunWidgetStartEvent
 
 logger = logging.getLogger(__name__)
 
 
 class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metaclass=MetaQObjectABC):
-    """Controller that manages the benchmark application state and coordinates between UI and backend"""
-
-    benchmark_run_id_changed_events = pyqtSignal(int)
-    benchmark_status_events = pyqtSignal(bool)
-    benchmark_output_events = pyqtSignal(str)
-    benchmark_progress_events = pyqtSignal(ReporterStatusMsg)
-
     def __init__(
         self,
         *,
@@ -38,6 +33,7 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
         task_api: BenchmarkTaskApi,
         benchmark_flow_api: BenchmarkFlowApi,
         result_api: ResultApi,
+        event_bus: QtEventBus,
     ) -> None:
         super().__init__()
         self._data_api = data_api
@@ -45,6 +41,7 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
         self._task_api = task_api
         self._benchmark_flow_api = benchmark_flow_api
         self._result_api = result_api
+        self._event_bus = event_bus
 
         # Initialize state
         self._current_run_id: Optional[int] = None
@@ -63,16 +60,43 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
         self._benchmark_flow_api.subscribe_to_benchmark_output_events(self._on_benchmark_output)
         self._benchmark_flow_api.subscribe_to_benchmark_progress_events(self._on_benchmark_progress)
 
+        self._event_bus.subscribe_to_prev_run_run_id_changed(self.set_current_run_id)
+        self._event_bus.subscribe_to_result_run_id_changed(self.set_current_run_id)
+        self._event_bus.subscribe_to_result_btn_export_csv_summary_clicked(self.generate_summary_csv_report)
+        self._event_bus.subscribe_to_result_btn_export_csv_detailed_clicked(self.generate_detailed_csv_report)
+        self._event_bus.subscribe_to_result_btn_export_md_summary_clicked(self.generate_summary_markdown_report)
+        self._event_bus.subscribe_to_result_btn_export_md_detailed_clicked(self.generate_detailed_markdown_report)
+
+        self._event_bus.subscribe_to_new_run_btn_new_run_start_clicked(self._on_new_run_start_clicked)
+        self._event_bus.subscribe_to_prev_run_btn_prev_run_start_clicked(self._on_prev_run_start_clicked)
+        self._event_bus.subscribe_to_new_run_btn_new_run_stop_clicked(self.stop_benchmark)
+        self._event_bus.subscribe_to_prev_run_btn_prev_run_stop_clicked(self.stop_benchmark)
+        self._event_bus.subscribe_to_new_run_btn_new_run_refresh_clicked(self._on_models_refresh_clicked)
+        self._event_bus.subscribe_to_prev_run_btn_prev_run_refresh_clicked(self._on_runs_refresh_clicked)
+        self._event_bus.subscribe_to_result_btn_delete_run_clicked(self.delete_run)
+
     def _on_benchmark_status_changed(self, is_running: bool) -> None:
         """Handle benchmark status changes from the flow API"""
         status = "running" if is_running else "stopped"
         logger.info(f"Benchmark execution status changed to: {status}")
-        self.benchmark_status_events.emit(is_running)
+        self._event_bus.emit_benchmark_is_running_events(is_running)
+        if not is_running:
+            status = ReporterStatusMsg(
+                total_amount_of_tasks=1,
+                completed_amount_of_tasks=0,
+                current_model_name='',
+                current_task_id='',
+                total_amount_of_tasks_for_model=1,
+                completed_amount_of_tasks_for_model=0,
+                run_status=BenchmarkRunStatus.NOT_COMPLETED,
+                task_status=BenchmarkResultStatus.NOT_COMPLETED,
+            )
+            self._event_bus.emit_benchmark_progress_events(status)
 
     def _on_benchmark_output(self, message: str) -> None:
         """Handle log/output messages from the flow API"""
         logger.debug(f"Benchmark output: {message}")
-        self.benchmark_output_events.emit(message)
+        self._event_bus.emit_benchmark_log_events(message)
 
     def _on_benchmark_progress(self, status_msg: ReporterStatusMsg) -> None:
         """Handle progress updates from the flow API"""
@@ -80,7 +104,48 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
             f"Progress update - {status_msg.completed_amount_of_tasks}/{status_msg.total_amount_of_tasks} tasks completed. "
             f"Current model: {status_msg.current_model_name}, Task: {status_msg.current_task_id}",
         )
-        self.benchmark_progress_events.emit(status_msg)
+        self._event_bus.emit_benchmark_progress_events(status_msg)
+
+    def _on_prev_run_start_clicked(self, run_id: int) -> None:
+        try:
+            run = self._data_api.retrieve_benchmark_run(run_id)
+            if run.status in [BenchmarkRunStatus.COMPLETED, BenchmarkRunStatus.FAILED]:
+                return
+            self._set_current_run_id(run_id)
+            self._benchmark_flow_api.start_execution(run_id)
+        except Exception as e:
+            logger.error(f"Failed to retrieve benchmark run {run_id}: {str(e)}")
+
+    def _on_new_run_start_clicked(self, value: NewRunWidgetStartEvent) -> None:
+        timestamp = datetime.now().isoformat()
+        self.set_current_judge_model(value.judge_model)
+        self.set_current_test_models(list(value.models))
+
+        run = BenchmarkRun(
+            run_id=0,  # Will be set by data API
+            timestamp=timestamp,
+            judge_model=value.judge_model,
+            status=BenchmarkRunStatus.NOT_COMPLETED,
+        )
+        run_id = self._data_api.create_benchmark_run(run)
+        logger.info(f"Created new benchmark run with ID: {run_id}")
+
+        # Initialize benchmark results for all model/task combinations
+        self._initialize_benchmark_results(run_id)
+
+        # Set as current run and start execution
+        self._set_current_run_id(run_id)
+        self._benchmark_flow_api.start_execution(run_id)
+
+    def _on_models_refresh_clicked(self) -> None:
+        models = self.get_models_list()
+        self._event_bus.emit_app_models_changed(models)
+        logger.info(f"Refreshed models list: {models}")
+
+    def _on_runs_refresh_clicked(self) -> None:
+        runs = self.get_runs_list()
+        self._event_bus.emit_app_runs_changed(runs)
+        logger.info(f"Refreshed runs list: {runs}")
 
     def _set_current_run_id(self, run_id: Optional[int]) -> None:
         """Internal method to update current run ID with proper signaling"""
@@ -94,7 +159,11 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
             f"Current run ID changed from {previous_run_id} to {run_id}"
             if run_id is not None else f"Current run ID cleared (was {previous_run_id})",
         )
-        self.benchmark_run_id_changed_events.emit(run_id)
+        summary = self.get_summary_data()
+        detailed = self.get_detailed_data()
+        self._event_bus.emit_benchmark_run_id_changed_events(run_id)
+        self._event_bus.emit_app_current_run_summary_data_changed(summary)
+        self._event_bus.emit_app_current_run_detailed_data_changed(detailed)
 
     def get_models_list(self) -> list[str]:
         """Get available LLM models from the API"""
@@ -149,6 +218,7 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
             logger.error(f"Failed to retrieve benchmark runs: {str(e)}")
             raise
 
+    # TODO: Not used
     def get_current_run_id(self) -> int:
         """Get the ID of the currently selected run"""
         if self._current_run_id is None:
@@ -164,7 +234,15 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
                 self._data_api.retrieve_benchmark_run(run_id)
             except Exception as e:
                 logger.error(f"Attempted to set invalid run ID {run_id}: {str(e)}")
-                raise ValueError(f"Invalid run ID: {run_id}") from e
+                # raise ValueError(f"Invalid run ID: {run_id}") from e
+                all_runs = self._data_api.retrieve_benchmark_runs()
+                if all_runs and len(all_runs) > 0:
+                    latest_run = all_runs[-1]
+                    run_id = latest_run.run_id
+                    logger.info(f"Set current run ID to latest run: {run_id}")
+                else:
+                    logger.info("No benchmark runs found, setting current run ID to None")
+                    run_id = None
 
         self._set_current_run_id(run_id)
         logger.info(f"Set current run ID to {run_id}" if run_id is not None else "Cleared current run ID")
@@ -184,13 +262,14 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
                 self._set_current_run_id(None)
 
             runs = self.get_runs_list()
-            if len(runs)>0 and runs[0]:
+            if len(runs) > 0 and runs[0]:
                 latest_run = runs[0]
                 self._set_current_run_id(latest_run[0])
         except Exception as e:
             logger.error(f"Failed to delete run {self._current_run_id}: {str(e)}")
-            raise
+        self._event_bus.emit_app_runs_changed(self.get_runs_list())
 
+    # TODO: Not used
     def start_benchmark(self) -> int:
         """Start a new benchmark execution and return the new run ID"""
         # Validate prerequisites
@@ -265,7 +344,8 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
         """Stop the currently running benchmark"""
         if not self._benchmark_flow_api.is_running():
             logger.warning("Attempted to stop benchmark when none is running")
-            raise RuntimeError("No benchmark is currently running")
+            # raise RuntimeError("No benchmark is currently running")
+            return
 
         try:
             self._benchmark_flow_api.stop_execution()
@@ -276,7 +356,7 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
 
     def get_summary_data(self) -> list[AvgSummaryTableItem]:
         """Get summary data for the current run"""
-        if self._current_run_id is None:
+        if self._current_run_id is None or self._current_run_id <= 0:
             logger.warning("Attempted to get summary data when no run is selected")
             return []
 
@@ -293,7 +373,7 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
 
     def get_detailed_data(self) -> list[SummaryTableItem]:
         """Get detailed data for the current run"""
-        if self._current_run_id is None:
+        if self._current_run_id is None or self._current_run_id <= 0:
             logger.warning("Attempted to get detailed data when no run is selected")
             return []
 
@@ -316,6 +396,8 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
 
         try:
             # In a real implementation, this would generate the actual report
+            summary = self.get_summary_data()
+            logger.debug(f"Generated summary data for run ID {self._current_run_id}: {summary}")
             logger.info(f"Generating summary CSV report for run ID {self._current_run_id}")
             # Actual report generation would happen here
         except Exception as e:
@@ -329,6 +411,8 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
             raise RuntimeError("No benchmark run is currently selected")
 
         try:
+            summary = self.get_summary_data()
+            logger.debug(f"Generated summary data for run ID {self._current_run_id}: {summary}")
             logger.info(f"Generating summary Markdown report for run ID {self._current_run_id}")
             # Actual report generation would happen here
         except Exception as e:
@@ -342,6 +426,8 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
             raise RuntimeError("No benchmark run is currently selected")
 
         try:
+            detailed = self.get_detailed_data()
+            logger.debug(f"Generated detailed data for run ID {self._current_run_id}: {detailed}")
             logger.info(f"Generating detailed CSV report for run ID {self._current_run_id}")
             # Actual report generation would happen here
         except Exception as e:
@@ -355,6 +441,8 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
             raise RuntimeError("No benchmark run is currently selected")
 
         try:
+            detailed = self.get_detailed_data()
+            logger.debug(f"Generated detailed data for run ID {self._current_run_id}: {detailed}")
             logger.info(f"Generating detailed Markdown report for run ID {self._current_run_id}")
             # Actual report generation would happen here
         except Exception as e:
@@ -363,20 +451,28 @@ class QtBenchmarkControllerAPI(QObject, BenchmarkApplicationControllerApi, metac
 
     def subscribe_to_benchmark_run_id_changed_events(self, callback: Callable[[Optional[int]], None]) -> None:
         """Subscribe to run ID changes"""
-        self.benchmark_run_id_changed_events.connect(callback)
-        # Notify of current state
-        # callback(self._current_run_id)
+        ...
 
     def subscribe_to_benchmark_status_events(self, callback: Callable[[bool], None]) -> None:
         """Subscribe to execution status changes"""
-        self.benchmark_status_events.connect(callback)
-        # Notify of current state
-        callback(self._benchmark_flow_api.is_running())
+        ...
 
     def subscribe_to_benchmark_output_events(self, callback: Callable[[str], None]) -> None:
         """Subscribe to log/output messages"""
-        self.benchmark_output_events.connect(callback)
+        ...
 
     def subscribe_to_benchmark_progress_events(self, callback: Callable[[ReporterStatusMsg], None]) -> None:
         """Subscribe to progress updates"""
-        self.benchmark_progress_events.connect(callback)
+        ...
+
+    def send_initial_state(self):
+        runs = self._data_api.retrieve_benchmark_runs()
+        if runs and len(runs) > 0:
+            self.set_current_run_id(runs[-1].run_id)
+        else:
+            self.set_current_run_id(0)
+        self._event_bus.emit_app_models_changed(self.get_models_list())
+        self._event_bus.emit_app_runs_changed(self.get_runs_list())
+        self._event_bus.emit_benchmark_run_id_changed_events(self._current_run_id)
+        self._event_bus.emit_app_current_run_summary_data_changed(self.get_summary_data())
+        self._event_bus.emit_app_current_run_detailed_data_changed(self.get_detailed_data())

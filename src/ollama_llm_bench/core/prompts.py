@@ -92,7 +92,7 @@ incorrect_direction:
 submitted_answer:
 {answer}
 
-# optional fields (include if available):
+# optional fields:
 category: {category}           # e.g., "Coding", "Translation", "Literature", "Proofreading", etc. (optional)
 sub_category: {sub_category}   # e.g., "Java", "Ukrainian to Croatian", "Harry Potter Series" (optional)
 
@@ -100,4 +100,6 @@ Please evaluate the submitted_answer against the provided references according t
 
 Output format example:
 {"reason":"Exact match to most_expected. Correct algorithm and complexity; handles duplicates and no-solution. Breakdown: correctness=1.00*0.50=0.50, constraints=1.00*0.25=0.25, completeness=1.00*0.15=0.15, style=1.00*0.10=0.10 => total=1.00","grade":1.00}
+
+Keep in mind that JSON should be provide as RAW (plain text) json string. Do not wrap it with markdown and DO NOT add anything except the RAW json string.
 """.strip()

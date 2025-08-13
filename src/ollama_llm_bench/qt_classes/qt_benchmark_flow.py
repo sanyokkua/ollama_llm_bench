@@ -9,6 +9,13 @@ from ollama_llm_bench.core.models import BenchmarkResult, BenchmarkResultStatus,
 from ollama_llm_bench.qt_classes.meta_class import MetaQObjectABC
 
 
+def extract_json(s):
+    start_index = s.find('{')
+    end_index = s.rfind('}')
+    if start_index == -1 or end_index == -1 or end_index < start_index:
+        return s
+    return s[start_index:end_index + 1]
+
 class BenchmarkExecutionTask(QRunnable):
     class Signals(QObject):
         """Only the three required signals as per your specification"""
@@ -109,17 +116,19 @@ class BenchmarkExecutionTask(QRunnable):
 
                 # Warm up the model
                 try:
+                    incompleted_tasks = [t for t in tasks_list if t.status == BenchmarkResultStatus.NOT_COMPLETED]
                     self.logger.debug(f"Warming up model: {model_name}")
-                    if not self.llm_api.warm_up(model_name):
-                        self.logger.warning(f"Failed to warm up model: {model_name}")
-                        self.signals.log_message.emit(f"Warning: Failed to warm up model: {model_name}")
+                    if len(incompleted_tasks) > 0:
+                        if not self.llm_api.warm_up(model_name):
+                            self.logger.warning(f"Failed to warm up model: {model_name}")
+                            self.signals.log_message.emit(f"Warning: Failed to warm up model: {model_name}")
                 except Exception as e:
                     self.logger.error(f"Error warming up model {model_name}: {str(e)}")
                     self.signals.log_message.emit(f"Error warming up model {model_name}: {str(e)}")
 
                 if self.is_stopped():
                     self._handle_stop_requested()
-                    return
+                    return None
 
                 # Process each task for this model
                 model_total = len(tasks_list)
@@ -132,7 +141,11 @@ class BenchmarkExecutionTask(QRunnable):
                     self.logger.debug(f"Processing task {task.task_id} for model {model_name}")
 
                     # Skip completed tasks
-                    if task.status == BenchmarkResultStatus.COMPLETED:
+                    if task.status in [
+                        BenchmarkResultStatus.COMPLETED,
+                        BenchmarkResultStatus.WAITING_FOR_JUDGE,
+                        BenchmarkResultStatus.FAILED
+                    ]:
                         self._completed_tasks += 1
                         model_completed += 1
                         self._update_progress(model_completed, model_total)
@@ -150,7 +163,11 @@ class BenchmarkExecutionTask(QRunnable):
                             user_prompt=user_prompt,
                             system_prompt='',
                             on_llm_response=self.log_msg_to_global_logger,
+                            on_is_stop_signal=self.is_stopped,
                         )
+                        if self.is_stopped():
+                            self._handle_stop_requested()
+                            return None
 
                         # Update task result
                         updated_task = BenchmarkResult(
@@ -221,15 +238,24 @@ class BenchmarkExecutionTask(QRunnable):
             # Reset progress tracking for judging phase
             self._completed_tasks = 0
             self._total_tasks = len([t for t in all_tasks if t.status == BenchmarkResultStatus.WAITING_FOR_JUDGE])
+            self._update_progress(0, 0)
 
+            judged = 0
             if self._total_tasks > 0:
                 self.signals.log_message.emit(f"Evaluating {self._total_tasks} results with judge model {judge_model}")
                 self.logger.info(f"Evaluating {self._total_tasks} results with judge model {judge_model}")
+                all_tasks_size = len(all_tasks)
+                self._update_progress(judged, all_tasks_size)
+                if not self.llm_api.warm_up(judge_model):
+                    self.logger.warning(f"Failed to warm up judge model: {judge_model}")
+                    self.signals.log_message.emit(f"Warning: Failed to warm up judge model: {judge_model}")
+                    self._handle_stop_requested()
+                    return None
 
                 for task in all_tasks:
                     if self.is_stopped():
                         self._handle_stop_requested()
-                        return
+                        return None
 
                     if task.status != BenchmarkResultStatus.WAITING_FOR_JUDGE:
                         continue
@@ -245,11 +271,32 @@ class BenchmarkExecutionTask(QRunnable):
                             user_prompt=user_prompt,
                             system_prompt=system_prompt,
                             on_llm_response=self.log_msg_to_global_logger,
+                            on_is_stop_signal=self.is_stopped,
                         )
-
+                        if self.is_stopped():
+                            self._handle_stop_requested()
+                            return None
+                        judged += 1
+                        self._update_progress(judged, all_tasks_size)
                         # Parse judge response
                         try:
-                            data = json.loads(response.llm_response)
+                            json_string = response.llm_response
+                            if json_string.startswith('<start_of_turn>'):
+                                json_string = json_string[16:]
+                            if json_string.endswith('</start_of_turn>'):
+                                json_string = json_string[:-16]
+                            if json_string.startswith('<end_of_turn>'):
+                                json_string = json_string[16:]
+                            if json_string.endswith('</end_of_turn>'):
+                                json_string = json_string[:-16]
+                            if json_string.startswith("```json"):
+                                json_string = json_string[7:]
+                            if json_string.endswith("```"):
+                                json_string = json_string[:-3]
+                            json_string = json_string.strip()
+                            json_string = extract_json(json_string)
+
+                            data = json.loads(json_string)
                             reason = data.get("reason", "")
                             grade = float(data.get("grade", 0.0))
 
@@ -352,6 +399,7 @@ class BenchmarkExecutionTask(QRunnable):
         # No need to update run status - it will remain NOT_COMPLETED
         # The system will automatically resume incomplete tasks on next run
         self.signals.log_message.emit("Benchmark execution stopped. Incomplete tasks will resume on next run.")
+
 
     def log_msg_to_global_logger(self, msg: str) -> None:
         self.signals.log_message.emit(msg)

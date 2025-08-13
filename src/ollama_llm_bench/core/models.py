@@ -96,3 +96,9 @@ class ReporterStatusMsg:
     completed_amount_of_tasks_for_model: int
     run_status: BenchmarkRunStatus
     task_status: BenchmarkResultStatus
+
+
+@dataclass(frozen=True)
+class NewRunWidgetStartEvent:
+    judge_model: str
+    models: tuple[str, ...]

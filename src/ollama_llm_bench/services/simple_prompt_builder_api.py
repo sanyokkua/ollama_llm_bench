@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Tuple, override
 
 from src.ollama_llm_bench.core.interfaces import BenchmarkTaskApi, PromptBuilderApi
@@ -50,18 +49,11 @@ class SimplePromptBuilderApi(PromptBuilderApi):
         }
 
         try:
-            # Verify all required placeholders exist in the template
-            placeholders = re.findall(r'\{([^}]+)\}', USER_PROMPT)
-            missing_keys = [p for p in placeholders if p not in format_data]
-            if missing_keys:
-                logger.error("Missing template key: %s", missing_keys[0])
-                raise KeyError(missing_keys[0])
-
             # Perform regex-based replacements
             user_prompt = USER_PROMPT
             for key, value in format_data.items():
-                pattern = r'\{' + re.escape(key) + r'\}'
-                user_prompt = re.sub(pattern, lambda m: value, user_prompt)
+                pattern = "".join(['{', key, '}'])
+                user_prompt = user_prompt.replace(pattern, value)
 
             logger.debug("Successfully built judge prompt for task ID: %s", task_id)
             return user_prompt, SYSTEM_PROMPT

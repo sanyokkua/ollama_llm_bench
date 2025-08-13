@@ -3,11 +3,17 @@ from typing import List
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from ollama_llm_bench.core.models import AvgSummaryTableItem, ReporterStatusMsg, SummaryTableItem
-from ollama_llm_bench.ui.widgets.panels.control.new_run_widget import NewRunWidgetStartEvent
+from ollama_llm_bench.core.interfaces import EventBus
+from ollama_llm_bench.core.models import (
+    AvgSummaryTableItem,
+    NewRunWidgetStartEvent,
+    ReporterStatusMsg,
+    SummaryTableItem,
+)
+from ollama_llm_bench.qt_classes.meta_class import MetaQObjectABC
 
 
-class QtEventBus(QObject):
+class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
     _benchmark_run_id_changed_events = pyqtSignal(int)
     _benchmark_is_running_events = pyqtSignal(bool)
     _benchmark_log_events = pyqtSignal(str)
@@ -28,6 +34,7 @@ class QtEventBus(QObject):
     _result_btn_export_md_detailed_clicked = pyqtSignal()
     _result_btn_delete_run_clicked = pyqtSignal()
 
+    _app_models_changed = pyqtSignal(list)
     _app_runs_changed = pyqtSignal(list)
     _app_current_run_summary_data_changed = pyqtSignal(list)
     _app_current_run_detailed_data_changed = pyqtSignal(list)
@@ -50,7 +57,9 @@ class QtEventBus(QObject):
     def subscribe_to_new_run_btn_new_run_refresh_clicked(self, callback: Callable[[], None]) -> None:
         self._new_run_btn_new_run_refresh_clicked.connect(callback)
 
-    def subscribe_to_new_run_btn_new_run_start_clicked(self, callback: Callable[[], None]) -> None:
+    def subscribe_to_new_run_btn_new_run_start_clicked(self,
+                                                       callback: Callable[[NewRunWidgetStartEvent], None],
+                                                       ) -> None:
         self._new_run_btn_new_run_start_clicked.connect(callback)
 
     def subscribe_to_new_run_btn_new_run_stop_clicked(self, callback: Callable[[], None]) -> None:
@@ -59,7 +68,7 @@ class QtEventBus(QObject):
     def subscribe_to_prev_run_btn_prev_run_refresh_clicked(self, callback: Callable[[], None]) -> None:
         self._prev_run_btn_prev_run_refresh_clicked.connect(callback)
 
-    def subscribe_to_prev_run_btn_prev_run_start_clicked(self, callback: Callable[[], None]) -> None:
+    def subscribe_to_prev_run_btn_prev_run_start_clicked(self, callback: Callable[[int], None]) -> None:
         self._prev_run_btn_prev_run_start_clicked.connect(callback)
 
     def subscribe_to_prev_run_btn_prev_run_stop_clicked(self, callback: Callable[[], None]) -> None:
@@ -83,7 +92,7 @@ class QtEventBus(QObject):
     def subscribe_to_result_btn_export_md_detailed_clicked(self, callback: Callable[[], None]) -> None:
         self._result_btn_export_md_detailed_clicked.connect(callback)
 
-    def subscribe_to_result_btn_delete_run_clicked(self, callback: Callable[[int], None]) -> None:
+    def subscribe_to_result_btn_delete_run_clicked(self, callback: Callable[[], None]) -> None:
         self._result_btn_delete_run_clicked.connect(callback)
 
     def subscribe_app_runs_changed(self, callback: Callable[[list[tuple[int, str]]], None]):
@@ -94,6 +103,9 @@ class QtEventBus(QObject):
 
     def subscribe_app_current_run_detailed_data_changed(self, callback: Callable[[List[SummaryTableItem]], None]):
         self._app_current_run_detailed_data_changed.connect(callback)
+
+    def subscribe_to_app_models_changed(self, callback: Callable[[list], None]):
+        self._app_models_changed.connect(callback)
 
     def emit_benchmark_run_id_changed_events(self, value: int) -> None:
         self._benchmark_run_id_changed_events.emit(value)
@@ -151,3 +163,6 @@ class QtEventBus(QObject):
 
     def emit_app_current_run_detailed_data_changed(self, value: List[SummaryTableItem]):
         self._app_current_run_detailed_data_changed.emit(value)
+
+    def emit_app_models_changed(self, value: list[str]):
+        self._app_models_changed.emit(value)

@@ -47,6 +47,7 @@ class OllamaApi(LLMApi):
         user_prompt: str,
         system_prompt: Optional[str] = None,
         on_llm_response: Optional[Callable[[str], None]] = None,
+        on_is_stop_signal: Optional[Callable[[], bool]] = None,
     ) -> InferenceResponse:
         try:
             full_response = ""
@@ -70,16 +71,26 @@ class OllamaApi(LLMApi):
                 stream=True,
             )
 
+            is_stopped = False
             for chunk in response:
+                if on_is_stop_signal and on_is_stop_signal():
+                    is_stopped = True
+                    logger.debug("Stop requested for inference")
+                    break
                 if 'response' in chunk:
                     content = chunk['response']
                     full_response += content
                     tokens_generated += len(content.split())
+                    logger.debug(f"Generated content [chunk]: {content}")
 
             if on_llm_response:
+                if is_stopped:
+                    on_llm_response('Generation stopped by user')
                 on_llm_response("LLM Response:")
                 on_llm_response(full_response)
-                on_llm_response("\n")
+
+            if is_stopped:
+                full_response = ''
 
             end_time = time.time()
             logger.debug(f"Inference completed for model: {model_name}")

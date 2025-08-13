@@ -4,7 +4,7 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
 
-from ollama_llm_bench.app_context import ContextProvider, _create_app_context
+from ollama_llm_bench.app_context import ContextProvider
 from ollama_llm_bench.ui.main_window import MainWindow
 
 
