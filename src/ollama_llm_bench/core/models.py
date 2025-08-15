@@ -68,6 +68,7 @@ class AvgSummaryTableItem:
 class SummaryTableItem:
     model_name: str
     task_id: str
+    task_status: str
     time_ms: int
     tokens: int
     tokens_per_second: float

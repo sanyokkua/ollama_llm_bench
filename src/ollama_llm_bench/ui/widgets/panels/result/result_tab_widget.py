@@ -14,13 +14,13 @@ class ResultTabWidget(QTabWidget):
         super().__init__()
         self._event_bus = ctx.get_event_bus()
 
-        self._log_tab = LogWidget(ctx)
-        self._result_tab = ResultWidget(ctx)
+        self._log_tab = LogWidget(ctx.get_log_widget_controller_api())
+        self._result_tab = ResultWidget(ctx.get_result_widget_controller_api())
 
         self.addTab(self._log_tab, "System Log")
         self.addTab(self._result_tab, "Results")
 
-        self._event_bus.subscribe_to_benchmark_is_running_events(self._on_benchmark_is_running_changed)
+        self._event_bus.subscribe_to_background_thread_is_running(self._on_benchmark_is_running_changed)
 
     def _on_benchmark_is_running_changed(self, is_running: bool) -> None:
         logger.debug(f"Benchmark is running: {is_running}")

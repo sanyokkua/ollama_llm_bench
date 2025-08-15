@@ -33,7 +33,7 @@ ROOT_FOLDER_PATH = Path(__file__).parent.parent.parent
 
 
 def main() -> None:
-    configure_logger()
+    configure_logger(logging.DEBUG)
     ContextProvider.initialize(ROOT_FOLDER_PATH)
     ctx = ContextProvider.get_context()
     app = QApplication(sys.argv)

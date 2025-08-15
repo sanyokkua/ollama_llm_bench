@@ -16,6 +16,7 @@ def extract_json(s):
         return s
     return s[start_index:end_index + 1]
 
+
 class BenchmarkExecutionTask(QRunnable):
     class Signals(QObject):
         """Only the three required signals as per your specification"""
@@ -400,7 +401,6 @@ class BenchmarkExecutionTask(QRunnable):
         # The system will automatically resume incomplete tasks on next run
         self.signals.log_message.emit("Benchmark execution stopped. Incomplete tasks will resume on next run.")
 
-
     def log_msg_to_global_logger(self, msg: str) -> None:
         self.signals.log_message.emit(msg)
 
@@ -502,11 +502,7 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
     def subscribe_to_benchmark_progress_events(self, callback: Callable[[ReporterStatusMsg], None]) -> None:
         """Subscribe to progress updates"""
         self.benchmark_progress_events.connect(callback)
-        # If currently running, send current progress
-        if self.is_running() and self._current_task:
-            # In a real implementation, you'd have access to current progress state
-            # This would require tracking progress state in the flow API
-            pass
+
 
     def _connect_task_signals(self, task: BenchmarkExecutionTask) -> None:
         """Connect a task's signals to our class signals"""

@@ -32,7 +32,7 @@ class ControlPanel(QWidget):
         layout.addLayout(progress_layout)
         self.setLayout(layout)
 
-        self._event_bus.subscribe_to_benchmark_progress_events(self._on_progress_changed)
+        self._event_bus.subscribe_to_background_thread_progress(self._on_progress_changed)
 
     def _on_progress_changed(self, status: ReporterStatusMsg):
         self._update_progress(status.total_amount_of_tasks, status.completed_amount_of_tasks)

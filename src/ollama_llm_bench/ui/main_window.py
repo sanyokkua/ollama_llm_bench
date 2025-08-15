@@ -1,8 +1,13 @@
+import logging
+from typing import Optional
+
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMainWindow
+from PyQt6.QtWidgets import QMainWindow, QMessageBox
 
 from ollama_llm_bench.core.interfaces import AppContext
 from ollama_llm_bench.ui.widgets.central_widget import CentralWidget
+
+logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
@@ -20,4 +25,13 @@ class MainWindow(QMainWindow):
 
         # Set window flags for a better look and feel on macOS
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.MacWindowToolBarButtonHint)
-        ctx.get_benchmark_controller_api().send_initial_state()
+        ctx.send_initialization_events()
+        ctx.get_event_bus().subscribe_to_global_event_msg(MainWindow.show_global_msg)
+
+    @staticmethod
+    def show_global_msg(text: Optional[str]):
+        if text is not None:
+            reply = QMessageBox()
+            reply.setText(text)
+            reply.setStandardButtons(QMessageBox.StandardButton.Ok)
+            reply.exec()

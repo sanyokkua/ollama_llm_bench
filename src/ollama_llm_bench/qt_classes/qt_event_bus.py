@@ -1,168 +1,140 @@
+import logging
 from collections.abc import Callable
-from typing import List
+from typing import List, Optional, override
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from ollama_llm_bench.core.interfaces import EventBus
 from ollama_llm_bench.core.models import (
     AvgSummaryTableItem,
-    NewRunWidgetStartEvent,
-    ReporterStatusMsg,
-    SummaryTableItem,
+    ReporterStatusMsg, SummaryTableItem,
 )
 from ollama_llm_bench.qt_classes.meta_class import MetaQObjectABC
 
+logger = logging.getLogger(__name__)
+
 
 class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
-    _benchmark_run_id_changed_events = pyqtSignal(int)
-    _benchmark_is_running_events = pyqtSignal(bool)
-    _benchmark_log_events = pyqtSignal(str)
-    _benchmark_progress_events = pyqtSignal(ReporterStatusMsg)
-
-    _new_run_btn_new_run_refresh_clicked = pyqtSignal()
-    _new_run_btn_new_run_start_clicked = pyqtSignal(NewRunWidgetStartEvent)
-    _new_run_btn_new_run_stop_clicked = pyqtSignal()
-
-    _prev_run_btn_prev_run_refresh_clicked = pyqtSignal()
-    _prev_run_btn_prev_run_start_clicked = pyqtSignal(int)
-    _prev_run_btn_prev_run_stop_clicked = pyqtSignal()
-
-    _result_run_id_changed = pyqtSignal(int)
-    _result_btn_export_csv_summary_clicked = pyqtSignal()
-    _result_btn_export_md_summary_clicked = pyqtSignal()
-    _result_btn_export_csv_detailed_clicked = pyqtSignal()
-    _result_btn_export_md_detailed_clicked = pyqtSignal()
-    _result_btn_delete_run_clicked = pyqtSignal()
-
-    _app_models_changed = pyqtSignal(list)
-    _app_runs_changed = pyqtSignal(list)
-    _app_current_run_summary_data_changed = pyqtSignal(list)
-    _app_current_run_detailed_data_changed = pyqtSignal(list)
+    _run_id_changed = pyqtSignal(int)
+    _run_ids_changed = pyqtSignal(list)
+    _models_test_changed = pyqtSignal(list)
+    _models_judge_changed = pyqtSignal(str)
+    _log_clean = pyqtSignal()  # (
+    _log_append = pyqtSignal(str)
+    _table_summary_data_changed = pyqtSignal(list)
+    _table_detailed_data_change = pyqtSignal(list)
+    _background_thread_is_running = pyqtSignal(bool)
+    _background_thread_progress_changed = pyqtSignal(object)
+    _global_event_msg = pyqtSignal(str)
 
     def __init__(self) -> None:
         super().__init__()
 
-    def subscribe_to_benchmark_run_id_changed_events(self, callback: Callable[[int], None]) -> None:
-        self._benchmark_run_id_changed_events.connect(callback)
+    @override
+    def subscribe_to_run_id_changed(self, callback: Callable[[Optional[int]], None]) -> None:
+        logger.debug(f"subscribe_to_run_id_changed: {callback}")
+        self._run_id_changed.connect(callback)
 
-    def subscribe_to_benchmark_is_running_events(self, callback: Callable[[bool], None]) -> None:
-        self._benchmark_is_running_events.connect(callback)
+    @override
+    def subscribe_to_run_ids_changed(self, callback: Callable[[list[tuple[int, str]]], None]):
+        logger.debug(f"subscribe_to_run_ids_changed: {callback}")
+        self._run_ids_changed.connect(callback)
 
-    def subscribe_to_benchmark_log_events(self, callback: Callable[[str], None]) -> None:
-        self._benchmark_log_events.connect(callback)
+    @override
+    def subscribe_to_models_test_changed(self, callback: Callable[[list[str]], None]) -> None:
+        logger.debug(f"subscribe_to_models_test_changed: {callback}")
+        self._models_test_changed.connect(callback)
 
-    def subscribe_to_benchmark_progress_events(self, callback: Callable[[ReporterStatusMsg], None]) -> None:
-        self._benchmark_progress_events.connect(callback)
+    @override
+    def subscribe_to_models_judge_changed(self, callback: Callable[[str], None]) -> None:
+        logger.debug(f"subscribe_to_models_judge_changed: {callback}")
+        self._models_judge_changed.connect(callback)
 
-    def subscribe_to_new_run_btn_new_run_refresh_clicked(self, callback: Callable[[], None]) -> None:
-        self._new_run_btn_new_run_refresh_clicked.connect(callback)
+    @override
+    def subscribe_to_log_clean(self, callback: Callable[[], None]) -> None:
+        logger.debug(f"subscribe_to_log_clean: {callback}")
+        self._log_clean.connect(callback)
 
-    def subscribe_to_new_run_btn_new_run_start_clicked(self,
-                                                       callback: Callable[[NewRunWidgetStartEvent], None],
-                                                       ) -> None:
-        self._new_run_btn_new_run_start_clicked.connect(callback)
+    @override
+    def subscribe_to_log_append(self, callback: Callable[[str], None]) -> None:
+        logger.debug(f"subscribe_to_log_append: {callback}")
+        self._log_append.connect(callback)
 
-    def subscribe_to_new_run_btn_new_run_stop_clicked(self, callback: Callable[[], None]) -> None:
-        self._new_run_btn_new_run_stop_clicked.connect(callback)
+    @override
+    def subscribe_to_table_summary_data_changed(self, callback: Callable[[List[AvgSummaryTableItem]], None]) -> None:
+        logger.debug(f"subscribe_to_table_summary_data_changed: {callback}")
+        self._table_summary_data_changed.connect(callback)
 
-    def subscribe_to_prev_run_btn_prev_run_refresh_clicked(self, callback: Callable[[], None]) -> None:
-        self._prev_run_btn_prev_run_refresh_clicked.connect(callback)
+    @override
+    def subscribe_to_table_detailed_data_change(self, callback: Callable[[List[SummaryTableItem]], None]) -> None:
+        logger.debug(f"subscribe_to_table_detailed_data_changed: {callback}")
+        self._table_detailed_data_change.connect(callback)
 
-    def subscribe_to_prev_run_btn_prev_run_start_clicked(self, callback: Callable[[int], None]) -> None:
-        self._prev_run_btn_prev_run_start_clicked.connect(callback)
+    @override
+    def subscribe_to_background_thread_is_running(self, callback: Callable[[bool], None]) -> None:
+        logger.debug(f"subscribe_to_background_thread_is_running: {callback}")
+        self._background_thread_is_running.connect(callback)
 
-    def subscribe_to_prev_run_btn_prev_run_stop_clicked(self, callback: Callable[[], None]) -> None:
-        self._prev_run_btn_prev_run_stop_clicked.connect(callback)
+    @override
+    def subscribe_to_background_thread_progress(self, callback: Callable[[ReporterStatusMsg], None]) -> None:
+        self._background_thread_progress_changed.connect(callback)
 
-    def subscribe_to_prev_run_run_id_changed(self, callback: Callable[[int], None]) -> None:
-        self._benchmark_run_id_changed_events.connect(callback)
+    @override
+    def subscribe_to_global_event_msg(self, callback: Callable[[str], None]) -> None:
+        logger.debug(f"subscribe_to_global_event_msg: {callback}")
+        self._global_event_msg.connect(callback)
 
-    def subscribe_to_result_run_id_changed(self, callback: Callable[[int], None]) -> None:
-        self._benchmark_run_id_changed_events.connect(callback)
+    @override
+    def emit_run_id_changed(self, value: Optional[int]) -> None:
+        logger.debug(f"emit_run_id_changed: {value}")
+        self._run_id_changed.emit(value)
 
-    def subscribe_to_result_btn_export_csv_summary_clicked(self, callback: Callable[[], None]) -> None:
-        self._result_btn_export_csv_summary_clicked.connect(callback)
+    @override
+    def emit_run_ids_changed(self, value: list[tuple[int]]) -> None:
+        logger.debug(f"emit_run_ids_changed: {value}")
+        self._run_ids_changed.emit(value)
 
-    def subscribe_to_result_btn_export_md_summary_clicked(self, callback: Callable[[], None]) -> None:
-        self._result_btn_export_md_summary_clicked.connect(callback)
+    @override
+    def emit_models_test_changed(self, value: list[str]) -> None:
+        logger.debug(f"emit_models_test_changed: {value}")
+        self._models_test_changed.emit(value)
 
-    def subscribe_to_result_btn_export_csv_detailed_clicked(self, callback: Callable[[], None]) -> None:
-        self._result_btn_export_csv_detailed_clicked.connect(callback)
+    @override
+    def emit_models_judge_changed(self, value: str) -> None:
+        logger.debug(f"emit_models_judge_changed: {value}")
+        self._models_judge_changed.emit(value)
 
-    def subscribe_to_result_btn_export_md_detailed_clicked(self, callback: Callable[[], None]) -> None:
-        self._result_btn_export_md_detailed_clicked.connect(callback)
+    @override
+    def emit_log_clean(self) -> None:
+        logger.debug(f"emit_log_clean: {self}")
+        self._log_clean.emit()
 
-    def subscribe_to_result_btn_delete_run_clicked(self, callback: Callable[[], None]) -> None:
-        self._result_btn_delete_run_clicked.connect(callback)
+    @override
+    def emit_log_append(self, value: str) -> None:
+        logger.debug(f"emit_log_append: {value}")
+        self._log_append.emit(value)
 
-    def subscribe_app_runs_changed(self, callback: Callable[[list[tuple[int, str]]], None]):
-        self._app_runs_changed.connect(callback)
+    @override
+    def emit_table_summary_data_changed(self, value: List[AvgSummaryTableItem]) -> None:
+        logger.debug(f"emit_table_summary_data_changed: {value}")
+        self._table_summary_data_changed.emit(value)
 
-    def subscribe_app_current_run_summary_data_changed(self, callback: Callable[[List[AvgSummaryTableItem]], None]):
-        self._app_current_run_summary_data_changed.connect(callback)
+    @override
+    def emit_table_detailed_data_change(self, value: List[SummaryTableItem]) -> None:
+        logger.debug(f"emit_table_detailed_data_changed: {value}")
+        self._table_detailed_data_change.emit(value)
 
-    def subscribe_app_current_run_detailed_data_changed(self, callback: Callable[[List[SummaryTableItem]], None]):
-        self._app_current_run_detailed_data_changed.connect(callback)
+    @override
+    def emit_background_thread_is_running(self, value: bool) -> None:
+        logger.debug(f"emit_background_thread_is_running: {value}")
+        self._background_thread_is_running.emit(value)
 
-    def subscribe_to_app_models_changed(self, callback: Callable[[list], None]):
-        self._app_models_changed.connect(callback)
+    @override
+    def emit_background_thread_progress(self, value: ReporterStatusMsg) -> None:
+        logger.debug(f"emit_background_thread_progress: {value}")
+        self._background_thread_progress_changed.emit(value)
 
-    def emit_benchmark_run_id_changed_events(self, value: int) -> None:
-        self._benchmark_run_id_changed_events.emit(value)
-
-    def emit_benchmark_is_running_events(self, value: bool) -> None:
-        self._benchmark_is_running_events.emit(value)
-
-    def emit_benchmark_log_events(self, value: str) -> None:
-        self._benchmark_log_events.emit(value)
-
-    def emit_benchmark_progress_events(self, value: ReporterStatusMsg) -> None:
-        self._benchmark_progress_events.emit(value)
-
-    def emit_new_run_btn_new_run_refresh_clicked(self) -> None:
-        self._new_run_btn_new_run_refresh_clicked.emit()
-
-    def emit_new_run_btn_new_run_start_clicked(self, value: NewRunWidgetStartEvent) -> None:
-        self._new_run_btn_new_run_start_clicked.emit(value)
-
-    def emit_new_run_btn_new_run_stop_clicked(self) -> None:
-        self._new_run_btn_new_run_stop_clicked.emit()
-
-    def emit_prev_run_btn_prev_run_refresh_clicked(self) -> None:
-        self._prev_run_btn_prev_run_refresh_clicked.emit()
-
-    def emit_prev_run_btn_prev_run_start_clicked(self, value: int) -> None:
-        self._prev_run_btn_prev_run_start_clicked.emit(value)
-
-    def emit_prev_run_btn_prev_run_stop_clicked(self) -> None:
-        self._prev_run_btn_prev_run_stop_clicked.emit()
-
-    def emit_result_run_id_changed(self, value: int) -> None:
-        self._result_run_id_changed.emit(value)
-
-    def emit_result_btn_export_csv_summary_clicked(self) -> None:
-        self._result_btn_export_csv_summary_clicked.emit()
-
-    def emit_result_btn_export_md_summary_clicked(self) -> None:
-        self._result_btn_export_md_summary_clicked.emit()
-
-    def emit_result_btn_export_csv_detailed_clicked(self) -> None:
-        self._result_btn_export_csv_detailed_clicked.emit()
-
-    def emit_result_btn_export_md_detailed_clicked(self) -> None:
-        self._result_btn_export_md_detailed_clicked.emit()
-
-    def emit_result_btn_delete_run_clicked(self) -> None:
-        self._result_btn_delete_run_clicked.emit()
-
-    def emit_app_runs_changed(self, value: list[tuple[int, str]]):
-        self._app_runs_changed.emit(value)
-
-    def emit_app_current_run_summary_data_changed(self, value: List[AvgSummaryTableItem]):
-        self._app_current_run_summary_data_changed.emit(value)
-
-    def emit_app_current_run_detailed_data_changed(self, value: List[SummaryTableItem]):
-        self._app_current_run_detailed_data_changed.emit(value)
-
-    def emit_app_models_changed(self, value: list[str]):
-        self._app_models_changed.emit(value)
+    @override
+    def emit_global_event_msg(self, value: str) -> None:
+        logger.debug(f"emit_global_event_msg: {value}")
+        self._global_event_msg.emit(value)

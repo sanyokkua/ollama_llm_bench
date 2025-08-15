@@ -3,15 +3,15 @@ import logging
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QPushButton, QTextEdit, QVBoxLayout, QWidget
 
-from ollama_llm_bench.core.interfaces import AppContext
+from ollama_llm_bench.core.controllers import LogWidgetControllerApi
 
 logger = logging.getLogger(__name__)
 
 
 class LogWidget(QWidget):
-    def __init__(self, ctx: AppContext):
+    def __init__(self, controller: LogWidgetControllerApi):
         super().__init__()
-        self._event_bus = ctx.get_event_bus()
+        self._controller = controller
 
         self._clean_button = QPushButton("Clean")
         self._text_edit = QTextEdit()
@@ -24,9 +24,8 @@ class LogWidget(QWidget):
         self.setLayout(layout)
 
         self._clean_button.clicked.connect(self._clear_text)
-        self._event_bus.subscribe_to_new_run_btn_new_run_start_clicked(lambda _: self._clear_text())
-        self._event_bus.subscribe_to_prev_run_btn_prev_run_start_clicked(lambda _: self._clear_text())
-        self._event_bus.subscribe_to_benchmark_log_events(self._append_text)
+        self._controller.subscribe_to_log_clear(self._clear_text)
+        self._controller.subscribe_to_log_append(self._append_text)
 
     def _clear_text(self):
         logger.debug("Clearing text")

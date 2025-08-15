@@ -14,19 +14,19 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ollama_llm_bench.core.interfaces import AppContext
+from ollama_llm_bench.core.controllers import ResultWidgetControllerApi
 from ollama_llm_bench.core.models import AvgSummaryTableItem, SummaryTableItem
 
 logger = logging.getLogger(__name__)
 
 TABLE_SUMMARY_HEADER = ["MODEL", "AVG. TIME (s)", "AVG. TOKENS/s", "AVG. SCORE (%)"]
-TABLE_DETAILED_HEADER = ["MODEL", "Task", "TIME (ms)", "Tokens", "TOKENS/s", "SCORE", "REASON"]
+TABLE_DETAILED_HEADER = ["MODEL", "TASK", "STATUS", "TIME (ms)", "Tokens", "TOKENS/s", "SCORE", "REASON"]
 
 
 class ResultWidget(QWidget):
-    def __init__(self, ctx: AppContext):
+    def __init__(self, controller: ResultWidgetControllerApi):
         super().__init__()
-        self._event_bus = ctx.get_event_bus()
+        self._controller = controller
 
         self._run_label = QLabel("Run Results:")
         self._run_dropdown = QComboBox()
@@ -38,7 +38,7 @@ class ResultWidget(QWidget):
         self._detailed_csv_button = QPushButton("Export as CSV")
         self._detailed_md_button = QPushButton("Export as Markdown")
         self._summary_table = QTableWidget(0, 4)
-        self._detailed_table = QTableWidget(0, 7)
+        self._detailed_table = QTableWidget(0, 8)
 
         top_layout = QHBoxLayout()
         top_layout.addWidget(self._run_label)
@@ -84,32 +84,34 @@ class ResultWidget(QWidget):
         self._detailed_table.setSortingEnabled(True)
 
         self._run_dropdown.currentIndexChanged.connect(self._on_item_changed)
-        self._delete_button.clicked.connect(lambda: self._event_bus.emit_result_btn_delete_run_clicked())
-        self._summary_csv_button.clicked.connect(lambda: self._event_bus.emit_result_btn_export_csv_summary_clicked())
-        self._summary_md_button.clicked.connect(lambda: self._event_bus.emit_result_btn_export_md_summary_clicked())
-        self._detailed_csv_button.clicked.connect(lambda: self._event_bus.emit_result_btn_export_csv_detailed_clicked())
-        self._detailed_md_button.clicked.connect(lambda: self._event_bus.emit_result_btn_export_md_detailed_clicked())
+        self._delete_button.clicked.connect(self._controller.handle_delete_click)
+        self._summary_csv_button.clicked.connect(self._controller.handle_summary_export_csv_click)
+        self._summary_md_button.clicked.connect(self._controller.handle_summary_export_md_click)
+        self._detailed_csv_button.clicked.connect(self._controller.handle_detailed_export_csv_click)
+        self._detailed_md_button.clicked.connect(self._controller.handle_detailed_export_md_click)
 
-        self._event_bus.subscribe_app_runs_changed(self._on_runs_changed)
-        self._event_bus.subscribe_app_current_run_summary_data_changed(self._on_summary_data_changed)
-        self._event_bus.subscribe_app_current_run_detailed_data_changed(self._on_detailed_data_changed)
-        self._event_bus.subscribe_to_benchmark_is_running_events(self._on_benchmark_is_running_changed)
+        self._controller.subscribe_to_runs_change(self._on_runs_changed)
+        self._controller.subscribe_to_summary_data_change(self._on_summary_data_changed)
+        self._controller.subscribe_to_detailed_data_change(self._on_detailed_data_changed)
+        self._controller.subscribe_to_benchmark_status_change(self._on_benchmark_is_running_changed)
 
     def _on_item_changed(self):
         logger.debug("Dropdown item changed")
         current_index = self._run_dropdown.currentIndex()
         if current_index >= 0:
             run_id = self._run_dropdown.itemData(current_index)
-            self._event_bus.emit_benchmark_run_id_changed_events(run_id)
+            self._controller.handle_run_selection_change(run_id)
             logger.debug(f"Run ID changed to {run_id}")
-        logger.debug(f"Current index: {current_index}")
 
     def _on_runs_changed(self, run_ids: list[tuple[int, str]]):
+        logger.debug(f"Run IDs changed to {run_ids}")
         self._run_dropdown.clear()
         for run_id, name in run_ids:
             self._run_dropdown.addItem(name, run_id)
 
     def _on_summary_data_changed(self, data: List[AvgSummaryTableItem]):
+        logger.debug("Summary data changed")
+        self._summary_table.setSortingEnabled(False)
         self._summary_table.setRowCount(len(data))
 
         for row, item in enumerate(data):
@@ -120,19 +122,31 @@ class ResultWidget(QWidget):
         self._summary_table.setSortingEnabled(True)
 
     def _on_detailed_data_changed(self, data: List[SummaryTableItem]):
+        logger.debug("Detailed data changed")
+        self._detailed_table.setSortingEnabled(False)
         self._detailed_table.setRowCount(len(data))
 
         for row, item in enumerate(data):
-            self._detailed_table.setItem(row, 0, QTableWidgetItem(item.model_name))
-            self._detailed_table.setItem(row, 1, QTableWidgetItem(item.task_id))
-            self._detailed_table.setItem(row, 2, QTableWidgetItem(str(item.time_ms)))
-            self._detailed_table.setItem(row, 3, QTableWidgetItem(str(item.tokens)))
-            self._detailed_table.setItem(row, 4, QTableWidgetItem(f"{item.tokens_per_second:.2f}"))
-            self._detailed_table.setItem(row, 5, QTableWidgetItem(f"{item.score:.2f}"))
-            self._detailed_table.setItem(row, 6, QTableWidgetItem(item.score_reason))
+            name: str = item.model_name
+            task_id: str = item.task_id
+            task_status = item.task_status
+            time: str = str(item.time_ms)
+            tokens: str = str(item.tokens)
+            tps: str = f"{item.tokens_per_second:.2f}"
+            score: str = f"{item.score:.2f}"
+            reason: str = item.score_reason
+            self._detailed_table.setItem(row, 0, QTableWidgetItem(name))
+            self._detailed_table.setItem(row, 1, QTableWidgetItem(task_id))
+            self._detailed_table.setItem(row, 2, QTableWidgetItem(task_status))
+            self._detailed_table.setItem(row, 3, QTableWidgetItem(time))
+            self._detailed_table.setItem(row, 4, QTableWidgetItem(tokens))
+            self._detailed_table.setItem(row, 5, QTableWidgetItem(tps))
+            self._detailed_table.setItem(row, 6, QTableWidgetItem(score))
+            self._detailed_table.setItem(row, 7, QTableWidgetItem(reason))
         self._detailed_table.setSortingEnabled(True)
 
     def _on_benchmark_is_running_changed(self, is_running: bool) -> None:
+        logger.debug("Benchmark item changed")
         self._run_label.setEnabled(not is_running)
         self._run_dropdown.setEnabled(not is_running)
         self._summary_label.setEnabled(not is_running)

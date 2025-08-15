@@ -3,7 +3,7 @@ from collections import defaultdict
 from typing import List, override
 
 from src.ollama_llm_bench.core.interfaces import DataApi, ResultApi
-from src.ollama_llm_bench.core.models import (AvgSummaryTableItem, BenchmarkResultStatus, SummaryTableItem)
+from src.ollama_llm_bench.core.models import (AvgSummaryTableItem, SummaryTableItem)
 
 logger = logging.getLogger(__name__)
 
@@ -72,17 +72,21 @@ class AppResultApi(ResultApi):
         detailed_results = []
         valid_results_count = 0
         for result in results:
-            # if result.status == BenchmarkResultStatus.COMPLETED and result.time_taken_ms is not None:
-            tokens_generated = (result.tokens_generated or 0)
-            tokens_per_second = tokens_generated / result.time_taken_ms * 1000 if (result.time_taken_ms or 0) > 0 else 0.0
+            tokens_generated = result.tokens_generated or 0
+            if result.time_taken_ms and result.time_taken_ms > 0:
+                tokens_per_second = tokens_generated / result.time_taken_ms * 1000
+            else:
+                tokens_per_second = 0.0
+
             score_reason = result.evaluation_reason or ""
 
             item = SummaryTableItem(model_name=result.model_name,
                                     task_id=result.task_id,
+                                    task_status=str(result.status),
                                     time_ms=result.time_taken_ms,
-                                    tokens=result.tokens_generated or 0,
+                                    tokens=result.tokens_generated,
                                     tokens_per_second=tokens_per_second,
-                                    score=result.evaluation_score or 0.0,
+                                    score=result.evaluation_score,
                                     score_reason=score_reason, )
             detailed_results.append(item)
             valid_results_count += 1
