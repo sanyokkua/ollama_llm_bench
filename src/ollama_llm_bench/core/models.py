@@ -58,22 +58,22 @@ class BenchmarkResult:
 
 @dataclass(frozen=True)
 class AvgSummaryTableItem:
-    model_name: str
-    avg_time_ms: float
-    avg_tokens_per_second: float
-    avg_score: float
+    model_name: str = ''
+    avg_time_ms: float = 0.0
+    avg_tokens_per_second: float = 0.0
+    avg_score: float = 0.0
 
 
 @dataclass(frozen=True)
 class SummaryTableItem:
-    model_name: str
-    task_id: str
-    task_status: str
-    time_ms: int
-    tokens: int
-    tokens_per_second: float
-    score: float
-    score_reason: str
+    model_name: str = ''
+    task_id: str = ''
+    task_status: str = ''
+    time_ms: int = 0
+    tokens: int = 0
+    tokens_per_second: float = 0.0
+    score: float = 0.0
+    score_reason: str = ''
 
 
 @dataclass(frozen=True)
@@ -89,14 +89,11 @@ class InferenceResponse:
 
 @dataclass(frozen=True)
 class ReporterStatusMsg:
-    total_amount_of_tasks: int
-    completed_amount_of_tasks: int
-    current_model_name: str
-    current_task_id: str
-    total_amount_of_tasks_for_model: int
-    completed_amount_of_tasks_for_model: int
-    run_status: BenchmarkRunStatus
-    task_status: BenchmarkResultStatus
+    current_stage: str = ''
+    current_model: str = ''
+    current_task: str = ''
+    tasks_total: int = 0
+    tasks_completed: int = 0
 
 
 @dataclass(frozen=True)

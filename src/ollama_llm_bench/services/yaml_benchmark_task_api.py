@@ -83,7 +83,7 @@ class YamlBenchmarkTaskApi(BenchmarkTaskApi):
 
         logger.info("Loaded %d benchmark tasks from %d files", task_count, len(self._tasks_cache))
         # TODO: Remove Limit
-        return self._tasks_cache[:5]
+        return self._tasks_cache[:2]
 
     @override
     def get_task(self, task_id: str) -> BenchmarkTask:

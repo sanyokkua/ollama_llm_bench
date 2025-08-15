@@ -4,7 +4,6 @@ from typing import override
 
 import ollama
 from PyQt6.QtCore import QMutex, QMutexLocker, QThreadPool
-from PyQt6.QtWidgets import QApplication
 
 from ollama_llm_bench.core.controllers import (
     LogWidgetControllerApi,
@@ -64,7 +63,7 @@ class ApplicationContext(AppContext):
                  new_run_widget_controller_api: NewRunWidgetControllerApi,
                  log_widget_controller_api: LogWidgetControllerApi,
                  result_widget_controller_api: ResultWidgetControllerApi,
-                 table_serializer: ITableSerializer
+                 table_serializer: ITableSerializer,
                  ):
         self._ollama_llm_api = ollama_llm_api
         self._task_api = task_api
@@ -270,7 +269,7 @@ def _create_app_context(root_folder: Path) -> ApplicationContext:
         data_api=data_api,
         llm_api=ollama_llm_api,
         task_api=task_api,
-        table_serializer=table_serializer
+        table_serializer=table_serializer,
     )
 
     return ApplicationContext(

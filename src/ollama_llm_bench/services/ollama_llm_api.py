@@ -29,16 +29,23 @@ class OllamaApi(LLMApi):
 
     @override
     def warm_up(self, model_name: str) -> bool:
-        try:
-            response = self._ollama_client.generate(
-                model=model_name,
-                prompt='Hello',
-            )
-            logger.debug(f"Warmup response: {response.response}")
-            return True
-        except Exception as ex:
-            logger.warning(f"Failed to warmup", exc_info=ex)
-            return False
+        for retry in range(5):
+            response_received = False
+            try:
+                response = self._ollama_client.generate(
+                    model=model_name,
+                    prompt='Say Hello',
+                )
+                logger.debug(f"Warmup response: {response.response}")
+                response_received = True
+            except Exception as ex:
+                logger.warning(f"Failed to warmup", exc_info=ex)
+            if not response_received:
+                logger.debug(f"Failed to warm up, retrying: #{retry}")
+                time.sleep(30)
+            else:
+                return response_received
+        return False
 
     @override
     def inference(
@@ -48,10 +55,9 @@ class OllamaApi(LLMApi):
         system_prompt: Optional[str] = None,
         on_llm_response: Optional[Callable[[str], None]] = None,
         on_is_stop_signal: Optional[Callable[[], bool]] = None,
+        is_judge_mode: bool = False,
     ) -> InferenceResponse:
         try:
-            full_response = ""
-            tokens_generated = 0
             options = {
             }
 
@@ -61,36 +67,22 @@ class OllamaApi(LLMApi):
             start_time = time.time()
             logger.debug(f"Starting inference for model: {model_name}")
             if on_llm_response:
-                on_llm_response(f"User prompt: {user_prompt}")
+                if not is_judge_mode:
+                    on_llm_response(f"User prompt: {user_prompt}")
                 on_llm_response(f"Starting inference for model: {model_name}")
 
             response = self._ollama_client.generate(
                 model=model_name,
                 prompt=user_prompt,
                 options=options,
-                stream=True,
+                stream=False,
             )
-
-            is_stopped = False
-            for chunk in response:
-                if on_is_stop_signal and on_is_stop_signal():
-                    is_stopped = True
-                    logger.debug("Stop requested for inference")
-                    break
-                if 'response' in chunk:
-                    content = chunk['response']
-                    full_response += content
-                    tokens_generated += len(content.split())
-                    logger.debug(f"Generated content [chunk]: {content}")
+            full_response = response.response
+            tokens_generated = response.eval_count
 
             if on_llm_response:
-                if is_stopped:
-                    on_llm_response('Generation stopped by user')
                 on_llm_response("LLM Response:")
                 on_llm_response(full_response)
-
-            if is_stopped:
-                full_response = ''
 
             end_time = time.time()
             logger.debug(f"Inference completed for model: {model_name}")

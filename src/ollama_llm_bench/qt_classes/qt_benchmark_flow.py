@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Optional, override
 
 from PyQt6.QtCore import QObject, QThreadPool, pyqtSignal
@@ -6,6 +7,8 @@ from ollama_llm_bench.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi,
 from ollama_llm_bench.core.models import BenchmarkRunStatus, ReporterStatusMsg
 from ollama_llm_bench.qt_classes.meta_class import MetaQObjectABC
 from ollama_llm_bench.qt_classes.qt_benchmark_execution_task import BenchmarkExecutionTask
+
+logger = logging.getLogger(__name__)
 
 
 class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
@@ -29,24 +32,36 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
             llm_api=llm_api,
         )
         self._thread_pool = thread_pool
-
-        # Execution state
         self._current_task: Optional[BenchmarkExecutionTask] = None
         self._current_run_id: Optional[int] = None
+        logger.debug("QtBenchmarkFlowApi initialized")
+
+    # ------------------ Execution control ------------------
 
     @override
     def start_execution(self, run_id: int) -> None:
-        """Start a new benchmark execution (non-blocking)"""
-        if self.is_running():
-            raise RuntimeError("A benchmark is already running")
+        """Start a new benchmark execution (non-blocking)."""
+        logger.info(f"Request to start benchmark execution for run_id={run_id}")
 
-        # Validate run exists
+        # Prevent starting if already running
+        if self.is_running():
+            logger.warning("A benchmark is already running; start request ignored")
+            return
+
+        # Validate run
         try:
             run = self._data_api.retrieve_benchmark_run(run_id)
+            logger.debug(f"Retrieved benchmark run: {run}")
             if run.status != BenchmarkRunStatus.NOT_COMPLETED:
-                raise ValueError(f"Benchmark run #{run_id} is not in NOT_COMPLETED state")
+                raise ValueError(
+                    f"Benchmark run #{run_id} is not in NOT_COMPLETED state (current: {run.status})",
+                )
         except Exception as e:
+            logger.error(f"Invalid run_id={run_id}: {e}")
             raise ValueError(f"Invalid run_id: {run_id}") from e
+
+        # Disconnect old signals (if any)
+        self._disconnect_current_task()
 
         # Create execution task
         task = BenchmarkExecutionTask(
@@ -56,75 +71,85 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
             prompt_builder_api=self._prompt_builder_api,
             llm_api=self._llm_api,
         )
+        logger.debug(f"Created BenchmarkExecutionTask for run_id={run_id}")
 
-        # Disconnect any previous task signals (shouldn't happen, but safe)
-        self._disconnect_current_task()
-
-        # Connect task signals to our class signals
+        # Connect signals
         self._connect_task_signals(task)
 
-        # Store reference and start in thread pool
+        # Store state and start in thread pool
         self._current_task = task
         self._current_run_id = run_id
         self._thread_pool.start(task)
+        logger.info(f"Benchmark execution task for run_id={run_id} started in thread pool")
 
-        # Notify status change (should be True)
+        # Notify listeners
         self.benchmark_status_events.emit(self.is_running())
 
     @override
     def stop_execution(self) -> None:
-        """Request graceful termination of current execution"""
+        """Request graceful termination of current execution."""
+        logger.info("Request to stop benchmark execution")
         if not self.is_running():
-            raise RuntimeError("No benchmark is currently running")
-
+            logger.warning("No benchmark is currently running; stop request ignored")
+            return
         self._current_task.stop()
+        logger.debug(f"Stop signal sent to run_id={self._current_run_id}")
 
     @override
     def is_running(self) -> bool:
-        """Check if any benchmark is currently executing"""
+        """Check if any benchmark is currently executing."""
         return self._current_task is not None and not self._current_task.is_stopped()
 
     @override
     def get_current_run_id(self) -> Optional[int]:
-        """Get ID of currently executing run, if any"""
+        """Get ID of currently executing run, if any."""
         return self._current_run_id
+
+    # ------------------ Event subscriptions ------------------
 
     @override
     def subscribe_to_benchmark_status_events(self, callback: Callable[[bool], None]) -> None:
-        """Subscribe to execution status changes (running vs not running)"""
+        """Subscribe to execution status changes (running vs not running)."""
         self.benchmark_status_events.connect(callback)
-        # Immediately notify of current status
-        callback(self.is_running())
+        logger.debug("Subscribed to benchmark_status_events")
+        callback(self.is_running())  # immediate notification
+        logger.debug(f"Immediate status callback sent: running={self.is_running()}")
 
     @override
     def subscribe_to_benchmark_output_events(self, callback: Callable[[str], None]) -> None:
-        """Subscribe to log/output messages from benchmark execution"""
+        """Subscribe to log/output messages from benchmark execution."""
         self.benchmark_output_events.connect(callback)
+        logger.debug("Subscribed to benchmark_output_events")
 
     @override
     def subscribe_to_benchmark_progress_events(self, callback: Callable[[ReporterStatusMsg], None]) -> None:
-        """Subscribe to progress updates"""
+        """Subscribe to progress updates."""
         self.benchmark_progress_events.connect(callback)
+        logger.debug("Subscribed to benchmark_progress_events")
 
+    # ------------------ Internal helpers ------------------
 
     def _connect_task_signals(self, task: BenchmarkExecutionTask) -> None:
-        """Connect a task's signals to our class signals"""
+        """Connect a task's signals to our class signals."""
+        logger.debug("Connecting task signals")
         task.signals.status_changed.connect(self.benchmark_status_events)
         task.signals.log_message.connect(self.benchmark_output_events)
         task.signals.progress.connect(self.benchmark_progress_events)
 
     def _disconnect_current_task(self) -> None:
-        """Disconnect signals from current task (if any)"""
+        """Disconnect signals from current task (if any) and reset state."""
         if self._current_task is None:
+            logger.debug("No current task to disconnect")
             return
 
+        logger.debug(f"Disconnecting signals for run_id={self._current_run_id}")
         try:
             self._current_task.signals.status_changed.disconnect(self.benchmark_status_events)
             self._current_task.signals.log_message.disconnect(self.benchmark_output_events)
             self._current_task.signals.progress.disconnect(self.benchmark_progress_events)
         except TypeError:
-            # Signals might not be connected, ignore
-            pass
+            logger.debug("Some task signals may have already been disconnected")
         finally:
+            logger.debug(f"Clearing current task state for run_id={self._current_run_id}")
             self._current_task = None
             self._current_run_id = None

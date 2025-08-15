@@ -35,16 +35,16 @@ class ControlPanel(QWidget):
         self._event_bus.subscribe_to_background_thread_progress(self._on_progress_changed)
 
     def _on_progress_changed(self, status: ReporterStatusMsg):
-        self._update_progress(status.total_amount_of_tasks, status.completed_amount_of_tasks)
-        self._update_tasks_status(status.total_amount_of_tasks, status.completed_amount_of_tasks)
-        self._update_status(f"Running task: {status.current_task_id}")
+        self._update_progress(status.tasks_total, status.tasks_completed)
+        self._update_tasks_status(status.tasks_total, status.tasks_completed, status.current_stage)
+        self._update_status(f"Current Model: [{status.current_model or "N/A"}]. Loaded Task: {status.current_task}")
 
     def _update_progress(self, total_amount: int, completed_amount: int) -> None:
         self._progress_bar.setMaximum(total_amount)
         self._progress_bar.setValue(completed_amount)
 
-    def _update_tasks_status(self, total_amount: int, completed_amount: int) -> None:
-        self._tasks_status.setText(f"Tasks: {completed_amount}/{total_amount}")
+    def _update_tasks_status(self, total_amount: int, completed_amount: int, stage: str) -> None:
+        self._tasks_status.setText(f"Tasks for stage: [{stage or "N/A"}]. Completed [{completed_amount}] /Total [{total_amount}] ")
 
     def _update_status(self, status: str) -> None:
         self._status_label.setText(status)

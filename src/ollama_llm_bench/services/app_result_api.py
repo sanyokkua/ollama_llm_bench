@@ -28,7 +28,6 @@ class AppResultApi(ResultApi):
         model_results = defaultdict(list)
         valid_results_count = 0
         for result in results:
-            # if result.status == BenchmarkResultStatus.COMPLETED and result.time_taken_ms is not None:
             model_results[result.model_name].append(result)
             valid_results_count += 1
 
@@ -83,10 +82,10 @@ class AppResultApi(ResultApi):
             item = SummaryTableItem(model_name=result.model_name,
                                     task_id=result.task_id,
                                     task_status=str(result.status),
-                                    time_ms=result.time_taken_ms,
-                                    tokens=result.tokens_generated,
-                                    tokens_per_second=tokens_per_second,
-                                    score=result.evaluation_score,
+                                    time_ms=result.time_taken_ms or 0,
+                                    tokens=result.tokens_generated or 0,
+                                    tokens_per_second=tokens_per_second or 0.0,
+                                    score=result.evaluation_score or 0.0,
                                     score_reason=score_reason, )
             detailed_results.append(item)
             valid_results_count += 1
