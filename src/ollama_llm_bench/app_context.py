@@ -13,7 +13,6 @@ from ollama_llm_bench.core.interfaces import (
     AppContext, BenchmarkFlowApi,
     BenchmarkTaskApi, DataApi, EventBus, ITableSerializer, LLMApi, PromptBuilderApi, ResultApi,
 )
-from ollama_llm_bench.core.models import AvgSummaryTableItem, SummaryTableItem
 from ollama_llm_bench.qt_classes.qt_benchmark_flow import QtBenchmarkFlowApi
 from ollama_llm_bench.qt_classes.qt_event_bus import QtEventBus
 from ollama_llm_bench.services.app_result_api import AppResultApi
@@ -26,6 +25,8 @@ from ollama_llm_bench.ui.controllers.log_widget_controller import LogWidgetContr
 from ollama_llm_bench.ui.controllers.new_run_widget_controller import NewRunWidgetController
 from ollama_llm_bench.ui.controllers.previous_run_widget_controller import PreviousRunWidgetController
 from ollama_llm_bench.ui.controllers.result_widget_controller import ResultWidgetController
+from ollama_llm_bench.ui.controllers.status_listener import StatusListener
+from ollama_llm_bench.utils.run_utils import get_tasks_tuple
 
 DATA_SET_PATH = "dataset"
 DB_FILE_NAME = "db.sqlite"
@@ -49,6 +50,7 @@ class ApplicationContext(AppContext):
         '_log_widget_controller_api',
         '_result_widget_controller_api',
         '_table_serializer',
+        '_status_listener',
     )
 
     def __init__(self, *,
@@ -64,6 +66,7 @@ class ApplicationContext(AppContext):
                  log_widget_controller_api: LogWidgetControllerApi,
                  result_widget_controller_api: ResultWidgetControllerApi,
                  table_serializer: ITableSerializer,
+                 status_listener: StatusListener,
                  ):
         self._ollama_llm_api = ollama_llm_api
         self._task_api = task_api
@@ -77,6 +80,7 @@ class ApplicationContext(AppContext):
         self._log_widget_controller_api = log_widget_controller_api
         self._result_widget_controller_api = result_widget_controller_api
         self._table_serializer = table_serializer
+        self._status_listener = status_listener
 
     @override
     def get_event_bus(self) -> EventBus:
@@ -120,28 +124,20 @@ class ApplicationContext(AppContext):
         try:
             runs = data_api.retrieve_benchmark_runs()
             if runs and len(runs) > 0:
-                latest_run_id = runs[-1].run_id
-                runs_list = [(r.run_id, r.timestamp) for r in runs]
-
+                latest_run_id = runs[0].run_id
+                runs_list = get_tasks_tuple(self._data_api)
                 logger.debug("received runs {}".format(runs))
-                summary = self._get_summary_data(latest_run_id)
-                detailed = self._get_detailed_data(latest_run_id)
+
                 event_bus.emit_run_id_changed(latest_run_id)
                 event_bus.emit_run_ids_changed(runs_list)
-                event_bus.emit_table_summary_data_changed(summary)
-                event_bus.emit_table_detailed_data_change(detailed)
             else:
                 logger.debug("no runs found")
                 event_bus.emit_run_id_changed(None)
                 event_bus.emit_run_ids_changed([])
-                event_bus.emit_table_summary_data_changed([])
-                event_bus.emit_table_detailed_data_change([])
         except Exception as e:
             logger.warning("exception {}".format(e))
             event_bus.emit_run_id_changed(None)
             event_bus.emit_run_ids_changed([])
-            event_bus.emit_table_summary_data_changed([])
-            event_bus.emit_table_detailed_data_change([])
 
         try:
             models = llm_api.get_models_list()
@@ -154,22 +150,6 @@ class ApplicationContext(AppContext):
             logger.warning("exception {}".format(e))
             event_bus.emit_models_test_changed([])
             event_bus.emit_models_judge_changed('')
-
-    def _get_summary_data(self, run_id: int) -> list[AvgSummaryTableItem]:
-        try:
-            summary = self.get_result_api().retrieve_avg_benchmark_results_for_run(run_id)
-            return summary
-        except Exception as e:
-            logger.error(f"Failed to retrieve summary data for run {run_id}: {str(e)}")
-            return []
-
-    def _get_detailed_data(self, run_id: int) -> list[SummaryTableItem]:
-        try:
-            detailed = self.get_result_api().retrieve_detailed_benchmark_results_for_run(run_id)
-            return detailed
-        except Exception as e:
-            logger.error(f"Failed to retrieve detailed data for run {run_id}: {str(e)}")
-            return []
 
 
 class ContextProvider:
@@ -264,13 +244,14 @@ def _create_app_context(root_folder: Path) -> ApplicationContext:
     )
     result_widget_controller_api = ResultWidgetController(
         event_bus=event_bus,
-        result_api=result_api,
-        benchmark_flow_api=benchmark_flow_api,
         data_api=data_api,
-        llm_api=ollama_llm_api,
-        task_api=task_api,
         table_serializer=table_serializer,
     )
+    status_listener = StatusListener(data_api=data_api,
+                                     event_bus=event_bus,
+                                     benchmark_flow_api=benchmark_flow_api,
+                                     result_api=result_api,
+                                     )
 
     return ApplicationContext(
         ollama_llm_api=ollama_llm_api,
@@ -285,4 +266,5 @@ def _create_app_context(root_folder: Path) -> ApplicationContext:
         log_widget_controller_api=log_widget_controller_api,
         result_widget_controller_api=result_widget_controller_api,
         table_serializer=table_serializer,
+        status_listener=status_listener,
     )

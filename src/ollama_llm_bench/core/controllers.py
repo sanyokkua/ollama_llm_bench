@@ -8,15 +8,15 @@ class PreviousRunWidgetControllerApi(ABC):
     """Controller interface for handling PreviousRunWidget events and state updates."""
 
     @abstractmethod
-    def handle_refresh_click(self) -> None:
+    def handle_refresh_click(self, _) -> None:
         """Handle the refresh button click event."""
 
     @abstractmethod
-    def handle_start_click(self) -> None:
+    def handle_start_click(self, _) -> None:
         """Handle the start benchmark button click event."""
 
     @abstractmethod
-    def handle_stop_click(self) -> None:
+    def handle_stop_click(self, _) -> None:
         """Handle the stop benchmark button click event."""
 
     @abstractmethod
@@ -40,7 +40,7 @@ class NewRunWidgetControllerApi(ABC):
     """Controller interface for handling NewRunWidget events and state updates."""
 
     @abstractmethod
-    def handle_refresh_click(self) -> None:
+    def handle_refresh_click(self, _) -> None:
         """Handle the refresh button click event by emitting the appropriate event."""
 
     @abstractmethod
@@ -48,7 +48,7 @@ class NewRunWidgetControllerApi(ABC):
         """Handle the start benchmark button click event by emitting the appropriate event."""
 
     @abstractmethod
-    def handle_stop_click(self) -> None:
+    def handle_stop_click(self, _) -> None:
         """Handle the stop benchmark button click event by emitting the appropriate event."""
 
     @abstractmethod
@@ -80,28 +80,32 @@ class ResultWidgetControllerApi(ABC):
         """Handle the run selection dropdown change event by emitting the appropriate event."""
 
     @abstractmethod
-    def handle_delete_click(self) -> None:
+    def handle_delete_click(self, _) -> None:
         """Handle the delete button click event by emitting the appropriate event."""
 
     @abstractmethod
-    def handle_summary_export_csv_click(self) -> None:
+    def handle_summary_export_csv_click(self, _) -> None:
         """Handle the summary CSV export button click event by emitting the appropriate event."""
 
     @abstractmethod
-    def handle_summary_export_md_click(self) -> None:
+    def handle_summary_export_md_click(self, _) -> None:
         """Handle the summary Markdown export button click event by emitting the appropriate event."""
 
     @abstractmethod
-    def handle_detailed_export_csv_click(self) -> None:
+    def handle_detailed_export_csv_click(self, _) -> None:
         """Handle the detailed CSV export button click event by emitting the appropriate event."""
 
     @abstractmethod
-    def handle_detailed_export_md_click(self) -> None:
+    def handle_detailed_export_md_click(self, _) -> None:
         """Handle the detailed Markdown export button click event by emitting the appropriate event."""
 
     @abstractmethod
     def subscribe_to_runs_change(self, callback: Callable[[List[tuple[int, str]]], None]) -> None:
         """Subscribe to runs list change events to populate the dropdown."""
+
+    @abstractmethod
+    def subscribe_to_run_id_changed(self, callback: Callable[[Optional[int]], None]) -> None:
+        """Subscribe to run id change events."""
 
     @abstractmethod
     def subscribe_to_summary_data_change(self, callback: Callable[[List[AvgSummaryTableItem]], None]) -> None:
@@ -111,12 +115,6 @@ class ResultWidgetControllerApi(ABC):
     def subscribe_to_detailed_data_change(self, callback: Callable[[List[SummaryTableItem]], None]) -> None:
         """Subscribe to detailed data change events to update the detailed table."""
 
-    @abstractmethod
-    def subscribe_to_benchmark_status_change(self, callback: Callable[[bool], None]) -> None:
-        """Subscribe to benchmark status change events to update UI state."""
-
-
-class CommonBenchmarkStatusControllerApi(ABC):
     @abstractmethod
     def subscribe_to_benchmark_status_change(self, callback: Callable[[bool], None]) -> None:
         """Subscribe to benchmark status change events to update UI state."""

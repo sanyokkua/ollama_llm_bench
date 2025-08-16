@@ -38,6 +38,7 @@ class PreviousRunWidget(QWidget):
         self._stop_button_prev.clicked.connect(self._controller.handle_stop_click)
         self._unfinished_dropdown_prev.currentIndexChanged.connect(self._on_item_changed)
         self._controller.subscribe_to_runs_change(self._on_runs_changed)
+        self._controller.subscribe_to_run_id_changed(self._on_run_id_changed)
         self._controller.subscribe_to_benchmark_status_change(self._on_benchmark_is_running_changed)
 
     def _on_item_changed(self):
@@ -52,6 +53,21 @@ class PreviousRunWidget(QWidget):
         self._unfinished_dropdown_prev.clear()
         for run_id, name in runs:
             self._unfinished_dropdown_prev.addItem(name, run_id)
+
+    def _on_run_id_changed(self, run_id: int):
+        logger.debug(f"Run ID changed to {run_id}")
+
+        # Find the index that has the matching run_id as user data
+        index = -1
+        for i in range(self._unfinished_dropdown_prev.count()):
+            if self._unfinished_dropdown_prev.itemData(i) == run_id:
+                index = i
+                break
+
+        if index >= 0:
+            self._unfinished_dropdown_prev.setCurrentIndex(index)
+        else:
+            logger.warning(f"Run ID {run_id} not found in dropdown")
 
     def _on_benchmark_is_running_changed(self, is_running: bool) -> None:
         self._unfinished_dropdown_prev.setEnabled(not is_running)

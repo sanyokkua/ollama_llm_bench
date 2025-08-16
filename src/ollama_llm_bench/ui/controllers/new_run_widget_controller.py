@@ -23,9 +23,9 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
         self.benchmark_flow_api = benchmark_flow_api
         self.event_bus = event_bus
 
-    def _get_available_models(self) -> set[str]:
+    def _get_available_models(self) -> list[str]:
         try:
-            models = set(self.llm_api.get_models_list())
+            models = self.llm_api.get_models_list()
             logger.debug(f"Found {len(models)} models")
         except Exception as e:
             logger.warning(f"Failed to fetch models: {e}")
@@ -33,7 +33,7 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
         return models
 
     @override
-    def handle_refresh_click(self) -> None:
+    def handle_refresh_click(self, _) -> None:
         logger.debug("Refresh button is clicked")
         models = self._get_available_models()
         self.event_bus.emit_models_test_changed(list(models))
@@ -54,6 +54,10 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
                 logger.debug(f"Benchmark model {model} is not available")
                 self.event_bus.emit_global_event_msg(f"Benchmark model {model} is not available")
                 return
+        if len(event.models) == 0:
+            logger.debug(f"No models selected")
+            self.event_bus.emit_global_event_msg("No models selected")
+            return
 
         timestamp = datetime.now().isoformat()
         run = BenchmarkRun(
@@ -96,7 +100,7 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
         self.benchmark_flow_api.start_execution(run_id)
 
     @override
-    def handle_stop_click(self) -> None:
+    def handle_stop_click(self, _) -> None:
         logger.debug("Stop button is clicked")
         if self.benchmark_flow_api.is_running():
             logger.debug(f"Benchmark flow is running, will stop execution")

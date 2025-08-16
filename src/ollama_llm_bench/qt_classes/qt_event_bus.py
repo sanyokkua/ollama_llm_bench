@@ -87,7 +87,7 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
     @override
     def emit_run_id_changed(self, value: Optional[int]) -> None:
         logger.debug(f"emit_run_id_changed: {value}")
-        self._run_id_changed.emit(value)
+        self._run_id_changed.emit(value or -1)
 
     @override
     def emit_run_ids_changed(self, value: list[tuple[int]]) -> None:

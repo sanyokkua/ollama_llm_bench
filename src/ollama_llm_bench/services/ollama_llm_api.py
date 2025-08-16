@@ -18,7 +18,8 @@ class OllamaApi(LLMApi):
     def get_models_list(self) -> List[dict]:
         try:
             response = self._ollama_client.list()
-            model_names = [model["model"] for model in response["models"]]
+            model_names = { model["model"] for model in response["models"] }
+            model_names = list(model_names)
             model_names.sort()
             logger.debug(f"Models received: {len(model_names)}")
             return model_names

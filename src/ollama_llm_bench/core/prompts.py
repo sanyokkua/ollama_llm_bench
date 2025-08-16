@@ -42,14 +42,13 @@ EVALUATION RULES (follow exactly):
 
 5. Reason field requirements:
    - Return a short human-readable explanation that justifies the numeric grade.
-   - Include: (a) one-sentence summary, (b) a concise bullet or comma-separated list of the main strengths and the main faults/mismatches, and (c) a compact numeric breakdown showing the weighted subscores and how they combine to the final grade (example format shown below).
    - Be specific: cite the exact mismatch (e.g., "uses nested loops → O(n²) not O(n)", "changed 1279 → 1200", "wrong object: Elder Wand instead of Resurrection Stone", "misses duplicate handling").
 
 6. REQUIRED OUTPUT FORMAT (must be the only output, with no extra text):
 Return exactly this JSON object and nothing else (no surrounding text, no code fences, no metadata, no extra keys):
 
 {
-  "reason": "<string - concise, specific explanation and numeric breakdown>",
+  "reason": "<string - concise, specific explanation and numeric breakdown in one sentence>",
   "grade": <float - between 0.00 and 1.00, rounded to two decimals>
 }
 
@@ -92,7 +91,6 @@ incorrect_direction:
 submitted_answer:
 {answer}
 
-# optional fields:
 category: {category}           # e.g., "Coding", "Translation", "Literature", "Proofreading", etc. (optional)
 sub_category: {sub_category}   # e.g., "Java", "Ukrainian to Croatian", "Harry Potter Series" (optional)
 
@@ -101,5 +99,5 @@ Please evaluate the submitted_answer against the provided references according t
 Output format example:
 {"reason":"Exact match to most_expected. Correct algorithm and complexity; handles duplicates and no-solution. Breakdown: correctness=1.00*0.50=0.50, constraints=1.00*0.25=0.25, completeness=1.00*0.15=0.15, style=1.00*0.10=0.10 => total=1.00","grade":1.00}
 
-Keep in mind that JSON should be provide as RAW (plain text) json string. Do not wrap it with markdown and DO NOT add anything except the RAW json string.
+Keep in mind that JSON should be provided as a RAW (plain text) json string. Do not wrap it with markdown and DO NOT add anything except the RAW json string. DO NOT WRAP INTO MARKDOWN!
 """.strip()

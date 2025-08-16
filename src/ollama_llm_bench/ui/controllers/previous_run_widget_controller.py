@@ -4,6 +4,7 @@ from typing import Callable, List, Optional, override
 from ollama_llm_bench.core.controllers import PreviousRunWidgetControllerApi
 from ollama_llm_bench.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, EventBus
 from ollama_llm_bench.core.models import BenchmarkRun, BenchmarkRunStatus
+from ollama_llm_bench.utils.run_utils import get_tasks_tuple
 
 logger = logging.getLogger(__name__)
 
@@ -36,29 +37,22 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
 
     def _on_background_is_running_changed(self, is_running: bool):
         if not is_running:
-            self.handle_refresh_click()
+            self.handle_refresh_click(False)
 
     @override
-    def handle_refresh_click(self) -> None:
+    def handle_refresh_click(self, _) -> None:
         logger.debug("PreviousRunWidgetController.handle_refresh_click")
-        try:
-            runs = self.data_api.retrieve_benchmark_runs()  # TODO
-            runs_list = [(r.run_id, r.timestamp) for r in runs]
-            logger.debug(f"Retrieved {len(runs)} benchmark runs")
-        except Exception as e:
-            logger.warning(f"Failed to retrieve runs benchmark runs: {e}")
-            runs = []
-            runs_list = []
-            self.event_bus.emit_global_event_msg(f"Failed to retrieve runs benchmark runs")
+        runs_list = get_tasks_tuple(self.data_api)
+        logger.debug(f"Retrieved {len(runs_list)} benchmark runs")
         self.event_bus.emit_run_ids_changed(runs_list)
 
-        if len(runs) > 0:
-            self.event_bus.emit_run_id_changed(runs[-1].run_id)
+        if len(runs_list) > 0:
+            self.event_bus.emit_run_id_changed(runs_list[0][0])
         else:
             self.event_bus.emit_run_id_changed(None)
 
     @override
-    def handle_start_click(self):
+    def handle_start_click(self, _):
         logger.debug("PreviousRunWidgetController.handle_start_click")
         if self.benchmark_flow_api.is_running():
             logger.debug(f"Benchmark flow is already running")
@@ -83,7 +77,7 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
         self.benchmark_flow_api.start_execution(current_run.run_id)
 
     @override
-    def handle_stop_click(self) -> None:
+    def handle_stop_click(self, _) -> None:
         logger.debug("Stopping previous run")
         if self.benchmark_flow_api.is_running():
             logger.debug(f"Benchmark flow is running, will stop execution")
@@ -97,8 +91,6 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
         if run_id is None or run_id <= 0:
             logger.debug(f"No Run ID")
             self.event_bus.emit_run_id_changed(None)
-            self.event_bus.emit_table_summary_data_changed([])
-            self.event_bus.emit_table_detailed_data_change([])
             self.event_bus.emit_global_event_msg("No Run ID")
             return
 
@@ -107,8 +99,6 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
         except Exception as e:
             logger.warning(f"Failed to retrieve run {run_id}: {e}")
             self.event_bus.emit_run_id_changed(None)
-            self.event_bus.emit_table_summary_data_changed([])
-            self.event_bus.emit_table_detailed_data_change([])
             self.event_bus.emit_global_event_msg("Failed to retrieve run {run_id}")
             return
 

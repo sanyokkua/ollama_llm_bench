@@ -1,4 +1,5 @@
 import logging
+import time
 from collections import defaultdict
 
 from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
@@ -9,13 +10,15 @@ from ollama_llm_bench.core.models import (
     BenchmarkResultStatus,
     ReporterStatusMsg,
 )
+from ollama_llm_bench.core.stages import (
+    STAGE_BENCHMARKING,
+    STAGE_FAILED,
+    STAGE_FINISHED,
+    STAGE_INITIALIZING,
+    STAGE_JUDGING,
+)
 from ollama_llm_bench.utils.text_utils import parse_judge_response
-
-STAGE_INITIALIZING = "Initializing"
-STAGE_BENCHMARKING = "Benchmarking"
-STAGE_JUDGING = "Judging"
-STAGE_FINISHED = "Finished"
-STAGE_FAILED = "Failed"
+from ollama_llm_bench.utils.time_utils import format_elapsed_time
 
 
 class BenchmarkExecutionTask(QRunnable):
@@ -50,6 +53,8 @@ class BenchmarkExecutionTask(QRunnable):
         self._current_model = ""
         self._current_task_id = ""
         self._stage = STAGE_INITIALIZING
+        self._start_time: float = 0
+        self._end_time: float = 0
 
     # ------------------ Logging helpers ------------------
 
@@ -93,6 +98,7 @@ class BenchmarkExecutionTask(QRunnable):
         self._update_progress()
         try:
             self.signals.status_changed.emit(True)
+            self._start_time = time.time()
             self._execute_benchmark()
             self._stage = STAGE_FINISHED
             self.logger.info(f"Benchmark execution completed for run_id={self.run_id}")
@@ -104,9 +110,12 @@ class BenchmarkExecutionTask(QRunnable):
         finally:
             self._current_task_id = ''
             self._current_model = ''
+            self._end_time = time.time()
+            self._stop_requested = True
             self.signals.status_changed.emit(False)
             self.logger.debug("Benchmark execution thread completed")
             self._update_progress()
+            self._notify(format_elapsed_time(self._start_time, self._end_time))
 
     def _execute_benchmark(self) -> None:
         if not self._execute_benchmark_for_tasks():
@@ -341,12 +350,16 @@ class BenchmarkExecutionTask(QRunnable):
         self.data_api.update_benchmark_result(updated_task)
 
     def _update_progress(self) -> None:
+        end_time = self._end_time if self._end_time > 0 else time.time()
         status_msg = ReporterStatusMsg(
+            current_run_id=self.run_id,
             current_task=self._current_task_id,
             current_model=self._current_model,
             current_stage=self._stage,
             tasks_total=self._total_tasks,
             tasks_completed=self._completed_tasks,
+            start_time_ms=self._start_time,
+            end_time_ms=end_time,
         )
         self.signals.progress.emit(status_msg)
 

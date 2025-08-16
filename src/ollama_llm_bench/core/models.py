@@ -89,11 +89,14 @@ class InferenceResponse:
 
 @dataclass(frozen=True)
 class ReporterStatusMsg:
+    current_run_id: int
     current_stage: str = ''
     current_model: str = ''
     current_task: str = ''
     tasks_total: int = 0
     tasks_completed: int = 0
+    start_time_ms: float = 0
+    end_time_ms: float = 0
 
 
 @dataclass(frozen=True)

@@ -91,6 +91,7 @@ class ResultWidget(QWidget):
         self._detailed_md_button.clicked.connect(self._controller.handle_detailed_export_md_click)
 
         self._controller.subscribe_to_runs_change(self._on_runs_changed)
+        self._controller.subscribe_to_run_id_changed(self._on_run_id_changed)
         self._controller.subscribe_to_summary_data_change(self._on_summary_data_changed)
         self._controller.subscribe_to_detailed_data_change(self._on_detailed_data_changed)
         self._controller.subscribe_to_benchmark_status_change(self._on_benchmark_is_running_changed)
@@ -108,6 +109,21 @@ class ResultWidget(QWidget):
         self._run_dropdown.clear()
         for run_id, name in run_ids:
             self._run_dropdown.addItem(name, run_id)
+
+    def _on_run_id_changed(self, run_id: int):
+        logger.debug(f"Run ID changed to {run_id}")
+
+        # Find the index that has the matching run_id as user data
+        index = -1
+        for i in range(self._run_dropdown.count()):
+            if self._run_dropdown.itemData(i) == run_id:
+                index = i
+                break
+
+        if index >= 0:
+            self._run_dropdown.setCurrentIndex(index)
+        else:
+            logger.warning(f"Run ID {run_id} not found in dropdown")
 
     def _on_summary_data_changed(self, data: List[AvgSummaryTableItem]):
         logger.debug("Summary data changed")
