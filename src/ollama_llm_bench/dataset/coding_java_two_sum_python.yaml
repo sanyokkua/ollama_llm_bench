@@ -1,0 +1,17 @@
+- task_id: "coding_java_two_sum_python"
+  category: "Coding"
+  sub_category: "Python"
+  question: "Write a Python function that, given a list of integers and a target sum, returns the indices of two distinct elements whose values add up to the target. The solution must run in O(n) time and use O(n) extra space. Handle cases where no valid pair exists and where duplicate values are present."
+  expected_answer:
+    most_expected: |
+      def two_sum(nums, target):
+          num_map = {}
+          for i, num in enumerate(nums):
+              complement = target - num
+              if complement in num_map:
+                  return [num_map[complement], i]
+              num_map[num] = i
+          return []  # or raise an exception if no solution
+    good_answer: "Uses a dictionary to store visited elements and check complements in a single pass, ensuring O(n) time and O(n) space complexity. Correctly handles no-solution and duplicate cases."
+    pass_option: "Any valid Python implementation that finds two indices summing to the target in O(n) time with O(n) space, even if no-solution handling is minimal."
+  incorrect_direction: "The solution uses nested loops (O(n²)), returns wrong indices, fails with duplicate numbers, or is not valid Python."

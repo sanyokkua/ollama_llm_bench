@@ -1,0 +1,15 @@
+- task_id: "text_operations_proofreading_croatian"
+  category: "Text Operations"
+  sub_category: "Proofreading"
+  question: |
+    Ispravite gramatičke, stilističke i interpunkcijske pogreške u sljedećoj rečenici:
+    Moj, tim zajdno s mnom planiruje predstavyti inovativniy proizvod, koji se, očikuje da će značajno utecati na tržišnu situacije veći sljedeći tedan.
+  expected_answer:
+    most_expected: |
+      Moj tim zajedno sa mnom planira predstaviti inovativni proizvod koji se očekuje da će značajno utjecati na tržišnu situaciju već sljedeći tjedan.
+    good_answer: |
+      Zajedno sa svojim timom planiram predstaviti inovativni proizvod za koji se predviđa da će značajno utjecati na tržište već sljedeći tjedan.
+    pass_option: |
+      Rečenica bez gramatičkih, stilističkih i interpunkcijskih pogrešaka, s jasno izraženim značenjem.
+  incorrect_direction: |
+    Nedostatak slaganja, interpunkcijske pogreške, gubitak značenja ili neprikladan izbor riječi.

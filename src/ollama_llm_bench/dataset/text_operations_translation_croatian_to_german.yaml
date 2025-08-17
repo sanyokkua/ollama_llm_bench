@@ -1,0 +1,15 @@
+- task_id: "text_operations_translation_croatian_to_german"
+  category: "Text Operations"
+  sub_category: "Translation"
+  question: |
+    Übersetzen Sie den folgenden Text ins Deutsche:
+    Dobar dan. Želio bih znati mogu li podići gotovinu s bankovne kartice? Trebam podići s kartice tisuću dvjesto sedamdeset devet eura.
+  expected_answer:
+    most_expected: |
+      Guten Tag. Ich möchte wissen, ob ich Bargeld von der Bankkarte abheben kann. Ich muss tausendzweihundertsiebenundsiebzig Euro von der Karte abheben.
+    good_answer: |
+      Hallo, ich möchte fragen, ob ich Bargeld von meiner Bankkarte abheben kann. Ich brauche 1279 Euro.
+    pass_option: |
+      Anfrage zum Abheben von 1279 Euro Bargeld von der Bankkarte.
+  incorrect_direction: |
+    Die Übersetzung ist ungenau, wichtige Informationen fehlen oder der Betrag und die Währung sind falsch.

@@ -1,0 +1,15 @@
+- task_id: "text_operations_rephrase_semi_formal_croatian"
+  category: "Text Operations"
+  sub_category: "Rephrase"
+  question: |
+    Preformulirajte sljedeću rečenicu u poluformalnom stilu, zadržavajući ključne informacije:
+    Moj, tim zajdno s mnom planiruje predstavyti inovativniy proizvod, koji se, očikuje da će značajno utecati na tržišnu situacije veći sljedeći tedan.
+  expected_answer:
+    most_expected: |
+      Moj tim i ja planiramo predstaviti inovativni proizvod koji bi, prema očekivanjima, mogao značajno utjecati na tržište već sljedeći tjedan.
+    good_answer: |
+      Zajedno s timom pripremamo prezentaciju novog proizvoda koji se očekuje da će utjecati na tržište u skorom roku.
+    pass_option: |
+      Poluformalni stil s razumljivim i ispravnim izrazima.
+  incorrect_direction: |
+    Previše formalan ili previše neformalan stil, gramatičke pogreške ili nejasna konstrukcija.

@@ -1,0 +1,14 @@
+- task_id: "general_knowledge_literature_tolkien_lotr"
+  category: "General Knowledge"
+  sub_category: "Literature"
+  question: |
+    What was the original title consideration for "The Lord of the Rings" that J.R.R. Tolkien later abandoned, and what linguistic reason did he give for rejecting it in his letters?
+  expected_answer:
+    most_expected: |
+      Tolkien initially considered the title "The New Shadow" for "The Lord of the Rings," but later abandoned it, citing that it lacked the gravitas and mythic quality of his preferred title and was linguistically unsuitable to represent the epic's scope.
+    good_answer: |
+      "The New Shadow" was a discarded title because Tolkien felt it did not fit the story's grand mythological tone.
+    pass_option: |
+      Tolkien rejected "The New Shadow" as a title because it did not sound suitably epic or fitting linguistically.
+  incorrect_direction: |
+    Confusing "The New Shadow" with actual sequel attempts or giving unrelated reasons for title rejection.

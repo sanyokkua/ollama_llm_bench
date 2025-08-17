@@ -1,0 +1,81 @@
+- task_id: "data_extraction_transformation_nested_config_text_to_xml"
+  category: "Data Extraction and Transformation"
+  sub_category: "Text to XML"
+  question: |
+    Convert the following app configuration text into properly nested XML with the root element <appConfig>.
+    Follow these rules:
+    - Convert "Enabled"/"Disabled" to boolean attributes (true/false)
+    - Use kebab-case for element names
+    - Handle multi-value fields (like AllowedIPs) as multiple child elements
+  input_text: |
+    APP CONFIGURATION
+    - Theme: Dark
+    - Language: en-US
+    - Notifications:
+      * Email: Enabled
+      * Push: Disabled
+      * Frequency: Daily
+    - Security:
+      * TwoFactor: Required
+      * SessionTimeout: 30m
+      * AllowedIPs: 192.168.1.0/24, 10.0.0.5
+  expected_answer:
+    most_expected: |
+      <appConfig>
+        <theme>Dark</theme>
+        <language>en-US</language>
+        <notifications>
+          <email enabled="true"/>
+          <push enabled="false"/>
+          <frequency>Daily</frequency>
+        </notifications>
+        <security>
+          <two-factor>Required</two-factor>
+          <session-timeout>30m</session-timeout>
+          <allowed-ips>
+            <ip>192.168.1.0/24</ip>
+            <ip>10.0.0.5</ip>
+          </allowed-ips>
+        </security>
+      </appConfig>
+    good_answer: |
+      <appConfig>
+        <theme>Dark</theme>
+        <language>en-US</language>
+        <notifications>
+          <email enabled="true"></email>
+          <push enabled="false"></push>
+          <frequency>Daily</frequency>
+        </notifications>
+        <security>
+          <two-factor>Required</two-factor>
+          <session-timeout>30m</session-timeout>
+          <allowed-ips>
+            <ip>192.168.1.0/24</ip>
+            <ip>10.0.0.5</ip>
+          </allowed-ips>
+        </security>
+      </appConfig>
+    pass_option: |
+      <appConfig>
+        <theme>Dark</theme>
+        <language>en-US</language>
+        <notifications>
+          <email enabled="true"/>
+          <push enabled="false"/>
+          <frequency>Daily</frequency>
+        </notifications>
+        <security>
+          <two-factor>Required</two-factor>
+          <session-timeout>30m</session-timeout>
+          <allowed-ips>
+            <ip>192.168.1.0/24</ip>
+            <ip>10.0.0.5</ip>
+          </allowed-ips>
+        </security>
+      </appConfig>
+  incorrect_direction: |
+    - Missing or incorrect boolean attributes for enabled/disabled
+    - Not using kebab-case for element names
+    - Multi-value IPs combined into one element instead of multiple child <ip> elements
+    - Incorrect root element name or nesting errors

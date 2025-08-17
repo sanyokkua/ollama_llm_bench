@@ -1,0 +1,15 @@
+- task_id: "text_operations_manipulations_conditional_omission_organic_adjectives"
+  category: "Text Operations"
+  sub_category: "Text Manipulation"
+  question: |
+    You will be given a product description. If the word 'organic' appears, remove all adjectives. If 'organic' does NOT appear, double all adjectives. Never add new words.
+    Input: 'Our delicious, premium organic dark chocolate bar is amazingly smooth.'
+  expected_answer:
+    most_expected: |
+      Our dark chocolate bar is amazingly smooth.
+    good_answer: |
+      Our dark chocolate bar is smooth.
+    pass_option: |
+      The output has no adjectives before 'dark chocolate bar' because 'organic' is present; other parts unchanged.
+  incorrect_direction: |
+    Adjectives not removed when 'organic' is present, adjectives doubled when 'organic' is present, added words, or changed meaning.

@@ -1,0 +1,14 @@
+- task_id: "general_knowledge_literature_orwell_1984"
+  category: "General Knowledge"
+  sub_category: "Literature"
+  question: |
+    What historical event inspired George Orwell's "1984," and what specific year did Orwell complete writing the novel, according to his published correspondence?
+  expected_answer:
+    most_expected: |
+      George Orwell's "1984" was inspired by the totalitarian regimes of Nazi Germany and Stalinist Soviet Union. Orwell completed writing the novel in 1948, as confirmed by his published letters.
+    good_answer: |
+      The rise of fascism and Stalinism inspired "1984," which Orwell finished in 1948.
+    pass_option: |
+      Orwell was inspired by WWII-era dictatorships and completed "1984" in 1948.
+  incorrect_direction: |
+    Incorrect inspiration sources, wrong completion year, or confusing with other Orwell works.

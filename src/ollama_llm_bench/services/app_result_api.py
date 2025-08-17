@@ -2,20 +2,39 @@ import logging
 from collections import defaultdict
 from typing import List, override
 
-from src.ollama_llm_bench.core.interfaces import DataApi, ResultApi
-from src.ollama_llm_bench.core.models import (AvgSummaryTableItem, SummaryTableItem)
+from ollama_llm_bench.core.interfaces import DataApi, ResultApi
+from ollama_llm_bench.core.models import (AvgSummaryTableItem, SummaryTableItem)
 
 logger = logging.getLogger(__name__)
 
 
 class AppResultApi(ResultApi):
+    """
+    Concrete implementation of ResultApi for computing benchmark summaries.
+    Calculates aggregated and detailed performance metrics from stored results.
+    """
 
     def __init__(self, *, data_api: DataApi):
+        """
+        Initialize the result processor.
+
+        Args:
+            data_api: Interface for retrieving benchmark results.
+        """
         super().__init__(data_api=data_api)
         logger.debug("Initialized AppResultApi")
 
     @override
     def retrieve_avg_benchmark_results_for_run(self, run_id: int) -> List[AvgSummaryTableItem]:
+        """
+        Calculate averaged performance metrics across all tasks for each model in a run.
+
+        Args:
+            run_id: Identifier of the benchmark run.
+
+        Returns:
+            List of averaged summary items, one per model.
+        """
         logger.debug("Calculating average benchmark results for run ID %d", run_id)
 
         if run_id <= 0:
@@ -59,6 +78,15 @@ class AppResultApi(ResultApi):
 
     @override
     def retrieve_detailed_benchmark_results_for_run(self, run_id: int) -> List[SummaryTableItem]:
+        """
+        Retrieve detailed per-task performance metrics for all models in a run.
+
+        Args:
+            run_id: Identifier of the benchmark run.
+
+        Returns:
+            List of detailed summary items for each task-model combination.
+        """
         logger.debug("Retrieving detailed benchmark results for run ID %d", run_id)
 
         if run_id <= 0:

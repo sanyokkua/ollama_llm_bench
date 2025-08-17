@@ -1,0 +1,108 @@
+- task_id: "coding_sql_top3_revenue_customers_per_country_with_ties_timezones"
+  category: "Coding"
+  sub_category: "SQL"
+  question: |
+    Generate a report showing the TOP 3 HIGHEST-REVENUE CUSTOMERS per COUNTRY
+    for the LAST 30 DAYS *from the CEO's local midnight* (CEO is in New York / America/New_York).
+    Requirements & constraints:
+      - Include ties (if multiple customers tie for 3rd place, show all of them).
+      - Exclude cancelled orders and inactive products.
+      - Handle orphaned orders (missing customer rows) without failing — place them under country "Unknown".
+      - Ignore order items with NULL price.
+      - `order_date` is stored in UTC; the 30-day window should start at CEO's local midnight 30 days ago and be compared in UTC.
+      - Results must be sorted by country → revenue rank → customer name.
+      - Must be performant for large tables (10M+ orders). Explain indexing / performance notes.
+    Target engine: PostgreSQL (uses standard SQL + Postgres timezone functions). Adapt the timezone expressions for other RDBMS if needed.
+  expected_answer:
+    most_expected: |
+      -- Postgres: compute CEO local midnight 30 days ago in UTC,
+      -- aggregate revenue per customer (excluding cancelled orders, inactive products, NULL prices),
+      -- rank per country using RANK() and keep rank <= 3 (this preserves ties).
+      WITH params AS (
+        -- CEO local midnight 30 days ago, converted to UTC (timestamptz)
+        SELECT
+          ((date_trunc('day', now() AT TIME ZONE 'America/New_York') - INTERVAL '30 days')
+           AT TIME ZONE 'America/New_York') AS start_utc,
+          (now() AT TIME ZONE 'UTC') AS end_utc
+      ),
+      valid_items AS (
+        -- filter out inactive products and NULL prices early
+        SELECT
+          oi.order_id,
+          (oi.quantity * oi.price)::numeric AS line_revenue
+        FROM order_items oi
+        JOIN products p ON p.id = oi.product_id
+        WHERE p.is_active = TRUE
+          AND oi.price IS NOT NULL
+      ),
+      recent_completed_orders AS (
+        SELECT o.id AS order_id, o.customer_id
+        FROM orders o
+        CROSS JOIN params
+        WHERE o.status = 'completed'
+          AND o.order_date >= params.start_utc
+          AND o.order_date < params.end_utc
+      ),
+      customer_revenue AS (
+        -- aggregate revenue per customer and country; handle missing customers
+        SELECT
+          COALESCE(c.country, 'Unknown')                             AS country,
+          COALESCE(c.id, -1)                                         AS customer_id,
+          COALESCE(c.name, 'Unknown')                                AS customer_name,
+          SUM(vi.line_revenue)                                      AS revenue
+        FROM recent_completed_orders o
+        JOIN valid_items vi ON vi.order_id = o.order_id
+        LEFT JOIN customers c ON c.id = o.customer_id
+        GROUP BY COALESCE(c.country, 'Unknown'), COALESCE(c.id, -1), COALESCE(c.name, 'Unknown')
+      ),
+      ranked AS (
+        SELECT
+          country,
+          customer_id,
+          customer_name,
+          revenue,
+          RANK() OVER (PARTITION BY country ORDER BY revenue DESC) AS revenue_rank
+        FROM customer_revenue
+      )
+      SELECT
+        country,
+        revenue_rank,
+        customer_id,
+        customer_name,
+        revenue
+      FROM ranked
+      WHERE revenue_rank <= 3
+      ORDER BY country, revenue_rank, customer_name;
+    good_answer: |
+      - Timezone handling: compute the CEO's local midnight 30 days ago using
+        `date_trunc('day', now() AT TIME ZONE 'America/New_York') - interval '30 days'`
+        and convert that local timestamp back to UTC with `AT TIME ZONE 'America/New_York'`.
+        Compare `order_date` (stored in UTC) against that UTC boundary.
+      - Aggregation: pre-filter order_items by active products and non-NULL prices, join only completed orders within the UTC window, then sum `quantity * price` grouped by customer.
+      - Missing customers: `LEFT JOIN customers` and `COALESCE` to label orphaned orders under `'Unknown'` country/name (or you can choose to `WHERE c.id IS NOT NULL` to exclude them depending on business rules).
+      - Ties: use `RANK()` per country and select `rank <= 3`. `RANK()` preserves gaps and returns identical rank values for tied revenues — returning all rows where rank = 3 satisfies the requirement to include all ties for 3rd place.
+      - Sorting: final `ORDER BY country, revenue_rank, customer_name` matches the requested order.
+      - Performance optimizations:
+          * Indexes to add:
+            - `CREATE INDEX idx_orders_status_order_date ON orders (status, order_date);`
+            - `CREATE INDEX idx_orders_order_date_customer ON orders (order_date, customer_id);`
+            - `CREATE INDEX idx_order_items_order_id ON order_items (order_id);`
+            - `CREATE INDEX idx_products_is_active ON products (is_active);` (or include in product PK if low-selectivity)
+            - `CREATE INDEX idx_customers_country ON customers (country);`
+          * Push filters down (filter products and order status early) so the aggregation reads fewer rows.
+          * Ensure `order_date` is `timestamptz` (or use conversion accordingly).
+          * If line-level volume is huge, consider a periodically maintained materialized view / summary table of recent order_item aggregates (e.g., per day) to reduce work at query time.
+      - On correctness: NULL prices are excluded; inactive products are excluded; orphaned orders are handled via `LEFT JOIN`.
+    pass_option: |
+      Any SQL that:
+        - Correctly computes the 30-day UTC window based on the CEO's America/New_York local midnight 30 days ago,
+        - Aggregates revenue per customer excluding cancelled orders, inactive products, and NULL prices,
+        - Uses a window function to produce per-country ranks and returns all rows tied for the third rank,
+        - Returns rows ordered by country, rank, customer name.
+      (Implementation details may vary — e.g., using `DENSE_RANK()` + an additional filter to capture ties is acceptable if it returns the same set of rows.)
+  incorrect_direction: |
+    - Using server local time / `now()` without converting from CEO local zone to UTC, causing incorrect 30-day window boundaries (ignores DST).
+    - Ranking logic that uses `ROW_NUMBER()` (which breaks ties) or filters `LIMIT 3` per country without special handling for ties (will drop tied customers for 3rd place).
+    - Not excluding cancelled orders, inactive products, or rows with NULL prices.
+    - `INNER JOIN` to `customers` that blindly drops orphaned orders if business requirement is to surface them under "Unknown".
+    - No indexes or poor push-down of filters — query will scan all order_items and fail performance constraint on large datasets.

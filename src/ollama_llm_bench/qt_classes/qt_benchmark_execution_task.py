@@ -10,7 +10,7 @@ from ollama_llm_bench.core.models import (
     BenchmarkResultStatus,
     ReporterStatusMsg,
 )
-from ollama_llm_bench.core.stages import (
+from ollama_llm_bench.core.stages_constants import (
     STAGE_BENCHMARKING,
     STAGE_FAILED,
     STAGE_FINISHED,
@@ -22,7 +22,15 @@ from ollama_llm_bench.utils.time_utils import format_elapsed_time
 
 
 class BenchmarkExecutionTask(QRunnable):
+    """
+    Runnable task for executing a full benchmark run including inference and judging phases.
+    Runs in a background thread to avoid blocking the UI.
+    """
+
     class Signals(QObject):
+        """
+        Signals emitted by the benchmark execution task for progress and status updates.
+        """
         status_changed = pyqtSignal(bool)  # is_running
         log_message = pyqtSignal(str)  # log text
         progress = pyqtSignal(ReporterStatusMsg)  # run status
@@ -35,6 +43,16 @@ class BenchmarkExecutionTask(QRunnable):
         prompt_builder_api: PromptBuilderApi,
         llm_api: LLMApi,
     ):
+        """
+        Initialize the benchmark execution task.
+
+        Args:
+            run_id: Identifier of the benchmark run to execute.
+            data_api: Interface for accessing benchmark data.
+            task_api: Interface for retrieving benchmark tasks.
+            prompt_builder_api: Interface for constructing prompts.
+            llm_api: Interface for interacting with LLMs.
+        """
         super().__init__()
         self.run_id = run_id
         self.data_api = data_api
@@ -56,44 +74,78 @@ class BenchmarkExecutionTask(QRunnable):
         self._start_time: float = 0
         self._end_time: float = 0
 
-    # ------------------ Logging helpers ------------------
-
     def _log_msg_to_global_logger(self, msg: str) -> None:
+        """
+        Forward log message to the global logging system.
+
+        Args:
+            msg: Message to log.
+        """
         self.signals.log_message.emit(msg)
 
     def _notify(self, message: str) -> None:
+        """
+        Log a debug message and emit it to the global logger.
+
+        Args:
+            message: Message to log and emit.
+        """
         self.logger.debug(message)
         self._log_msg_to_global_logger(message)
 
     def _notify_warn(self, message: str) -> None:
+        """
+        Log a warning message and emit it to the global logger.
+
+        Args:
+            message: Warning message to log and emit.
+        """
         self.logger.warning(message)
         self._log_msg_to_global_logger(message)
 
     def _log_stop_requested(self) -> None:
+        """
+        Notify that benchmark execution was stopped by user request.
+        """
         self._notify(
             f"Benchmark run #{self.run_id} was stopped by user request. "
             f"Incomplete tasks will resume on next run.",
         )
 
-    # ------------------ Control helpers ------------------
-
     def stop(self) -> None:
+        """
+        Request cancellation of the benchmark execution.
+        """
         if not self._stop_requested:
             self._stop_requested = True
             self._notify("Stopping benchmark execution...")
 
     def is_stopped(self) -> bool:
+        """
+        Check if a stop has been requested.
+
+        Returns:
+            True if stop was requested, False otherwise.
+        """
         return self._stop_requested
 
     def _should_stop(self) -> bool:
+        """
+        Check if execution should stop and log the reason if so.
+
+        Returns:
+            True if execution should stop, False otherwise.
+        """
         if self.is_stopped():
             self._log_stop_requested()
             return True
         return False
 
-    # ------------------ Execution entry ------------------
-
     def run(self) -> None:
+        """
+        Execute the benchmark run in the background thread.
+        Handles both benchmarking and judging stages with error recovery.
+        """
         self.logger.info(f"Starting benchmark execution for run_id={self.run_id}")
         self._update_progress()
         try:
@@ -118,6 +170,9 @@ class BenchmarkExecutionTask(QRunnable):
             self._notify(format_elapsed_time(self._start_time, self._end_time))
 
     def _execute_benchmark(self) -> None:
+        """
+        Execute both benchmarking and judging stages sequentially.
+        """
         if not self._execute_benchmark_for_tasks():
             return
         self._update_progress()
@@ -126,9 +181,13 @@ class BenchmarkExecutionTask(QRunnable):
         self._update_progress()
         self._notify(f"Finished benchmark for run: {self.run_id}.")
 
-    # ------------------ Stage 1: Benchmark ------------------
-
     def _execute_benchmark_for_tasks(self) -> bool:
+        """
+        Execute the benchmarking stage: run inference for all pending tasks.
+
+        Returns:
+            True if stage completed successfully, False if stopped or failed.
+        """
         try:
             self._notify("Starting benchmark stage...")
             self._stage = STAGE_BENCHMARKING
@@ -183,6 +242,16 @@ class BenchmarkExecutionTask(QRunnable):
         return True
 
     def _execute_benchmark_task(self, model_name: str, task: BenchmarkResult) -> None:
+        """
+        Execute inference for a single benchmark task.
+
+        Args:
+            model_name: Name of the model to benchmark.
+            task: Benchmark task to execute.
+
+        Raises:
+            Exception: If inference fails or task update fails.
+        """
         user_prompt = self.prompt_builder_api.build_prompt(task.task_id)
         response = self.llm_api.inference(
             model_name=model_name,
@@ -211,9 +280,13 @@ class BenchmarkExecutionTask(QRunnable):
             f"({response.time_taken_ms}ms, {response.tokens_generated} tokens)",
         )
 
-    # ------------------ Stage 2: Judge ------------------
-
     def _execute_judging_for_tasks(self) -> bool:
+        """
+        Execute the judging stage: evaluate all benchmark results with the judge model.
+
+        Returns:
+            True if stage completed successfully, False if stopped or failed.
+        """
         try:
             self._notify("Starting evaluation with judge model...")
             self._stage = STAGE_JUDGING
@@ -264,6 +337,16 @@ class BenchmarkExecutionTask(QRunnable):
         return True
 
     def _judge_task(self, task: BenchmarkResult, judge_model: str) -> None:
+        """
+        Evaluate a benchmark result using the judge model.
+
+        Args:
+            task: Benchmark result to evaluate.
+            judge_model: Name of the model to use for judging.
+
+        Raises:
+            Exception: If judging fails or result update fails.
+        """
         user_prompt, system_prompt = self.prompt_builder_api.build_judge_prompt(task)
         response = self.llm_api.inference(
             model_name=judge_model,
@@ -295,9 +378,16 @@ class BenchmarkExecutionTask(QRunnable):
         )
         self.data_api.update_benchmark_result(updated_task)
 
-    # ------------------ Utils ------------------
-
     def _group_tasks_by_model(self, tasks: list[BenchmarkResult]) -> dict[str, list[BenchmarkResult]]:
+        """
+        Group benchmark tasks by model name for batched execution.
+
+        Args:
+            tasks: List of tasks to group.
+
+        Returns:
+            Dictionary mapping model names to lists of tasks.
+        """
         grouped = defaultdict(list)
         for task in tasks:
             grouped[task.model_name].append(task)
@@ -305,6 +395,15 @@ class BenchmarkExecutionTask(QRunnable):
         return dict(grouped)
 
     def _warmup_model(self, model_name: str) -> bool:
+        """
+        Load and initialize a model before use to reduce inference latency.
+
+        Args:
+            model_name: Name of the model to warm up.
+
+        Returns:
+            True if warm-up succeeded, False otherwise.
+        """
         try:
             self.logger.debug(f"Warming up model: {model_name}")
             if not self.llm_api.warm_up(model_name):
@@ -318,6 +417,13 @@ class BenchmarkExecutionTask(QRunnable):
         return True
 
     def _update_failed_task(self, task: BenchmarkResult, e: Exception) -> None:
+        """
+        Update task status to failed with error information.
+
+        Args:
+            task: Task that failed.
+            e: Exception that caused the failure.
+        """
         updated_task = BenchmarkResult(
             result_id=task.result_id,
             run_id=task.run_id,
@@ -334,6 +440,13 @@ class BenchmarkExecutionTask(QRunnable):
         self.data_api.update_benchmark_result(updated_task)
 
     def _update_judge_failed(self, task: BenchmarkResult, e: Exception) -> None:
+        """
+        Update judging task status to failed with error information.
+
+        Args:
+            task: Task whose evaluation failed.
+            e: Exception that caused the failure.
+        """
         updated_task = BenchmarkResult(
             result_id=task.result_id,
             run_id=task.run_id,
@@ -350,6 +463,9 @@ class BenchmarkExecutionTask(QRunnable):
         self.data_api.update_benchmark_result(updated_task)
 
     def _update_progress(self) -> None:
+        """
+        Emit current progress status to subscribed listeners.
+        """
         end_time = self._end_time if self._end_time > 0 else time.time()
         status_msg = ReporterStatusMsg(
             current_run_id=self.run_id,

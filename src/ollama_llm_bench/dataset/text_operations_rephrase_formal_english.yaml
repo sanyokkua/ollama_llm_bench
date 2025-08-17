@@ -1,0 +1,16 @@
+- task_id: "text_operations_rephrase_formal_english"
+  category: "Text Operations"
+  sub_category: "Rephrase"
+  question: |
+    Rephrase the following text into a formal tone while correcting grammar and word order:
+
+    Me and my team is excited to presents the quarterly results. We wants to discusses how this effects the bottom line for next quarter. Please finds time for meeting us.
+  expected_answer:
+    most_expected: |
+      My team and I are pleased to present the quarterly financial results. We request the opportunity to discuss their implications for next quarter's bottom line. Kindly schedule a meeting at your earliest convenience.
+    good_answer: |
+      My team and I are excited to present the quarterly results. We would like to discuss how these affect the bottom line for the next quarter. Please find time to meet with us.
+    pass_option: |
+      A formally toned version that corrects grammar and clearly requests a meeting to discuss quarterly results.
+  incorrect_direction: |
+    Responses that retain informal language, fail to correct grammatical errors, or omit the formal tone adaptation.

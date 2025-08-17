@@ -1,21 +1,35 @@
 import logging
 from typing import Callable, List, Optional, override
 
-from ollama_llm_bench.core.controllers import PreviousRunWidgetControllerApi
 from ollama_llm_bench.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, EventBus
 from ollama_llm_bench.core.models import BenchmarkRun, BenchmarkRunStatus
-from ollama_llm_bench.utils.run_utils import get_tasks_tuple
+from ollama_llm_bench.core.ui_controllers import PreviousRunWidgetControllerApi
+from ollama_llm_bench.utils.run_utils import get_benchmark_runs
 
 logger = logging.getLogger(__name__)
 
 
 class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
+    """
+    Controller implementation for managing the 'Previous Runs' widget.
+    Handles user interactions for selecting and restarting completed or incomplete benchmark runs.
+    """
+
     def __init__(self, *,
                  data_api: DataApi,
                  task_api: BenchmarkTaskApi,
                  benchmark_flow_api: BenchmarkFlowApi,
                  event_bus: EventBus,
                  ):
+        """
+        Initialize the previous run widget controller.
+
+        Args:
+            data_api: Interface for retrieving benchmark runs.
+            task_api: Interface for accessing benchmark tasks.
+            benchmark_flow_api: Interface for controlling benchmark execution.
+            event_bus: Event bus for publishing and subscribing to UI events.
+        """
         self.data_api = data_api
         self.task_api = task_api
         self.benchmark_flow_api = benchmark_flow_api
@@ -25,9 +39,21 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
         self.event_bus.subscribe_to_background_thread_is_running(self._on_background_is_running_changed)
 
     def _on_run_id_changed(self, run_id: Optional[int]) -> None:
+        """
+        Update internal state when the active run ID changes.
+
+        Args:
+            run_id: Newly selected run ID, or None.
+        """
         self._last_selected_run_id = run_id
 
     def _get_current_run(self) -> Optional[BenchmarkRun]:
+        """
+        Retrieve the currently selected benchmark run.
+
+        Returns:
+            The requested run, or None if retrieval fails.
+        """
         try:
             current_run = self.data_api.retrieve_benchmark_run(self._last_selected_run_id)
         except Exception as e:
@@ -36,13 +62,25 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
         return current_run
 
     def _on_background_is_running_changed(self, is_running: bool):
+        """
+        Refresh the runs list when a background execution completes.
+
+        Args:
+            is_running: Current execution state.
+        """
         if not is_running:
             self.handle_refresh_click(False)
 
     @override
     def handle_refresh_click(self, _) -> None:
+        """
+        Handle user request to refresh the list of available benchmark runs.
+
+        Args:
+            _: Ignored event parameter.
+        """
         logger.debug("PreviousRunWidgetController.handle_refresh_click")
-        runs_list = get_tasks_tuple(self.data_api)
+        runs_list = get_benchmark_runs(self.data_api)
         logger.debug(f"Retrieved {len(runs_list)} benchmark runs")
         self.event_bus.emit_run_ids_changed(runs_list)
 
@@ -53,6 +91,12 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
 
     @override
     def handle_start_click(self, _):
+        """
+        Handle user request to restart the selected benchmark run.
+
+        Args:
+            _: Ignored event parameter.
+        """
         logger.debug("PreviousRunWidgetController.handle_start_click")
         if self.benchmark_flow_api.is_running():
             logger.debug(f"Benchmark flow is already running")
@@ -78,6 +122,12 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
 
     @override
     def handle_stop_click(self, _) -> None:
+        """
+        Handle user request to stop the currently running benchmark.
+
+        Args:
+            _: Ignored event parameter.
+        """
         logger.debug("Stopping previous run")
         if self.benchmark_flow_api.is_running():
             logger.debug(f"Benchmark flow is running, will stop execution")
@@ -87,6 +137,12 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
 
     @override
     def handle_item_change(self, run_id: Optional[int]) -> None:
+        """
+        Handle user selection of a different benchmark run.
+
+        Args:
+            run_id: Newly selected run ID, or None.
+        """
         logger.debug(f"Item change for run {run_id}")
         if run_id is None or run_id <= 0:
             logger.debug(f"No Run ID")
@@ -106,14 +162,32 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
 
     @override
     def subscribe_to_runs_change(self, callback: Callable[[List[tuple[int, str]]], None]) -> None:
+        """
+        Subscribe to changes in the list of available benchmark runs.
+
+        Args:
+            callback: Function to invoke with updated list of (run_id, run_name) tuples.
+        """
         logger.debug("Subscribing to runs change")
         self.event_bus.subscribe_to_run_ids_changed(callback)
 
     @override
     def subscribe_to_benchmark_status_change(self, callback: Callable[[bool], None]) -> None:
+        """
+        Subscribe to changes in benchmark execution status.
+
+        Args:
+            callback: Function to invoke with True (running) or False (idle).
+        """
         logger.debug("Subscribing to benchmark status change")
         self.event_bus.subscribe_to_background_thread_is_running(callback)
 
     @override
     def subscribe_to_run_id_changed(self, callback: Callable[[Optional[int]], None]) -> None:
+        """
+        Subscribe to changes in the currently selected run ID.
+
+        Args:
+            callback: Function to invoke with the new run ID (or None).
+        """
         self.event_bus.subscribe_to_run_id_changed(callback)

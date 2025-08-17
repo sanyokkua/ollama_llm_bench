@@ -1,0 +1,15 @@
+- task_id: "text_operations_rephrase_friendly_croatian"
+  category: "Text Operations"
+  sub_category: "Rephrase"
+  question: |
+    Preformulirajte sljedeću rečenicu u prijateljskom tonu, zadržavajući smisao:
+    Moj, tim zajdno s mnom planiruje predstavyti inovativniy proizvod, koji se, očikuje da će značajno utecati na tržišnu situacije veći sljedeći tedan.
+  expected_answer:
+    most_expected: |
+      S nestrpljenjem iščekujemo priliku da vam predstavimo naš novi inovativni proizvod, koji bi mogao stvarno promijeniti tržište već sljedeći tjedan!
+    good_answer: |
+      Ja i moj tim radujemo se što ćemo uskoro podijeliti s vama naš novi proizvod koji bi mogao imati veliki utjecaj na tržište.
+    pass_option: |
+      Topao i prijateljski stil s pravilnom gramatikom i jasnim izražavanjem.
+  incorrect_direction: |
+    Previše formalan ili hladan stil, gramatičke pogreške ili nejasnoće.

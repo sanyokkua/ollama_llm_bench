@@ -1,17 +1,17 @@
 import logging
 from pathlib import Path
-from typing import override
+from typing import Final, override
 
 import ollama
 from PyQt6.QtCore import QMutex, QMutexLocker, QThreadPool
 
-from ollama_llm_bench.core.controllers import (
-    LogWidgetControllerApi,
-    NewRunWidgetControllerApi, PreviousRunWidgetControllerApi, ResultWidgetControllerApi,
-)
 from ollama_llm_bench.core.interfaces import (
     AppContext, BenchmarkFlowApi,
     BenchmarkTaskApi, DataApi, EventBus, ITableSerializer, LLMApi, PromptBuilderApi, ResultApi,
+)
+from ollama_llm_bench.core.ui_controllers import (
+    LogWidgetControllerApi,
+    NewRunWidgetControllerApi, PreviousRunWidgetControllerApi, ResultWidgetControllerApi,
 )
 from ollama_llm_bench.qt_classes.qt_benchmark_flow import QtBenchmarkFlowApi
 from ollama_llm_bench.qt_classes.qt_event_bus import QtEventBus
@@ -26,16 +26,19 @@ from ollama_llm_bench.ui.controllers.new_run_widget_controller import NewRunWidg
 from ollama_llm_bench.ui.controllers.previous_run_widget_controller import PreviousRunWidgetController
 from ollama_llm_bench.ui.controllers.result_widget_controller import ResultWidgetController
 from ollama_llm_bench.ui.controllers.status_listener import StatusListener
-from ollama_llm_bench.utils.run_utils import get_tasks_tuple
+from ollama_llm_bench.utils.run_utils import get_benchmark_runs
 
-DATA_SET_PATH = "dataset"
-DB_FILE_NAME = "db.sqlite"
+_DATA_SET_PATH: Final[str] = "dataset"
+_DB_FILE_NAME: Final[str] = "db.sqlite"
 
 logger = logging.getLogger(__name__)
 
 
 class ApplicationContext(AppContext):
-    """Immutable application context container"""
+    """
+    Immutable application context container that provides access to all core services and controllers.
+    Serves as the central dependency injection point for the application.
+    """
 
     __slots__ = (
         '_ollama_llm_api',
@@ -84,38 +87,90 @@ class ApplicationContext(AppContext):
 
     @override
     def get_event_bus(self) -> EventBus:
+        """
+        Retrieve the global event bus for pub/sub communication.
+
+        Returns:
+            Configured EventBus instance.
+        """
         return self._event_bus
 
     @override
     def get_previous_run_widget_controller_api(self) -> PreviousRunWidgetControllerApi:
+        """
+        Retrieve the controller for the 'Previous Runs' widget.
+
+        Returns:
+            Controller API for managing previous run interactions.
+        """
         return self._previous_run_widget_controller_api
 
     @override
     def get_new_run_widget_controller_api(self) -> NewRunWidgetControllerApi:
+        """
+        Retrieve the controller for the 'New Run' widget.
+
+        Returns:
+            Controller API for managing new run interactions.
+        """
         return self._new_run_widget_controller_api
 
     @override
     def get_log_widget_controller_api(self) -> LogWidgetControllerApi:
+        """
+        Retrieve the controller for the log display widget.
+
+        Returns:
+            Controller API for managing log output.
+        """
         return self._log_widget_controller_api
 
     @override
     def get_result_widget_controller_api(self) -> ResultWidgetControllerApi:
+        """
+        Retrieve the controller for the results display widget.
+
+        Returns:
+            Controller API for managing results display.
+        """
         return self._result_widget_controller_api
 
     @override
     def get_data_api(self) -> DataApi:
+        """
+        Retrieve the data persistence interface.
+
+        Returns:
+            DataApi instance for storage operations.
+        """
         return self._data_api
 
     @override
     def get_llm_api(self) -> LLMApi:
+        """
+        Retrieve the LLM inference interface.
+
+        Returns:
+            LLMApi instance for model interaction.
+        """
         return self._ollama_llm_api
 
     @override
     def get_result_api(self) -> ResultApi:
+        """
+        Retrieve the result computation interface.
+
+        Returns:
+            ResultApi instance for generating summaries.
+        """
         return self._result_api
 
     @override
     def send_initialization_events(self) -> None:
+        """
+        Send initial state events to synchronize all UI components.
+        Publishes initial run list, model list, and selection state.
+        """
         logger.debug("send_initial_state")
         data_api = self.get_data_api()
         llm_api = self.get_llm_api()
@@ -125,7 +180,7 @@ class ApplicationContext(AppContext):
             runs = data_api.retrieve_benchmark_runs()
             if runs and len(runs) > 0:
                 latest_run_id = runs[0].run_id
-                runs_list = get_tasks_tuple(self._data_api)
+                runs_list = get_benchmark_runs(self._data_api)
                 logger.debug("received runs {}".format(runs))
 
                 event_bus.emit_run_id_changed(latest_run_id)
@@ -153,14 +208,30 @@ class ApplicationContext(AppContext):
 
 
 class ContextProvider:
-    """PyQt6-safe singleton context provider with static access"""
+    """
+    Thread-safe singleton provider for the application context.
+    Ensures proper initialization and access to the ApplicationContext from any thread.
+    """
+
     _context: ApplicationContext | None = None
     _initialized = False
     _mutex = QMutex()  # Using Qt's mutex for compatibility with PyQt threading model
 
     @classmethod
-    def initialize(cls, root_folder: Path) -> None:
-        """Initialize context ONCE during application startup (main thread)"""
+    def initialize(cls, app_root: Path, dataset_path: Path = None) -> None:
+        """
+        Initialize the application context during startup.
+
+        Args:
+            app_root: Root directory for application data and outputs.
+            dataset_path: Optional path to benchmark task definitions. If not provided,
+                         defaults to app_root/dataset.
+
+        Raises:
+            RuntimeError: If context has already been initialized.
+            FileNotFoundError: If the dataset path does not exist.
+            NotADirectoryError: If the dataset path is not a directory.
+        """
         if cls._initialized:
             raise RuntimeError("Context already initialized. Cannot reinitialize.")
 
@@ -168,8 +239,12 @@ class ContextProvider:
             if cls._initialized:
                 return
 
+            # If dataset_path is not provided, use the default within app_root
+            if dataset_path is None:
+                dataset_path = app_root / _DATA_SET_PATH
+
             # Create context (should happen in main thread)
-            context = _create_app_context(root_folder)
+            context = _create_app_context(app_root, dataset_path)
 
             # Atomically set context
             cls._context = context
@@ -177,7 +252,15 @@ class ContextProvider:
 
     @classmethod
     def get_context(cls) -> ApplicationContext:
-        """Thread-safe context access from any thread"""
+        """
+        Retrieve the initialized application context.
+
+        Returns:
+            The singleton ApplicationContext instance.
+
+        Raises:
+            RuntimeError: If context has not been initialized.
+        """
         if not cls._initialized:
             raise RuntimeError(
                 "Context not initialized. Call ContextProvider.initialize() "
@@ -186,19 +269,38 @@ class ContextProvider:
         return cls._context
 
 
-def _create_app_context(root_folder: Path) -> ApplicationContext:
-    """Create context (MUST be called from main thread)"""
-    data_set_path = root_folder / DATA_SET_PATH
-    db_path = root_folder / DB_FILE_NAME
+def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContext:
+    """
+    Create the application context with all required services and controllers.
 
+    Args:
+        app_root: Root directory for application data.
+        dataset_path: Path to benchmark task definition files.
+
+    Returns:
+        Fully configured ApplicationContext instance.
+
+    Raises:
+        FileNotFoundError: If dataset path does not exist.
+        NotADirectoryError: If dataset path is not a directory.
+    """
+    db_path = app_root / _DB_FILE_NAME
     event_bus = QtEventBus()
 
-    table_serializer = TableSerializer(root_folder)
+    # Verify dataset path exists
+    if not dataset_path.exists():
+        logger.error(f"Dataset path does not exist: {dataset_path}")
+        raise FileNotFoundError(f"Dataset path does not exist: {dataset_path}")
+    if not dataset_path.is_dir():
+        logger.error(f"Dataset path is not a directory: {dataset_path}")
+        raise NotADirectoryError(f"Dataset path is not a directory: {dataset_path}")
+
+    table_serializer = TableSerializer(app_root)
     # Ollama client should be created in main thread per Ollama's requirements
     ollama_client = ollama.Client(timeout=300)
     ollama_llm_api = OllamaApi(ollama_client)
 
-    task_api = YamlBenchmarkTaskApi(task_folder_path=data_set_path)
+    task_api = YamlBenchmarkTaskApi(task_folder_path=dataset_path)
     prompt_builder_api = SimplePromptBuilderApi(task_api=task_api)
 
     data_api = SqLiteDataApi(db_path)

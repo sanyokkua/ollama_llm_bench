@@ -11,11 +11,28 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaApi(LLMApi):
+    """
+    Implementation of LLMApi using the Ollama client for local LLM inference.
+    Handles model listing, warm-up, and inference with error recovery.
+    """
+
     def __init__(self, client: Client):
+        """
+        Initialize the Ollama API wrapper.
+
+        Args:
+            client: Configured Ollama client instance.
+        """
         self._ollama_client = client
 
     @override
     def get_models_list(self) -> List[dict]:
+        """
+        Retrieve the list of available models from the Ollama server.
+
+        Returns:
+            Sorted list of model names, or empty list if request fails.
+        """
         try:
             response = self._ollama_client.list()
             model_names = { model["model"] for model in response["models"] }
@@ -30,6 +47,15 @@ class OllamaApi(LLMApi):
 
     @override
     def warm_up(self, model_name: str) -> bool:
+        """
+        Load and initialize a model in memory to reduce inference latency.
+
+        Args:
+            model_name: Name of the model to warm up.
+
+        Returns:
+            True if warm-up succeeded within retry limits, False otherwise.
+        """
         for retry in range(5):
             response_received = False
             try:
@@ -58,9 +84,22 @@ class OllamaApi(LLMApi):
         on_is_stop_signal: Optional[Callable[[], bool]] = None,
         is_judge_mode: bool = False,
     ) -> InferenceResponse:
+        """
+        Perform inference using the specified model and prompts.
+
+        Args:
+            model_name: Name of the model to use for inference.
+            user_prompt: Input prompt provided by the user.
+            system_prompt: Optional system-level instruction to guide model behavior.
+            on_llm_response: Optional callback to receive response chunks or status messages.
+            on_is_stop_signal: Optional callback that returns True if inference should be interrupted.
+            is_judge_mode: If True, suppresses user prompt logging in callbacks.
+
+        Returns:
+            InferenceResponse containing generated text, timing, token count, and error status.
+        """
         try:
-            options = {
-            }
+            options = { }
 
             if system_prompt:
                 options['system'] = system_prompt

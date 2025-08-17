@@ -1,0 +1,16 @@
+- task_id: "text_operations_rephrase_direct_english"
+  category: "Text Operations"
+  sub_category: "Rephrase"
+  question: |
+    Rephrase the following text into a direct tone while correcting grammar and word order:
+
+    Me and my team is excited to presents the quarterly results. We wants to discusses how this effects the bottom line for next quarter. Please finds time for meeting us.
+  expected_answer:
+    most_expected: |
+      My team and I will present the quarterly results and discuss their impact on next quarter's bottom line. Please schedule a meeting with us.
+    good_answer: |
+      We are ready to present the quarterly results and talk about how they affect the bottom line next quarter. Let us know when you can meet.
+    pass_option: |
+      A clear and straightforward rephrasing that conveys the message without unnecessary details or softness.
+  incorrect_direction: |
+    Responses that are vague, overly polite, or fail to correct grammar and clarity.

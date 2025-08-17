@@ -1,0 +1,15 @@
+- task_id: "text_operations_rephrase_formal_croatian"
+  category: "Text Operations"
+  sub_category: "Rephrase"
+  question: |
+    Preformulirajte sljedeću rečenicu u formalnom stilu, zadržavajući sve važne informacije:
+    Moj, tim zajdno s mnom planiruje predstavyti inovativniy proizvod, koji se, očikuje da će značajno utecati na tržišnu situacije veći sljedeći tedan.
+  expected_answer:
+    most_expected: |
+      Naš tim u suradnji sa mnom namjerava prezentirati inovativni proizvod koji, prema procjenama, značajno će utjecati na tržišnu situaciju već sljedeći tjedan.
+    good_answer: |
+      Planiramo predstaviti inovativni proizvod za koji se očekuje da će imati značajan utjecaj na tržište u nadolazećem tjednu.
+    pass_option: |
+      Formalno i jasno izraženo s punim informacijama i pravilnom gramatičkom konstrukcijom.
+  incorrect_direction: |
+    Korištenje neformalnog jezika, nepridržavanje formalnog tona ili gramatičke pogreške.

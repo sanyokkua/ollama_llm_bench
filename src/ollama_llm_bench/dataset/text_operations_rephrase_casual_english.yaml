@@ -1,0 +1,16 @@
+- task_id: "text_operations_rephrase_casual_english"
+  category: "Text Operations"
+  sub_category: "Rephrase"
+  question: |
+    Rephrase the following text into a casual tone while correcting grammar and word order:
+
+    Me and my team is excited to presents the quarterly results. We wants to discusses how this effects the bottom line for next quarter. Please finds time for meeting us.
+  expected_answer:
+    most_expected: |
+      My team's got the quarterly results ready – we should chat about how this affects next quarter's numbers. Got time for a quick meeting?
+    good_answer: |
+      My team is excited about the quarterly results and wants to talk about what it means for next quarter. Let me know if you can meet.
+    pass_option: |
+      A grammatically correct, casual rephrasing inviting a meeting to discuss quarterly results with informal phrasing.
+  incorrect_direction: |
+    Responses that are too formal, fail to correct grammar, or miss the casual tone.

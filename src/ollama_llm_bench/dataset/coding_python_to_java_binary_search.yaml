@@ -1,0 +1,71 @@
+- task_id: "coding_python_to_java_binary_search"
+  category: "Code Conversion"
+  sub_category: "PythonToJava"
+  question: |
+    Convert the following Python function to Java 21. 
+    Preserve the logic exactly, but add correct Java types 
+    and idiomatic syntax. 
+    The Java method should be able to search an `int[]` array 
+    recursively, returning the index if found, or `-1` if not.
+
+    ```python
+    def binarySearch(needle, haystack, left=None, right=None):
+        # By default, `left` and `right` are all of `haystack`:
+        if left is None:
+            left = 0  # `left` defaults to the 0 index.
+        if right is None:
+            right = len(haystack) - 1  # `right` defaults to the last index.
+
+        print('Searching:', haystack[left:right + 1])
+
+        if left > right:  # BASE CASE
+            return None  # The `needle` is not in `haystack`.
+
+        mid = (left + right) // 2
+        if needle == haystack[mid]:  # BASE CASE
+            return mid  # The `needle` has been found in `haystack`
+        elif needle < haystack[mid]:  # RECURSIVE CASE
+            return binarySearch(needle, haystack, left, mid - 1)
+        elif needle > haystack[mid]:  # RECURSIVE CASE
+            return binarySearch(needle, haystack, mid + 1, right)
+    ```
+  expected_answer:
+    most_expected: |
+      public static int binarySearch(int needle, int[] haystack, Integer left, Integer right) {
+          if (left == null) {
+              left = 0;
+          }
+          if (right == null) {
+              right = haystack.length - 1;
+          }
+
+          System.out.println("Searching: " + java.util.Arrays.toString(
+              java.util.Arrays.copyOfRange(haystack, left, right + 1)
+          ));
+
+          if (left > right) {
+              return -1; // Needle not found
+          }
+
+          int mid = (left + right) / 2;
+          if (needle == haystack[mid]) {
+              return mid;
+          } else if (needle < haystack[mid]) {
+              return binarySearch(needle, haystack, left, mid - 1);
+          } else {
+              return binarySearch(needle, haystack, mid + 1, right);
+          }
+      }
+    good_answer: |
+      A Java method that mirrors the recursive binary search logic from 
+      the Python code, correctly handling `null` left/right parameters, 
+      using `int[]` for the array, and printing the searched range. 
+      Returns `-1` if not found.
+    pass_option: |
+      A Java implementation of recursive binary search with correct 
+      comparison logic, even if `null` handling is replaced with 
+      method overloads or defaults, and printing is simplified.
+  incorrect_direction: |
+    Changes the algorithm to iterative without preserving recursive structure, 
+    ignores the handling of `null` for left/right, uses wrong index calculations, 
+    or writes code that will not compile in Java.

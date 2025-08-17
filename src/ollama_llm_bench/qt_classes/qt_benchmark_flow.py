@@ -12,6 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
+    """
+    Qt-based implementation of BenchmarkFlowApi for managing asynchronous benchmark execution.
+    Uses QThreadPool for background execution and emits signals for status, output, and progress.
+    """
+
     benchmark_status_events = pyqtSignal(bool)  # running/stopped
     benchmark_output_events = pyqtSignal(str)  # log messages
     benchmark_progress_events = pyqtSignal(ReporterStatusMsg)  # progress updates
@@ -25,6 +30,16 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
         llm_api: LLMApi,
         thread_pool: QThreadPool,
     ):
+        """
+        Initialize the benchmark flow controller.
+
+        Args:
+            data_api: Interface for data persistence operations.
+            task_api: Interface for accessing benchmark tasks.
+            prompt_builder_api: Interface for constructing prompts.
+            llm_api: Interface for LLM inference.
+            thread_pool: Thread pool for executing benchmark tasks asynchronously.
+        """
         super().__init__(
             data_api=data_api,
             task_api=task_api,
@@ -36,11 +51,17 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
         self._current_run_id: Optional[int] = None
         logger.debug("QtBenchmarkFlowApi initialized")
 
-    # ------------------ Execution control ------------------
-
     @override
     def start_execution(self, run_id: int) -> None:
-        """Start a new benchmark execution (non-blocking)."""
+        """
+        Start a new benchmark execution asynchronously.
+
+        Args:
+            run_id: Identifier of the benchmark run to execute.
+
+        Raises:
+            ValueError: If the run ID is invalid or the run is not in NOT_COMPLETED state.
+        """
         logger.info(f"Request to start benchmark execution for run_id={run_id}")
 
         # Prevent starting if already running
@@ -87,7 +108,9 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
 
     @override
     def stop_execution(self) -> None:
-        """Request graceful termination of current execution."""
+        """
+        Request graceful termination of the currently running benchmark.
+        """
         logger.info("Request to stop benchmark execution")
         if not self.is_running():
             logger.warning("No benchmark is currently running; stop request ignored")
@@ -97,19 +120,32 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
 
     @override
     def is_running(self) -> bool:
-        """Check if any benchmark is currently executing."""
+        """
+        Check if a benchmark execution is currently active.
+
+        Returns:
+            True if a benchmark is running, False otherwise.
+        """
         return self._current_task is not None and not self._current_task.is_stopped()
 
     @override
     def get_current_run_id(self) -> Optional[int]:
-        """Get ID of currently executing run, if any."""
-        return self._current_run_id
+        """
+        Retrieve the ID of the currently executing benchmark run.
 
-    # ------------------ Event subscriptions ------------------
+        Returns:
+            Run ID if a benchmark is running, None otherwise.
+        """
+        return self._current_run_id
 
     @override
     def subscribe_to_benchmark_status_events(self, callback: Callable[[bool], None]) -> None:
-        """Subscribe to execution status changes (running vs not running)."""
+        """
+        Subscribe to changes in benchmark execution status.
+
+        Args:
+            callback: Function to invoke with True (running) or False (stopped).
+        """
         self.benchmark_status_events.connect(callback)
         logger.debug("Subscribed to benchmark_status_events")
         callback(self.is_running())  # immediate notification
@@ -117,27 +153,42 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
 
     @override
     def subscribe_to_benchmark_output_events(self, callback: Callable[[str], None]) -> None:
-        """Subscribe to log/output messages from benchmark execution."""
+        """
+        Subscribe to log output messages generated during benchmark execution.
+
+        Args:
+            callback: Function to invoke with log message strings.
+        """
         self.benchmark_output_events.connect(callback)
         logger.debug("Subscribed to benchmark_output_events")
 
     @override
     def subscribe_to_benchmark_progress_events(self, callback: Callable[[ReporterStatusMsg], None]) -> None:
-        """Subscribe to progress updates."""
+        """
+        Subscribe to progress updates during benchmark execution.
+
+        Args:
+            callback: Function to invoke with ReporterStatusMsg objects.
+        """
         self.benchmark_progress_events.connect(callback)
         logger.debug("Subscribed to benchmark_progress_events")
 
-    # ------------------ Internal helpers ------------------
-
     def _connect_task_signals(self, task: BenchmarkExecutionTask) -> None:
-        """Connect a task's signals to our class signals."""
+        """
+        Connect internal task signals to public event signals.
+
+        Args:
+            task: The benchmark execution task to connect.
+        """
         logger.debug("Connecting task signals")
         task.signals.status_changed.connect(self.benchmark_status_events)
         task.signals.log_message.connect(self.benchmark_output_events)
         task.signals.progress.connect(self.benchmark_progress_events)
 
     def _disconnect_current_task(self) -> None:
-        """Disconnect signals from current task (if any) and reset state."""
+        """
+        Disconnect all signals from the current task and reset internal state.
+        """
         if self._current_task is None:
             logger.debug("No current task to disconnect")
             return

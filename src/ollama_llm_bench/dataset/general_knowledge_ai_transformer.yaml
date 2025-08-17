@@ -1,0 +1,14 @@
+- task_id: "general_knowledge_ai_transformer"
+  category: "General Knowledge"
+  sub_category: "AI"
+  question: |
+    What specific architectural innovation distinguishes the Transformer model from previous sequence models, and in what exact month and year was the seminal "Attention is All You Need" paper published?
+  expected_answer:
+    most_expected: |
+      The Transformer architecture replaces recurrent and convolutional layers with a self-attention mechanism, enabling parallel processing of sequence data. The paper "Attention is All You Need" was published in June 2017.
+    good_answer: |
+      Transformers use self-attention instead of recurrence; paper published June 2017.
+    pass_option: |
+      Self-attention architecture; published June 2017.
+  incorrect_direction: |
+    Confusing self-attention with other mechanisms or incorrect publication date.

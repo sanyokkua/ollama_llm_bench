@@ -1,0 +1,187 @@
+- task_id: "data_extraction_transformation_data_type_inference"
+  category: "Data Extraction and Transformation"
+  sub_category: "CSV to JSON"
+  question: |
+    Given the following CSV input, convert it to JSON with proper data type inference.
+    Additionally, identify and document type assumptions for these fields:
+    - "Active" (boolean vs string vs integer)
+    - "Score" (number vs string)
+    - "Join Date" (format recognition)
+    - "Tags" (array vs string)
+    Provide confidence scores for each inference and include data quality metrics.
+    input_text:
+    ID,Name,Join Date,Active,Score,Tags
+    1,John Doe,2020-01-15,true,95.5,a,b,c
+    2,Jane Smith,2021-03-22,false,87.2,x,y
+    3,Bob Johnson,2019-11-30,1,100.0,foo,bar,baz
+  expected_answer:
+    most_expected: |
+      {
+        "data": [
+          {
+            "id": 1,
+            "name": "John Doe",
+            "joinDate": "2020-01-15",
+            "active": true,
+            "score": 95.5,
+            "tags": ["a", "b", "c"]
+          },
+          {
+            "id": 2,
+            "name": "Jane Smith",
+            "joinDate": "2021-03-22",
+            "active": false,
+            "score": 87.2,
+            "tags": ["x", "y"]
+          },
+          {
+            "id": 3,
+            "name": "Bob Johnson",
+            "joinDate": "2019-11-30",
+            "active": true,
+            "score": 100.0,
+            "tags": ["foo", "bar", "baz"]
+          }
+        ],
+        "metadata": {
+          "fieldTypes": {
+            "id": {"type": "integer", "confidence": 1.0},
+            "name": {"type": "string", "confidence": 1.0},
+            "joinDate": {"type": "date", "format": "YYYY-MM-DD", "confidence": 0.95},
+            "active": {"type": "boolean", "confidence": 0.9},
+            "score": {"type": "number", "confidence": 1.0},
+            "tags": {"type": "array", "itemType": "string", "confidence": 0.85}
+          },
+          "dataQuality": {
+            "missingValues": 0,
+            "inconsistentTypes": 1,
+            "warnings": [
+              "Active field uses mixed representation (true/false and 1)"
+            ]
+          }
+        }
+      }
+    good_answer: |
+      {
+        "data": [
+          {
+            "id": 1,
+            "name": "John Doe",
+            "joinDate": "2020-01-15",
+            "active": true,
+            "score": 95.5,
+            "tags": ["a", "b", "c"]
+          },
+          {
+            "id": 2,
+            "name": "Jane Smith",
+            "joinDate": "2021-03-22",
+            "active": false,
+            "score": 87.2,
+            "tags": ["x", "y"]
+          },
+          {
+            "id": 3,
+            "name": "Bob Johnson",
+            "joinDate": "2019-11-30",
+            "active": true,
+            "score": 100.0,
+            "tags": ["foo", "bar", "baz"]
+          }
+        ],
+        "typeInference": {
+          "active": {
+            "assumedType": "boolean",
+            "confidence": 0.8,
+            "notes": "Mixed boolean string and numeric values interpreted as boolean."
+          },
+          "score": {
+            "assumedType": "number",
+            "confidence": 0.95,
+            "notes": "Numeric values parsed correctly."
+          },
+          "joinDate": {
+            "assumedType": "string (YYYY-MM-DD)",
+            "confidence": 0.9,
+            "notes": "Standard ISO date format detected."
+          },
+          "tags": {
+            "assumedType": "array",
+            "confidence": 0.9,
+            "notes": "Multiple tag values treated as arrays."
+          }
+        },
+        "dataQualityMetrics": {
+          "missingValues": 0,
+          "typeInconsistencies": {
+            "active": true
+          },
+          "validDateRows": 3,
+          "totalRows": 3
+        }
+      }
+    pass_option: |
+      {
+        "data": [
+          {
+            "id": 1,
+            "name": "John Doe",
+            "joinDate": "2020-01-15",
+            "active": true,
+            "score": 95.5,
+            "tags": ["a", "b", "c"]
+          },
+          {
+            "id": 2,
+            "name": "Jane Smith",
+            "joinDate": "2021-03-22",
+            "active": false,
+            "score": 87.2,
+            "tags": ["x", "y"]
+          },
+          {
+            "id": 3,
+            "name": "Bob Johnson",
+            "joinDate": "2019-11-30",
+            "active": true,
+            "score": 100,
+            "tags": ["foo", "bar", "baz"]
+          }
+        ],
+        "typeInference": {
+          "active": {
+            "assumedType": "boolean",
+            "confidence": 0.75,
+            "notes": "Values 'true', 'false', and '1' converted to boolean."
+          },
+          "score": {
+            "assumedType": "number",
+            "confidence": 0.9,
+            "notes": "All numeric strings parsed as numbers."
+          },
+          "joinDate": {
+            "assumedType": "string",
+            "confidence": 0.9,
+            "notes": "Dates formatted as 'YYYY-MM-DD'."
+          },
+          "tags": {
+            "assumedType": "array",
+            "confidence": 0.85,
+            "notes": "Tags treated as string arrays."
+          }
+        },
+        "dataQualityMetrics": {
+          "missing": 0,
+          "typeMismatch": {
+            "active": true
+          },
+          "validDates": 3,
+          "totalRows": 3
+        }
+      }
+    incorrect_direction: |
+      - Returned CSV or incomplete transformation to JSON
+      - Did not infer types correctly (e.g., "active" as string instead of boolean)
+      - Ignored tag splitting or left tags as single string
+      - No confidence scores or data quality metrics provided
+      - Incorrect data types for numbers or dates

@@ -19,6 +19,9 @@ dependencies = [
 packages = [
     { include = "ollama_llm_bench", from = "src" }
 ]
+include = [
+    "src/ollama_llm_bench/dataset/*.yaml"
+]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
@@ -29,4 +32,4 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [project.scripts]
-ollama-bench = "ollama_llm_bench.main:main"
+ollama_llm_bench = "ollama_llm_bench.main:main"

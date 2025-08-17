@@ -1,0 +1,16 @@
+- task_id: "text_operations_rephrase_semi_formal_english"
+  category: "Text Operations"
+  sub_category: "Rephrase"
+  question: |
+    Rephrase the following text into a semi-formal tone while correcting grammar and word order:
+
+    Me and my team is excited to presents the quarterly results. We wants to discusses how this effects the bottom line for next quarter. Please finds time for meeting us.
+  expected_answer:
+    most_expected: |
+      My team and I have prepared the quarterly results and would appreciate discussing how they impact next quarter's bottom line. Could you please find time for a meeting?
+    good_answer: |
+      My team and I are excited to present the quarterly results and would like to talk about their effect on next quarter's bottom line. Please let us know when you are available to meet.
+    pass_option: |
+      A grammatically correct, polite, semi-formal rephrasing that invites a meeting to discuss quarterly results.
+  incorrect_direction: |
+    Responses that use overly formal or casual language, fail to fix grammar, or do not maintain a semi-formal tone.

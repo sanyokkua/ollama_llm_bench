@@ -3,7 +3,9 @@ import sqlite3
 from pathlib import Path
 from typing import List, override
 
-from src.ollama_llm_bench.core.constants import (
+from ollama_llm_bench.core.interfaces import DataApi
+from ollama_llm_bench.core.models import (BenchmarkResult, BenchmarkResultStatus, BenchmarkRun, BenchmarkRunStatus)
+from ollama_llm_bench.core.sql_constants import (
     DB_SCHEMA,
     DELETE_BENCHMARK_RUN,
     DELETE_RESULT, INSERT_BENCHMARK_RUN, INSERT_RESULT,
@@ -15,13 +17,16 @@ from src.ollama_llm_bench.core.constants import (
     SELECT_RESULT_BY_ID,
     UPDATE_BENCHMARK_RUN, UPDATE_RESULT,
 )
-from src.ollama_llm_bench.core.interfaces import DataApi
-from src.ollama_llm_bench.core.models import (BenchmarkResult, BenchmarkResultStatus, BenchmarkRun, BenchmarkRunStatus)
 
 logger = logging.getLogger(__name__)
 
 
 class SqLiteDataApi(DataApi):
+    """
+    SQLite-based implementation of DataApi for persistent storage of benchmark data.
+    Uses a local SQLite database to store runs, results, and metadata.
+    """
+
     _RUN_ID_INDEX = 0
     _TIMESTAMP_INDEX = 1
     _JUDGE_MODEL_INDEX = 2
@@ -40,17 +45,35 @@ class SqLiteDataApi(DataApi):
     _ERROR_MESSAGE_INDEX = 10
 
     def __init__(self, db_path: Path):
+        """
+        Initialize the SQLite data access layer.
+
+        Args:
+            db_path: Path to the SQLite database file.
+        """
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
     def _init_db(self) -> None:
+        """
+        Initialize the database schema by creating required tables if they don't exist.
+        """
         logger.debug("Initializing database schema")
         with sqlite3.connect(self.db_path) as conn:
             conn.executescript(DB_SCHEMA)
 
     @override
     def create_benchmark_run(self, benchmark_run: BenchmarkRun) -> int:
+        """
+        Store a new benchmark run and assign a unique identifier.
+
+        Args:
+            benchmark_run: The benchmark run to persist.
+
+        Returns:
+            Unique ID assigned to the created run.
+        """
         logger.debug("Creating benchmark run: %s", benchmark_run)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -68,6 +91,18 @@ class SqLiteDataApi(DataApi):
 
     @override
     def retrieve_benchmark_run(self, run_id: int) -> BenchmarkRun:
+        """
+        Fetch a specific benchmark run by its identifier.
+
+        Args:
+            run_id: Unique ID of the run to retrieve.
+
+        Returns:
+            The requested benchmark run.
+
+        Raises:
+            ValueError: If no run with the given ID exists.
+        """
         logger.debug("Retrieving benchmark run with ID %d", run_id)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -90,6 +125,12 @@ class SqLiteDataApi(DataApi):
 
     @override
     def retrieve_benchmark_runs(self) -> List[BenchmarkRun]:
+        """
+        Retrieve all stored benchmark runs.
+
+        Returns:
+            List of all benchmark runs, empty if none exist.
+        """
         logger.debug("Retrieving all benchmark runs")
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -110,6 +151,15 @@ class SqLiteDataApi(DataApi):
 
     @override
     def retrieve_benchmark_runs_with_status(self, status: BenchmarkRunStatus) -> List[BenchmarkRun]:
+        """
+        Retrieve benchmark runs filtered by execution status.
+
+        Args:
+            status: Status to filter runs by.
+
+        Returns:
+            List of runs matching the specified status.
+        """
         logger.debug("Retrieving benchmark runs with status %s", status.value)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -133,6 +183,12 @@ class SqLiteDataApi(DataApi):
 
     @override
     def update_benchmark_run(self, benchmark_run: BenchmarkRun) -> None:
+        """
+        Update an existing benchmark run in storage.
+
+        Args:
+            benchmark_run: The updated run instance to persist.
+        """
         logger.debug("Updating benchmark run: %s", benchmark_run)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -149,6 +205,12 @@ class SqLiteDataApi(DataApi):
 
     @override
     def delete_benchmark_run(self, run_id: int) -> None:
+        """
+        Remove a benchmark run and all associated results from storage.
+
+        Args:
+            run_id: Unique ID of the run to delete.
+        """
         logger.debug("Deleting benchmark run with ID %d", run_id)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -161,6 +223,15 @@ class SqLiteDataApi(DataApi):
 
     @override
     def create_benchmark_result(self, benchmark_result: BenchmarkResult) -> int:
+        """
+        Store a single benchmark result and assign a unique identifier.
+
+        Args:
+            benchmark_result: The result to persist.
+
+        Returns:
+            Unique ID assigned to the created result.
+        """
         logger.debug("Creating benchmark result: %s", benchmark_result)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -185,6 +256,12 @@ class SqLiteDataApi(DataApi):
 
     @override
     def create_benchmark_results(self, benchmark_results: List[BenchmarkResult]) -> None:
+        """
+        Store multiple benchmark results in bulk.
+
+        Args:
+            benchmark_results: List of results to persist.
+        """
         logger.debug("Creating %d benchmark results", len(benchmark_results))
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -208,6 +285,18 @@ class SqLiteDataApi(DataApi):
 
     @override
     def retrieve_benchmark_result(self, result_id: int) -> BenchmarkResult:
+        """
+        Fetch a specific benchmark result by its identifier.
+
+        Args:
+            result_id: Unique ID of the result to retrieve.
+
+        Returns:
+            The requested benchmark result.
+
+        Raises:
+            ValueError: If no result with the given ID exists.
+        """
         logger.debug("Retrieving benchmark result with ID %d", result_id)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -223,7 +312,16 @@ class SqLiteDataApi(DataApi):
 
             return self._map_bench_result(row)
 
-    def _map_bench_result(self, row):
+    def _map_bench_result(self, row) -> BenchmarkResult:
+        """
+        Map a database row to a BenchmarkResult object.
+
+        Args:
+            row: Tuple of values from the results table.
+
+        Returns:
+            Mapped BenchmarkResult instance.
+        """
         return BenchmarkResult(
             result_id=row[self._RESULT_ID_INDEX],
             run_id=row[self._RUN_ID_RESULTS_INDEX],
@@ -240,6 +338,15 @@ class SqLiteDataApi(DataApi):
 
     @override
     def retrieve_benchmark_results_for_run(self, run_id: int) -> List[BenchmarkResult]:
+        """
+        Retrieve all results associated with a specific benchmark run.
+
+        Args:
+            run_id: Unique ID of the parent run.
+
+        Returns:
+            List of results belonging to the specified run.
+        """
         logger.debug("Retrieving results for benchmark run ID %d", run_id)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -259,6 +366,16 @@ class SqLiteDataApi(DataApi):
     @override
     def retrieve_benchmark_results_for_run_with_status(self, *, run_id: int, status: BenchmarkResultStatus) -> List[
         BenchmarkResult]:
+        """
+        Retrieve benchmark results for a run, filtered by status.
+
+        Args:
+            run_id: Unique ID of the parent run.
+            status: Status to filter results by.
+
+        Returns:
+            List of results matching the run ID and status.
+        """
         logger.debug("Retrieving results for run ID %d with status %s", run_id, status.value)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -277,6 +394,12 @@ class SqLiteDataApi(DataApi):
 
     @override
     def update_benchmark_result(self, benchmark_result: BenchmarkResult) -> None:
+        """
+        Update an existing benchmark result in storage.
+
+        Args:
+            benchmark_result: The updated result instance to persist.
+        """
         logger.debug("Updating benchmark result: %s", benchmark_result)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -300,6 +423,12 @@ class SqLiteDataApi(DataApi):
 
     @override
     def delete_benchmark_result(self, result_id: int) -> None:
+        """
+        Remove a benchmark result from storage.
+
+        Args:
+            result_id: Unique ID of the result to delete.
+        """
         logger.debug("Deleting benchmark result with ID %d", result_id)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()

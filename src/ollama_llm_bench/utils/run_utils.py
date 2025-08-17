@@ -1,11 +1,29 @@
+import logging
+from typing import List, Tuple
+
 from ollama_llm_bench.core.interfaces import DataApi
 
+logger = logging.getLogger(__name__)
 
-def get_tasks_tuple(data_api: DataApi) -> list[tuple[int, str]]:
+
+def get_benchmark_runs(data_api: DataApi) -> List[Tuple[int, str]]:
+    """
+    Retrieve and sort all benchmark runs by timestamp in descending order.
+
+    Args:
+        data_api: Interface for accessing benchmark run data.
+
+    Returns:
+        List of (run_id, timestamp) tuples sorted by timestamp (newest first),
+        or empty list if retrieval fails.
+    """
     try:
-        runs = data_api.retrieve_benchmark_runs()
-        runs_list = [(r.run_id, r.timestamp) for r in runs]
-        runs_list.sort(key=lambda x: x[1], reverse=True)
+        # One-step list creation with sorting
+        return sorted(
+            [(run.run_id, run.timestamp) for run in data_api.retrieve_benchmark_runs()],
+            key=lambda x: x[1],
+            reverse=True,
+        )
     except Exception as e:
-        runs_list = []
-    return runs_list
+        logger.warning("Failed to retrieve benchmark runs", exc_info=True)
+        return []
