@@ -1,6 +1,8 @@
 import logging
+import math
 from typing import Callable, Final, List
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -27,27 +29,45 @@ _SUMMARY_LABEL_TEXT: Final[str] = "Summary: Average Performance per Model"
 _DETAILED_LABEL_TEXT: Final[str] = "Detailed Results for Run #5"
 
 
+class SortableNumericItem(QTableWidgetItem):
+    def __init__(self, display_text: str, sort_value: float):
+        super().__init__(display_text)
+        # Right-align numbers
+        self.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        # Normalize NaN to something sortable
+        self._key: tuple[bool, float] = (math.isnan(sort_value), sort_value)
+
+    def __lt__(self, other):
+        if isinstance(other, SortableNumericItem):
+            return self._key < other._key
+        return super().__lt__(other)
+
+
 # Dataclasses for structured table configuration
 class TableConfig:
     def __init__(
         self,
         header_labels: List[str],
         column_count: int,
+        numeric_columns: List[int] = None,
         resize_mode: QHeaderView.ResizeMode = QHeaderView.ResizeMode.Interactive,
     ):
         self.header_labels = header_labels
         self.column_count = column_count
+        self.numeric_columns = numeric_columns if numeric_columns is not None else []
         self.resize_mode = resize_mode
 
 
 SUMMARY_TABLE_CONFIG = TableConfig(
     header_labels=["MODEL", "AVG. TIME (s)", "AVG. TOKENS/s", "AVG. SCORE (%)"],
     column_count=4,
+    numeric_columns=[1, 2, 3],  # TIME, TOKENS/s, SCORE
 )
 
 DETAILED_TABLE_CONFIG = TableConfig(
     header_labels=["MODEL", "TASK", "STATUS", "TIME (ms)", "Tokens", "TOKENS/s", "SCORE", "REASON"],
     column_count=8,
+    numeric_columns=[3, 4, 5, 6],  # TIME, Tokens, TOKENS/s, SCORE
 )
 
 
@@ -289,6 +309,7 @@ class ResultWidget(QWidget):
                 f"{item.avg_tokens_per_second:.2f}",
                 f"{item.avg_score:.2f}",
             ],
+            SUMMARY_TABLE_CONFIG.numeric_columns,
         )
 
     def _on_detailed_data_changed(self, data: list[SummaryTableItem]) -> None:
@@ -312,6 +333,7 @@ class ResultWidget(QWidget):
                 f"{item.score:.2f}",
                 item.score_reason,
             ],
+            DETAILED_TABLE_CONFIG.numeric_columns,
         )
 
     @staticmethod
@@ -319,6 +341,7 @@ class ResultWidget(QWidget):
         table: QTableWidget,
         data: list,
         row_formatter: Callable,
+        numeric_columns: List[int],
     ) -> None:
         """
         Generic table updater that populates a table with formatted data.
@@ -327,6 +350,7 @@ class ResultWidget(QWidget):
             table: Target table to update.
             data: List of data items to display.
             row_formatter: Function that converts a data item to a list of cell values.
+            numeric_columns: List of numeric columns to display.
         """
         table.setSortingEnabled(False)
         table.setRowCount(len(data))
@@ -334,7 +358,19 @@ class ResultWidget(QWidget):
         for row, item in enumerate(data):
             values = row_formatter(item)
             for col, value in enumerate(values):
-                table.setItem(row, col, QTableWidgetItem(value))
+                # For numeric columns: store raw value in UserRole
+                if col in numeric_columns:
+                    try:
+                        # Extract numeric value from formatted string
+                        numeric_val = float(value.replace(",", ""))
+                        table_item = SortableNumericItem(value, numeric_val)
+                        table_item.setData(Qt.ItemDataRole.UserRole, numeric_val)
+                    except (ValueError, TypeError):
+                        # Fallback to string sorting if conversion fails
+                        table_item = QTableWidgetItem(value)
+                else:
+                    table_item = QTableWidgetItem(value)
+                table.setItem(row, col, table_item)
 
         table.setSortingEnabled(True)
 

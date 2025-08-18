@@ -1203,3 +1203,4 @@ cython_debug/
 
 .idea
 .continue
+**/db.sqlite
