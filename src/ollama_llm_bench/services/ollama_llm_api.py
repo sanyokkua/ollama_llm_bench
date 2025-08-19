@@ -6,6 +6,7 @@ from ollama import Client
 
 from ollama_llm_bench.core.interfaces import LLMApi
 from ollama_llm_bench.core.models import InferenceResponse
+from ollama_llm_bench.utils.text_utils import sanitize_text
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +118,7 @@ class OllamaApi(LLMApi):
                 options=options,
                 stream=False,
             )
-            full_response = response.response
+            full_response = sanitize_text(response.response)
             tokens_generated = response.eval_count
 
             if on_llm_response:

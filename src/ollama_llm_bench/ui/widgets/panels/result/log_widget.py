@@ -80,7 +80,7 @@ class LogWidget(QWidget):
         if not scrollbar:
             return
 
-        # Only auto-scroll if user is within 2 lines of the bottom
-        at_bottom = scrollbar.value() >= scrollbar.maximum() - 2
+        # Only auto-scroll if user is within 10 lines of the bottom
+        at_bottom = scrollbar.value() >= scrollbar.maximum() - 10
         if at_bottom:
             scrollbar.setValue(scrollbar.maximum())

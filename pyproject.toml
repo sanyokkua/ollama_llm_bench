@@ -1,11 +1,11 @@
 [project]
 name = "ollama_llm_bench"
-version = "0.1.0"
+version = "0.1.1"
 description = "Ollama benchmark"
 authors = [
-    {name = "Oleksandr Kostenko",email = "sanyokkua@gmail.com"}
+    { name = "Oleksandr Kostenko", email = "sanyokkua@gmail.com" }
 ]
-license = {text = "MIT"}
+license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

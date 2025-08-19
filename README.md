@@ -131,7 +131,7 @@ poetry run ollama_llm_bench -d /path/to/dataset_folder
 ├── LICENSE
 ├── README.md
 ├── docs/                  # Project documentation
-├── dist/                  # Build artifacts
+├── dist/                  # Build artifacts (if build was run)
 ├── pyproject.toml         # Poetry project configuration
 └── src/
     └── ollama_llm_bench
