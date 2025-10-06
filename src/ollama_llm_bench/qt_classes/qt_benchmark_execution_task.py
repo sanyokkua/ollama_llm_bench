@@ -174,7 +174,12 @@ class BenchmarkExecutionTask(QRunnable):
         Execute both benchmarking and judging stages sequentially.
         """
         if not self._execute_benchmark_for_tasks():
-            return
+            tasks_to_run = self.data_api.retrieve_benchmark_results_for_run_with_status(
+                run_id=self.run_id,
+                status=BenchmarkResultStatus.WAITING_FOR_JUDGE,
+            )
+            if not tasks_to_run or len(tasks_to_run) == 0:
+                return
         self._update_progress()
         if not self._execute_judging_for_tasks():
             return

@@ -17,6 +17,7 @@ from ollama_llm_bench.qt_classes.qt_benchmark_flow import QtBenchmarkFlowApi
 from ollama_llm_bench.qt_classes.qt_event_bus import QtEventBus
 from ollama_llm_bench.services.app_result_api import AppResultApi
 from ollama_llm_bench.services.ollama_llm_api import OllamaApi
+from ollama_llm_bench.services.open_ai_compatible_api import OpenAICompatibleApi
 from ollama_llm_bench.services.simple_prompt_builder_api import SimplePromptBuilderApi
 from ollama_llm_bench.services.sq_lite_data_api import SqLiteDataApi
 from ollama_llm_bench.services.table_serializer import TableSerializer
@@ -297,9 +298,10 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
 
     table_serializer = TableSerializer(app_root)
     # Ollama client should be created in main thread per Ollama's requirements
-    ollama_client = ollama.Client(timeout=300)
-    ollama_llm_api = OllamaApi(ollama_client)
+    # ollama_client = ollama.Client(timeout=300)
+    # ollama_llm_api = OllamaApi(ollama_client)
 
+    open_ai_client = OpenAICompatibleApi(base_url="http://localhost:1234")
     task_api = YamlBenchmarkTaskApi(task_folder_path=dataset_path)
     prompt_builder_api = SimplePromptBuilderApi(task_api=task_api)
 
@@ -314,7 +316,7 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         data_api=data_api,
         task_api=task_api,
         prompt_builder_api=prompt_builder_api,
-        llm_api=ollama_llm_api,
+        llm_api=open_ai_client,
         thread_pool=thread_pool,
     )
     benchmark_flow_api.subscribe_to_benchmark_status_events(
@@ -337,7 +339,7 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
     new_run_widget_controller_api = NewRunWidgetController(
         data_api=data_api,
         task_api=task_api,
-        llm_api=ollama_llm_api,
+        llm_api=open_ai_client,
         event_bus=event_bus,
         benchmark_flow_api=benchmark_flow_api,
     )
@@ -356,7 +358,7 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
                                      )
 
     return ApplicationContext(
-        ollama_llm_api=ollama_llm_api,
+        ollama_llm_api=open_ai_client,
         task_api=task_api,
         prompt_builder_api=prompt_builder_api,
         data_api=data_api,
