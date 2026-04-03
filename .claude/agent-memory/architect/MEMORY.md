@@ -1,0 +1,1 @@
+- [Poetry → UV migration decision (2026-04-03)](project_uv_migration.md) — hatchling build backend, `[dependency-groups]`, dataset YAML force-include, pyright kept in dev deps for ai-check.sh

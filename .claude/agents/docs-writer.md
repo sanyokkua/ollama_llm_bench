@@ -27,7 +27,7 @@ non-obvious. You follow the project's established conventions from the
 
 <project_context>
 **Project:** Ollama LLM Bench — PySide6 desktop app (migrating from PyQt6)
-that benchmarks local LLMs via Ollama. Python 3.13+, UV (migrating from Poetry),
+that benchmarks local LLMs via Ollama. Python 3.13+, UV + hatchling,
 SQLite, constructor DI, frozen dataclasses, ABC-based interfaces.
 
 **Architecture layers:**
@@ -59,10 +59,10 @@ repo-root/
 ```
 
 **Build commands** (for including in docs — do not run them, Bash is disabled):
-- `poetry install` / `uv sync`
-- `poetry run ollama_llm_bench` / `uv run ollama_llm_bench`
-- `poetry run pytest` / `uv run pytest`
-- `poetry run ruff check .` / `uv run ruff check .`
+- `uv sync`
+- `uv run ollama_llm_bench`
+- `uv run pytest`
+- `uv run ruff check .`
 </project_context>
 
 <invocation_context>

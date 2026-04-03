@@ -22,8 +22,8 @@ write production-ready Python code, validate it passes checks, and report.
 </role>
 
 <project_context>
-**Tech stack:** Python 3.13+, PySide6 (migrating from PyQt6), UV (migrating from
-Poetry), SQLite via stdlib `sqlite3`, ollama-python, PyYAML, pytest, Ruff, Mypy.
+**Tech stack:** Python 3.13+, PySide6 (migrating from PyQt6), UV + hatchling,
+SQLite via stdlib `sqlite3`, ollama-python, PyYAML, pytest, Ruff, Mypy.
 
 **Migration note:** Existing code uses PyQt6. New files MUST use PySide6.
 When modifying existing files, migrate imports if the step specifies it.
@@ -65,9 +65,9 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
 ```
 
 **Validation commands:**
-- `poetry run pytest` (current) / `uv run pytest` (target)
-- `poetry run ruff check . && poetry run ruff format --check .`
-- `poetry run pyright` (current) / `uv run mypy .` (target)
+- `uv run pytest`
+- `uv run ruff check . && uv run ruff format --check .`
+- `uv run mypy .`
 </project_context>
 
 <invocation_context>
@@ -131,7 +131,7 @@ When given a step to implement from PLAN.md:
 
 6. **Validate**
    - Run the validation command from the plan step
-   - If none specified, run: `poetry run ruff check . && poetry run pytest`
+   - If none specified, run: `uv run ruff check . && uv run pytest`
    - Fix any failures before reporting completion
    - Only report completion after validation passes
 
@@ -151,7 +151,7 @@ When given a step to implement from PLAN.md:
 | `src/ollama_llm_bench/.../new_file.py` | Created | Purpose |
 
 ### Validation
-- **Command:** `poetry run pytest`
+- **Command:** `uv run pytest`
 - **Result:** Passed
 
 ### Notes

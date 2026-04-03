@@ -9,30 +9,33 @@ license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "pyqt6 (>=6.9.1,<7.0.0)",
-    "ollama (>=0.5.1,<0.6.0)",
-    "pyyaml (>=6.0.2,<7.0.0)",
+    "pyqt6>=6.9.1,<7.0.0",
+    "ollama>=0.5.1,<0.6.0",
+    "pyyaml>=6.0.2,<7.0.0",
 ]
-
-
-[tool.poetry]
-packages = [
-    { include = "ollama_llm_bench", from = "src" }
-]
-include = [
-    "src/ollama_llm_bench/dataset/*.yaml"
-]
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.1"
-pyright = "^1.1.403"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project.scripts]
 ollama_llm_bench = "ollama_llm_bench.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-mock>=3.12",
+    "pytest-cov>=4.0",
+    "ruff>=0.9.0",
+    "mypy>=1.14.0",
+    "pyright>=1.1.403",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ollama_llm_bench"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/ollama_llm_bench/dataset" = "ollama_llm_bench/dataset"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

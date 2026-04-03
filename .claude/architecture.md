@@ -197,7 +197,7 @@ Rules an AI agent must never break:
 | Target state | Current state | Migration strategy |
 |---|---|---|
 | PySide6 | PyQt6 used throughout | Migrate file-by-file when touching existing code |
-| UV + hatchling | Poetry + poetry-core build backend | Dedicated migration PR |
+| UV + hatchling | ~~Poetry + poetry-core build backend~~ | **Complete** — `feature/migrate-to-uv` |
 | Mypy as CI authority | Pyright in dev only | Already configured in pyproject.toml |
 | structlog | `logging.getLogger(__name__)` stdlib | Migration plan needed before implementation |
 | 80% test coverage | 0 tests exist (no `tests/` directory) | Write tests before any major changes |
