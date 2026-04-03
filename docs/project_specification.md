@@ -180,7 +180,7 @@ The application code uses `dataclasses` and `StrEnum`s defined in `core/models.p
 * **LLM Client:** `ollama-python`
 * **Database:** SQLite (via the standard `sqlite3` library)
 * **Task Definitions:** YAML (loaded with PyYAML)
-* **Dependency Management:** Poetry
+* **Dependency Management:** uv + hatchling
 * **Threading:** Qt `QThread` with a signals/slots communication model.
 
 # 7. Implementation Details
@@ -229,9 +229,9 @@ The project leverages modern Python development tools to ensure quality, maintai
 
 ### Primary Stack
 - **Python Version:** 3.13 (Required for specific typing features and performance improvements)
-- **Package Management:** Poetry (v2.0+)
+- **Package Management:** uv with hatchling build backend
     - Handles dependencies, virtual environments, and packaging
-    - Ensures reproducible builds across platforms
+    - Ensures reproducible builds via committed `uv.lock`
 - **UI Framework:** PyQt6 (v6.9.1+)
     - Provides cross-platform desktop application capabilities
     - Offers robust signal/slot system for thread-safe UI updates
@@ -249,20 +249,29 @@ The `pyproject.toml` file defines all dependencies with strict version constrain
 
 ```toml
 [project]
-name = "ollama-llm-bench"
-version = "0.1.0"
+name = "ollama_llm_bench"
+version = "0.1.1"
 description = "Ollama benchmark"
 requires-python = ">=3.13"
 dependencies = [
-    "pyqt6 (>=6.9.1,<7.0.0)",
-    "ollama (>=0.5.1,<0.6.0)",
-    "pyyaml (>=6.0.2,<7.0.0)",
-    "platformdirs (>=4.3.8,<5.0.0)"
+    "pyqt6>=6.9.1,<7.0.0",
+    "ollama>=0.5.1,<0.6.0",
+    "pyyaml>=6.0.2,<7.0.0",
 ]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.4.1"
-pyright = "^1.1.403"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-mock>=3.12",
+    "pytest-cov>=4.0",
+    "ruff>=0.9.0",
+    "mypy>=1.14.0",
+    "pyright>=1.1.403",
+]
 ```
 
 ## 7.3 Dataset Format Specification
@@ -344,7 +353,7 @@ To maintain high code quality and reliability, the project implements:
 
 1.  This is a pure Python project.
 2.  Target Python version must be 3.13 or newer.
-3.  Manage all dependencies with Poetry (`pyproject.toml`).
+3.  Manage all dependencies with uv (`pyproject.toml` + `uv.lock`).
 
 ---
 

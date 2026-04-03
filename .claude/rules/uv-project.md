@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Python UV Project Standards
 
-> **Migration note**: The project currently uses Poetry with `poetry-core` build backend. Target state is UV with `hatchling`. Migration should be done in a dedicated PR.
+> **Migration complete**: UV with `hatchling` is the active build backend. `uv.lock`, `.python-version`, `.editorconfig`, and `.gitattributes` are all committed.
 
 ## Critical Rules
 

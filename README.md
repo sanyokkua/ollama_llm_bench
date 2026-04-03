@@ -61,7 +61,7 @@ Before using the application, ensure:
 ```
 
 * Python **3.13+** installed
-* [Poetry](https://python-poetry.org/) **≥ 2.0** installed
+* [uv](https://docs.astral.sh/uv/) installed
 
 ## System Requirements
 
@@ -69,7 +69,7 @@ Before using the application, ensure:
 |--------------|----------------------------------------------------|
 | OS           | macOS, Linux, Windows                              |
 | Python       | ≥ 3.13 (tested with 3.13.5 and 3.13.6)             |
-| Dependencies | Poetry ≥ 2.0 (tested with version 2.1.4)           |
+| Dependencies | uv (see [docs.astral.sh/uv](https://docs.astral.sh/uv/)) |
 | Ollama       | Installed & running with desired models pre-pulled |
 | Chip         | Any modern CPU/GPU (Apple Silicon, NVIDIA, etc.)   |
 
@@ -78,18 +78,18 @@ Before using the application, ensure:
 ```bash
 git clone https://github.com/sanyokkua/ollama_llm_bench.git
 cd ollama_llm_bench
-poetry install
-poetry run ollama_llm_bench
+uv sync
+uv run ollama_llm_bench
 ```
 
 Optional flags:
 
 ```bash
 # Enable logging (by default logs are disabled; levels: info, debug, warning)
-poetry run ollama_llm_bench --log-level info
+uv run ollama_llm_bench --log-level info
 
 # Use custom dataset path (you can create a folder with *.yaml files)
-poetry run ollama_llm_bench -d /path/to/dataset_folder
+uv run ollama_llm_bench -d /path/to/dataset_folder
 ```
 
 ## Supported Workflows
@@ -121,7 +121,7 @@ poetry run ollama_llm_bench -d /path/to/dataset_folder
 * **LLM Client:** [ollama-python](https://pypi.org/project/ollama)
 * **Database:** SQLite
 * **Task Definitions:** YAML
-* **Dependency Management:** Poetry
+* **Dependency Management:** uv + hatchling
 * **Threading:** Qt `QThread` (signals/slots for UI safety)
 
 ## Directory Structure
@@ -132,7 +132,7 @@ poetry run ollama_llm_bench -d /path/to/dataset_folder
 ├── README.md
 ├── docs/                  # Project documentation
 ├── dist/                  # Build artifacts (if build was run)
-├── pyproject.toml         # Poetry project configuration
+├── pyproject.toml         # Project configuration (uv + hatchling)
 └── src/
     └── ollama_llm_bench
         ├── main.py        # Application entry point

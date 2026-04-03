@@ -10,7 +10,7 @@ allowed-tools: Read, Grep, Glob
 
 - **Python 3.13+** with strict type hints on every function, method, and variable
 - **PySide6** — Qt framework for UI (migrating from PyQt6)
-- **UV** — package manager with hatchling build backend (migrating from Poetry)
+- **UV** — package manager with hatchling build backend
 - **SQLite** via stdlib `sqlite3` — benchmark data persistence
 - **ollama-python** — Ollama client for LLM inference
 - **PyYAML** — dataset parsing

@@ -27,8 +27,7 @@ developers can work with full context.
 served by Ollama. Automates inference, judges responses via a user-selected
 model, and stores results in SQLite.
 
-**Migration state:** Existing code uses PyQt6; target is PySide6. Existing build
-uses Poetry; target is UV. Existing type checker is pyright; target is Mypy.
+**Migration state:** Existing code uses PyQt6; target is PySide6 (ongoing). UV + hatchling migration complete. Existing type checker is pyright; target is Mypy (ongoing).
 
 **Package structure:**
 - `src/ollama_llm_bench/core/` — models (`@dataclass(frozen=True)`), ABCs (`interfaces.py`), constants
@@ -134,7 +133,7 @@ within the benchmark pipeline context.
 ## Tech Stack
 - **Language:** Python 3.13+ with strict type hints
 - **UI Framework:** PySide6 (migrating from PyQt6)
-- **Package Manager:** UV (migrating from Poetry)
+- **Package Manager:** UV + hatchling
 - **Database:** SQLite via stdlib `sqlite3`
 - **Key Libraries:** [relevant dependencies from pyproject.toml]
 

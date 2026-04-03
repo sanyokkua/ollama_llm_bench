@@ -11,7 +11,7 @@ It automates inference across multiple models, judges responses using a user-sel
 |-----------|-----------|
 | Language | Python 3.13+ |
 | UI Framework | PySide6 (migrating from PyQt6) |
-| Package Manager | UV with hatchling (migrating from Poetry) |
+| Package Manager | UV with hatchling |
 | Database | SQLite via stdlib `sqlite3` |
 | LLM Client | ollama-python |
 | Dataset | YAML benchmark tasks |
@@ -21,7 +21,7 @@ It automates inference across multiple models, judges responses using a user-sel
 
 ## Commands
 
-> **Active package manager is Poetry (migrating to UV). Use `uv run` for all tool invocations once migration is complete.**
+> **Active package manager is UV with hatchling build backend.**
 
 ```bash
 # Install

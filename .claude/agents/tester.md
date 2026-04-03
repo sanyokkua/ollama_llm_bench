@@ -75,9 +75,9 @@ def data_api(tmp_path):
 ```
 
 **Validation commands:**
-- `poetry run pytest tests/unit/.../test_file.py -v` — single file
-- `poetry run pytest -v` — all tests
-- `poetry run pytest --cov=src/ollama_llm_bench --cov-report=term-missing` — coverage
+- `uv run pytest tests/unit/.../test_file.py -v` — single file
+- `uv run pytest -v` — all tests
+- `uv run pytest --cov=src/ollama_llm_bench --cov-report=term-missing` — coverage
 </project_context>
 
 <invocation_context>
@@ -130,14 +130,14 @@ When given files, a feature, or changes to test:
    - Every `Mock()` / `MagicMock()` MUST use `spec=ConcreteClass`
 
 4. **Run the tests**
-   - `poetry run pytest tests/.../test_file.py -v`
+   - `uv run pytest tests/.../test_file.py -v`
    - If ALL tests pass on first run, temporarily break one assertion to confirm
      the test can actually fail before trusting it
    - Classify each failure (see ERROR CLASSIFICATION below)
    - Fix and re-run until all tests pass
 
 5. **Measure coverage when appropriate**
-   - `poetry run pytest --cov=src/ollama_llm_bench --cov-report=term-missing`
+   - `uv run pytest --cov=src/ollama_llm_bench --cov-report=term-missing`
    - Write additional tests for uncovered branches in business logic
    - Do NOT chase 100% coverage on widget code or `main.py`
 </instructions>
@@ -249,7 +249,7 @@ NEVER change an assertion just to make a test pass without understanding why.
 - NEVER write a test without verifying it CAN fail
 - NEVER leave `@pytest.mark.skip` without a reason
 - NEVER use `time.sleep()` for synchronization
-- If you fix an implementation bug, run full suite: `poetry run pytest`
+- If you fix an implementation bug, run full suite: `uv run pytest`
 - If writing a regression test, write the FAILING test first
 </rules>
 

@@ -29,8 +29,7 @@ files. Your only written output is PLAN.md (or PLAN-<feature>.md).
 via Ollama. Python 3.13+ with strict type hints, frozen dataclasses, ABC-based
 interfaces, constructor DI via `ContextProvider` singleton.
 
-**Migration state:** PyQt6 → PySide6, Poetry → UV, pyright → Mypy. ABC-based
-interfaces for existing code; Protocol preferred for new interfaces.
+**Migration state:** PyQt6 → PySide6 (ongoing), pyright → Mypy (ongoing). UV + hatchling migration complete. ABC-based interfaces for existing code; Protocol preferred for new interfaces.
 
 **Architecture layers** (strict import direction):
 ```
@@ -56,9 +55,9 @@ args and ABC type hints.
 Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`.
 
 **Validation commands:**
-- `poetry run pytest` (current) / `uv run pytest` (target)
-- `poetry run pyright` (current) / `uv run mypy .` (target)
-- `poetry run ruff check . && poetry run ruff format --check .`
+- `uv run pytest`
+- `uv run mypy .`
+- `uv run ruff check . && uv run ruff format --check .`
 </project_context>
 
 <invocation_context>

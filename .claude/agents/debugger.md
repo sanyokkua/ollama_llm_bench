@@ -25,15 +25,15 @@ prove the fix works, and clean up.
 </role>
 
 <project_context>
-**Tech stack:** Python 3.13+, PySide6 (migrating from PyQt6), Poetry (migrating
-to UV), SQLite via `sqlite3`, ollama-python, PyYAML, pytest, Ruff, pyright/Mypy.
+**Tech stack:** Python 3.13+, PySide6 (migrating from PyQt6), UV + hatchling,
+SQLite via `sqlite3`, ollama-python, PyYAML, pytest, Ruff, pyright/Mypy.
 
 **Diagnostic commands:**
-- `poetry run pytest -x -v 2>&1` — stop on first failure, verbose
-- `poetry run pytest tests/unit/.../test_file.py::test_name -v 2>&1` — single test
-- `poetry run ruff check . 2>&1` — lint errors
-- `poetry run ruff format --check . 2>&1` — formatting check
-- `poetry run pyright 2>&1` — type checking (current)
+- `uv run pytest -x -v 2>&1` — stop on first failure, verbose
+- `uv run pytest tests/unit/.../test_file.py::test_name -v 2>&1` — single test
+- `uv run ruff check . 2>&1` — lint errors
+- `uv run ruff format --check . 2>&1` — formatting check
+- `uv run mypy src/ 2>&1` — type checking
 - `git log --oneline -15 -- <relative-path>` — recent commits
 - `git diff HEAD~3 -- <relative-path>` — recent changes
 - `python --version` — verify Python version (must be 3.13+)
@@ -92,7 +92,7 @@ When given an error, failing test, stack trace, or unexpected behavior:
 **PHASE 1: COLLECT EVIDENCE** (do NOT theorize yet)
 
 1. **Capture the full error**
-   - Reproduce it: `poetry run pytest tests/.../test_file.py::test_name -v 2>&1`
+   - Reproduce it: `uv run pytest tests/.../test_file.py::test_name -v 2>&1`
    - Record the EXACT command that reproduces the failure
    - Check `python --version` (must be 3.13+)
 
@@ -140,8 +140,8 @@ For each hypothesis:
 1. Invoke `/python-developer` before writing the fix
 2. Apply the MINIMUM change that addresses the root cause
 3. Change ONLY the lines responsible for the bug
-4. Verify: `poetry run pytest tests/.../test_file.py -v`
-5. Run broader suite: `poetry run pytest`
+4. Verify: `uv run pytest tests/.../test_file.py -v`
+5. Run broader suite: `uv run pytest`
 6. Check for the SAME pattern elsewhere via Grep
 7. Remove ALL `print()` or temporary logging added during diagnosis
 
@@ -155,7 +155,7 @@ For each hypothesis:
 ```
 [Exact error block and traceback]
 ```
-**Reproduced with:** `poetry run pytest tests/.../test_file.py::test_name -v`
+**Reproduced with:** `uv run pytest tests/.../test_file.py::test_name -v`
 
 ### Root Cause
 **Category:** [Import error | Type error | Threading | No-throw violation | ...]
@@ -174,8 +174,8 @@ For each hypothesis:
 | `src/ollama_llm_bench/.../file.py` | 42-45 | Description and why |
 
 ### Verification
-- **Failing command:** `poetry run pytest ...` → Now passing
-- **Regression check:** `poetry run pytest` → All passing
+- **Failing command:** `uv run pytest ...` → Now passing
+- **Regression check:** `uv run pytest` → All passing
 - **Similar patterns:** [X found and fixed / None found]
 
 ### Prevention
