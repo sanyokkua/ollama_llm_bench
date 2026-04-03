@@ -1204,3 +1204,5 @@ cython_debug/
 .idea
 .continue
 **/db.sqlite
+.ruff_cache/
+CLAUDE.local.md
