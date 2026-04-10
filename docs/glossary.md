@@ -102,7 +102,7 @@ A run with status `NOT_COMPLETED` remains resumable via the **Previous Runs** ta
 
 The application-wide publish/subscribe channel that decouples background work from the UI thread.
 Interface: `EventBus` ABC in `core/interfaces.py`.
-Implementation: `QtEventBus` in `qt_classes/qt_event_bus.py`, which uses `pyqtSignal` under the hood.
+Implementation: `QtEventBus` in `qt_classes/qt_event_bus.py`, which uses `PySide6.QtCore.Signal` under the hood.
 See [architecture.md](architecture.md#eventbus) for the signal catalogue.
 
 ### ContextProvider

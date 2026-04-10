@@ -446,7 +446,7 @@ mocker.patch(
 
 The coding rules say unit tests must not require a GUI event loop.
 
-- **Do not** import anything from `PyQt6.QtWidgets` in unit tests.
+- **Do not** import anything from `PySide6.QtWidgets` in unit tests.
 - **Do not** create a `QApplication` instance.
 - **Do not** instantiate widgets in unit tests.
 - **Do** test controllers directly — they have no Qt dependencies.

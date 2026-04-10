@@ -1,7 +1,7 @@
 # UI Architecture
 
 The UI is a classic two-pane Qt desktop application: configuration on the left, results and live log on the right.
-Every widget is implemented with **PyQt6** — see [technical-debt.md](technical-debt.md) for the (not-yet-started) PySide6 migration.
+Every widget is implemented with **PySide6**.
 
 ## Widget Tree
 
@@ -52,9 +52,8 @@ flowchart TD
 
 ## Framework Status
 
-Every widget file imports from `PyQt6.QtCore` and `PyQt6.QtWidgets`.
-No `PySide6` imports exist anywhere in `src/`.
-When the migration starts (see [technical-debt.md](technical-debt.md)), recommended order is from leaves up: small widgets first, then containers, then `MainWindow`.
+Every widget file imports from `PySide6.QtCore` and `PySide6.QtWidgets`.
+All files use `PySide6` imports exclusively.
 
 ## MainWindow
 

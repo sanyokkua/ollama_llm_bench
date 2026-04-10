@@ -244,7 +244,7 @@ All signals live in `QtEventBus` in `src/ollama_llm_bench/qt_classes/qt_event_bu
    ```python
    class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
        # ...
-       _model_catalog_changed = pyqtSignal(list)  # list[ModelSpec]
+       _model_catalog_changed = Signal(list)  # list[ModelSpec]
    ```
 
 2. **Add the abstract methods** to the `EventBus` ABC in `core/interfaces.py`:
@@ -276,9 +276,9 @@ All signals live in `QtEventBus` in `src/ollama_llm_bench/qt_classes/qt_event_bu
 4. **Use it** from emitters (controllers, `StatusListener`, background task bridges in `_create_app_context`).
 5. **Update** [architecture.md](architecture.md)'s signal catalogue and [technical-debt.md](technical-debt.md) if the new signal replaces anything.
 
-### Gotcha: `None` and `pyqtSignal(int)`
+### Gotcha: `None` and `Signal(int)`
 
-`pyqtSignal(int)` cannot transport `None`.
+`Signal(int)` cannot transport `None`.
 See how `QtEventBus.emit_run_id_changed` encodes `None` as `-1`:
 
 ```python
@@ -327,7 +327,7 @@ class ModelCatalogWidgetController(ModelCatalogWidgetControllerApi):
 
 ```python
 # src/ollama_llm_bench/ui/widgets/panels/control/model_catalog_widget.py
-from PyQt6.QtWidgets import QPushButton, QTableWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QPushButton, QTableWidget, QVBoxLayout, QWidget
 
 from ollama_llm_bench.core.interfaces import AppContext
 
@@ -378,7 +378,7 @@ Use this pattern whenever the new work takes more than ~50 ms and would otherwis
 import logging
 import time
 
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
+from PySide6.QtCore import QObject, QRunnable, Signal
 
 logger = logging.getLogger(__name__)
 
@@ -387,10 +387,10 @@ class LongTask(QRunnable):
     """Runs a long-running job off the UI thread."""
 
     class Signals(QObject):
-        started = pyqtSignal()
-        progress = pyqtSignal(int)   # 0..100
-        finished = pyqtSignal(str)   # result payload
-        failed = pyqtSignal(str)     # error message
+        started = Signal()
+        progress = Signal(int)   # 0..100
+        finished = Signal(str)   # result payload
+        failed = Signal(str)     # error message
 
     def __init__(self, *, payload: str) -> None:
         super().__init__()
@@ -510,28 +510,15 @@ Source: `qt_benchmark_execution_task.py:_execute_benchmark_task`.
 
 | Pitfall | Fix |
 |---|---|
-| Importing `PyQt6` from `core/` or `services/` | Move the code into `qt_classes/` or inject a callback |
+| Importing `PySide6` from `core/` or `services/` | Move the code into `qt_classes/` or inject a callback |
 | Mutating a widget from `BenchmarkExecutionTask` | Emit a signal; let the main thread do the update |
 | Calling `print()` | Use `logger = logging.getLogger(__name__)` at module top |
 | Constructing a dependency inside a class | Inject it via `__init__` keyword argument |
 | Catching `Exception` with a one-line `except: pass` | Catch the specific type; `logger.exception(...)`; chain with `raise ... from e` if re-raising |
 | Using `threading.Thread` for background work | Use `QRunnable` + the existing `QThreadPool` |
-| Using `pyqtSignal(int)` with a `None` value | Encode `None` as a sentinel (the project uses `-1`) |
+| Using `Signal(int)` with a `None` value | Encode `None` as a sentinel (the project uses `-1`) |
 | Forgetting `@override` on an overridden method | Add it — Python 3.12+ and the coding rule require it |
 | Using a mutable default arg | Replace with `None` and build inside the body |
-
-## PyQt6 → PySide6 Migration Checklist (Per File)
-
-When you touch a file during normal work, you *may* migrate it in the same commit.
-The migration has not started — see [technical-debt.md](technical-debt.md).
-
-1. Replace `from PyQt6.QtCore import ...` → `from PySide6.QtCore import ...` (and same for `QtWidgets`, `QtGui`).
-2. Replace `pyqtSignal` → `Signal`.
-3. Replace `pyqtSlot` → `Slot`.
-4. Verify `MetaQObjectABC` still works (PySide6 uses `shiboken` metaclass which may behave differently).
-5. Check any `exec_` calls are spelled `exec` under PySide6.
-6. Run the full quality pipeline (`scripts/ai-check.sh`).
-7. Do **not** mix PyQt6 and PySide6 in the same file.
 
 ## Related Documents
 

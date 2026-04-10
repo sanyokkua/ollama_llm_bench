@@ -176,7 +176,7 @@ The application code uses `dataclasses` and `StrEnum`s defined in `core/models.p
 ## 6\. Technology Stack
 
 * **Core Language:** Python 3.13
-* **UI Framework:** PyQt6
+* **UI Framework:** PySide6
 * **LLM Client:** `ollama-python`
 * **Database:** SQLite (via the standard `sqlite3` library)
 * **Task Definitions:** YAML (loaded with PyYAML)
@@ -208,7 +208,7 @@ The project follows a clean, standard Python layout with strict adherence to the
         │   ├── ollama_service.py   # OllamaManager implementation
         │   └── task_loader.py      # YAMLTaskLoader implementation
         │
-        ├── ui                      # PyQt6 UI components
+        ├── ui                      # PySide6 UI components
         │   ├── __init__.py
         │   ├── main_window.py      # The main application window (QMainWindow)
         │   └── widgets/            # Folder for custom widgets (e.g., ControlPanel, ResultsTab)
@@ -232,7 +232,7 @@ The project leverages modern Python development tools to ensure quality, maintai
 - **Package Management:** uv with hatchling build backend
     - Handles dependencies, virtual environments, and packaging
     - Ensures reproducible builds via committed `uv.lock`
-- **UI Framework:** PyQt6 (v6.9.1+)
+- **UI Framework:** PySide6 (v6.8.0+)
     - Provides cross-platform desktop application capabilities
     - Offers robust signal/slot system for thread-safe UI updates
 
@@ -392,13 +392,13 @@ To maintain high code quality and reliability, the project implements:
 
 ---
 
-## 4. PyQt6-Specific Guidelines
+## 4. PySide6-Specific Guidelines
 
-1.  Use PyQt6 exclusively.
-2.  When combining ABCs with PyQt QObject subclasses, define a proper metaclass to resolve MRO conflicts:
+1.  Use PySide6 exclusively.
+2.  When combining ABCs with PySide6 QObject subclasses, define a proper metaclass to resolve MRO conflicts:
     ```python
     from abc import ABCMeta
-    from PyQt6.QtCore import QObject
+    from PySide6.QtCore import QObject
 
     class _MetaQObjectABC(type(QObject), ABCMeta):
         pass

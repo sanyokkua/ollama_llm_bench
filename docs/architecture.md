@@ -1,6 +1,6 @@
 # System Architecture
 
-Ollama LLM Bench is a single-process PySide6 — *actually* PyQt6; see [technical-debt.md](technical-debt.md) — desktop application.
+Ollama LLM Bench is a single-process PySide6 desktop application.
 The user selects a judge model plus one or more test models, clicks Start, and the app runs every benchmark task against every test model, scores the responses with the judge model, and persists everything to SQLite.
 
 This document is the canonical architectural reference.
@@ -32,7 +32,7 @@ Arrows point *from* a layer *to* the layer it is allowed to import.
 
 ```mermaid
 flowchart TD
-    widgets["ui/widgets/<br/>PyQt6 UI rendering"]
+    widgets["ui/widgets/<br/>PySide6 UI rendering"]
     controllers["ui/controllers/<br/>UI mediation"]
     qt["qt_classes/<br/>Qt threading + events"]
     services["services/<br/>Concrete impls"]
@@ -74,7 +74,7 @@ Pure Python. No Qt, no third-party deps beyond stdlib.
 | `core/ui_controllers.py` | 4 controller ABCs (`NewRunWidgetControllerApi`, `PreviousRunWidgetControllerApi`, `LogWidgetControllerApi`, `ResultWidgetControllerApi`) |
 
 **Allowed imports**: stdlib only.
-**Forbidden imports**: `PyQt6`, `PySide6`, `ollama`, `yaml`.
+**Forbidden imports**: `PySide6`, `ollama`, `yaml`.
 
 ### `services/`
 
@@ -95,16 +95,16 @@ Concrete service implementations. Pure Python — no Qt.
 ### `qt_classes/`
 
 Qt threading and event infrastructure.
-This is the only place that may create `QRunnable`, `QThreadPool`, or `pyqtSignal`.
+This is the only place that may create `QRunnable`, `QThreadPool`, or `Signal`.
 
 | File | Class | Notes |
 |---|---|---|
 | `qt_classes/meta_class.py` | `MetaQObjectABC` | Metaclass merging `type(QObject)` and `ABCMeta`. Required because `QObject`'s metaclass is incompatible with `ABCMeta` by default. |
-| `qt_classes/qt_event_bus.py` | `QtEventBus(QObject, EventBus)` | 11 `pyqtSignal` definitions; implements the `EventBus` ABC. |
+| `qt_classes/qt_event_bus.py` | `QtEventBus(QObject, EventBus)` | 11 `Signal` definitions; implements the `EventBus` ABC. |
 | `qt_classes/qt_benchmark_execution_task.py` | `BenchmarkExecutionTask(QRunnable)` | The pipeline worker. Contains a nested `Signals(QObject)` class because `QRunnable` does not inherit `QObject` and therefore cannot emit signals directly. |
 | `qt_classes/qt_benchmark_flow.py` | `QtBenchmarkFlowApi(QObject, BenchmarkFlowApi)` | Owns the current `BenchmarkExecutionTask`, forwards its signals onto its own `benchmark_*_events` signals, hands the task to the thread pool. |
 
-**Allowed imports**: stdlib, `PyQt6`, `core/`, `services/`, `utils/`.
+**Allowed imports**: stdlib, `PySide6`, `core/`, `services/`, `utils/`.
 
 ### `ui/`
 
@@ -123,7 +123,7 @@ They are the glue between widget events and backend state mutation.
 | `ui/controllers/result_widget_controller.py` | `ResultWidgetController` | `ResultWidget` |
 | `ui/controllers/status_listener.py` | `StatusListener` | None — it bridges `BenchmarkFlowApi` progress events into `EventBus` table-update emissions |
 
-#### `ui/widgets/` and `ui/main_window.py` — PyQt6 Widgets
+#### `ui/widgets/` and `ui/main_window.py` — PySide6 Widgets
 
 | File | Widget | Purpose |
 |---|---|---|
@@ -254,7 +254,7 @@ Holds 13 references (all 6 services, the benchmark flow, the event bus, 4 contro
 ### Role
 
 `QtEventBus` (`qt_classes/qt_event_bus.py`) is the only asynchronous, loosely-coupled communication channel in the app.
-It is a `QObject` subclass whose attributes are `pyqtSignal` instances; the `EventBus` ABC exposes `subscribe_to_*` and `emit_*` methods that wrap `connect` / `emit`.
+It is a `QObject` subclass whose attributes are `Signal` instances; the `EventBus` ABC exposes `subscribe_to_*` and `emit_*` methods that wrap `connect` / `emit`.
 
 Qt signals are thread-safe by default: a worker thread can call `emit_*` and Qt will queue the call onto the main thread for each slot that lives on the main thread.
 This is how all background-to-UI communication is kept safe.
@@ -263,7 +263,7 @@ This is how all background-to-UI communication is kept safe.
 
 | Signal attribute | Payload | Public `emit_*` method | Purpose |
 |---|---|---|---|
-| `_run_id_changed` | `int` | `emit_run_id_changed(Optional[int])` | Active run selection changed. `None` is transported as `-1` because `pyqtSignal(int)` cannot carry `None`. |
+| `_run_id_changed` | `int` | `emit_run_id_changed(Optional[int])` | Active run selection changed. `None` is transported as `-1` because `Signal(int)` cannot carry `None`. |
 | `_run_ids_changed` | `list` | `emit_run_ids_changed(list[tuple[int, str]])` | The set of runs known to the UI has changed (after create/delete). |
 | `_models_test_changed` | `list` | `emit_models_test_changed(list[str])` | Test-model list refreshed from Ollama. |
 | `_models_judge_changed` | `str` | `emit_models_judge_changed(str)` | Default judge model changed. Currently has no subscribers (unused) — see [technical-debt.md](technical-debt.md). |
@@ -364,7 +364,7 @@ Defined in `qt_classes/meta_class.py`:
 
 ```python
 from abc import ABCMeta
-from PyQt6.QtCore import QObject
+from PySide6.QtCore import QObject
 
 class MetaQObjectABC(type(QObject), ABCMeta):
     """Metaclass combining QObject and ABCMeta."""
@@ -372,7 +372,7 @@ class MetaQObjectABC(type(QObject), ABCMeta):
 
 ### Why it exists
 
-`QObject`'s metaclass (`sip.wrappertype` under PyQt6) is incompatible with `ABCMeta`, so a class cannot simply inherit from both `QObject` and `ABC`.
+`QObject`'s metaclass is incompatible with `ABCMeta`, so a class cannot simply inherit from both `QObject` and `ABC`.
 `MetaQObjectABC` explicitly merges them so that a Qt-aware class can also declare `@abstractmethod` members from an ABC.
 
 ### Who uses it
