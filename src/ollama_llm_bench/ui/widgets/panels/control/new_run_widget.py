@@ -1,7 +1,6 @@
 import logging
-from typing import List
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QComboBox,
     QGroupBox,
     QHBoxLayout,
@@ -98,9 +97,7 @@ class NewRunWidget(QWidget):
         """
         logger.debug("Start Benchmark button clicked")
         # Preserve selection order and avoid unnecessary set conversion
-        selected_models = [
-            item.text() for item in self._models_list.selectedItems()
-        ]
+        selected_models = [item.text() for item in self._models_list.selectedItems()]
 
         event = NewRunWidgetStartEvent(
             judge_model=self._judge_dropdown.currentText(),
@@ -108,7 +105,7 @@ class NewRunWidget(QWidget):
         )
         self._controller.handle_start_click(event)
 
-    def _update_model_lists(self, models: List[str]) -> None:
+    def _update_model_lists(self, models: list[str]) -> None:
         """
         Update both judge dropdown and models list with available models.
 
@@ -142,7 +139,7 @@ class NewRunWidget(QWidget):
         self._stop_button.setEnabled(is_running)
 
     @staticmethod
-    def _set_widgets_enabled(widgets: List[QWidget], enabled: bool) -> None:
+    def _set_widgets_enabled(widgets: list[QWidget], enabled: bool) -> None:
         """
         Helper method to batch-configure widget enabled states.
 

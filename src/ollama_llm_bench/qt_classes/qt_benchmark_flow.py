@@ -1,7 +1,8 @@
 import logging
-from typing import Callable, Optional, override
+from collections.abc import Callable
+from typing import override
 
-from PyQt6.QtCore import QObject, QThreadPool, pyqtSignal
+from PySide6.QtCore import QObject, QThreadPool, Signal
 
 from ollama_llm_bench.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, LLMApi, PromptBuilderApi
 from ollama_llm_bench.core.models import BenchmarkRunStatus, ReporterStatusMsg
@@ -11,15 +12,15 @@ from ollama_llm_bench.qt_classes.qt_benchmark_execution_task import BenchmarkExe
 logger = logging.getLogger(__name__)
 
 
-class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
+class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
     """
     Qt-based implementation of BenchmarkFlowApi for managing asynchronous benchmark execution.
     Uses QThreadPool for background execution and emits signals for status, output, and progress.
     """
 
-    benchmark_status_events = pyqtSignal(bool)  # running/stopped
-    benchmark_output_events = pyqtSignal(str)  # log messages
-    benchmark_progress_events = pyqtSignal(ReporterStatusMsg)  # progress updates
+    benchmark_status_events = Signal(bool)  # running/stopped
+    benchmark_output_events = Signal(str)  # log messages
+    benchmark_progress_events = Signal(ReporterStatusMsg)  # progress updates
 
     def __init__(
         self,
@@ -47,8 +48,8 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
             llm_api=llm_api,
         )
         self._thread_pool = thread_pool
-        self._current_task: Optional[BenchmarkExecutionTask] = None
-        self._current_run_id: Optional[int] = None
+        self._current_task: BenchmarkExecutionTask | None = None
+        self._current_run_id: int | None = None
         logger.debug("QtBenchmarkFlowApi initialized")
 
     @override
@@ -112,7 +113,7 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
         Request graceful termination of the currently running benchmark.
         """
         logger.info("Request to stop benchmark execution")
-        if not self.is_running():
+        if not self.is_running() or self._current_task is None:
             logger.warning("No benchmark is currently running; stop request ignored")
             return
         self._current_task.stop()
@@ -129,7 +130,7 @@ class QtBenchmarkFlowApi(QObject, BenchmarkFlowApi, metaclass=MetaQObjectABC):
         return self._current_task is not None and not self._current_task.is_stopped()
 
     @override
-    def get_current_run_id(self) -> Optional[int]:
+    def get_current_run_id(self) -> int | None:
         """
         Retrieve the ID of the currently executing benchmark run.
 

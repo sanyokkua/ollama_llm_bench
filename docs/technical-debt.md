@@ -7,7 +7,7 @@ It is maintained alongside the code and should be updated whenever debt is added
 
 | Category | Status |
 |---|---|
-| Qt framework migration (PyQt6 → PySide6) | Not started — 100% PyQt6 |
+| Qt framework migration (PyQt6 → PySide6) | **Complete** — 100% PySide6 |
 | Interface style migration (ABC → Protocol) | Not started — 100% ABC |
 | Logging migration (stdlib → structlog) | Not started — 100% stdlib `logging` |
 | Test suite | **Absent** — `tests/` directory does not exist |
@@ -25,8 +25,7 @@ New contributors should treat the code as ground truth and update these discrepa
 
 | CLAUDE.md / rules claim | Actual state in code | Evidence |
 |---|---|---|
-| "PySide6 desktop application (migrating from PyQt6)" | All Qt imports are `PyQt6`; zero `PySide6` imports | `pyproject.toml` line 12: `"pyqt6>=6.9.1,<7.0.0"`. Grep of `src/` for `from PySide6` returns zero matches. |
-| "New code: PySide6. Existing code: PyQt6" | There is no "new code" written in PySide6 anywhere | 18 source files import `PyQt6.QtCore` or `PyQt6.QtWidgets` |
+| "PySide6 desktop application" | ✅ All 18 Qt-using files use `PySide6` | `pyproject.toml`: `"pyside6>=6.8.0,<7.0.0"`. All `from PyQt6.*` imports replaced. |
 | "Prefer `Protocol` for new interfaces" | All 9 interfaces in `core/interfaces.py` use `ABC` | `src/ollama_llm_bench/core/interfaces.py` — search for `class .*ABC` vs `class .*Protocol` |
 | "structlog wrapping standard `logging`" (logging rule) | Every module uses stdlib `logging.getLogger(__name__)` only | No `import structlog` anywhere |
 | "Type Checker: Mypy (migrating from pyright)" | Both `mypy` and `pyright` are configured as dev dependencies; mypy has `strict = true` | `pyproject.toml` `[tool.mypy]` and `[dependency-groups].dev` |
@@ -38,18 +37,19 @@ New contributors should treat the code as ground truth and update these discrepa
 
 ## 2. Qt Framework Audit
 
-Every Qt-using source file uses `PyQt6`. There are no `PySide6` imports anywhere in `src/`.
+**Migration complete.** All 18 Qt-using source files have been migrated from PyQt6 to PySide6.
+Dependency: `pyside6>=6.8.0,<7.0.0` (resolved to 6.11.0). Zero `PyQt6` references remain in `src/`.
 
-### PyQt6 Files (18 total)
+### PySide6 Files (18 total)
 
-| File | Qt modules used |
+| File | PySide6 modules used |
 |---|---|
 | `src/ollama_llm_bench/main.py` | `QtWidgets.QApplication` |
 | `src/ollama_llm_bench/app_context.py` | `QtCore.QMutex`, `QMutexLocker`, `QThreadPool` |
 | `src/ollama_llm_bench/qt_classes/meta_class.py` | `QtCore.QObject` |
-| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtCore.QObject`, `pyqtSignal` |
-| `src/ollama_llm_bench/qt_classes/qt_benchmark_execution_task.py` | `QtCore.QObject`, `QRunnable`, `pyqtSignal` |
-| `src/ollama_llm_bench/qt_classes/qt_benchmark_flow.py` | `QtCore.QObject`, `QThreadPool`, `pyqtSignal` |
+| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtCore.QObject`, `Signal` |
+| `src/ollama_llm_bench/qt_classes/qt_benchmark_execution_task.py` | `QtCore.QObject`, `QRunnable`, `Signal` |
+| `src/ollama_llm_bench/qt_classes/qt_benchmark_flow.py` | `QtCore.QObject`, `QThreadPool`, `Signal` |
 | `src/ollama_llm_bench/ui/main_window.py` | `QtCore.Qt`, `QtWidgets.QMainWindow`, `QApplication`, `QMessageBox` |
 | `src/ollama_llm_bench/ui/widgets/central_widget.py` | `QtCore.Qt`, `QtWidgets.QSplitter`, `QVBoxLayout`, `QWidget` |
 | `src/ollama_llm_bench/ui/widgets/panels/control_panel.py` | `QtWidgets.*` |
@@ -62,20 +62,7 @@ Every Qt-using source file uses `PyQt6`. There are no `PySide6` imports anywhere
 | `src/ollama_llm_bench/ui/widgets/panels/result/result_widget.py` | `QtWidgets.QTableWidget`, `QTableWidgetItem`, etc. |
 | `src/ollama_llm_bench/utils/widget_utils.py` | `QtWidgets.QComboBox` |
 
-### PySide6 Files
-
-**None.** A PyQt6 → PySide6 migration has not been started.
-
-Recommended migration order when the work begins:
-
-1. `meta_class.py` (smallest surface) — confirm the metaclass idiom works under PySide6's `shiboken`.
-2. `qt_event_bus.py` — replace `pyqtSignal` → `Signal`.
-3. `qt_benchmark_flow.py`, `qt_benchmark_execution_task.py`.
-4. `utils/widget_utils.py`.
-5. Leaf widgets in `ui/widgets/panels/**`.
-6. Container widgets (`central_widget.py`, `control_panel.py`, `results_panel.py`).
-7. `ui/main_window.py`.
-8. `main.py` and `app_context.py` last (they transitively use Qt types in their constructor signatures).
+**Init pattern:** `QtBenchmarkFlowApi` uses cooperative multiple inheritance with base order `(BenchmarkFlowApi, QObject)`. `BenchmarkFlowApi.__init__` accepts `**kwargs` and calls `super().__init__(**kwargs)`, allowing domain args to be consumed before the chain reaches `QObject.__init__()` with no extra kwargs. This is required because PySide6's `QObject` rejects unknown keyword arguments.
 
 ## 3. Missing Project Infrastructure
 
@@ -136,7 +123,7 @@ Ranked by impact-over-effort for a new maintainer:
 4. **Decide and document the scoring scale.** Either rename `parse_judge_response` return to `score_0_to_1` and update the validator, or scale the judge prompt to emit 0–100. Discrepancy between prompt and parser is a trap waiting to spring.
 5. **Remove `db.sqlite` and `.DS_Store`** from git and add them to `.gitignore`.
 6. **Add `CHANGELOG.md`** per the Keep a Changelog format. The project is versioned (`0.1.1`) but no release notes exist.
-7. **Start the PySide6 migration** in the order listed in §2. Pin-point any PySide6-vs-PyQt6 divergences (metaclass behaviour, `QStringList` translations, `exec_` → `exec`).
+7. ~~**Start the PySide6 migration**~~ — **Complete.** All 18 files migrated. See §2 for details.
 8. **Migrate `core/interfaces.py` to `Protocol`** where the ABC provides no shared state — `LLMApi`, `DataApi`, `EventBus`, `BenchmarkTaskApi` are pure contract surfaces. `ResultApi`, `PromptBuilderApi`, `BenchmarkFlowApi` currently store constructor state and must stay as ABCs (or be restructured).
 9. **Enable `PRAGMA foreign_keys = ON`** in `SqLiteDataApi._init_db` so delete cascades are enforced by SQLite rather than by convention.
 10. **Write ADRs** for the three load-bearing decisions already locked in: (a) `QThreadPool(maxThreadCount=1)` — serial execution; (b) `ContextProvider` singleton via `QMutex`; (c) resumability via three-state `BenchmarkResultStatus`.

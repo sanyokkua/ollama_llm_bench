@@ -8,9 +8,9 @@ All source code lives under `src/ollama_llm_bench/`.
 |---|---|
 | `core/` | Domain models (`models.py`), ABCs for all services (`interfaces.py`), controller ABCs (`ui_controllers.py`), SQL schema/queries (`sql_constants.py`), prompt templates (`prompt_constants.py`), stage constants (`stages_constants.py`) |
 | `services/` | Concrete implementations: `OllamaApi` (LLM client), `SqLiteDataApi` (SQLite CRUD), `YamlBenchmarkTaskApi` (YAML loader), `SimplePromptBuilderApi` (prompt construction), `AppResultApi` (result aggregation), `TableSerializer` (CSV/MD export) |
-| `qt_classes/` | Qt threading and event infrastructure: `QtEventBus` (pub/sub via pyqtSignal), `QtBenchmarkFlowApi` (execution lifecycle), `BenchmarkExecutionTask` (QRunnable worker), `MetaQObjectABC` (metaclass for QObject+ABC) |
+| `qt_classes/` | Qt threading and event infrastructure: `QtEventBus` (pub/sub via `Signal`), `QtBenchmarkFlowApi` (execution lifecycle), `BenchmarkExecutionTask` (QRunnable worker), `MetaQObjectABC` (metaclass for QObject+ABC) |
 | `ui/controllers/` | Widget controllers: `NewRunWidgetController`, `PreviousRunWidgetController`, `ResultWidgetController`, `LogWidgetController`, `StatusListener` |
-| `ui/widgets/` | PyQt6 widgets: `MainWindow` → `CentralWidget` (QSplitter 20/80) → `ControlPanel` + `ResultsPanel` → tabs and sub-panels |
+| `ui/widgets/` | PySide6 widgets: `MainWindow` → `CentralWidget` (QSplitter 20/80) → `ControlPanel` + `ResultsPanel` → tabs and sub-panels |
 | `utils/` | Pure utilities: `text_utils` (sanitize, parse judge), `time_utils` (format elapsed), `run_utils` (fetch+sort runs), `widget_utils` (combobox helper) |
 | `dataset/` | 50 YAML benchmark task files (coding, data extraction, general knowledge, text operations) |
 
@@ -94,21 +94,21 @@ ollama.Client(timeout=300)
 
 `QtEventBus` (`qt_classes/qt_event_bus.py`) implements `EventBus` ABC via `MetaQObjectABC`. All signals are private. Every signal is exposed through a matching `subscribe_to_X(callback)` / `emit_X(value)` pair.
 
-| Private field | pyqtSignal type | Python payload | Purpose |
+| Private field | Signal type | Python payload | Purpose |
 |---|---|---|---|
-| `_run_id_changed` | `pyqtSignal(int)` | `int` (`-1` encodes `None`) | Active run selection changed |
-| `_run_ids_changed` | `pyqtSignal(list)` | `list[tuple[int, str]]` | Full runs list refreshed |
-| `_models_test_changed` | `pyqtSignal(list)` | `list[str]` | Test model list changed |
-| `_models_judge_changed` | `pyqtSignal(str)` | `str` | Judge model selection changed |
-| `_log_clean` | `pyqtSignal()` | (none) | Clear all log content |
-| `_log_append` | `pyqtSignal(str)` | `str` | Append one log line |
-| `_table_summary_data_changed` | `pyqtSignal(list)` | `list[AvgSummaryTableItem]` | Summary table data refreshed |
-| `_table_detailed_data_change` | `pyqtSignal(list)` | `list[SummaryTableItem]` | Detailed table data refreshed |
-| `_background_thread_is_running` | `pyqtSignal(bool)` | `bool` | Background thread started/stopped |
-| `_background_thread_progress_changed` | `pyqtSignal(object)` | `ReporterStatusMsg` | Per-task progress update |
-| `_global_event_msg` | `pyqtSignal(str)` | `str` | Modal notification message |
+| `_run_id_changed` | `Signal(int)` | `int` (`-1` encodes `None`) | Active run selection changed |
+| `_run_ids_changed` | `Signal(list)` | `list[tuple[int, str]]` | Full runs list refreshed |
+| `_models_test_changed` | `Signal(list)` | `list[str]` | Test model list changed |
+| `_models_judge_changed` | `Signal(str)` | `str` | Judge model selection changed |
+| `_log_clean` | `Signal()` | (none) | Clear all log content |
+| `_log_append` | `Signal(str)` | `str` | Append one log line |
+| `_table_summary_data_changed` | `Signal(list)` | `list[AvgSummaryTableItem]` | Summary table data refreshed |
+| `_table_detailed_data_change` | `Signal(list)` | `list[SummaryTableItem]` | Detailed table data refreshed |
+| `_background_thread_is_running` | `Signal(bool)` | `bool` | Background thread started/stopped |
+| `_background_thread_progress_changed` | `Signal(object)` | `ReporterStatusMsg` | Per-task progress update |
+| `_global_event_msg` | `Signal(str)` | `str` | Modal notification message |
 
-**Note:** `emit_run_id_changed(None)` is coerced to `-1` before emitting because `pyqtSignal(int)` cannot carry Python `None`. Subscribers must treat `-1` as "no selection."
+**Note:** `emit_run_id_changed(None)` is coerced to `-1` before emitting because `Signal(int)` cannot carry Python `None`. Subscribers must treat `-1` as "no selection."
 
 ## Benchmark Execution Flow
 
@@ -196,7 +196,7 @@ Rules an AI agent must never break:
 
 | Target state | Current state | Migration strategy |
 |---|---|---|
-| PySide6 | PyQt6 used throughout | Migrate file-by-file when touching existing code |
+| PySide6 | ~~PyQt6 used throughout~~ | **Complete** — `feature/pyside-migration` |
 | UV + hatchling | ~~Poetry + poetry-core build backend~~ | **Complete** — `feature/migrate-to-uv` |
 | Mypy as CI authority | Pyright in dev only | Already configured in pyproject.toml |
 | structlog | `logging.getLogger(__name__)` stdlib | Migration plan needed before implementation |
@@ -229,7 +229,7 @@ Rules an AI agent must never break:
 | `src/ollama_llm_bench/core/prompt_constants.py` | `SYSTEM_PROMPT` (judge rubric) + `USER_PROMPT` template |
 | `src/ollama_llm_bench/core/stages_constants.py` | `STAGE_*` string constants |
 | `src/ollama_llm_bench/core/ui_controllers.py` | ABCs for all 4 widget controllers |
-| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtEventBus` — 11 pyqtSignals, pub/sub hub |
+| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtEventBus` — 11 Signals, pub/sub hub |
 | `src/ollama_llm_bench/qt_classes/qt_benchmark_execution_task.py` | `BenchmarkExecutionTask` — QRunnable pipeline worker |
 | `src/ollama_llm_bench/qt_classes/qt_benchmark_flow.py` | `QtBenchmarkFlowApi` — execution lifecycle manager |
 | `src/ollama_llm_bench/qt_classes/meta_class.py` | `MetaQObjectABC` — resolves QObject + ABCMeta MRO conflict |

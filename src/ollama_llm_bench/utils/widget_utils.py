@@ -1,9 +1,9 @@
 import logging
 
-from PyQt6.QtWidgets import QComboBox
+from PySide6.QtWidgets import QComboBox
 
 
-def set_benchmark_run_on_dropdown(run_id: int, combobox: QComboBox, logger: logging.Logger):
+def set_benchmark_run_on_dropdown(run_id: int, combobox: QComboBox, logger: logging.Logger) -> None:
     """
     Set the current selection of a dropdown to the item with matching run ID.
 

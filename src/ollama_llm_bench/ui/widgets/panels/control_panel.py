@@ -1,7 +1,7 @@
 import logging
 from typing import Final
 
-from PyQt6.QtWidgets import QLabel, QProgressBar, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QProgressBar, QVBoxLayout, QWidget
 
 from ollama_llm_bench.core.interfaces import AppContext, EventBus
 from ollama_llm_bench.core.models import ReporterStatusMsg

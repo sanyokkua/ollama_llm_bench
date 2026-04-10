@@ -10,7 +10,7 @@ It automates inference across multiple models, judges responses using a user-sel
 | Component | Technology |
 |-----------|-----------|
 | Language | Python 3.13+ |
-| UI Framework | PySide6 (migrating from PyQt6) |
+| UI Framework | PySide6 |
 | Package Manager | UV with hatchling |
 | Database | SQLite via stdlib `sqlite3` |
 | LLM Client | ollama-python |
@@ -53,7 +53,7 @@ uv run pytest -q --tb=short tests/path/test.py::test_name  # single test
 - **Never read files under `.venv/`** — use `uv run python -c 'import pkg; help(pkg.fn)'` to inspect APIs
 - **Never use `pip install`** — always `uv add <pkg> -q` to maintain `uv.lock` integrity
 - **Never use `print()`** — use `logging.getLogger(__name__)`
-- New code: PySide6. Existing code: PyQt6 (migrate opportunistically when touching the file)
+- All code: PySide6 exclusively.
 - New interfaces: prefer `Protocol`. Existing: keep `ABC` (`core/interfaces.py`)
 
 ## Context Management
@@ -88,7 +88,7 @@ core/ ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
 
 ### EventBus
 
-`QtEventBus` is the central pub/sub hub using `pyqtSignal`/`Signal`. All background-to-UI communication goes through EventBus signals for thread safety. Key signal categories: run lifecycle, model lists, log output, table data, progress updates, global messages.
+`QtEventBus` is the central pub/sub hub using `Signal` (PySide6). All background-to-UI communication goes through EventBus signals for thread safety. Key signal categories: run lifecycle, model lists, log output, table data, progress updates, global messages.
 
 ### Benchmark Pipeline
 
@@ -121,8 +121,8 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 - Expose public attributes via `@property`.
 - Only interact with other objects through their public APIs.
 
-### PySide6 / PyQt6
-- New code: PySide6 exclusively. Existing code: migrate when touching the file.
+### PySide6
+- PySide6 exclusively throughout the codebase.
 - `MetaQObjectABC` metaclass when combining `QObject` + `ABC` (see `qt_classes/meta_class.py`).
 - UI updates on main thread only. Background work via `QThreadPool` + `QRunnable`.
 - `QRunnable` uses nested `Signals(QObject)` class for typed signal emission.
@@ -183,7 +183,7 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 | `src/ollama_llm_bench/app_context.py` | DI wiring: `ContextProvider`, `ApplicationContext`, `_create_app_context()` |
 | `src/ollama_llm_bench/core/interfaces.py` | All ABCs: `LLMApi`, `DataApi`, `EventBus`, `BenchmarkFlowApi`, etc. |
 | `src/ollama_llm_bench/core/models.py` | Frozen dataclasses: `BenchmarkRun`, `BenchmarkResult`, `InferenceResponse`, etc. |
-| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtEventBus` — pub/sub via pyqtSignal/Signal |
+| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtEventBus` — pub/sub via `Signal` (PySide6) |
 | `src/ollama_llm_bench/qt_classes/qt_benchmark_execution_task.py` | `BenchmarkExecutionTask` — QRunnable background worker |
 | `src/ollama_llm_bench/qt_classes/meta_class.py` | `MetaQObjectABC` — metaclass for QObject + ABC |
 | `src/ollama_llm_bench/services/ollama_llm_api.py` | `OllamaApi` — Ollama client wrapper |

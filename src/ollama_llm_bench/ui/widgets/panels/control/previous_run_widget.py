@@ -1,7 +1,6 @@
 import logging
-from typing import List, Tuple
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QComboBox,
     QGroupBox,
     QHBoxLayout,
@@ -98,7 +97,7 @@ class PreviousRunWidget(QWidget):
         logger.debug(f"Dropdown selection changed to run ID: {run_id}")
         self._controller.handle_item_change(run_id)
 
-    def _update_runs_dropdown(self, runs: List[Tuple[int, str]]) -> None:
+    def _update_runs_dropdown(self, runs: list[tuple[int, str]]) -> None:
         """
         Update the dropdown list with available unfinished benchmark runs.
 
@@ -120,13 +119,15 @@ class PreviousRunWidget(QWidget):
         if runs and self._unfinished_dropdown.count() > 0:
             self._unfinished_dropdown.setCurrentIndex(0)
 
-    def _update_selected_run(self, run_id: int) -> None:
+    def _update_selected_run(self, run_id: int | None) -> None:
         """
         Update the dropdown to reflect the currently selected benchmark run.
 
         Args:
-            run_id: Identifier of the run to select.
+            run_id: Identifier of the run to select, or None when no run is selected.
         """
+        if run_id is None:
+            return
         logger.debug(f"Updating dropdown to show run ID: {run_id}")
         set_benchmark_run_on_dropdown(run_id, self._unfinished_dropdown, logger)
 
@@ -147,7 +148,7 @@ class PreviousRunWidget(QWidget):
         self._stop_button.setEnabled(is_running)
 
     @staticmethod
-    def _set_widgets_enabled(widgets: List[QWidget], enabled: bool) -> None:
+    def _set_widgets_enabled(widgets: list[QWidget], enabled: bool) -> None:
         """
         Helper method to batch-configure widget enabled states.
 

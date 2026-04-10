@@ -1,6 +1,6 @@
 import logging
 
-from PyQt6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from ollama_llm_bench.core.interfaces import AppContext
 from ollama_llm_bench.ui.widgets.panels.result.result_tab_widget import ResultTabWidget

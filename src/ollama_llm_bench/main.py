@@ -4,7 +4,7 @@ import sys
 from importlib import resources
 from pathlib import Path
 
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 from ollama_llm_bench.app_context import ContextProvider
 from ollama_llm_bench.ui.main_window import MainWindow
@@ -12,7 +12,7 @@ from ollama_llm_bench.ui.main_window import MainWindow
 logger = logging.getLogger(__name__)
 
 
-def configure_logger(log_level: str = None) -> int:
+def configure_logger(log_level: str | None = None) -> int:
     """
     Configure logger. If log_level is None, disable logging completely.
     Otherwise, set up logging with the specified level.
@@ -51,8 +51,8 @@ def configure_logger(log_level: str = None) -> int:
 
     try:
         formatter = logging.Formatter(
-            fmt='%(asctime)s [%(levelname)-8s] %(name)s: %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S',
+            fmt="%(asctime)s [%(levelname)-8s] %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(formatter)
@@ -71,7 +71,7 @@ def configure_logger(log_level: str = None) -> int:
         raise
 
 
-def get_dataset_path(custom_path: str = None) -> Path:
+def get_dataset_path(custom_path: str | None = None) -> Path:
     """
     Get the dataset path, handling both development and production environments.
 
@@ -95,12 +95,12 @@ def get_dataset_path(custom_path: str = None) -> Path:
 
     try:
         # For packaged application
-        with resources.path('ollama_llm_bench', 'dataset') as path:
+        with resources.path("ollama_llm_bench", "dataset") as path:
             return path
     except (ImportError, TypeError, FileNotFoundError):
         # For development
         # In development, the dataset is at src/ollama_llm_bench/dataset
-        return Path(__file__).parent / 'dataset'
+        return Path(__file__).parent / "dataset"
 
 
 def main() -> None:
@@ -109,19 +109,19 @@ def main() -> None:
     Parses command line arguments, configures logging, initializes application context,
     and starts the Qt event loop.
     """
-    parser = argparse.ArgumentParser(description='Ollama LLM Benchmark')
+    parser = argparse.ArgumentParser(description="Ollama LLM Benchmark")
     parser.add_argument(
-        '--log-level',
-        choices=['debug', 'info', 'warning', 'error'],
+        "--log-level",
+        choices=["debug", "info", "warning", "error"],
         default=None,  # CHANGED: None means logging disabled by default
-        help='Enable logging with specified level (default: disabled)',
+        help="Enable logging with specified level (default: disabled)",
     )
     parser.add_argument(
-        '--dataset',
-        '-d',
+        "--dataset",
+        "-d",
         type=str,
         default=None,
-        help='Path to custom dataset directory (default: bundled dataset)',
+        help="Path to custom dataset directory (default: bundled dataset)",
     )
     args = parser.parse_args()
 
@@ -155,6 +155,7 @@ def main() -> None:
         # Always print critical errors to stderr, even if logging is disabled
         print(f"Application failed to start: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
 

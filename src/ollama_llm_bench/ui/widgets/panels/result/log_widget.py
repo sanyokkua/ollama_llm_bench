@@ -1,8 +1,7 @@
 import logging
-from typing import Optional
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QPushButton, QScrollBar, QTextEdit, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QPushButton, QScrollBar, QTextEdit, QVBoxLayout, QWidget
 
 from ollama_llm_bench.core.ui_controllers import LogWidgetControllerApi
 
@@ -76,7 +75,7 @@ class LogWidget(QWidget):
         Scroll the log view to the bottom if the user is currently viewing the latest entries.
         Prevents disrupting the user when they are reviewing older log content.
         """
-        scrollbar: Optional[QScrollBar] = self._text_edit.verticalScrollBar()
+        scrollbar: QScrollBar | None = self._text_edit.verticalScrollBar()
         if not scrollbar:
             return
 
