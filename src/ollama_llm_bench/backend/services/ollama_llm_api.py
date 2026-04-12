@@ -1,6 +1,7 @@
 import logging
 import time
-from typing import Callable, List, Optional, override
+from collections.abc import Callable
+from typing import override
 
 from ollama import Client
 
@@ -27,7 +28,7 @@ class OllamaApi(LLMApi):
         self._ollama_client = client
 
     @override
-    def get_models_list(self) -> List[dict]:
+    def get_models_list(self) -> list[dict]:
         """
         Retrieve the list of available models from the Ollama server.
 
@@ -36,14 +37,14 @@ class OllamaApi(LLMApi):
         """
         try:
             response = self._ollama_client.list()
-            model_names = { model["model"] for model in response["models"] }
+            model_names = {model["model"] for model in response["models"]}
             model_names = list(model_names)
             model_names.sort()
             logger.debug(f"Models received: {len(model_names)}")
             return model_names
         except Exception:
             # Return empty list if there's any error
-            logger.warning(f"Failed to get models from ollama")
+            logger.warning("Failed to get models from ollama")
             return []
 
     @override
@@ -62,12 +63,12 @@ class OllamaApi(LLMApi):
             try:
                 response = self._ollama_client.generate(
                     model=model_name,
-                    prompt='Say Hello',
+                    prompt="Say Hello",
                 )
                 logger.debug(f"Warmup response: {response.response}")
                 response_received = True
             except Exception as ex:
-                logger.warning(f"Failed to warmup", exc_info=ex)
+                logger.warning("Failed to warmup", exc_info=ex)
             if not response_received:
                 logger.debug(f"Failed to warm up, retrying: #{retry}")
                 time.sleep(30)
@@ -80,9 +81,9 @@ class OllamaApi(LLMApi):
         self,
         model_name: str,
         user_prompt: str,
-        system_prompt: Optional[str] = None,
-        on_llm_response: Optional[Callable[[str], None]] = None,
-        on_is_stop_signal: Optional[Callable[[], bool]] = None,
+        system_prompt: str | None = None,
+        on_llm_response: Callable[[str], None] | None = None,
+        on_is_stop_signal: Callable[[], bool] | None = None,
         is_judge_mode: bool = False,
     ) -> InferenceResponse:
         """
@@ -100,10 +101,10 @@ class OllamaApi(LLMApi):
             InferenceResponse containing generated text, timing, token count, and error status.
         """
         try:
-            options = { }
+            options = {}
 
             if system_prompt:
-                options['system'] = system_prompt
+                options["system"] = system_prompt
 
             start_time = time.time()
             logger.debug(f"Starting inference for model: {model_name}")
@@ -143,7 +144,7 @@ class OllamaApi(LLMApi):
             logger.warning(f"Failed to run inference for model: {model_name}")
             if on_llm_response:
                 on_llm_response(f"Failed to run inference for model: {model_name}")
-                on_llm_response(f"Error: {str(e)}")
+                on_llm_response(f"Error: {e!s}")
             return InferenceResponse(
                 has_error=True,
                 error_message=str(e),

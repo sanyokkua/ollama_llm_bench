@@ -1,5 +1,5 @@
 import logging
-from typing import Tuple, override
+from typing import override
 
 from ollama_llm_bench.backend.core.interfaces import BenchmarkTaskApi, PromptBuilderApi
 from ollama_llm_bench.backend.core.models import BenchmarkResult
@@ -48,7 +48,7 @@ class SimplePromptBuilderApi(PromptBuilderApi):
             raise
 
     @override
-    def build_judge_prompt(self, benchmark_result: BenchmarkResult) -> Tuple[str, str]:
+    def build_judge_prompt(self, benchmark_result: BenchmarkResult) -> tuple[str, str]:
         """
         Construct a prompt used to evaluate (judge) a benchmark result.
 
@@ -72,28 +72,28 @@ class SimplePromptBuilderApi(PromptBuilderApi):
             raise
 
         format_data = {
-            'question': task.question,
-            'most_expected': task.expected_answer.most_expected,
-            'good_answer': task.expected_answer.good_answer,
-            'pass_option': task.expected_answer.pass_option,
-            'incorrect_direction': task.incorrect_direction,
-            'answer': benchmark_result.llm_response or "",
-            'category': task.category,
-            'sub_category': task.sub_category
+            "question": task.question,
+            "most_expected": task.expected_answer.most_expected,
+            "good_answer": task.expected_answer.good_answer,
+            "pass_option": task.expected_answer.pass_option,
+            "incorrect_direction": task.incorrect_direction,
+            "answer": benchmark_result.llm_response or "",
+            "category": task.category,
+            "sub_category": task.sub_category,
         }
 
         try:
             # Perform regex-based replacements
             user_prompt = USER_PROMPT
             for key, value in format_data.items():
-                pattern = "".join(['{', key, '}'])
+                pattern = "".join(["{", key, "}"])
                 user_prompt = user_prompt.replace(pattern, value)
 
             logger.debug("Successfully built judge prompt for task ID: %s", task_id)
             return user_prompt, SYSTEM_PROMPT
         except KeyError as e:
             logger.error("Template key error: %s", str(e))
-            raise ValueError(f"Missing required template key: {str(e)}") from None
+            raise ValueError(f"Missing required template key: {e!s}") from None
         except Exception as e:
             logger.error("Failed to build judge prompt for task ID %s: %s", task_id, str(e))
             raise

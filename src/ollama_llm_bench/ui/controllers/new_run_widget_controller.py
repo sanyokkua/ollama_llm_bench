@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable, List, override
+from typing import override
 
 from ollama_llm_bench.backend.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, EventBus, LLMApi
 from ollama_llm_bench.backend.core.models import (
@@ -20,13 +21,15 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
     Handles user interactions for starting new benchmark runs and model selection.
     """
 
-    def __init__(self, *,
-                 data_api: DataApi,
-                 llm_api: LLMApi,
-                 task_api: BenchmarkTaskApi,
-                 benchmark_flow_api: BenchmarkFlowApi,
-                 event_bus: EventBus,
-                 ):
+    def __init__(
+        self,
+        *,
+        data_api: DataApi,
+        llm_api: LLMApi,
+        task_api: BenchmarkTaskApi,
+        benchmark_flow_api: BenchmarkFlowApi,
+        event_bus: EventBus,
+    ):
         """
         Initialize the new run widget controller.
 
@@ -80,7 +83,7 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
         """
         logger.debug("Start button is clicked")
         if self.benchmark_flow_api.is_running():
-            logger.debug(f"Benchmark flow is already running")
+            logger.debug("Benchmark flow is already running")
             self.event_bus.emit_global_event_msg("Benchmark flow is already running")
             return
 
@@ -93,7 +96,7 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
                 self.event_bus.emit_global_event_msg(f"Benchmark model {model} is not available")
                 return
         if len(event.models) == 0:
-            logger.debug(f"No models selected")
+            logger.debug("No models selected")
             self.event_bus.emit_global_event_msg("No models selected")
             return
 
@@ -109,7 +112,7 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
             logger.info(f"Created new benchmark run with ID: {run_id}")
         except Exception as e:
             logger.warning(f"Failed to create new benchmark run: {e}")
-            self.event_bus.emit_global_event_msg(f"Failed to create new benchmark run")
+            self.event_bus.emit_global_event_msg("Failed to create new benchmark run")
             return
 
         # Initialize benchmark results for all model/task combinations
@@ -130,7 +133,7 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
             logger.debug(f"Initialized {len(results)} benchmark results")
         except Exception as e:
             logger.warning(f"Failed to initialize benchmark results: {e}")
-            self.event_bus.emit_global_event_msg(f"Failed to initialize benchmark results")
+            self.event_bus.emit_global_event_msg("Failed to initialize benchmark results")
             return
 
         self.event_bus.emit_run_id_changed(run_id)
@@ -147,13 +150,13 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
         """
         logger.debug("Stop button is clicked")
         if self.benchmark_flow_api.is_running():
-            logger.debug(f"Benchmark flow is running, will stop execution")
+            logger.debug("Benchmark flow is running, will stop execution")
             self.benchmark_flow_api.stop_execution()
         else:
-            logger.debug(f"Benchmark flow is stopped")
+            logger.debug("Benchmark flow is stopped")
 
     @override
-    def subscribe_to_models_change(self, callback: Callable[[List[str]], None]) -> None:
+    def subscribe_to_models_change(self, callback: Callable[[list[str]], None]) -> None:
         """
         Subscribe to changes in the list of available test models.
 

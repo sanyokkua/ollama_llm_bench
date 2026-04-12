@@ -1,5 +1,5 @@
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from ollama_llm_bench.backend.core.interfaces import EventBus
 from ollama_llm_bench.backend.core.ui_controllers import LogWidgetControllerApi

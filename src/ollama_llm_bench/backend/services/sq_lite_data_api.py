@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 from pathlib import Path
-from typing import List, override
+from typing import override
 
 from ollama_llm_bench.backend.core.interfaces import DataApi
 from ollama_llm_bench.backend.core.models import (
@@ -87,11 +87,7 @@ class SqLiteDataApi(DataApi):
             cursor = conn.cursor()
             cursor.execute(
                 INSERT_BENCHMARK_RUN,
-                (
-                    benchmark_run.timestamp,
-                    benchmark_run.judge_model,
-                    benchmark_run.status.value
-                ),
+                (benchmark_run.timestamp, benchmark_run.judge_model, benchmark_run.status.value),
             )
             run_id = cursor.lastrowid
         logger.info("Created benchmark run with ID %d", run_id)
@@ -132,7 +128,7 @@ class SqLiteDataApi(DataApi):
             )
 
     @override
-    def retrieve_benchmark_runs(self) -> List[BenchmarkRun]:
+    def retrieve_benchmark_runs(self) -> list[BenchmarkRun]:
         """
         Retrieve all stored benchmark runs.
 
@@ -158,7 +154,7 @@ class SqLiteDataApi(DataApi):
             return results
 
     @override
-    def retrieve_benchmark_runs_with_status(self, status: BenchmarkRunStatus) -> List[BenchmarkRun]:
+    def retrieve_benchmark_runs_with_status(self, status: BenchmarkRunStatus) -> list[BenchmarkRun]:
         """
         Retrieve benchmark runs filtered by execution status.
 
@@ -202,12 +198,7 @@ class SqLiteDataApi(DataApi):
             cursor = conn.cursor()
             cursor.execute(
                 UPDATE_BENCHMARK_RUN,
-                (
-                    benchmark_run.timestamp,
-                    benchmark_run.judge_model,
-                    benchmark_run.status.value,
-                    benchmark_run.run_id
-                ),
+                (benchmark_run.timestamp, benchmark_run.judge_model, benchmark_run.status.value, benchmark_run.run_id),
             )
         logger.info("Updated benchmark run with ID %d", benchmark_run.run_id)
 
@@ -255,7 +246,7 @@ class SqLiteDataApi(DataApi):
                     benchmark_result.tokens_generated,
                     benchmark_result.evaluation_score,
                     benchmark_result.evaluation_reason,
-                    benchmark_result.error_message
+                    benchmark_result.error_message,
                 ),
             )
             result_id = cursor.lastrowid
@@ -263,7 +254,7 @@ class SqLiteDataApi(DataApi):
         return result_id
 
     @override
-    def create_benchmark_results(self, benchmark_results: List[BenchmarkResult]) -> None:
+    def create_benchmark_results(self, benchmark_results: list[BenchmarkResult]) -> None:
         """
         Store multiple benchmark results in bulk.
 
@@ -286,7 +277,7 @@ class SqLiteDataApi(DataApi):
                         result.tokens_generated,
                         result.evaluation_score,
                         result.evaluation_reason,
-                        result.error_message
+                        result.error_message,
                     ),
                 )
         logger.info("Created %d benchmark results", len(benchmark_results))
@@ -345,7 +336,7 @@ class SqLiteDataApi(DataApi):
         )
 
     @override
-    def retrieve_benchmark_results_for_run(self, run_id: int) -> List[BenchmarkResult]:
+    def retrieve_benchmark_results_for_run(self, run_id: int) -> list[BenchmarkResult]:
         """
         Retrieve all results associated with a specific benchmark run.
 
@@ -364,16 +355,14 @@ class SqLiteDataApi(DataApi):
             )
             rows = cursor.fetchall()
 
-            results = [
-                self._map_bench_result(row)
-                for row in rows
-            ]
+            results = [self._map_bench_result(row) for row in rows]
             logger.debug("Retrieved %d results for run ID %d", len(results), run_id)
             return results
 
     @override
-    def retrieve_benchmark_results_for_run_with_status(self, *, run_id: int, status: BenchmarkResultStatus) -> List[
-        BenchmarkResult]:
+    def retrieve_benchmark_results_for_run_with_status(
+        self, *, run_id: int, status: BenchmarkResultStatus
+    ) -> list[BenchmarkResult]:
         """
         Retrieve benchmark results for a run, filtered by status.
 
@@ -393,10 +382,7 @@ class SqLiteDataApi(DataApi):
             )
             rows = cursor.fetchall()
 
-            results = [
-                self._map_bench_result(row)
-                for row in rows
-            ]
+            results = [self._map_bench_result(row) for row in rows]
             logger.debug("Retrieved %d results for run ID %d with status %s", len(results), run_id, status.value)
             return results
 
@@ -424,7 +410,7 @@ class SqLiteDataApi(DataApi):
                     benchmark_result.evaluation_score,
                     benchmark_result.evaluation_reason,
                     benchmark_result.error_message,
-                    benchmark_result.result_id
+                    benchmark_result.result_id,
                 ),
             )
         logger.info("Updated benchmark result with ID %d", benchmark_result.result_id)

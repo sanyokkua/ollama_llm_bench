@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 from ollama_llm_bench.backend.core.interfaces import (
     DataApi,
@@ -19,12 +19,13 @@ class ResultWidgetController(ResultWidgetControllerApi):
     Handles user interactions for viewing, exporting, and deleting benchmark results.
     """
 
-    def __init__(self,
-                 *,
-                 data_api: DataApi,
-                 event_bus: EventBus,
-                 table_serializer: ITableSerializer,
-                 ):
+    def __init__(
+        self,
+        *,
+        data_api: DataApi,
+        event_bus: EventBus,
+        table_serializer: ITableSerializer,
+    ):
         """
         Initialize the result widget controller.
 
@@ -38,7 +39,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
         self.event_bus = event_bus
         self.table_serializer = table_serializer
 
-        self._selected_run_id: Optional[int] = None
+        self._selected_run_id: int | None = None
         self._avg_summary: list[AvgSummaryTableItem] = []
         self._detailed_summary: list[SummaryTableItem] = []
 
@@ -46,7 +47,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
         self.event_bus.subscribe_to_table_summary_data_changed(self._set_avg_summary)
         self.event_bus.subscribe_to_table_detailed_data_change(self._set_detailed_summary)
 
-    def _set_run_id(self, run_id: Optional[int]) -> None:
+    def _set_run_id(self, run_id: int | None) -> None:
         """
         Update the currently selected run ID.
 
@@ -75,14 +76,14 @@ class ResultWidgetController(ResultWidgetControllerApi):
         value = detailed_summary or []
         self._detailed_summary = value
 
-    def handle_run_selection_change(self, run_id: Optional[int]) -> None:
+    def handle_run_selection_change(self, run_id: int | None) -> None:
         """
         Handle user selection of a different benchmark run.
 
         Args:
             run_id: Newly selected run ID, or None.
         """
-        logger.debug('handle_run_selection_change')
+        logger.debug("handle_run_selection_change")
         self.event_bus.emit_run_id_changed(run_id)
 
     def handle_delete_click(self, _) -> None:
@@ -92,9 +93,9 @@ class ResultWidgetController(ResultWidgetControllerApi):
         Args:
             _: Ignored event parameter.
         """
-        logger.debug('handle_delete_click')
+        logger.debug("handle_delete_click")
         if self._selected_run_id is None or self._selected_run_id <= 0:
-            logger.debug(f"No Run ID")
+            logger.debug("No Run ID")
             self.event_bus.emit_global_event_msg("No Run ID selected to Delete")
             return
         try:
@@ -127,11 +128,11 @@ class ResultWidgetController(ResultWidgetControllerApi):
         Args:
             _: Ignored event parameter.
         """
-        logger.debug('handle_summary_export_csv_click')
+        logger.debug("handle_summary_export_csv_click")
         try:
             self.table_serializer.save_summary_as_csv(self._avg_summary)
         except Exception as e:
-            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {str(e)}")
+            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
     def handle_summary_export_md_click(self, _) -> None:
@@ -141,11 +142,11 @@ class ResultWidgetController(ResultWidgetControllerApi):
         Args:
             _: Ignored event parameter.
         """
-        logger.debug('handle_summary_export_md_click')
+        logger.debug("handle_summary_export_md_click")
         try:
             self.table_serializer.save_summary_as_md(self._avg_summary)
         except Exception as e:
-            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {str(e)}")
+            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
     def handle_detailed_export_csv_click(self, _) -> None:
@@ -155,11 +156,11 @@ class ResultWidgetController(ResultWidgetControllerApi):
         Args:
             _: Ignored event parameter.
         """
-        logger.debug('handle_detailed_export_csv_click')
+        logger.debug("handle_detailed_export_csv_click")
         try:
             self.table_serializer.save_details_as_csv(self._detailed_summary)
         except Exception as e:
-            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {str(e)}")
+            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
     def handle_detailed_export_md_click(self, _) -> None:
@@ -169,51 +170,51 @@ class ResultWidgetController(ResultWidgetControllerApi):
         Args:
             _: Ignored event parameter.
         """
-        logger.debug('handle_detailed_export_md_click')
+        logger.debug("handle_detailed_export_md_click")
         try:
             self.table_serializer.save_details_as_md(self._detailed_summary)
         except Exception as e:
-            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {str(e)}")
+            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
-    def subscribe_to_runs_change(self, callback: Callable[[List[tuple[int, str]]], None]) -> None:
+    def subscribe_to_runs_change(self, callback: Callable[[list[tuple[int, str]]], None]) -> None:
         """
         Subscribe to changes in the list of available benchmark runs.
 
         Args:
             callback: Function to invoke with updated list of (run_id, run_name) tuples.
         """
-        logger.debug('subscribe_to_runs_change')
+        logger.debug("subscribe_to_runs_change")
         self.event_bus.subscribe_to_run_ids_changed(callback)
 
-    def subscribe_to_run_id_changed(self, callback: Callable[[Optional[int]], None]) -> None:
+    def subscribe_to_run_id_changed(self, callback: Callable[[int | None], None]) -> None:
         """
         Subscribe to changes in the currently selected run ID.
 
         Args:
             callback: Function to invoke with the new run ID (or None).
         """
-        logger.debug('subscribe_to_run_id_changed')
+        logger.debug("subscribe_to_run_id_changed")
         self.event_bus.subscribe_to_run_id_changed(callback)
 
-    def subscribe_to_summary_data_change(self, callback: Callable[[List[AvgSummaryTableItem]], None]) -> None:
+    def subscribe_to_summary_data_change(self, callback: Callable[[list[AvgSummaryTableItem]], None]) -> None:
         """
         Subscribe to changes in the summary results data.
 
         Args:
             callback: Function to invoke with updated average summary items.
         """
-        logger.debug('subscribe_to_summary_data_change')
+        logger.debug("subscribe_to_summary_data_change")
         self.event_bus.subscribe_to_table_summary_data_changed(callback)
 
-    def subscribe_to_detailed_data_change(self, callback: Callable[[List[SummaryTableItem]], None]) -> None:
+    def subscribe_to_detailed_data_change(self, callback: Callable[[list[SummaryTableItem]], None]) -> None:
         """
         Subscribe to changes in the detailed results data.
 
         Args:
             callback: Function to invoke with updated detailed summary items.
         """
-        logger.debug('subscribe_to_detailed_data_change')
+        logger.debug("subscribe_to_detailed_data_change")
         self.event_bus.subscribe_to_table_detailed_data_change(callback)
 
     def subscribe_to_benchmark_status_change(self, callback: Callable[[bool], None]) -> None:
@@ -223,5 +224,5 @@ class ResultWidgetController(ResultWidgetControllerApi):
         Args:
             callback: Function to invoke with True (running) or False (idle).
         """
-        logger.debug('subscribe_to_benchmark_status_change')
+        logger.debug("subscribe_to_benchmark_status_change")
         self.event_bus.subscribe_to_background_thread_is_running(callback)

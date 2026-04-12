@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import List, override
+from typing import override
 
 from ollama_llm_bench.backend.core.interfaces import DataApi, ResultApi
 from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
@@ -25,7 +25,7 @@ class AppResultApi(ResultApi):
         logger.debug("Initialized AppResultApi")
 
     @override
-    def retrieve_avg_benchmark_results_for_run(self, run_id: int) -> List[AvgSummaryTableItem]:
+    def retrieve_avg_benchmark_results_for_run(self, run_id: int) -> list[AvgSummaryTableItem]:
         """
         Calculate averaged performance metrics across all tasks for each model in a run.
 
@@ -67,17 +67,19 @@ class AppResultApi(ResultApi):
             avg_score = total_score / count
             avg_tokens_per_second = (total_tokens / total_time) * 1000 if total_time > 0 else 0.0
 
-            item = AvgSummaryTableItem(model_name=model_name,
-                                       avg_time_ms=avg_time,
-                                       avg_tokens_per_second=avg_tokens_per_second,
-                                       avg_score=avg_score, )
+            item = AvgSummaryTableItem(
+                model_name=model_name,
+                avg_time_ms=avg_time,
+                avg_tokens_per_second=avg_tokens_per_second,
+                avg_score=avg_score,
+            )
             avg_results.append(item)
 
         logger.info("Calculated averages for %d models in run ID %d", len(avg_results), run_id)
         return avg_results
 
     @override
-    def retrieve_detailed_benchmark_results_for_run(self, run_id: int) -> List[SummaryTableItem]:
+    def retrieve_detailed_benchmark_results_for_run(self, run_id: int) -> list[SummaryTableItem]:
         """
         Retrieve detailed per-task performance metrics for all models in a run.
 
@@ -107,14 +109,16 @@ class AppResultApi(ResultApi):
 
             score_reason = result.evaluation_reason or ""
 
-            item = SummaryTableItem(model_name=result.model_name,
-                                    task_id=result.task_id,
-                                    task_status=str(result.status),
-                                    time_ms=result.time_taken_ms or 0,
-                                    tokens=result.tokens_generated or 0,
-                                    tokens_per_second=tokens_per_second or 0.0,
-                                    score=result.evaluation_score or 0.0,
-                                    score_reason=score_reason, )
+            item = SummaryTableItem(
+                model_name=result.model_name,
+                task_id=result.task_id,
+                task_status=str(result.status),
+                time_ms=result.time_taken_ms or 0,
+                tokens=result.tokens_generated or 0,
+                tokens_per_second=tokens_per_second or 0.0,
+                score=result.evaluation_score or 0.0,
+                score_reason=score_reason,
+            )
             detailed_results.append(item)
             valid_results_count += 1
 

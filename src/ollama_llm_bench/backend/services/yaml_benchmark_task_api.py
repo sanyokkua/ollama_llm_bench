@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, override
+from typing import override
 
 import yaml
 
@@ -24,11 +24,11 @@ class YamlBenchmarkTaskApi(BenchmarkTaskApi):
             task_folder_path: Directory containing YAML task definition files.
         """
         super().__init__(task_folder_path=task_folder_path)
-        self._tasks_cache: List[BenchmarkTask] = []
-        self._task_cache_map = { }
+        self._tasks_cache: list[BenchmarkTask] = []
+        self._task_cache_map = {}
 
     @override
-    def load_tasks(self) -> List[BenchmarkTask]:
+    def load_tasks(self) -> list[BenchmarkTask]:
         """
         Load all benchmark tasks from YAML files in the configured directory.
 
@@ -41,18 +41,18 @@ class YamlBenchmarkTaskApi(BenchmarkTaskApi):
 
         logger.debug("Loading benchmark tasks from %s", self._task_folder_path)
         self._tasks_cache = []
-        self._task_cache_map = { }
+        self._task_cache_map = {}
 
         task_count = 0
         for file_path in self._task_folder_path.iterdir():
             if not file_path.is_file():
                 continue
 
-            if file_path.suffix not in ('.yaml', '.yml'):
+            if file_path.suffix not in (".yaml", ".yml"):
                 continue
 
             try:
-                with open(file_path, 'r') as file:
+                with open(file_path) as file:
                     data = yaml.safe_load(file)
 
                 if not data:
@@ -68,20 +68,20 @@ class YamlBenchmarkTaskApi(BenchmarkTaskApi):
                         continue
 
                     try:
-                        answer_data = task_data.get('expected_answer', { })
+                        answer_data = task_data.get("expected_answer", {})
                         answer = BenchmarkTaskAnswer(
-                            most_expected=answer_data.get('most_expected', ''),
-                            good_answer=answer_data.get('good_answer', ''),
-                            pass_option=answer_data.get('pass_option', ''),
+                            most_expected=answer_data.get("most_expected", ""),
+                            good_answer=answer_data.get("good_answer", ""),
+                            pass_option=answer_data.get("pass_option", ""),
                         )
 
                         task = BenchmarkTask(
-                            task_id=task_data['task_id'],
-                            category=task_data['category'],
-                            sub_category=task_data['sub_category'],
-                            question=task_data['question'],
+                            task_id=task_data["task_id"],
+                            category=task_data["category"],
+                            sub_category=task_data["sub_category"],
+                            question=task_data["question"],
                             expected_answer=answer,
-                            incorrect_direction=task_data['incorrect_direction'],
+                            incorrect_direction=task_data["incorrect_direction"],
                         )
 
                         self._tasks_cache.append(task)

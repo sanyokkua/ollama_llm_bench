@@ -1,16 +1,15 @@
 import json
 import logging
 import re
-from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
 # Constants for string patterns
-XML_TAG_PATTERN = r'<(start|end)_of_turn>'
-MARKDOWN_CODE_BLOCK_PATTERN = r'```json\s*|\s*```'
+XML_TAG_PATTERN = r"<(start|end)_of_turn>"
+MARKDOWN_CODE_BLOCK_PATTERN = r"```json\s*|\s*```"
 TRIM_PATTERNS = [
-    (XML_TAG_PATTERN, ''),
-    (MARKDOWN_CODE_BLOCK_PATTERN, ''),
+    (XML_TAG_PATTERN, ""),
+    (MARKDOWN_CODE_BLOCK_PATTERN, ""),
 ]
 REASONING_TAG_PATTERN = re.compile(r"(<think>.*?</think>)", re.DOTALL)
 
@@ -25,13 +24,13 @@ def extract_json_object(input_string: str) -> str:
     Returns:
         The extracted JSON string, or original string if no JSON found.
     """
-    start_index = input_string.find('{')
-    end_index = input_string.rfind('}')
+    start_index = input_string.find("{")
+    end_index = input_string.rfind("}")
 
     if start_index == -1 or end_index == -1 or end_index < start_index:
         return input_string
 
-    return input_string[start_index:end_index + 1]
+    return input_string[start_index : end_index + 1]
 
 
 def sanitize_json_string(input_string: str) -> str:
@@ -57,7 +56,7 @@ def sanitize_json_string(input_string: str) -> str:
     return cleaned.strip()
 
 
-def parse_judge_response(json_string: str) -> Tuple[bool, float, str]:
+def parse_judge_response(json_string: str) -> tuple[bool, float, str]:
     """
     Parse judge response JSON with comprehensive validation.
 
@@ -100,7 +99,7 @@ def parse_judge_response(json_string: str) -> Tuple[bool, float, str]:
         return False, grade, reason
 
     except (json.JSONDecodeError, ValueError) as e:
-        error_msg = f"Failed to parse judge response: {str(e)} | Input: '{json_string[:200]}{'...' if len(json_string) > 200 else ''}'"
+        error_msg = f"Failed to parse judge response: {e!s} | Input: '{json_string[:200]}{'...' if len(json_string) > 200 else ''}'"
         logger.warning(error_msg)
         return True, 0.0, str(e)
 

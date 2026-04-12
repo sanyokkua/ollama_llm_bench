@@ -279,7 +279,8 @@ class ContextProvider:
             raise RuntimeError(
                 "Context not initialized. Call ContextProvider.initialize() during application startup.",
             )
-        assert cls._context is not None  # guaranteed by _initialized check above
+        if cls._context is None:
+            raise RuntimeError("Context is None despite _initialized being True — invariant violated.")
         return cls._context
 
 
