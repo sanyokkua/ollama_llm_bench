@@ -4,9 +4,9 @@ from typing import Callable, List, Optional, override
 
 from ollama import Client
 
-from ollama_llm_bench.core.interfaces import LLMApi
-from ollama_llm_bench.core.models import InferenceResponse
-from ollama_llm_bench.utils.text_utils import sanitize_text
+from ollama_llm_bench.backend.core.interfaces import LLMApi
+from ollama_llm_bench.backend.core.models import InferenceResponse
+from ollama_llm_bench.backend.utils.text_utils import sanitize_text
 
 logger = logging.getLogger(__name__)
 

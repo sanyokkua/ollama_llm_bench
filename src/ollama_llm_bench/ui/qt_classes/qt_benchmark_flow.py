@@ -4,10 +4,16 @@ from typing import override
 
 from PySide6.QtCore import QObject, QThreadPool, Signal
 
-from ollama_llm_bench.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, LLMApi, PromptBuilderApi
-from ollama_llm_bench.core.models import BenchmarkRunStatus, ReporterStatusMsg
-from ollama_llm_bench.qt_classes.meta_class import MetaQObjectABC
-from ollama_llm_bench.qt_classes.qt_benchmark_execution_task import BenchmarkExecutionTask
+from ollama_llm_bench.backend.core.interfaces import (
+    BenchmarkFlowApi,
+    BenchmarkTaskApi,
+    DataApi,
+    LLMApi,
+    PromptBuilderApi,
+)
+from ollama_llm_bench.backend.core.models import BenchmarkRunStatus, ReporterStatusMsg
+from ollama_llm_bench.ui.qt_classes.meta_class import MetaQObjectABC
+from ollama_llm_bench.ui.qt_classes.qt_benchmark_execution_task import BenchmarkExecutionTask
 
 logger = logging.getLogger(__name__)
 

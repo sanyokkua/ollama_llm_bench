@@ -4,21 +4,21 @@ from collections import defaultdict
 
 from PySide6.QtCore import QObject, QRunnable, Signal
 
-from ollama_llm_bench.core.interfaces import BenchmarkTaskApi, DataApi, LLMApi, PromptBuilderApi
-from ollama_llm_bench.core.models import (
+from ollama_llm_bench.backend.core.interfaces import BenchmarkTaskApi, DataApi, LLMApi, PromptBuilderApi
+from ollama_llm_bench.backend.core.models import (
     BenchmarkResult,
     BenchmarkResultStatus,
     ReporterStatusMsg,
 )
-from ollama_llm_bench.core.stages_constants import (
+from ollama_llm_bench.backend.core.stages_constants import (
     STAGE_BENCHMARKING,
     STAGE_FAILED,
     STAGE_FINISHED,
     STAGE_INITIALIZING,
     STAGE_JUDGING,
 )
-from ollama_llm_bench.utils.text_utils import parse_judge_response
-from ollama_llm_bench.utils.time_utils import format_elapsed_time
+from ollama_llm_bench.backend.utils.text_utils import parse_judge_response
+from ollama_llm_bench.backend.utils.time_utils import format_elapsed_time
 
 
 class BenchmarkExecutionTask(QRunnable):

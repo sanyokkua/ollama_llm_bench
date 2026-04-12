@@ -1,10 +1,10 @@
 import logging
 from typing import Callable, List, Optional, override
 
-from ollama_llm_bench.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, EventBus
-from ollama_llm_bench.core.models import BenchmarkRun, BenchmarkRunStatus
-from ollama_llm_bench.core.ui_controllers import PreviousRunWidgetControllerApi
-from ollama_llm_bench.utils.run_utils import get_benchmark_runs
+from ollama_llm_bench.backend.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, EventBus
+from ollama_llm_bench.backend.core.models import BenchmarkRun, BenchmarkRunStatus
+from ollama_llm_bench.backend.core.ui_controllers import PreviousRunWidgetControllerApi
+from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 
 logger = logging.getLogger(__name__)
 

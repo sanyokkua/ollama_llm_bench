@@ -3,7 +3,7 @@ import logging
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton, QScrollBar, QTextEdit, QVBoxLayout, QWidget
 
-from ollama_llm_bench.core.ui_controllers import LogWidgetControllerApi
+from ollama_llm_bench.backend.core.ui_controllers import LogWidgetControllerApi
 
 logger = logging.getLogger(__name__)
 

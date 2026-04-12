@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, List, Optional
 
-from ollama_llm_bench.core.models import AvgSummaryTableItem, NewRunWidgetStartEvent, SummaryTableItem
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, NewRunWidgetStartEvent, SummaryTableItem
 
 
 class PreviousRunWidgetControllerApi(ABC):

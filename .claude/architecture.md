@@ -4,14 +4,31 @@
 
 All source code lives under `src/ollama_llm_bench/`.
 
+Two top-level groups: `backend/` (pure Python, zero Qt) and `ui/` (PySide6-dependent).
+
+**`backend/`** — pure Python:
+
 | Package | Role |
 |---|---|
-| `core/` | Domain models (`models.py`), ABCs for all services (`interfaces.py`), controller ABCs (`ui_controllers.py`), SQL schema/queries (`sql_constants.py`), prompt templates (`prompt_constants.py`), stage constants (`stages_constants.py`) |
-| `services/` | Concrete implementations: `OllamaApi` (LLM client), `SqLiteDataApi` (SQLite CRUD), `YamlBenchmarkTaskApi` (YAML loader), `SimplePromptBuilderApi` (prompt construction), `AppResultApi` (result aggregation), `TableSerializer` (CSV/MD export) |
-| `qt_classes/` | Qt threading and event infrastructure: `QtEventBus` (pub/sub via `Signal`), `QtBenchmarkFlowApi` (execution lifecycle), `BenchmarkExecutionTask` (QRunnable worker), `MetaQObjectABC` (metaclass for QObject+ABC) |
+| `backend/core/` | Domain models (`models.py`), ABCs for all services (`interfaces.py`), controller ABCs (`ui_controllers.py`), SQL schema/queries (`sql_constants.py`), prompt templates (`prompt_constants.py`), stage constants (`stages_constants.py`) |
+| `backend/services/` | Concrete implementations: `OllamaApi` (LLM client), `SqLiteDataApi` (SQLite CRUD), `YamlBenchmarkTaskApi` (YAML loader), `SimplePromptBuilderApi` (prompt construction), `AppResultApi` (result aggregation), `TableSerializer` (CSV/MD export) |
+| `backend/utils/` | Pure utilities: `text_utils` (sanitize, parse judge), `time_utils` (format elapsed), `run_utils` (fetch+sort runs) |
+
+**`ui/`** — PySide6-dependent:
+
+| Package | Role |
+|---|---|
+| `ui/qt_classes/` | Qt threading and event infrastructure: `QtEventBus` (pub/sub via `Signal`), `QtBenchmarkFlowApi` (execution lifecycle), `BenchmarkExecutionTask` (QRunnable worker), `MetaQObjectABC` (metaclass for QObject+ABC) |
 | `ui/controllers/` | Widget controllers: `NewRunWidgetController`, `PreviousRunWidgetController`, `ResultWidgetController`, `LogWidgetController`, `StatusListener` |
 | `ui/widgets/` | PySide6 widgets: `MainWindow` → `CentralWidget` (QSplitter 20/80) → `ControlPanel` + `ResultsPanel` → tabs and sub-panels |
-| `utils/` | Pure utilities: `text_utils` (sanitize, parse judge), `time_utils` (format elapsed), `run_utils` (fetch+sort runs), `widget_utils` (combobox helper) |
+| `ui/utils/` | Qt-dependent utilities: `widget_utils` (combobox helper) |
+
+**Root** (bridge/entry):
+
+| File | Role |
+|---|---|
+| `app_context.py` | DI composition root — wires all backend and UI components |
+| `main.py` | Entry point — `QApplication`, `MainWindow`, `ContextProvider` |
 | `dataset/` | 50 YAML benchmark task files (coding, data extraction, general knowledge, text operations) |
 
 ## Layer Architecture
@@ -33,12 +50,12 @@ flowchart TD
         RWC[ResultWidgetController]
         SL[StatusListener]
     end
-    subgraph QT ["qt_classes/"]
+    subgraph QT ["ui/qt_classes/"]
         QEB[QtEventBus]
         QBFA[QtBenchmarkFlowApi]
         QBET[BenchmarkExecutionTask / QRunnable]
     end
-    subgraph SERVICES ["services/"]
+    subgraph SERVICES ["backend/services/"]
         OA[OllamaApi]
         SDA[SqLiteDataApi]
         YBTA[YamlBenchmarkTaskApi]
@@ -46,7 +63,7 @@ flowchart TD
         ARA[AppResultApi]
         TS[TableSerializer]
     end
-    subgraph CORE ["core/"]
+    subgraph CORE ["backend/core/"]
         IF[interfaces.py - ABCs]
         MOD[models.py - dataclasses]
         SQL[sql_constants.py]
@@ -92,7 +109,7 @@ ollama.Client(timeout=300)
 
 ## EventBus Signal Catalogue
 
-`QtEventBus` (`qt_classes/qt_event_bus.py`) implements `EventBus` ABC via `MetaQObjectABC`. All signals are private. Every signal is exposed through a matching `subscribe_to_X(callback)` / `emit_X(value)` pair.
+`QtEventBus` (`ui/qt_classes/qt_event_bus.py`) implements `EventBus` ABC via `MetaQObjectABC`. All signals are private. Every signal is exposed through a matching `subscribe_to_X(callback)` / `emit_X(value)` pair.
 
 | Private field | Signal type | Python payload | Purpose |
 |---|---|---|---|
@@ -114,7 +131,7 @@ ollama.Client(timeout=300)
 
 Pipeline runs in `BenchmarkExecutionTask(QRunnable)` on `QThreadPool`. **Never throws** — errors are captured in `BenchmarkResult.error_message`.
 
-### Stage constants (`core/stages_constants.py`)
+### Stage constants (`backend/core/stages_constants.py`)
 ```
 STAGE_INITIALIZING → STAGE_BENCHMARKING → STAGE_JUDGING → STAGE_FINISHED
                                                          → STAGE_FAILED
@@ -207,15 +224,15 @@ Rules an AI agent must never break:
 | Change | Files to modify |
 |---|---|
 | Add new benchmark task | `src/ollama_llm_bench/dataset/*.yaml` |
-| Change judge scoring rubric / grading scale | `src/ollama_llm_bench/core/prompt_constants.py` |
-| Add new EventBus signal | `core/interfaces.py` (EventBus ABC) + `qt_classes/qt_event_bus.py` |
+| Change judge scoring rubric / grading scale | `src/ollama_llm_bench/backend/core/prompt_constants.py` |
+| Add new EventBus signal | `backend/core/interfaces.py` (EventBus ABC) + `ui/qt_classes/qt_event_bus.py` |
 | Add new UI control to control panel | `ui/widgets/panels/control/` widget + corresponding controller method |
-| Change SQLite schema | `core/sql_constants.py` + `services/sq_lite_data_api.py` (+ migration) |
-| Add new export format | `core/interfaces.py` (ITableSerializer ABC) + `services/table_serializer.py` |
-| Fix LLM response parsing or sanitization | `utils/text_utils.py` |
+| Change SQLite schema | `backend/core/sql_constants.py` + `backend/services/sq_lite_data_api.py` (+ migration) |
+| Add new export format | `backend/core/interfaces.py` (ITableSerializer ABC) + `backend/services/table_serializer.py` |
+| Fix LLM response parsing or sanitization | `backend/utils/text_utils.py` |
 | Change Ollama connection settings | `app_context.py` (`ollama.Client(timeout=...)`) |
-| Add new result metric | `core/models.py` + `services/sq_lite_data_api.py` + `services/app_result_api.py` |
-| Add new UI tab | `ui/widgets/panels/` + new controller ABC in `core/ui_controllers.py` + concrete controller in `ui/controllers/` + wire in `app_context.py` |
+| Add new result metric | `backend/core/models.py` + `backend/services/sq_lite_data_api.py` + `backend/services/app_result_api.py` |
+| Add new UI tab | `ui/widgets/panels/` + new controller ABC in `backend/core/ui_controllers.py` + concrete controller in `ui/controllers/` + wire in `app_context.py` |
 
 ## Key Files Quick Reference
 
@@ -223,18 +240,18 @@ Rules an AI agent must never break:
 |---|---|
 | `src/ollama_llm_bench/main.py` | Entry point: argparse, logging config, QApplication bootstrap |
 | `src/ollama_llm_bench/app_context.py` | DI wiring: `ContextProvider`, `ApplicationContext`, `_create_app_context()` |
-| `src/ollama_llm_bench/core/interfaces.py` | All ABCs: `LLMApi`, `DataApi`, `EventBus`, `BenchmarkFlowApi`, `AppContext`, etc. |
-| `src/ollama_llm_bench/core/models.py` | Frozen dataclasses: `BenchmarkRun`, `BenchmarkResult`, `InferenceResponse`, etc. |
-| `src/ollama_llm_bench/core/sql_constants.py` | DB schema DDL + all SQL query strings |
-| `src/ollama_llm_bench/core/prompt_constants.py` | `SYSTEM_PROMPT` (judge rubric) + `USER_PROMPT` template |
-| `src/ollama_llm_bench/core/stages_constants.py` | `STAGE_*` string constants |
-| `src/ollama_llm_bench/core/ui_controllers.py` | ABCs for all 4 widget controllers |
-| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtEventBus` — 11 Signals, pub/sub hub |
-| `src/ollama_llm_bench/qt_classes/qt_benchmark_execution_task.py` | `BenchmarkExecutionTask` — QRunnable pipeline worker |
-| `src/ollama_llm_bench/qt_classes/qt_benchmark_flow.py` | `QtBenchmarkFlowApi` — execution lifecycle manager |
-| `src/ollama_llm_bench/qt_classes/meta_class.py` | `MetaQObjectABC` — resolves QObject + ABCMeta MRO conflict |
-| `src/ollama_llm_bench/services/ollama_llm_api.py` | `OllamaApi` — Ollama client wrapper, 5-retry warmup, sanitize_text |
-| `src/ollama_llm_bench/services/sq_lite_data_api.py` | `SqLiteDataApi` — SQLite CRUD, fresh connection per call |
-| `src/ollama_llm_bench/services/app_result_api.py` | `AppResultApi` — aggregates results to summary/detailed tables |
-| `src/ollama_llm_bench/utils/text_utils.py` | `sanitize_text`, `parse_judge_response`, JSON extraction |
+| `src/ollama_llm_bench/backend/core/interfaces.py` | All ABCs: `LLMApi`, `DataApi`, `EventBus`, `BenchmarkFlowApi`, `AppContext`, etc. |
+| `src/ollama_llm_bench/backend/core/models.py` | Frozen dataclasses: `BenchmarkRun`, `BenchmarkResult`, `InferenceResponse`, etc. |
+| `src/ollama_llm_bench/backend/core/sql_constants.py` | DB schema DDL + all SQL query strings |
+| `src/ollama_llm_bench/backend/core/prompt_constants.py` | `SYSTEM_PROMPT` (judge rubric) + `USER_PROMPT` template |
+| `src/ollama_llm_bench/backend/core/stages_constants.py` | `STAGE_*` string constants |
+| `src/ollama_llm_bench/backend/core/ui_controllers.py` | ABCs for all 4 widget controllers |
+| `src/ollama_llm_bench/ui/qt_classes/qt_event_bus.py` | `QtEventBus` — 11 Signals, pub/sub hub |
+| `src/ollama_llm_bench/ui/qt_classes/qt_benchmark_execution_task.py` | `BenchmarkExecutionTask` — QRunnable pipeline worker |
+| `src/ollama_llm_bench/ui/qt_classes/qt_benchmark_flow.py` | `QtBenchmarkFlowApi` — execution lifecycle manager |
+| `src/ollama_llm_bench/ui/qt_classes/meta_class.py` | `MetaQObjectABC` — resolves QObject + ABCMeta MRO conflict |
+| `src/ollama_llm_bench/backend/services/ollama_llm_api.py` | `OllamaApi` — Ollama client wrapper, 5-retry warmup, sanitize_text |
+| `src/ollama_llm_bench/backend/services/sq_lite_data_api.py` | `SqLiteDataApi` — SQLite CRUD, fresh connection per call |
+| `src/ollama_llm_bench/backend/services/app_result_api.py` | `AppResultApi` — aggregates results to summary/detailed tables |
+| `src/ollama_llm_bench/backend/utils/text_utils.py` | `sanitize_text`, `parse_judge_response`, JSON extraction |
 | `src/ollama_llm_bench/ui/controllers/status_listener.py` | `StatusListener` — bridges benchmark completion → table data refresh |

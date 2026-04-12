@@ -1,8 +1,8 @@
 import logging
 from typing import Callable
 
-from ollama_llm_bench.core.interfaces import EventBus
-from ollama_llm_bench.core.ui_controllers import LogWidgetControllerApi
+from ollama_llm_bench.backend.core.interfaces import EventBus
+from ollama_llm_bench.backend.core.ui_controllers import LogWidgetControllerApi
 
 logger = logging.getLogger(__name__)
 

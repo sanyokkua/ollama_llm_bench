@@ -1,9 +1,9 @@
 import logging
 from typing import Tuple, override
 
-from ollama_llm_bench.core.interfaces import BenchmarkTaskApi, PromptBuilderApi
-from ollama_llm_bench.core.models import BenchmarkResult
-from ollama_llm_bench.core.prompt_constants import SYSTEM_PROMPT, USER_PROMPT
+from ollama_llm_bench.backend.core.interfaces import BenchmarkTaskApi, PromptBuilderApi
+from ollama_llm_bench.backend.core.models import BenchmarkResult
+from ollama_llm_bench.backend.core.prompt_constants import SYSTEM_PROMPT, USER_PROMPT
 
 logger = logging.getLogger(__name__)
 

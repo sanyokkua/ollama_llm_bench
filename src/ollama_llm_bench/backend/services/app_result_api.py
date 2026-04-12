@@ -2,8 +2,8 @@ import logging
 from collections import defaultdict
 from typing import List, override
 
-from ollama_llm_bench.core.interfaces import DataApi, ResultApi
-from ollama_llm_bench.core.models import (AvgSummaryTableItem, SummaryTableItem)
+from ollama_llm_bench.backend.core.interfaces import DataApi, ResultApi
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
 
 logger = logging.getLogger(__name__)
 

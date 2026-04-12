@@ -4,7 +4,7 @@ from typing import Final
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget
 
-from ollama_llm_bench.core.interfaces import AppContext
+from ollama_llm_bench.backend.core.interfaces import AppContext
 from ollama_llm_bench.ui.widgets.panels.control_panel import ControlPanel
 from ollama_llm_bench.ui.widgets.panels.results_panel import ResultsPanel
 

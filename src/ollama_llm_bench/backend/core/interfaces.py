@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
 
-from ollama_llm_bench.core.models import (
+from ollama_llm_bench.backend.core.models import (
     AvgSummaryTableItem,
     BenchmarkResult,
     BenchmarkResultStatus,
@@ -13,7 +13,7 @@ from ollama_llm_bench.core.models import (
     ReporterStatusMsg,
     SummaryTableItem,
 )
-from ollama_llm_bench.core.ui_controllers import (
+from ollama_llm_bench.backend.core.ui_controllers import (
     LogWidgetControllerApi,
     NewRunWidgetControllerApi,
     PreviousRunWidgetControllerApi,

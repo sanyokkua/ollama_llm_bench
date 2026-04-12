@@ -4,7 +4,7 @@ from typing import Final
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
-from ollama_llm_bench.core.interfaces import AppContext
+from ollama_llm_bench.backend.core.interfaces import AppContext
 from ollama_llm_bench.ui.widgets.central_widget import CentralWidget
 
 logger = logging.getLogger(__name__)

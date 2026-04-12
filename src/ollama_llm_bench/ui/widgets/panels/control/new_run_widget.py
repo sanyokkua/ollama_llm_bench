@@ -10,8 +10,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ollama_llm_bench.core.models import NewRunWidgetStartEvent
-from ollama_llm_bench.core.ui_controllers import NewRunWidgetControllerApi
+from ollama_llm_bench.backend.core.models import NewRunWidgetStartEvent
+from ollama_llm_bench.backend.core.ui_controllers import NewRunWidgetControllerApi
 
 logger = logging.getLogger(__name__)
 

@@ -4,8 +4,8 @@ from typing import List, override
 
 import yaml
 
-from ollama_llm_bench.core.interfaces import BenchmarkTaskApi
-from ollama_llm_bench.core.models import BenchmarkTask, BenchmarkTaskAnswer
+from ollama_llm_bench.backend.core.interfaces import BenchmarkTaskApi
+from ollama_llm_bench.backend.core.models import BenchmarkTask, BenchmarkTaskAnswer
 
 logger = logging.getLogger(__name__)
 

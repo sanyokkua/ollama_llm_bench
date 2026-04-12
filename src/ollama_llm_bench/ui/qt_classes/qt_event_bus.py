@@ -4,13 +4,13 @@ from typing import override
 
 from PySide6.QtCore import QObject, Signal
 
-from ollama_llm_bench.core.interfaces import EventBus
-from ollama_llm_bench.core.models import (
+from ollama_llm_bench.backend.core.interfaces import EventBus
+from ollama_llm_bench.backend.core.models import (
     AvgSummaryTableItem,
     ReporterStatusMsg,
     SummaryTableItem,
 )
-from ollama_llm_bench.qt_classes.meta_class import MetaQObjectABC
+from ollama_llm_bench.ui.qt_classes.meta_class import MetaQObjectABC
 
 logger = logging.getLogger(__name__)
 

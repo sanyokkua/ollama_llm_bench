@@ -5,7 +5,7 @@ from typing import Final, override
 import ollama
 from PySide6.QtCore import QMutex, QMutexLocker, QThreadPool
 
-from ollama_llm_bench.core.interfaces import (
+from ollama_llm_bench.backend.core.interfaces import (
     AppContext,
     BenchmarkFlowApi,
     BenchmarkTaskApi,
@@ -16,26 +16,26 @@ from ollama_llm_bench.core.interfaces import (
     PromptBuilderApi,
     ResultApi,
 )
-from ollama_llm_bench.core.ui_controllers import (
+from ollama_llm_bench.backend.core.ui_controllers import (
     LogWidgetControllerApi,
     NewRunWidgetControllerApi,
     PreviousRunWidgetControllerApi,
     ResultWidgetControllerApi,
 )
-from ollama_llm_bench.qt_classes.qt_benchmark_flow import QtBenchmarkFlowApi
-from ollama_llm_bench.qt_classes.qt_event_bus import QtEventBus
-from ollama_llm_bench.services.app_result_api import AppResultApi
-from ollama_llm_bench.services.ollama_llm_api import OllamaApi
-from ollama_llm_bench.services.simple_prompt_builder_api import SimplePromptBuilderApi
-from ollama_llm_bench.services.sq_lite_data_api import SqLiteDataApi
-from ollama_llm_bench.services.table_serializer import TableSerializer
-from ollama_llm_bench.services.yaml_benchmark_task_api import YamlBenchmarkTaskApi
+from ollama_llm_bench.backend.services.app_result_api import AppResultApi
+from ollama_llm_bench.backend.services.ollama_llm_api import OllamaApi
+from ollama_llm_bench.backend.services.simple_prompt_builder_api import SimplePromptBuilderApi
+from ollama_llm_bench.backend.services.sq_lite_data_api import SqLiteDataApi
+from ollama_llm_bench.backend.services.table_serializer import TableSerializer
+from ollama_llm_bench.backend.services.yaml_benchmark_task_api import YamlBenchmarkTaskApi
+from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 from ollama_llm_bench.ui.controllers.log_widget_controller import LogWidgetController
 from ollama_llm_bench.ui.controllers.new_run_widget_controller import NewRunWidgetController
 from ollama_llm_bench.ui.controllers.previous_run_widget_controller import PreviousRunWidgetController
 from ollama_llm_bench.ui.controllers.result_widget_controller import ResultWidgetController
 from ollama_llm_bench.ui.controllers.status_listener import StatusListener
-from ollama_llm_bench.utils.run_utils import get_benchmark_runs
+from ollama_llm_bench.ui.qt_classes.qt_benchmark_flow import QtBenchmarkFlowApi
+from ollama_llm_bench.ui.qt_classes.qt_event_bus import QtEventBus
 
 _DATA_SET_PATH: Final[str] = "dataset"
 _DB_FILE_NAME: Final[str] = "db.sqlite"

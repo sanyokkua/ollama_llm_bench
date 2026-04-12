@@ -1,14 +1,14 @@
 import logging
 from typing import Callable, List, Optional
 
-from ollama_llm_bench.core.interfaces import (
+from ollama_llm_bench.backend.core.interfaces import (
     DataApi,
     EventBus,
     ITableSerializer,
 )
-from ollama_llm_bench.core.models import AvgSummaryTableItem, SummaryTableItem
-from ollama_llm_bench.core.ui_controllers import ResultWidgetControllerApi
-from ollama_llm_bench.utils.run_utils import get_benchmark_runs
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
+from ollama_llm_bench.backend.core.ui_controllers import ResultWidgetControllerApi
+from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 
 logger = logging.getLogger(__name__)
 

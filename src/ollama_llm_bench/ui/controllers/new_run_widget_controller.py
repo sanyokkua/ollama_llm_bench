@@ -2,9 +2,14 @@ import logging
 from datetime import datetime
 from typing import Callable, List, override
 
-from ollama_llm_bench.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, EventBus, LLMApi
-from ollama_llm_bench.core.models import BenchmarkResult, BenchmarkRun, BenchmarkRunStatus, NewRunWidgetStartEvent
-from ollama_llm_bench.core.ui_controllers import NewRunWidgetControllerApi
+from ollama_llm_bench.backend.core.interfaces import BenchmarkFlowApi, BenchmarkTaskApi, DataApi, EventBus, LLMApi
+from ollama_llm_bench.backend.core.models import (
+    BenchmarkResult,
+    BenchmarkRun,
+    BenchmarkRunStatus,
+    NewRunWidgetStartEvent,
+)
+from ollama_llm_bench.backend.core.ui_controllers import NewRunWidgetControllerApi
 
 logger = logging.getLogger(__name__)
 

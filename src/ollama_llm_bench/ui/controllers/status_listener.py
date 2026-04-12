@@ -1,15 +1,15 @@
 import logging
 from typing import Optional
 
-from ollama_llm_bench.core.interfaces import (
+from ollama_llm_bench.backend.core.interfaces import (
     BenchmarkFlowApi,
     DataApi,
     EventBus,
     ResultApi,
 )
-from ollama_llm_bench.core.models import AvgSummaryTableItem, ReporterStatusMsg, SummaryTableItem
-from ollama_llm_bench.core.stages_constants import STAGE_FAILED, STAGE_FINISHED
-from ollama_llm_bench.utils.run_utils import get_benchmark_runs
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, ReporterStatusMsg, SummaryTableItem
+from ollama_llm_bench.backend.core.stages_constants import STAGE_FAILED, STAGE_FINISHED
+from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 
 logger = logging.getLogger(__name__)
 

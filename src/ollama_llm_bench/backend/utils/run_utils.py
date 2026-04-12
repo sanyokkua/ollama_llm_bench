@@ -1,7 +1,7 @@
 import logging
 from typing import List, Tuple
 
-from ollama_llm_bench.core.interfaces import DataApi
+from ollama_llm_bench.backend.core.interfaces import DataApi
 
 logger = logging.getLogger(__name__)
 

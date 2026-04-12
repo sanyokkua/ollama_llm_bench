@@ -1,8 +1,8 @@
 import csv
 from pathlib import Path
 
-from ollama_llm_bench.core.interfaces import ITableSerializer
-from ollama_llm_bench.core.models import AvgSummaryTableItem, SummaryTableItem
+from ollama_llm_bench.backend.core.interfaces import ITableSerializer
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
 
 TABLE_SUMMARY_HEADER = ["MODEL", "AVG. TIME (s)", "AVG. TOKENS/s", "AVG. SCORE (%)"]
 TABLE_DETAILED_HEADER = ["MODEL", "TASK", "STATUS", "TIME (ms)", "Tokens", "TOKENS/s", "SCORE", "REASON"]

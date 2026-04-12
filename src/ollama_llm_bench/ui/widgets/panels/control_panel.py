@@ -3,10 +3,10 @@ from typing import Final
 
 from PySide6.QtWidgets import QLabel, QProgressBar, QVBoxLayout, QWidget
 
-from ollama_llm_bench.core.interfaces import AppContext, EventBus
-from ollama_llm_bench.core.models import ReporterStatusMsg
+from ollama_llm_bench.backend.core.interfaces import AppContext, EventBus
+from ollama_llm_bench.backend.core.models import ReporterStatusMsg
+from ollama_llm_bench.backend.utils.time_utils import format_elapsed_time_interval
 from ollama_llm_bench.ui.widgets.panels.control.control_tab_widget import ControlTabWidget
-from ollama_llm_bench.utils.time_utils import format_elapsed_time_interval
 
 logger = logging.getLogger(__name__)
 

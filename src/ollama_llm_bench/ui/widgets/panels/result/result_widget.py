@@ -17,9 +17,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ollama_llm_bench.core.models import AvgSummaryTableItem, SummaryTableItem
-from ollama_llm_bench.core.ui_controllers import ResultWidgetControllerApi
-from ollama_llm_bench.utils.widget_utils import set_benchmark_run_on_dropdown
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
+from ollama_llm_bench.backend.core.ui_controllers import ResultWidgetControllerApi
+from ollama_llm_bench.ui.utils.widget_utils import set_benchmark_run_on_dropdown
 
 logger = logging.getLogger(__name__)
 

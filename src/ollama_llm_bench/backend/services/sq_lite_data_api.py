@@ -3,19 +3,27 @@ import sqlite3
 from pathlib import Path
 from typing import List, override
 
-from ollama_llm_bench.core.interfaces import DataApi
-from ollama_llm_bench.core.models import (BenchmarkResult, BenchmarkResultStatus, BenchmarkRun, BenchmarkRunStatus)
-from ollama_llm_bench.core.sql_constants import (
+from ollama_llm_bench.backend.core.interfaces import DataApi
+from ollama_llm_bench.backend.core.models import (
+    BenchmarkResult,
+    BenchmarkResultStatus,
+    BenchmarkRun,
+    BenchmarkRunStatus,
+)
+from ollama_llm_bench.backend.core.sql_constants import (
     DB_SCHEMA,
     DELETE_BENCHMARK_RUN,
-    DELETE_RESULT, INSERT_BENCHMARK_RUN, INSERT_RESULT,
+    DELETE_RESULT,
+    INSERT_BENCHMARK_RUN,
+    INSERT_RESULT,
     SELECT_ALL_BENCHMARK_RUNS,
-    SELECT_BENCHMARK_RUNS_BY_STATUS,
     SELECT_BENCHMARK_RUN_BY_ID,
+    SELECT_BENCHMARK_RUNS_BY_STATUS,
+    SELECT_RESULT_BY_ID,
     SELECT_RESULTS_BY_RUN_ID,
     SELECT_RESULTS_BY_RUN_ID_AND_STATUS,
-    SELECT_RESULT_BY_ID,
-    UPDATE_BENCHMARK_RUN, UPDATE_RESULT,
+    UPDATE_BENCHMARK_RUN,
+    UPDATE_RESULT,
 )
 
 logger = logging.getLogger(__name__)
