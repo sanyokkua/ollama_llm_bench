@@ -226,7 +226,7 @@ class ContextProvider:
 
     _context: ApplicationContext | None = None
     _initialized = False
-    _mutex = QMutex()  # Using Qt's mutex for compatibility with PyQt threading model
+    _mutex: QMutex | None = None  # Created lazily after QApplication exists
 
     @classmethod
     def initialize(cls, app_root: Path, dataset_path: Path | None = None) -> None:
@@ -245,6 +245,9 @@ class ContextProvider:
         """
         if cls._initialized:
             raise RuntimeError("Context already initialized. Cannot reinitialize.")
+
+        if cls._mutex is None:
+            cls._mutex = QMutex()
 
         with QMutexLocker(cls._mutex):
             if cls._initialized:

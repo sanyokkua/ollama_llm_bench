@@ -143,11 +143,13 @@ def main() -> None:
         if log_level <= logging.INFO:
             logger.info(f"Dataset path: {dataset_path}")
 
-        # Initialize context with proper paths
+        app = QApplication(sys.argv)
+
+        # Initialize context after QApplication — Qt objects (QMutex, QThreadPool,
+        # QtEventBus) must not be created before QApplication exists.
         ContextProvider.initialize(app_root, dataset_path=dataset_path)
         ctx = ContextProvider.get_context()
 
-        app = QApplication(sys.argv)
         main_window = MainWindow(ctx)
         main_window.show()
         sys.exit(app.exec())
