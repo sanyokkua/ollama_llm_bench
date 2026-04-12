@@ -10,19 +10,19 @@ class PreviousRunWidgetControllerApi(ABC):
     """
 
     @abstractmethod
-    def handle_refresh_click(self, _) -> None:
+    def handle_refresh_click(self, _: object) -> None:
         """
         Handle the refresh button click event.
         """
 
     @abstractmethod
-    def handle_start_click(self, _) -> None:
+    def handle_start_click(self, _: object) -> None:
         """
         Handle the start benchmark button click event.
         """
 
     @abstractmethod
-    def handle_stop_click(self, _) -> None:
+    def handle_stop_click(self, _: object) -> None:
         """
         Handle the stop benchmark button click event.
         """
@@ -70,7 +70,7 @@ class NewRunWidgetControllerApi(ABC):
     """
 
     @abstractmethod
-    def handle_refresh_click(self, _) -> None:
+    def handle_refresh_click(self, _: object) -> None:
         """
         Handle the refresh button click event by emitting the appropriate event.
         """
@@ -85,7 +85,7 @@ class NewRunWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def handle_stop_click(self, _) -> None:
+    def handle_stop_click(self, _: object) -> None:
         """
         Handle the stop benchmark button click event by emitting the appropriate event.
         """
@@ -148,31 +148,31 @@ class ResultWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def handle_delete_click(self, _) -> None:
+    def handle_delete_click(self, _: object) -> None:
         """
         Handle the delete button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def handle_summary_export_csv_click(self, _) -> None:
+    def handle_summary_export_csv_click(self, _: object) -> None:
         """
         Handle the summary CSV export button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def handle_summary_export_md_click(self, _) -> None:
+    def handle_summary_export_md_click(self, _: object) -> None:
         """
         Handle the summary Markdown export button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def handle_detailed_export_csv_click(self, _) -> None:
+    def handle_detailed_export_csv_click(self, _: object) -> None:
         """
         Handle the detailed CSV export button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def handle_detailed_export_md_click(self, _) -> None:
+    def handle_detailed_export_md_click(self, _: object) -> None:
         """
         Handle the detailed Markdown export button click event by emitting the appropriate event.
         """

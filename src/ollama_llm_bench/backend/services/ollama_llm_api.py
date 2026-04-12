@@ -28,7 +28,7 @@ class OllamaApi(LLMApi):
         self._ollama_client = client
 
     @override
-    def get_models_list(self) -> list[dict]:
+    def get_models_list(self) -> list[str]:
         """
         Retrieve the list of available models from the Ollama server.
 
@@ -37,13 +37,11 @@ class OllamaApi(LLMApi):
         """
         try:
             response = self._ollama_client.list()
-            model_names = {model["model"] for model in response["models"]}
-            model_names = list(model_names)
-            model_names.sort()
+            unique_names: set[str] = {model.model for model in response.models if model.model is not None}
+            model_names = sorted(unique_names)
             logger.debug(f"Models received: {len(model_names)}")
             return model_names
         except Exception:
-            # Return empty list if there's any error
             logger.warning("Failed to get models from ollama")
             return []
 
@@ -120,7 +118,7 @@ class OllamaApi(LLMApi):
                 stream=False,
             )
             full_response = sanitize_text(response.response)
-            tokens_generated = response.eval_count
+            tokens_generated = response.eval_count or 0
 
             if on_llm_response:
                 on_llm_response("LLM Response:")

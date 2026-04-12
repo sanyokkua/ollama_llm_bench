@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import override
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from ollama_llm_bench.backend.core.interfaces import BenchmarkTaskApi
 from ollama_llm_bench.backend.core.models import BenchmarkTask, BenchmarkTaskAnswer
@@ -25,7 +25,7 @@ class YamlBenchmarkTaskApi(BenchmarkTaskApi):
         """
         super().__init__(task_folder_path=task_folder_path)
         self._tasks_cache: list[BenchmarkTask] = []
-        self._task_cache_map = {}
+        self._task_cache_map: dict[str, BenchmarkTask] = {}
 
     @override
     def load_tasks(self) -> list[BenchmarkTask]:

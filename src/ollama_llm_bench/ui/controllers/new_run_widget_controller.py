@@ -58,11 +58,11 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
             logger.debug(f"Found {len(models)} models")
         except Exception as e:
             logger.warning(f"Failed to fetch models: {e}")
-            models = set()
+            models = []
         return models
 
     @override
-    def handle_refresh_click(self, _) -> None:
+    def handle_refresh_click(self, _: object) -> None:
         """
         Handle user request to refresh the list of available models.
 
@@ -141,7 +141,7 @@ class NewRunWidgetController(NewRunWidgetControllerApi):
         self.benchmark_flow_api.start_execution(run_id)
 
     @override
-    def handle_stop_click(self, _) -> None:
+    def handle_stop_click(self, _: object) -> None:
         """
         Handle user request to stop the currently running benchmark.
 

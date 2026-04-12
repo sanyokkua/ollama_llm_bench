@@ -86,7 +86,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
         logger.debug("handle_run_selection_change")
         self.event_bus.emit_run_id_changed(run_id)
 
-    def handle_delete_click(self, _) -> None:
+    def handle_delete_click(self, _: object) -> None:
         """
         Handle user request to delete the currently selected benchmark run.
 
@@ -121,7 +121,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
             self.event_bus.emit_run_ids_changed([])
             self.event_bus.emit_global_event_msg("Failed to retrieve runs")
 
-    def handle_summary_export_csv_click(self, _) -> None:
+    def handle_summary_export_csv_click(self, _: object) -> None:
         """
         Handle user request to export summary results to CSV.
 
@@ -135,7 +135,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
             logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
-    def handle_summary_export_md_click(self, _) -> None:
+    def handle_summary_export_md_click(self, _: object) -> None:
         """
         Handle user request to export summary results to Markdown.
 
@@ -149,7 +149,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
             logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
-    def handle_detailed_export_csv_click(self, _) -> None:
+    def handle_detailed_export_csv_click(self, _: object) -> None:
         """
         Handle user request to export detailed results to CSV.
 
@@ -163,7 +163,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
             logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
-    def handle_detailed_export_md_click(self, _) -> None:
+    def handle_detailed_export_md_click(self, _: object) -> None:
         """
         Handle user request to export detailed results to Markdown.
 

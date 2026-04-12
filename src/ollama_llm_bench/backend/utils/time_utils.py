@@ -35,7 +35,8 @@ def calculate_elapsed_time(start_time: float, end_time: float) -> tuple[float, f
     if duration_ms < 0:
         logger.warning(
             "End time (%.3f) precedes start time (%.3f) - negative duration will be shown",
-            end_time, start_time,
+            end_time,
+            start_time,
         )
 
     # Break down into components (preserving original calculation approach)

@@ -24,7 +24,7 @@ class TableSerializer(ITableSerializer):
         self.root_dir = Path(root_dir)
         self.root_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_summary_as_csv(self, items: list[AvgSummaryTableItem]):
+    def save_summary_as_csv(self, items: list[AvgSummaryTableItem]) -> None:
         """
         Export averaged summary results to a CSV file.
 
@@ -36,15 +36,16 @@ class TableSerializer(ITableSerializer):
             writer = csv.writer(f)
             writer.writerow(TABLE_SUMMARY_HEADER)
             for item in items:
-                writer.writerow([
-                    item.model_name,
-                    round(item.avg_time_ms / 1000, 3),  # seconds
-                    round(item.avg_tokens_per_second, 3),
-                    round(item.avg_score * 100, 2)  # percentage
-                ],
+                writer.writerow(
+                    [
+                        item.model_name,
+                        round(item.avg_time_ms / 1000, 3),  # seconds
+                        round(item.avg_tokens_per_second, 3),
+                        round(item.avg_score * 100, 2),  # percentage
+                    ],
                 )
 
-    def save_summary_as_md(self, items: list[AvgSummaryTableItem]):
+    def save_summary_as_md(self, items: list[AvgSummaryTableItem]) -> None:
         """
         Export averaged summary results to a Markdown file.
 
@@ -56,13 +57,14 @@ class TableSerializer(ITableSerializer):
             f.write("| " + " | ".join(TABLE_SUMMARY_HEADER) + " |\n")
             f.write("|" + "|".join(["---"] * len(TABLE_SUMMARY_HEADER)) + "|\n")
             for item in items:
-                f.write(f"| {item.model_name} | "
-                        f"{round(item.avg_time_ms / 1000, 3)} | "
-                        f"{round(item.avg_tokens_per_second, 3)} | "
-                        f"{round(item.avg_score * 100, 2)} |\n",
-                        )
+                f.write(
+                    f"| {item.model_name} | "
+                    f"{round(item.avg_time_ms / 1000, 3)} | "
+                    f"{round(item.avg_tokens_per_second, 3)} | "
+                    f"{round(item.avg_score * 100, 2)} |\n",
+                )
 
-    def save_details_as_csv(self, items: list[SummaryTableItem]):
+    def save_details_as_csv(self, items: list[SummaryTableItem]) -> None:
         """
         Export detailed benchmark results to a CSV file.
 
@@ -74,19 +76,20 @@ class TableSerializer(ITableSerializer):
             writer = csv.writer(f)
             writer.writerow(TABLE_DETAILED_HEADER)
             for item in items:
-                writer.writerow([
-                    item.model_name,
-                    item.task_id,
-                    item.task_status,
-                    item.time_ms,
-                    item.tokens,
-                    round(item.tokens_per_second, 3),
-                    round(item.score, 3),
-                    item.score_reason
-                ],
+                writer.writerow(
+                    [
+                        item.model_name,
+                        item.task_id,
+                        item.task_status,
+                        item.time_ms,
+                        item.tokens,
+                        round(item.tokens_per_second, 3),
+                        round(item.score, 3),
+                        item.score_reason,
+                    ],
                 )
 
-    def save_details_as_md(self, items: list[SummaryTableItem]):
+    def save_details_as_md(self, items: list[SummaryTableItem]) -> None:
         """
         Export detailed benchmark results to a Markdown file.
 
@@ -98,7 +101,8 @@ class TableSerializer(ITableSerializer):
             f.write("| " + " | ".join(TABLE_DETAILED_HEADER) + " |\n")
             f.write("|" + "|".join(["---"] * len(TABLE_DETAILED_HEADER)) + "|\n")
             for item in items:
-                f.write(f"| {item.model_name} | {item.task_id} | {item.task_status} | "
-                        f"{item.time_ms} | {item.tokens} | {round(item.tokens_per_second, 3)} | "
-                        f"{round(item.score, 3)} | {item.score_reason} |\n",
-                        )
+                f.write(
+                    f"| {item.model_name} | {item.task_id} | {item.task_status} | "
+                    f"{item.time_ms} | {item.tokens} | {round(item.tokens_per_second, 3)} | "
+                    f"{round(item.score, 3)} | {item.score_reason} |\n",
+                )

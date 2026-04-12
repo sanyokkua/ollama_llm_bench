@@ -45,12 +45,12 @@ class StatusListener:
         self.event_bus.subscribe_to_run_id_changed(self._run_id_changed)
         self.benchmark_flow_api.subscribe_to_benchmark_progress_events(self._progress_changed)
 
-    def _run_id_changed(self, run_id: int):
+    def _run_id_changed(self, run_id: int | None) -> None:
         """
         Handle changes in the active benchmark run selection.
 
         Args:
-            run_id: Newly selected run ID.
+            run_id: Newly selected run ID, or None.
         """
         logger.debug("_run_id_changed")
         if run_id is None or run_id <= 0:
@@ -66,7 +66,7 @@ class StatusListener:
 
         self._post_tables_update(run.run_id)
 
-    def _progress_changed(self, status: ReporterStatusMsg):
+    def _progress_changed(self, status: ReporterStatusMsg) -> None:
         """
         Handle progress updates from ongoing benchmark execution.
 
@@ -86,7 +86,7 @@ class StatusListener:
                     self.event_bus.emit_run_ids_changed([])
                 self._post_tables_update(run_id)
 
-    def _post_tables_update(self, run_id: int | None):
+    def _post_tables_update(self, run_id: int | None) -> None:
         """
         Retrieve and broadcast updated summary and detailed result tables.
 

@@ -1,7 +1,7 @@
 import logging
 import sqlite3
 from pathlib import Path
-from typing import override
+from typing import Any, override
 
 from ollama_llm_bench.backend.core.interfaces import DataApi
 from ollama_llm_bench.backend.core.models import (
@@ -90,6 +90,8 @@ class SqLiteDataApi(DataApi):
                 (benchmark_run.timestamp, benchmark_run.judge_model, benchmark_run.status.value),
             )
             run_id = cursor.lastrowid
+        if run_id is None:
+            raise RuntimeError("INSERT_BENCHMARK_RUN returned no lastrowid — database invariant violated.")
         logger.info("Created benchmark run with ID %d", run_id)
         return run_id
 
@@ -250,6 +252,8 @@ class SqLiteDataApi(DataApi):
                 ),
             )
             result_id = cursor.lastrowid
+        if result_id is None:
+            raise RuntimeError("INSERT_RESULT returned no lastrowid — database invariant violated.")
         logger.info("Created benchmark result with ID %d", result_id)
         return result_id
 
@@ -311,7 +315,7 @@ class SqLiteDataApi(DataApi):
 
             return self._map_bench_result(row)
 
-    def _map_bench_result(self, row) -> BenchmarkResult:
+    def _map_bench_result(self, row: tuple[Any, ...]) -> BenchmarkResult:
         """
         Map a database row to a BenchmarkResult object.
 

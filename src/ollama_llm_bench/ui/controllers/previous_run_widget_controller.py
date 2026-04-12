@@ -55,16 +55,17 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
         Retrieve the currently selected benchmark run.
 
         Returns:
-            The requested run, or None if retrieval fails.
+            The requested run, or None if no run is selected or retrieval fails.
         """
+        if self._last_selected_run_id is None:
+            return None
         try:
-            current_run = self.data_api.retrieve_benchmark_run(self._last_selected_run_id)
+            return self.data_api.retrieve_benchmark_run(self._last_selected_run_id)
         except Exception as e:
             logger.warning(f"Failed to retrieve run {self._last_selected_run_id}: {e}")
-            current_run = None
-        return current_run
+            return None
 
-    def _on_background_is_running_changed(self, is_running: bool):
+    def _on_background_is_running_changed(self, is_running: bool) -> None:
         """
         Refresh the runs list when a background execution completes.
 
@@ -75,7 +76,7 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
             self.handle_refresh_click(False)
 
     @override
-    def handle_refresh_click(self, _) -> None:
+    def handle_refresh_click(self, _: object) -> None:
         """
         Handle user request to refresh the list of available benchmark runs.
 
@@ -93,7 +94,7 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
             self.event_bus.emit_run_id_changed(None)
 
     @override
-    def handle_start_click(self, _):
+    def handle_start_click(self, _: object) -> None:
         """
         Handle user request to restart the selected benchmark run.
 
@@ -124,7 +125,7 @@ class PreviousRunWidgetController(PreviousRunWidgetControllerApi):
         self.benchmark_flow_api.start_execution(current_run.run_id)
 
     @override
-    def handle_stop_click(self, _) -> None:
+    def handle_stop_click(self, _: object) -> None:
         """
         Handle user request to stop the currently running benchmark.
 
