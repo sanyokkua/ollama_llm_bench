@@ -89,7 +89,7 @@ flowchart TD
 | `AppResultApi` | `services/app_result_api.py` | `ResultApi` | Groups `BenchmarkResult` records by model; computes average metrics |
 | `TableSerializer` | `services/table_serializer.py` | `ITableSerializer` | Exports summary and detailed tables to `.csv` and `.md` |
 | `MetaQObjectABC` | `qt_classes/meta_class.py` | — | Metaclass resolving MRO conflict between `type(QObject)` and `ABCMeta` |
-| `QtEventBus` | `qt_classes/qt_event_bus.py` | `EventBus` | 11 `pyqtSignal` pub/sub signals; all cross-thread UI updates route through it |
+| `QtEventBus` | `qt_classes/qt_event_bus.py` | `EventBus` | 11 `Signal` pub/sub signals; all cross-thread UI updates route through it |
 | `QtBenchmarkFlowApi` | `qt_classes/qt_benchmark_flow.py` | `BenchmarkFlowApi` | Creates `BenchmarkExecutionTask`; bridges worker signals to `EventBus` |
 | `BenchmarkExecutionTask` | `qt_classes/qt_benchmark_execution_task.py` | `QRunnable` | Background pipeline worker; never throws — errors stored in model fields |
 | `NewRunWidgetController` | `ui/controllers/new_run_widget_controller.py` | `NewRunWidgetControllerApi` | Handles model selection and benchmark start from the "Run New Benchmark" tab |
@@ -249,7 +249,7 @@ Each is exposed through a matching `subscribe_to_X(callback)` / `emit_X(value)` 
 | `_background_thread_progress_changed` | `ReporterStatusMsg` | Per-task progress update |
 | `_global_event_msg` | `str` | Modal notification message |
 
-**`-1` encoding.** `pyqtSignal(int)` cannot carry Python `None`.
+**`-1` encoding.** `Signal(int)` cannot carry Python `None`.
 `emit_run_id_changed(None)` coerces to `-1` before emission.
 All subscribers must treat `-1` as "no selection."
 

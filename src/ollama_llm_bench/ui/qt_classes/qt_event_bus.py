@@ -1,36 +1,37 @@
 import logging
 from collections.abc import Callable
-from typing import List, Optional, override
+from typing import override
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PySide6.QtCore import QObject, Signal
 
-from ollama_llm_bench.core.interfaces import EventBus
-from ollama_llm_bench.core.models import (
+from ollama_llm_bench.backend.core.interfaces import EventBus
+from ollama_llm_bench.backend.core.models import (
     AvgSummaryTableItem,
-    ReporterStatusMsg, SummaryTableItem,
+    ReporterStatusMsg,
+    SummaryTableItem,
 )
-from ollama_llm_bench.qt_classes.meta_class import MetaQObjectABC
+from ollama_llm_bench.ui.qt_classes.meta_class import MetaQObjectABC
 
 logger = logging.getLogger(__name__)
 
 
 class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
     """
-    Qt-based event bus implementation using pyqtSignal for cross-component communication.
+    Qt-based event bus implementation using Signal for cross-component communication.
     Facilitates decoupled interaction between UI and backend components.
     """
 
-    _run_id_changed = pyqtSignal(int)
-    _run_ids_changed = pyqtSignal(list)
-    _models_test_changed = pyqtSignal(list)
-    _models_judge_changed = pyqtSignal(str)
-    _log_clean = pyqtSignal()
-    _log_append = pyqtSignal(str)
-    _table_summary_data_changed = pyqtSignal(list)
-    _table_detailed_data_change = pyqtSignal(list)
-    _background_thread_is_running = pyqtSignal(bool)
-    _background_thread_progress_changed = pyqtSignal(object)
-    _global_event_msg = pyqtSignal(str)
+    _run_id_changed = Signal(int)
+    _run_ids_changed = Signal(list)
+    _models_test_changed = Signal(list)
+    _models_judge_changed = Signal(str)
+    _log_clean = Signal()
+    _log_append = Signal(str)
+    _table_summary_data_changed = Signal(list)
+    _table_detailed_data_change = Signal(list)
+    _background_thread_is_running = Signal(bool)
+    _background_thread_progress_changed = Signal(object)
+    _global_event_msg = Signal(str)
 
     def __init__(self) -> None:
         """
@@ -39,7 +40,7 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
         super().__init__()
 
     @override
-    def subscribe_to_run_id_changed(self, callback: Callable[[Optional[int]], None]) -> None:
+    def subscribe_to_run_id_changed(self, callback: Callable[[int | None], None]) -> None:
         """
         Subscribe to changes in the currently active benchmark run ID.
 
@@ -50,7 +51,7 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
         self._run_id_changed.connect(callback)
 
     @override
-    def subscribe_to_run_ids_changed(self, callback: Callable[[list[tuple[int, str]]], None]):
+    def subscribe_to_run_ids_changed(self, callback: Callable[[list[tuple[int, str]]], None]) -> None:
         """
         Subscribe to changes in the list of available benchmark runs.
 
@@ -105,7 +106,7 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
         self._log_append.connect(callback)
 
     @override
-    def subscribe_to_table_summary_data_changed(self, callback: Callable[[List[AvgSummaryTableItem]], None]) -> None:
+    def subscribe_to_table_summary_data_changed(self, callback: Callable[[list[AvgSummaryTableItem]], None]) -> None:
         """
         Subscribe to changes in the summary results table data.
 
@@ -116,7 +117,7 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
         self._table_summary_data_changed.connect(callback)
 
     @override
-    def subscribe_to_table_detailed_data_change(self, callback: Callable[[List[SummaryTableItem]], None]) -> None:
+    def subscribe_to_table_detailed_data_change(self, callback: Callable[[list[SummaryTableItem]], None]) -> None:
         """
         Subscribe to changes in the detailed results table data.
 
@@ -159,7 +160,7 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
         self._global_event_msg.connect(callback)
 
     @override
-    def emit_run_id_changed(self, value: Optional[int]) -> None:
+    def emit_run_id_changed(self, value: int | None) -> None:
         """
         Broadcast a change in the active benchmark run ID.
 
@@ -222,7 +223,7 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
         self._log_append.emit(value)
 
     @override
-    def emit_table_summary_data_changed(self, value: List[AvgSummaryTableItem]) -> None:
+    def emit_table_summary_data_changed(self, value: list[AvgSummaryTableItem]) -> None:
         """
         Broadcast updated summary table data.
 
@@ -233,7 +234,7 @@ class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC):
         self._table_summary_data_changed.emit(value)
 
     @override
-    def emit_table_detailed_data_change(self, value: List[SummaryTableItem]) -> None:
+    def emit_table_detailed_data_change(self, value: list[SummaryTableItem]) -> None:
         """
         Broadcast updated detailed table data.
 

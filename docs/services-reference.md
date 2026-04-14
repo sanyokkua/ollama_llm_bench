@@ -281,7 +281,7 @@ flowchart LR
 - **Implementation**: `src/ollama_llm_bench/qt_classes/qt_event_bus.py` (`class QtEventBus(QObject, EventBus, metaclass=MetaQObjectABC)`).
 - **Dependencies**: none (just `QObject.__init__`).
 
-Eleven `pyqtSignal` attributes plus 22 public methods (11 subscribe, 11 emit).
+Eleven `Signal` attributes plus 22 public methods (11 subscribe, 11 emit).
 See [architecture.md](architecture.md#eventbus) for the full signal catalogue and publisher/subscriber map.
 
 **Usage convention**: components that need to *listen* receive the `EventBus` in their constructor and immediately call `subscribe_to_*` methods.

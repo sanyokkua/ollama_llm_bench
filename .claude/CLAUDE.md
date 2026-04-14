@@ -10,7 +10,7 @@ It automates inference across multiple models, judges responses using a user-sel
 | Component | Technology |
 |-----------|-----------|
 | Language | Python 3.13+ |
-| UI Framework | PySide6 (migrating from PyQt6) |
+| UI Framework | PySide6 |
 | Package Manager | UV with hatchling |
 | Database | SQLite via stdlib `sqlite3` |
 | LLM Client | ollama-python |
@@ -53,8 +53,8 @@ uv run pytest -q --tb=short tests/path/test.py::test_name  # single test
 - **Never read files under `.venv/`** — use `uv run python -c 'import pkg; help(pkg.fn)'` to inspect APIs
 - **Never use `pip install`** — always `uv add <pkg> -q` to maintain `uv.lock` integrity
 - **Never use `print()`** — use `logging.getLogger(__name__)`
-- New code: PySide6. Existing code: PyQt6 (migrate opportunistically when touching the file)
-- New interfaces: prefer `Protocol`. Existing: keep `ABC` (`core/interfaces.py`)
+- All code: PySide6 exclusively.
+- New interfaces: prefer `Protocol`. Existing: keep `ABC` (`backend/core/interfaces.py`)
 
 ## Context Management
 
@@ -67,17 +67,27 @@ See [architecture.md](.claude/architecture.md) for the full architecture referen
 ### Layer Architecture
 
 ```
-core/ ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
+backend/core/ ← backend/services/ ← ui/qt_classes/ ← ui/controllers/ ← ui/widgets/
 ```
+
+Two top-level groups under `src/ollama_llm_bench/`:
+
+**`backend/`** — pure Python, zero PySide6 imports:
 
 | Package | Responsibility |
 |---------|---------------|
-| `core/` | Frozen dataclasses, ABCs (`interfaces.py`), StrEnums, constants, SQL schema |
-| `services/` | Concrete implementations: `OllamaApi`, `SqLiteDataApi`, `YamlBenchmarkTaskApi`, `SimplePromptBuilderApi`, `AppResultApi`, `TableSerializer` |
-| `qt_classes/` | Qt infrastructure: `QtEventBus` (pub/sub), `BenchmarkExecutionTask` (QRunnable), `QtBenchmarkFlowApi` (lifecycle), `MetaQObjectABC` |
+| `backend/core/` | Frozen dataclasses, ABCs (`interfaces.py`), StrEnums, constants, SQL schema |
+| `backend/services/` | Concrete implementations: `OllamaApi`, `SqLiteDataApi`, `YamlBenchmarkTaskApi`, `SimplePromptBuilderApi`, `AppResultApi`, `TableSerializer` |
+| `backend/utils/` | Pure utility functions: text parsing, time formatting, run sorting |
+
+**`ui/`** — PySide6-dependent:
+
+| Package | Responsibility |
+|---------|---------------|
+| `ui/qt_classes/` | Qt infrastructure: `QtEventBus` (pub/sub), `BenchmarkExecutionTask` (QRunnable), `QtBenchmarkFlowApi` (lifecycle), `MetaQObjectABC` |
 | `ui/controllers/` | Controllers mediating UI ↔ services: `NewRunWidgetController`, `PreviousRunWidgetController`, `ResultWidgetController`, `LogWidgetController`, `StatusListener` |
 | `ui/widgets/` | PySide6 widgets: `MainWindow` → `CentralWidget` (QSplitter) → panels |
-| `utils/` | Pure utility functions: text parsing, time formatting, run sorting |
+| `ui/utils/` | Qt-dependent utilities: `widget_utils` (combobox helper) |
 
 ### Dependency Injection
 
@@ -88,7 +98,7 @@ core/ ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
 
 ### EventBus
 
-`QtEventBus` is the central pub/sub hub using `pyqtSignal`/`Signal`. All background-to-UI communication goes through EventBus signals for thread safety. Key signal categories: run lifecycle, model lists, log output, table data, progress updates, global messages.
+`QtEventBus` is the central pub/sub hub using `Signal` (PySide6). All background-to-UI communication goes through EventBus signals for thread safety. Key signal categories: run lifecycle, model lists, log output, table data, progress updates, global messages.
 
 ### Benchmark Pipeline
 
@@ -110,8 +120,8 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 - `Optional[T]` or `T | None` for nullable types.
 
 ### Architecture & Imports
-- Every service has an ABC in `core/interfaces.py`; concrete classes subclass the ABC.
-- **Absolute imports only**: `from ollama_llm_bench.core.models import BenchmarkRun`.
+- Every service has an ABC in `backend/core/interfaces.py`; concrete classes subclass the ABC.
+- **Absolute imports only**: `from ollama_llm_bench.backend.core.models import BenchmarkRun`.
 - All external dependencies injected via constructor with keyword-only args.
 - No cyclic dependencies — insert an ABC to break cycles.
 - New interfaces: prefer `Protocol` (structural typing). Existing: keep `ABC`.
@@ -121,9 +131,9 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 - Expose public attributes via `@property`.
 - Only interact with other objects through their public APIs.
 
-### PySide6 / PyQt6
-- New code: PySide6 exclusively. Existing code: migrate when touching the file.
-- `MetaQObjectABC` metaclass when combining `QObject` + `ABC` (see `qt_classes/meta_class.py`).
+### PySide6
+- PySide6 exclusively throughout the codebase.
+- `MetaQObjectABC` metaclass when combining `QObject` + `ABC` (see `ui/qt_classes/meta_class.py`).
 - UI updates on main thread only. Background work via `QThreadPool` + `QRunnable`.
 - `QRunnable` uses nested `Signals(QObject)` class for typed signal emission.
 
@@ -158,7 +168,7 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 | Skill | Description | When to Use |
 |-------|-------------|-------------|
 | [python-developer](skills/python-developer/) | Coding standards, DI patterns, examples, logging, docstrings, dependencies | Writing or reviewing any Python code |
-| [pyside6](skills/pyside6/) | Threading, signals/slots, MetaQObjectABC, EventBus patterns | Writing Qt/UI code in `qt_classes/` or `ui/` |
+| [pyside6](skills/pyside6/) | Threading, signals/slots, MetaQObjectABC, EventBus patterns | Writing Qt/UI code in `ui/qt_classes/` or `ui/` |
 | [project-docs](skills/project-docs/) | README structure, ADR format, inline comments, documentation lifecycle | Writing or updating project documentation |
 | [create-mermaid-diagrams](skills/create-mermaid-diagrams/) | Mermaid syntax rules, diagram types, validation checklist | Creating or updating architecture diagrams |
 | [write-pytest-tests](skills/write-pytest-tests/) | Test pyramid, fixtures, mocking, coverage, GUI isolation | Writing or reviewing test code |
@@ -181,11 +191,11 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 | File | Purpose |
 |------|---------|
 | `src/ollama_llm_bench/app_context.py` | DI wiring: `ContextProvider`, `ApplicationContext`, `_create_app_context()` |
-| `src/ollama_llm_bench/core/interfaces.py` | All ABCs: `LLMApi`, `DataApi`, `EventBus`, `BenchmarkFlowApi`, etc. |
-| `src/ollama_llm_bench/core/models.py` | Frozen dataclasses: `BenchmarkRun`, `BenchmarkResult`, `InferenceResponse`, etc. |
-| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtEventBus` — pub/sub via pyqtSignal/Signal |
-| `src/ollama_llm_bench/qt_classes/qt_benchmark_execution_task.py` | `BenchmarkExecutionTask` — QRunnable background worker |
-| `src/ollama_llm_bench/qt_classes/meta_class.py` | `MetaQObjectABC` — metaclass for QObject + ABC |
-| `src/ollama_llm_bench/services/ollama_llm_api.py` | `OllamaApi` — Ollama client wrapper |
-| `src/ollama_llm_bench/services/sq_lite_data_api.py` | `SqLiteDataApi` — SQLite CRUD operations |
+| `src/ollama_llm_bench/backend/core/interfaces.py` | All ABCs: `LLMApi`, `DataApi`, `EventBus`, `BenchmarkFlowApi`, etc. |
+| `src/ollama_llm_bench/backend/core/models.py` | Frozen dataclasses: `BenchmarkRun`, `BenchmarkResult`, `InferenceResponse`, etc. |
+| `src/ollama_llm_bench/ui/qt_classes/qt_event_bus.py` | `QtEventBus` — pub/sub via `Signal` (PySide6) |
+| `src/ollama_llm_bench/ui/qt_classes/qt_benchmark_execution_task.py` | `BenchmarkExecutionTask` — QRunnable background worker |
+| `src/ollama_llm_bench/ui/qt_classes/meta_class.py` | `MetaQObjectABC` — metaclass for QObject + ABC |
+| `src/ollama_llm_bench/backend/services/ollama_llm_api.py` | `OllamaApi` — Ollama client wrapper |
+| `src/ollama_llm_bench/backend/services/sq_lite_data_api.py` | `SqLiteDataApi` — SQLite CRUD operations |
 | `docs/project_specification.md` | Full project specification with behavioral requirements |

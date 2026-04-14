@@ -2,23 +2,23 @@ import logging
 import time
 from collections import defaultdict
 
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
+from PySide6.QtCore import QObject, QRunnable, Signal
 
-from ollama_llm_bench.core.interfaces import BenchmarkTaskApi, DataApi, LLMApi, PromptBuilderApi
-from ollama_llm_bench.core.models import (
+from ollama_llm_bench.backend.core.interfaces import BenchmarkTaskApi, DataApi, LLMApi, PromptBuilderApi
+from ollama_llm_bench.backend.core.models import (
     BenchmarkResult,
     BenchmarkResultStatus,
     ReporterStatusMsg,
 )
-from ollama_llm_bench.core.stages_constants import (
+from ollama_llm_bench.backend.core.stages_constants import (
     STAGE_BENCHMARKING,
     STAGE_FAILED,
     STAGE_FINISHED,
     STAGE_INITIALIZING,
     STAGE_JUDGING,
 )
-from ollama_llm_bench.utils.text_utils import parse_judge_response
-from ollama_llm_bench.utils.time_utils import format_elapsed_time
+from ollama_llm_bench.backend.utils.text_utils import parse_judge_response
+from ollama_llm_bench.backend.utils.time_utils import format_elapsed_time
 
 
 class BenchmarkExecutionTask(QRunnable):
@@ -31,9 +31,10 @@ class BenchmarkExecutionTask(QRunnable):
         """
         Signals emitted by the benchmark execution task for progress and status updates.
         """
-        status_changed = pyqtSignal(bool)  # is_running
-        log_message = pyqtSignal(str)  # log text
-        progress = pyqtSignal(ReporterStatusMsg)  # run status
+
+        status_changed = Signal(bool)  # is_running
+        log_message = Signal(str)  # log text
+        progress = Signal(ReporterStatusMsg)  # run status
 
     def __init__(
         self,
@@ -108,8 +109,7 @@ class BenchmarkExecutionTask(QRunnable):
         Notify that benchmark execution was stopped by user request.
         """
         self._notify(
-            f"Benchmark run #{self.run_id} was stopped by user request. "
-            f"Incomplete tasks will resume on next run.",
+            f"Benchmark run #{self.run_id} was stopped by user request. Incomplete tasks will resume on next run.",
         )
 
     def stop(self) -> None:
@@ -156,12 +156,13 @@ class BenchmarkExecutionTask(QRunnable):
             self.logger.info(f"Benchmark execution completed for run_id={self.run_id}")
         except Exception as e:
             import traceback
+
             error_msg = f"Execution error: {e}\n{traceback.format_exc()}"
             self._notify_warn(error_msg)
             self._stage = STAGE_FAILED
         finally:
-            self._current_task_id = ''
-            self._current_model = ''
+            self._current_task_id = ""
+            self._current_model = ""
             self._end_time = time.time()
             self._stop_requested = True
             self.signals.status_changed.emit(False)
@@ -304,8 +305,7 @@ class BenchmarkExecutionTask(QRunnable):
             self._current_model = judge_model
 
             self._notify(
-                f"Judge model: {judge_model}. "
-                f"Tasks total: {self._total_tasks}. Judged tasks: {self._completed_tasks}.",
+                f"Judge model: {judge_model}. Tasks total: {self._total_tasks}. Judged tasks: {self._completed_tasks}.",
             )
             self._update_progress()
 

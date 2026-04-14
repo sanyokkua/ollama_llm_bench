@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "changed=$(git diff --name-only HEAD 2>/dev/null | grep '\\.py$' | grep -v '.venv/'); if [ -n \"$changed\" ]; then uv run ruff check --fix $changed 2>/dev/null; uv run ruff format $changed 2>/dev/null; result=$(uv run mypy $changed --no-error-summary --concise-errors 2>&1 | tail -20); if echo \"$result\" | grep -q 'error:'; then echo 'Mypy errors remain — fix before considering task complete:' >&2; echo \"$result\" >&2; exit 2; fi; fi"
+            "command": "changed=$(git diff --name-only HEAD 2>/dev/null | grep '\\.py$' | grep -v '.venv/'); if [ -n \"$changed\" ]; then uv run ruff check --fix $changed 2>/dev/null; uv run ruff format $changed 2>/dev/null; result=$(uv run mypy $changed --no-error-summary 2>&1 | tail -20); if echo \"$result\" | grep -q 'error:'; then echo 'Mypy errors remain — fix before considering task complete:' >&2; echo \"$result\" >&2; exit 2; fi; fi"
           }
         ]
       }

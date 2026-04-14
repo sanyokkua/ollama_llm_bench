@@ -1,9 +1,9 @@
 import logging
 from typing import Final
 
-from PyQt6.QtWidgets import QTabWidget
+from PySide6.QtWidgets import QTabWidget
 
-from ollama_llm_bench.core.interfaces import AppContext, EventBus
+from ollama_llm_bench.backend.core.interfaces import AppContext, EventBus
 from ollama_llm_bench.ui.widgets.panels.result.log_widget import LogWidget
 from ollama_llm_bench.ui.widgets.panels.result.result_widget import ResultWidget
 

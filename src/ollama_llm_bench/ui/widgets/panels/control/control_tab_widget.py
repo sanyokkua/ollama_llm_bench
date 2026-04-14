@@ -1,8 +1,8 @@
 from typing import Final
 
-from PyQt6.QtWidgets import QTabWidget
+from PySide6.QtWidgets import QTabWidget
 
-from ollama_llm_bench.core.interfaces import AppContext
+from ollama_llm_bench.backend.core.interfaces import AppContext
 from ollama_llm_bench.ui.widgets.panels.control.new_run_widget import NewRunWidget
 from ollama_llm_bench.ui.widgets.panels.control.previous_run_widget import PreviousRunWidget
 

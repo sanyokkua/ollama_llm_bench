@@ -1,9 +1,10 @@
 import logging
 import math
-from typing import Callable, Final, List
+from collections.abc import Callable, Sequence
+from typing import Any, Final
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QHeaderView,
@@ -16,9 +17,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ollama_llm_bench.core.models import AvgSummaryTableItem, SummaryTableItem
-from ollama_llm_bench.core.ui_controllers import ResultWidgetControllerApi
-from ollama_llm_bench.utils.widget_utils import set_benchmark_run_on_dropdown
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
+from ollama_llm_bench.backend.core.ui_controllers import ResultWidgetControllerApi
+from ollama_llm_bench.ui.utils.widget_utils import set_benchmark_run_on_dropdown
 
 logger = logging.getLogger(__name__)
 
@@ -37,19 +38,21 @@ class SortableNumericItem(QTableWidgetItem):
         # Normalize NaN to something sortable
         self._key: tuple[bool, float] = (math.isnan(sort_value), sort_value)
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, SortableNumericItem):
             return self._key < other._key
-        return super().__lt__(other)
+        if isinstance(other, QTableWidgetItem):
+            return super().__lt__(other)
+        return NotImplemented
 
 
 # Dataclasses for structured table configuration
 class TableConfig:
     def __init__(
         self,
-        header_labels: List[str],
+        header_labels: list[str],
         column_count: int,
-        numeric_columns: List[int] = None,
+        numeric_columns: list[int] | None = None,
         resize_mode: QHeaderView.ResizeMode = QHeaderView.ResizeMode.Interactive,
     ):
         self.header_labels = header_labels
@@ -147,7 +150,8 @@ class ResultWidget(QWidget):
         # Summary section
         summary_scroll = self._create_scrollable_table(self._summary_table)
         summary_export_layout = self._create_export_buttons_layout(
-            self._summary_csv_button, self._summary_md_button,
+            self._summary_csv_button,
+            self._summary_md_button,
         )
         summary_layout = QVBoxLayout()
         summary_layout.addWidget(self._summary_label)
@@ -157,7 +161,8 @@ class ResultWidget(QWidget):
         # Detailed section
         detailed_scroll = self._create_scrollable_table(self._detailed_table)
         detailed_export_layout = self._create_export_buttons_layout(
-            self._detailed_csv_button, self._detailed_md_button,
+            self._detailed_csv_button,
+            self._detailed_md_button,
         )
         detailed_layout = QVBoxLayout()
         detailed_layout.addWidget(self._detailed_label)
@@ -206,7 +211,8 @@ class ResultWidget(QWidget):
 
     @staticmethod
     def _create_export_buttons_layout(
-        csv_button: QPushButton, md_button: QPushButton,
+        csv_button: QPushButton,
+        md_button: QPushButton,
     ) -> QHBoxLayout:
         """
         Creates a layout for export buttons.
@@ -283,13 +289,15 @@ class ResultWidget(QWidget):
         for run_id, name in run_ids:
             self._run_dropdown.addItem(name, run_id)
 
-    def _on_run_id_changed(self, run_id: int) -> None:
+    def _on_run_id_changed(self, run_id: int | None) -> None:
         """
         Syncs the dropdown selection with the currently active run ID.
 
         Args:
-            run_id: Identifier of the run to select.
+            run_id: Identifier of the run to select, or None when no run is selected.
         """
+        if run_id is None:
+            return
         set_benchmark_run_on_dropdown(run_id, self._run_dropdown, logger)
 
     def _on_summary_data_changed(self, data: list[AvgSummaryTableItem]) -> None:
@@ -339,9 +347,9 @@ class ResultWidget(QWidget):
     @staticmethod
     def _update_table(
         table: QTableWidget,
-        data: list,
-        row_formatter: Callable,
-        numeric_columns: List[int],
+        data: Sequence[Any],
+        row_formatter: Callable[..., list[str]],
+        numeric_columns: list[int],
     ) -> None:
         """
         Generic table updater that populates a table with formatted data.
@@ -359,18 +367,19 @@ class ResultWidget(QWidget):
             values = row_formatter(item)
             for col, value in enumerate(values):
                 # For numeric columns: store raw value in UserRole
+                cell_item: QTableWidgetItem
                 if col in numeric_columns:
                     try:
                         # Extract numeric value from formatted string
                         numeric_val = float(value.replace(",", ""))
-                        table_item = SortableNumericItem(value, numeric_val)
-                        table_item.setData(Qt.ItemDataRole.UserRole, numeric_val)
+                        cell_item = SortableNumericItem(value, numeric_val)
+                        cell_item.setData(Qt.ItemDataRole.UserRole, numeric_val)
                     except (ValueError, TypeError):
                         # Fallback to string sorting if conversion fails
-                        table_item = QTableWidgetItem(value)
+                        cell_item = QTableWidgetItem(value)
                 else:
-                    table_item = QTableWidgetItem(value)
-                table.setItem(row, col, table_item)
+                    cell_item = QTableWidgetItem(value)
+                table.setItem(row, col, cell_item)
 
         table.setSortingEnabled(True)
 

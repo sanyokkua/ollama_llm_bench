@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
-from ollama_llm_bench.core.models import AvgSummaryTableItem, NewRunWidgetStartEvent, SummaryTableItem
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, NewRunWidgetStartEvent, SummaryTableItem
 
 
 class PreviousRunWidgetControllerApi(ABC):
@@ -10,25 +10,25 @@ class PreviousRunWidgetControllerApi(ABC):
     """
 
     @abstractmethod
-    def handle_refresh_click(self, _) -> None:
+    def handle_refresh_click(self, _: object) -> None:
         """
         Handle the refresh button click event.
         """
 
     @abstractmethod
-    def handle_start_click(self, _) -> None:
+    def handle_start_click(self, _: object) -> None:
         """
         Handle the start benchmark button click event.
         """
 
     @abstractmethod
-    def handle_stop_click(self, _) -> None:
+    def handle_stop_click(self, _: object) -> None:
         """
         Handle the stop benchmark button click event.
         """
 
     @abstractmethod
-    def handle_item_change(self, run_id: Optional[int]) -> None:
+    def handle_item_change(self, run_id: int | None) -> None:
         """
         Handle the dropdown item change event.
 
@@ -37,7 +37,7 @@ class PreviousRunWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def subscribe_to_run_id_changed(self, callback: Callable[[Optional[int]], None]) -> None:
+    def subscribe_to_run_id_changed(self, callback: Callable[[int | None], None]) -> None:
         """
         Subscribe to run id change events.
 
@@ -46,7 +46,7 @@ class PreviousRunWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def subscribe_to_runs_change(self, callback: Callable[[List[tuple[int, str]]], None]) -> None:
+    def subscribe_to_runs_change(self, callback: Callable[[list[tuple[int, str]]], None]) -> None:
         """
         Subscribe to runs list change events.
 
@@ -70,7 +70,7 @@ class NewRunWidgetControllerApi(ABC):
     """
 
     @abstractmethod
-    def handle_refresh_click(self, _) -> None:
+    def handle_refresh_click(self, _: object) -> None:
         """
         Handle the refresh button click event by emitting the appropriate event.
         """
@@ -85,13 +85,13 @@ class NewRunWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def handle_stop_click(self, _) -> None:
+    def handle_stop_click(self, _: object) -> None:
         """
         Handle the stop benchmark button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def subscribe_to_models_change(self, callback: Callable[[List[str]], None]) -> None:
+    def subscribe_to_models_change(self, callback: Callable[[list[str]], None]) -> None:
         """
         Subscribe to models list change events to update the dropdown and list.
 
@@ -139,7 +139,7 @@ class ResultWidgetControllerApi(ABC):
     """
 
     @abstractmethod
-    def handle_run_selection_change(self, run_id: Optional[int]) -> None:
+    def handle_run_selection_change(self, run_id: int | None) -> None:
         """
         Handle the run selection dropdown change event by emitting the appropriate event.
 
@@ -148,37 +148,37 @@ class ResultWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def handle_delete_click(self, _) -> None:
+    def handle_delete_click(self, _: object) -> None:
         """
         Handle the delete button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def handle_summary_export_csv_click(self, _) -> None:
+    def handle_summary_export_csv_click(self, _: object) -> None:
         """
         Handle the summary CSV export button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def handle_summary_export_md_click(self, _) -> None:
+    def handle_summary_export_md_click(self, _: object) -> None:
         """
         Handle the summary Markdown export button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def handle_detailed_export_csv_click(self, _) -> None:
+    def handle_detailed_export_csv_click(self, _: object) -> None:
         """
         Handle the detailed CSV export button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def handle_detailed_export_md_click(self, _) -> None:
+    def handle_detailed_export_md_click(self, _: object) -> None:
         """
         Handle the detailed Markdown export button click event by emitting the appropriate event.
         """
 
     @abstractmethod
-    def subscribe_to_runs_change(self, callback: Callable[[List[tuple[int, str]]], None]) -> None:
+    def subscribe_to_runs_change(self, callback: Callable[[list[tuple[int, str]]], None]) -> None:
         """
         Subscribe to runs list change events to populate the dropdown.
 
@@ -187,7 +187,7 @@ class ResultWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def subscribe_to_run_id_changed(self, callback: Callable[[Optional[int]], None]) -> None:
+    def subscribe_to_run_id_changed(self, callback: Callable[[int | None], None]) -> None:
         """
         Subscribe to run id change events.
 
@@ -196,7 +196,7 @@ class ResultWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def subscribe_to_summary_data_change(self, callback: Callable[[List[AvgSummaryTableItem]], None]) -> None:
+    def subscribe_to_summary_data_change(self, callback: Callable[[list[AvgSummaryTableItem]], None]) -> None:
         """
         Subscribe to summary data change events to update the summary table.
 
@@ -205,7 +205,7 @@ class ResultWidgetControllerApi(ABC):
         """
 
     @abstractmethod
-    def subscribe_to_detailed_data_change(self, callback: Callable[[List[SummaryTableItem]], None]) -> None:
+    def subscribe_to_detailed_data_change(self, callback: Callable[[list[SummaryTableItem]], None]) -> None:
         """
         Subscribe to detailed data change events to update the detailed table.
 

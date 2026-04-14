@@ -1,1 +1,2 @@
 - [Poetry → UV migration decision (2026-04-03)](project_uv_migration.md) — hatchling build backend, `[dependency-groups]`, dataset YAML force-include, pyright kept in dev deps for ai-check.sh
+- [Backend/UI package split decision (2026-04-12)](decision_backend_ui_split_2026_04_12.md) — introduce `backend/` namespace for core/services/utils; move qt_classes to `ui/qt_classes/`; fix widget_utils violation

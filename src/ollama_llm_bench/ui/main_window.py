@@ -1,10 +1,10 @@
 import logging
-from typing import Final, Optional
+from typing import Final
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QMessageBox)
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
-from ollama_llm_bench.core.interfaces import AppContext
+from ollama_llm_bench.backend.core.interfaces import AppContext
 from ollama_llm_bench.ui.widgets.central_widget import CentralWidget
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ class MainWindow(QMainWindow):
             self._show_global_message,
         )
 
-    def _show_global_message(self, text: Optional[str]) -> None:
+    def _show_global_message(self, text: str | None) -> None:
         """
         Safely display global messages with proper parenting.
 

@@ -3,30 +3,39 @@ from pathlib import Path
 from typing import Final, override
 
 import ollama
-from PyQt6.QtCore import QMutex, QMutexLocker, QThreadPool
+from PySide6.QtCore import QMutex, QMutexLocker, QThreadPool
 
-from ollama_llm_bench.core.interfaces import (
-    AppContext, BenchmarkFlowApi,
-    BenchmarkTaskApi, DataApi, EventBus, ITableSerializer, LLMApi, PromptBuilderApi, ResultApi,
+from ollama_llm_bench.backend.core.interfaces import (
+    AppContext,
+    BenchmarkFlowApi,
+    BenchmarkTaskApi,
+    DataApi,
+    EventBus,
+    ITableSerializer,
+    LLMApi,
+    PromptBuilderApi,
+    ResultApi,
 )
-from ollama_llm_bench.core.ui_controllers import (
+from ollama_llm_bench.backend.core.ui_controllers import (
     LogWidgetControllerApi,
-    NewRunWidgetControllerApi, PreviousRunWidgetControllerApi, ResultWidgetControllerApi,
+    NewRunWidgetControllerApi,
+    PreviousRunWidgetControllerApi,
+    ResultWidgetControllerApi,
 )
-from ollama_llm_bench.qt_classes.qt_benchmark_flow import QtBenchmarkFlowApi
-from ollama_llm_bench.qt_classes.qt_event_bus import QtEventBus
-from ollama_llm_bench.services.app_result_api import AppResultApi
-from ollama_llm_bench.services.ollama_llm_api import OllamaApi
-from ollama_llm_bench.services.simple_prompt_builder_api import SimplePromptBuilderApi
-from ollama_llm_bench.services.sq_lite_data_api import SqLiteDataApi
-from ollama_llm_bench.services.table_serializer import TableSerializer
-from ollama_llm_bench.services.yaml_benchmark_task_api import YamlBenchmarkTaskApi
+from ollama_llm_bench.backend.services.app_result_api import AppResultApi
+from ollama_llm_bench.backend.services.ollama_llm_api import OllamaApi
+from ollama_llm_bench.backend.services.simple_prompt_builder_api import SimplePromptBuilderApi
+from ollama_llm_bench.backend.services.sq_lite_data_api import SqLiteDataApi
+from ollama_llm_bench.backend.services.table_serializer import TableSerializer
+from ollama_llm_bench.backend.services.yaml_benchmark_task_api import YamlBenchmarkTaskApi
+from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 from ollama_llm_bench.ui.controllers.log_widget_controller import LogWidgetController
 from ollama_llm_bench.ui.controllers.new_run_widget_controller import NewRunWidgetController
 from ollama_llm_bench.ui.controllers.previous_run_widget_controller import PreviousRunWidgetController
 from ollama_llm_bench.ui.controllers.result_widget_controller import ResultWidgetController
 from ollama_llm_bench.ui.controllers.status_listener import StatusListener
-from ollama_llm_bench.utils.run_utils import get_benchmark_runs
+from ollama_llm_bench.ui.qt_classes.qt_benchmark_flow import QtBenchmarkFlowApi
+from ollama_llm_bench.ui.qt_classes.qt_event_bus import QtEventBus
 
 _DATA_SET_PATH: Final[str] = "dataset"
 _DB_FILE_NAME: Final[str] = "db.sqlite"
@@ -41,36 +50,38 @@ class ApplicationContext(AppContext):
     """
 
     __slots__ = (
-        '_ollama_llm_api',
-        '_task_api',
-        '_prompt_builder_api',
-        '_data_api',
-        '_result_api',
-        '_benchmark_flow_api',
-        '_event_bus',
-        '_previous_run_widget_controller_api',
-        '_new_run_widget_controller_api',
-        '_log_widget_controller_api',
-        '_result_widget_controller_api',
-        '_table_serializer',
-        '_status_listener',
+        "_benchmark_flow_api",
+        "_data_api",
+        "_event_bus",
+        "_log_widget_controller_api",
+        "_new_run_widget_controller_api",
+        "_ollama_llm_api",
+        "_previous_run_widget_controller_api",
+        "_prompt_builder_api",
+        "_result_api",
+        "_result_widget_controller_api",
+        "_status_listener",
+        "_table_serializer",
+        "_task_api",
     )
 
-    def __init__(self, *,
-                 ollama_llm_api: LLMApi,
-                 task_api: BenchmarkTaskApi,
-                 prompt_builder_api: PromptBuilderApi,
-                 data_api: DataApi,
-                 result_api: ResultApi,
-                 benchmark_flow_api: BenchmarkFlowApi,
-                 event_bus: EventBus,
-                 previous_run_widget_controller_api: PreviousRunWidgetControllerApi,
-                 new_run_widget_controller_api: NewRunWidgetControllerApi,
-                 log_widget_controller_api: LogWidgetControllerApi,
-                 result_widget_controller_api: ResultWidgetControllerApi,
-                 table_serializer: ITableSerializer,
-                 status_listener: StatusListener,
-                 ):
+    def __init__(
+        self,
+        *,
+        ollama_llm_api: LLMApi,
+        task_api: BenchmarkTaskApi,
+        prompt_builder_api: PromptBuilderApi,
+        data_api: DataApi,
+        result_api: ResultApi,
+        benchmark_flow_api: BenchmarkFlowApi,
+        event_bus: EventBus,
+        previous_run_widget_controller_api: PreviousRunWidgetControllerApi,
+        new_run_widget_controller_api: NewRunWidgetControllerApi,
+        log_widget_controller_api: LogWidgetControllerApi,
+        result_widget_controller_api: ResultWidgetControllerApi,
+        table_serializer: ITableSerializer,
+        status_listener: StatusListener,
+    ):
         self._ollama_llm_api = ollama_llm_api
         self._task_api = task_api
         self._prompt_builder_api = prompt_builder_api
@@ -181,7 +192,7 @@ class ApplicationContext(AppContext):
             if runs and len(runs) > 0:
                 latest_run_id = runs[0].run_id
                 runs_list = get_benchmark_runs(self._data_api)
-                logger.debug("received runs {}".format(runs))
+                logger.debug(f"received runs {runs}")
 
                 event_bus.emit_run_id_changed(latest_run_id)
                 event_bus.emit_run_ids_changed(runs_list)
@@ -190,7 +201,7 @@ class ApplicationContext(AppContext):
                 event_bus.emit_run_id_changed(None)
                 event_bus.emit_run_ids_changed([])
         except Exception as e:
-            logger.warning("exception {}".format(e))
+            logger.warning(f"exception {e}")
             event_bus.emit_run_id_changed(None)
             event_bus.emit_run_ids_changed([])
 
@@ -200,11 +211,11 @@ class ApplicationContext(AppContext):
             if models and len(models) > 0:
                 event_bus.emit_models_judge_changed(models[0])
             else:
-                event_bus.emit_models_judge_changed('')
+                event_bus.emit_models_judge_changed("")
         except Exception as e:
-            logger.warning("exception {}".format(e))
+            logger.warning(f"exception {e}")
             event_bus.emit_models_test_changed([])
-            event_bus.emit_models_judge_changed('')
+            event_bus.emit_models_judge_changed("")
 
 
 class ContextProvider:
@@ -215,10 +226,10 @@ class ContextProvider:
 
     _context: ApplicationContext | None = None
     _initialized = False
-    _mutex = QMutex()  # Using Qt's mutex for compatibility with PyQt threading model
+    _mutex: QMutex | None = None  # Created lazily after QApplication exists
 
     @classmethod
-    def initialize(cls, app_root: Path, dataset_path: Path = None) -> None:
+    def initialize(cls, app_root: Path, dataset_path: Path | None = None) -> None:
         """
         Initialize the application context during startup.
 
@@ -234,6 +245,9 @@ class ContextProvider:
         """
         if cls._initialized:
             raise RuntimeError("Context already initialized. Cannot reinitialize.")
+
+        if cls._mutex is None:
+            cls._mutex = QMutex()
 
         with QMutexLocker(cls._mutex):
             if cls._initialized:
@@ -263,9 +277,10 @@ class ContextProvider:
         """
         if not cls._initialized:
             raise RuntimeError(
-                "Context not initialized. Call ContextProvider.initialize() "
-                "during application startup.",
+                "Context not initialized. Call ContextProvider.initialize() during application startup.",
             )
+        if cls._context is None:
+            raise RuntimeError("Context is None despite _initialized being True — invariant violated.")
         return cls._context
 
 
@@ -349,11 +364,12 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         data_api=data_api,
         table_serializer=table_serializer,
     )
-    status_listener = StatusListener(data_api=data_api,
-                                     event_bus=event_bus,
-                                     benchmark_flow_api=benchmark_flow_api,
-                                     result_api=result_api,
-                                     )
+    status_listener = StatusListener(
+        data_api=data_api,
+        event_bus=event_bus,
+        benchmark_flow_api=benchmark_flow_api,
+        result_api=result_api,
+    )
 
     return ApplicationContext(
         ollama_llm_api=ollama_llm_api,

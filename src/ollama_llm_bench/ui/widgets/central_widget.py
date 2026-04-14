@@ -1,10 +1,10 @@
 import logging
 from typing import Final
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QSplitter, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QSplitter, QVBoxLayout, QWidget
 
-from ollama_llm_bench.core.interfaces import AppContext
+from ollama_llm_bench.backend.core.interfaces import AppContext
 from ollama_llm_bench.ui.widgets.panels.control_panel import ControlPanel
 from ollama_llm_bench.ui.widgets.panels.results_panel import ResultsPanel
 
@@ -18,21 +18,21 @@ _MIN_SPLITTER_SIZE: Final[int] = 100  # Minimum pixels for control panel
 
 class CentralWidget(QWidget):
     """Primary application container with resizable control/results layout.
-    
+
     Implements a flexible two-pane interface where:
     - Left pane: ControlPanel for benchmark configuration and execution
     - Right pane: ResultsPanel for visualization of benchmark outcomes
-    
+
     The splitter maintains proportional sizing while respecting minimum dimensions,
     providing optimal workspace allocation for both interaction and results viewing.
     """
 
     def __init__(self, ctx: AppContext) -> None:
         """Initialize the main application container with context.
-        
+
         Args:
             ctx: Application context providing access to controllers and services
-            
+
         Raises:
             RuntimeError: If critical panels fail to initialize
         """

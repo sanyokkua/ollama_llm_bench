@@ -1,16 +1,23 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, List, Optional
 
-from ollama_llm_bench.core.models import (
-    AvgSummaryTableItem, BenchmarkResult, BenchmarkResultStatus, BenchmarkRun,
-    BenchmarkRunStatus, BenchmarkTask,
-    InferenceResponse, ReporterStatusMsg, SummaryTableItem,
+from ollama_llm_bench.backend.core.models import (
+    AvgSummaryTableItem,
+    BenchmarkResult,
+    BenchmarkResultStatus,
+    BenchmarkRun,
+    BenchmarkRunStatus,
+    BenchmarkTask,
+    InferenceResponse,
+    ReporterStatusMsg,
+    SummaryTableItem,
 )
-from ollama_llm_bench.core.ui_controllers import (
+from ollama_llm_bench.backend.core.ui_controllers import (
     LogWidgetControllerApi,
     NewRunWidgetControllerApi,
-    PreviousRunWidgetControllerApi, ResultWidgetControllerApi,
+    PreviousRunWidgetControllerApi,
+    ResultWidgetControllerApi,
 )
 
 
@@ -41,15 +48,16 @@ class LLMApi(ABC):
         """
 
     @abstractmethod
-    def inference(self,
-                  *,
-                  model_name: str,
-                  user_prompt: str,
-                  system_prompt: Optional[str] = None,
-                  on_llm_response: Optional[Callable[[str], None]] = None,
-                  on_is_stop_signal: Optional[Callable[[], bool]] = None,
-                  is_judge_mode: bool = False,
-                  ) -> InferenceResponse:
+    def inference(
+        self,
+        *,
+        model_name: str,
+        user_prompt: str,
+        system_prompt: str | None = None,
+        on_llm_response: Callable[[str], None] | None = None,
+        on_is_stop_signal: Callable[[], bool] | None = None,
+        is_judge_mode: bool = False,
+    ) -> InferenceResponse:
         """
         Perform inference using the specified model and prompts.
 
@@ -180,8 +188,9 @@ class DataApi(ABC):
         """
 
     @abstractmethod
-    def retrieve_benchmark_results_for_run_with_status(self, *, run_id: int, status: BenchmarkResultStatus) -> list[
-        BenchmarkResult]:
+    def retrieve_benchmark_results_for_run_with_status(
+        self, *, run_id: int, status: BenchmarkResultStatus
+    ) -> list[BenchmarkResult]:
         """
         Retrieve benchmark results for a run, filtered by status.
 
@@ -313,13 +322,16 @@ class BenchmarkFlowApi(ABC):
     Abstract interface for controlling the execution flow of benchmarks.
     """
 
-    def __init__(self,
-                 *,
-                 data_api: DataApi,
-                 task_api: BenchmarkTaskApi,
-                 prompt_builder_api: PromptBuilderApi,
-                 llm_api: LLMApi,
-                 ):
+    def __init__(
+        self,
+        *,
+        data_api: DataApi,
+        task_api: BenchmarkTaskApi,
+        prompt_builder_api: PromptBuilderApi,
+        llm_api: LLMApi,
+        **kwargs: object,
+    ) -> None:
+        super().__init__(**kwargs)
         self._data_api = data_api
         self._task_api = task_api
         self._prompt_builder_api = prompt_builder_api
@@ -350,7 +362,7 @@ class BenchmarkFlowApi(ABC):
         """
 
     @abstractmethod
-    def get_current_run_id(self) -> Optional[int]:
+    def get_current_run_id(self) -> int | None:
         """
         Retrieve the ID of the currently executing run.
 
@@ -392,7 +404,7 @@ class EventBus(ABC):
     """
 
     @abstractmethod
-    def subscribe_to_run_id_changed(self, callback: Callable[[Optional[int]], None]) -> None:
+    def subscribe_to_run_id_changed(self, callback: Callable[[int | None], None]) -> None:
         """
         Subscribe to changes in the active run identifier.
 
@@ -401,7 +413,7 @@ class EventBus(ABC):
         """
 
     @abstractmethod
-    def subscribe_to_run_ids_changed(self, callback: Callable[[list[tuple[int, str]]], None]):
+    def subscribe_to_run_ids_changed(self, callback: Callable[[list[tuple[int, str]]], None]) -> None:
         """
         Subscribe to changes in the list of available run IDs and names.
 
@@ -446,9 +458,10 @@ class EventBus(ABC):
         """
 
     @abstractmethod
-    def subscribe_to_table_summary_data_changed(self,
-                                                callback: Callable[[List[AvgSummaryTableItem]], None],
-                                                ) -> None:
+    def subscribe_to_table_summary_data_changed(
+        self,
+        callback: Callable[[list[AvgSummaryTableItem]], None],
+    ) -> None:
         """
         Subscribe to updates in the summary results table.
 
@@ -457,7 +470,7 @@ class EventBus(ABC):
         """
 
     @abstractmethod
-    def subscribe_to_table_detailed_data_change(self, callback: Callable[[List[SummaryTableItem]], None]) -> None:
+    def subscribe_to_table_detailed_data_change(self, callback: Callable[[list[SummaryTableItem]], None]) -> None:
         """
         Subscribe to updates in the detailed results table.
 
@@ -493,7 +506,7 @@ class EventBus(ABC):
         """
 
     @abstractmethod
-    def emit_run_id_changed(self, value: Optional[int]) -> None:
+    def emit_run_id_changed(self, value: int | None) -> None:
         """
         Broadcast a change in the active run ID.
 
@@ -544,7 +557,7 @@ class EventBus(ABC):
         """
 
     @abstractmethod
-    def emit_table_summary_data_changed(self, value: List[AvgSummaryTableItem]) -> None:
+    def emit_table_summary_data_changed(self, value: list[AvgSummaryTableItem]) -> None:
         """
         Broadcast updated summary table data.
 
@@ -553,7 +566,7 @@ class EventBus(ABC):
         """
 
     @abstractmethod
-    def emit_table_detailed_data_change(self, value: List[SummaryTableItem]) -> None:
+    def emit_table_detailed_data_change(self, value: list[SummaryTableItem]) -> None:
         """
         Broadcast updated detailed table data.
 
