@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "sqlite": {
+      "command": "uvx",
+      "args": [
+        "mcp-sqlite",
+        "/Users/ok/Library/Application Support/OllamaLLMBench/db.sqlite"
+      ]
+    },
+    "language-server": {
+      "command": "/Users/ok/go/bin/mcp-language-server",
+      "args": [
+        "--workspace",
+        "/Users/ok/Development/GitHub/ollama_llm_bench",
+        "--lsp",
+        "pyright-langserver",
+        "--",
+        "--stdio"
+      ]
+    }
+  }
+}

@@ -11,17 +11,19 @@ Two top-level groups: `backend/` (pure Python, zero Qt) and `ui/` (PySide6-depen
 | Package | Role |
 |---|---|
 | `backend/core/` | Domain models (`models.py`), ABCs for all services (`interfaces.py`), controller ABCs (`ui_controllers.py`), SQL schema/queries (`sql_constants.py`), prompt templates (`prompt_constants.py`), stage constants (`stages_constants.py`) |
-| `backend/services/` | Concrete implementations: `OllamaApi` (LLM client), `SqLiteDataApi` (SQLite CRUD), `YamlBenchmarkTaskApi` (YAML loader), `SimplePromptBuilderApi` (prompt construction), `AppResultApi` (result aggregation), `TableSerializer` (CSV/MD export) |
+| `backend/services/` | Concrete implementations: `ProviderRegistry`, `ProviderConfigLoader`, `OpenAICompatibleProvider`, `AnthropicProvider`, `GeminiProvider`, `OpenAIEmbeddingProvider`, `EmbeddingService`, `EmbeddingModelClassifier`, `SqLiteDataApi`, `AppSettingsService`, `JudgePromptService`, `JudgeSummaryService`, `RuleBasedEvaluator`, `KeywordEvaluator`, `CosineSimilarityEvaluator`, `LLMJudgeEvaluator`, `ModelNameParser`, `TaskFileLoader`, `PerformanceTaskGenerator`, `AppResultApi`, `TableSerializer` (legacy), `CircuitBreaker`, `LogFileWriter`, `ModeVisibilityPolicy`, `ProviderHealthChecker` |
 | `backend/utils/` | Pure utilities: `text_utils` (sanitize, parse judge), `time_utils` (format elapsed), `run_utils` (fetch+sort runs) |
 
 **`ui/`** — PySide6-dependent:
 
 | Package | Role |
 |---|---|
-| `ui/qt_classes/` | Qt threading and event infrastructure: `QtEventBus` (pub/sub via `Signal`), `QtBenchmarkFlowApi` (execution lifecycle), `BenchmarkExecutionTask` (QRunnable worker), `MetaQObjectABC` (metaclass for QObject+ABC) |
+| `ui/qt_classes/` | Qt threading and event infrastructure: `QtEventBus` (pub/sub via `Signal`), `QtBenchmarkFlowApi` (execution lifecycle), `BenchmarkExecutionTask` (QRunnable worker), `MetaQObjectABC` (metaclass for QObject+ABC), `ProviderHealthRunnable` (QRunnable wrapper for provider health checks) |
 | `ui/controllers/` | Widget controllers: `NewRunWidgetController`, `PreviousRunWidgetController`, `ResultWidgetController`, `LogWidgetController`, `StatusListener` |
 | `ui/widgets/` | PySide6 widgets: `MainWindow` → `CentralWidget` (QSplitter 20/80) → `ControlPanel` + `ResultsPanel` → tabs and sub-panels |
 | `ui/utils/` | Qt-dependent utilities: `widget_utils` (combobox helper) |
+| `ui/models/` | `QAbstractTableModel` subclasses + sort/filter proxies |
+| `ui/style/` | Theme loader, design tokens (`tokens.py`), QSS templates, icons |
 
 **Root** (bridge/entry):
 
@@ -215,9 +217,92 @@ Rules an AI agent must never break:
 |---|---|---|
 | PySide6 | ~~PyQt6 used throughout~~ | **Complete** — `feature/pyside-migration` |
 | UV + hatchling | ~~Poetry + poetry-core build backend~~ | **Complete** — `feature/migrate-to-uv` |
-| Mypy as CI authority | Pyright in dev only | Already configured in pyproject.toml |
+| Mypy | Complete — sole type checker | |
 | structlog | `logging.getLogger(__name__)` stdlib | Migration plan needed before implementation |
 | 80% test coverage | 0 tests exist (no `tests/` directory) | Write tests before any major changes |
+| V2 full redesign (see below) | V1 architecture above | `feature/v2-app-redesign` — implement phase by phase per `docs/v2/v2-implementation-plan.md` |
+
+---
+
+## V2 Target Architecture
+
+> Full spec: `docs/v2/v2-implementation-plan.md`. UI mockups: `docs/v2/v2-ui-design-guide.html`.
+> Active branch: `feature/v2-app-redesign`.
+
+### V2 Provider Layer (replaces single `OllamaApi`)
+
+```
+LLMProviderApi (Protocol, core/interfaces.py)
+  ├── OpenAICompatibleProvider  ← Ollama, LM Studio, llama.cpp, OpenAI, Azure
+  ├── AnthropicProvider         ← anthropic SDK
+  └── GeminiProvider            ← google-genai SDK
+
+EmbeddingProviderApi (Protocol)
+  └── OpenAIEmbeddingProvider   ← /v1/embeddings endpoint
+
+ProviderRegistry (services/)   ← reads providers.yaml, constructs clients
+ProviderConfigLoader (services/) ← validates YAML, resolves ${ENV_VAR}
+EmbeddingService (services/)   ← wraps embedding with LRU cache
+```
+
+### V2 Evaluation Pipeline (replaces single judge call)
+
+```
+STAGE_BENCHMARKING → STAGE_JUDGING:
+  Layer 1: RuleBasedEvaluator   ← empty, echo, too_short, error_marker
+  Layer 2: KeywordEvaluator     ← exact/forbidden/semantic terms
+  Layer 3: CosineSimilarityEvaluator ← skipped for code/reasoning tasks
+  Layer 4: LLMJudgeEvaluator    ← task-type-specific prompt; structured JSON output
+
+JudgePromptService              ← selects template by task_type; assembles prompt
+AppSettingsService              ← KV store backed by app_settings table
+ModelNameParser                 ← parses family/size/quantization from model name
+TaskFileLoader                  ← multi-file + folder YAML loading
+```
+
+### V2 DB Schema (5 tables vs V1's 2)
+
+```
+schema_version     ← migration tracking
+benchmark_runs     ← expanded: run_mode, provider fields, task_file_paths, models_json
+benchmark_results  ← replaces results: ~65 fields across 12 groups
+prompt_variants    ← Prompt Eval mode variant definitions
+app_settings       ← feature flags and UI preferences (KV)
+```
+
+### V2 UI Layout (3-panel vs V1's 2-panel)
+
+```
+┌────────────────┬────────────────────────┬──────────────────────┐
+│  LEFT (~22%)   │     CENTER (~45%)      │    RIGHT (~33%)      │
+│  Run Config    │  Progress + Log        │  Results             │
+│  (mode, judge, │  (structured progress, │  (summary table,     │
+│  models, tasks,│  filterable log,       │  charts, detail,     │
+│  options)      │  streaming display)    │  export)             │
+└────────────────┴────────────────────────┴──────────────────────┘
+```
+
+Design tokens in `ui/style/tokens.py` — DARK/LIGHT/SHARED dicts injected into QSS via `str.format()`.
+
+### V2 Event Catalogue (12+ typed events vs V1's minimal progress events)
+
+All events are frozen dataclasses in `core/models.py`, emitted via `QtEventBus`.
+
+Key new event categories:
+- **Lifecycle**: `BenchmarkStartedEvent`, `BenchmarkPausedEvent`, `BenchmarkResumedEvent`, `BenchmarkStoppedEvent`, `BenchmarkFinishedEvent`
+- **Switch** (each can trigger configurable pause): `ProviderSwitchEvent`, `ModelSwitchEvent`, `TaskSwitchEvent`, `ModeSwitchEvent`
+- **Eval**: `JudgeStartedEvent`, `JudgeCompletedEvent`, `TaskCompletedEvent`
+- **Streaming**: `StreamingChunkEvent` — buffered at 20 Hz to prevent Qt event queue flooding
+- **Progress**: `ProgressUpdateEvent` — ETA + provider/model/task identity
+
+### V2 Key Invariants (additions to V1 invariants)
+
+11. `providers.yaml` is the single source of truth for provider configuration — no provider-specific code outside `services/providers/`.
+12. All eval layer services receive `sanitized_response` (think tags stripped) — never `raw_response`.
+13. `ModelDescriptor` replaces all plain `model_name: str` — provider_id + model_name + parsed metadata.
+14. Streaming chunks MUST be buffered at the task level and emitted at max 20 Hz — never one Qt event per token.
+15. `providers.yaml` paths: macOS `~/Library/Application Support/OllamaLLMBench/`, Linux `~/.local/share/OllamaLLMBench/`, Windows `%APPDATA%\OllamaLLMBench\`.
+16. `db.sqlite` must NOT be committed to git — add to `.gitignore` immediately.
 
 ## Modification Scope Guide
 

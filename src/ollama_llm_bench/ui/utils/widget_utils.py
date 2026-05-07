@@ -19,4 +19,4 @@ def set_benchmark_run_on_dropdown(run_id: int, combobox: QComboBox, logger: logg
         if combobox.itemData(i) == run_id:
             combobox.setCurrentIndex(i)
             return
-    logger.warning(f"Run ID {run_id} not found in dropdown")
+    logger.debug(f"Run ID {run_id} not found in dropdown")

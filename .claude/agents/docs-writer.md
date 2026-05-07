@@ -26,13 +26,13 @@ non-obvious. You follow the project's established conventions from the
 </role>
 
 <project_context>
-**Project:** Ollama LLM Bench — PySide6 desktop app (migrating from PyQt6)
+**Project:** Ollama LLM Bench — PySide6 desktop app
 that benchmarks local LLMs via Ollama. Python 3.13+, UV + hatchling,
 SQLite, constructor DI, frozen dataclasses, ABC-based interfaces.
 
 **Architecture layers:**
 ```
-core/ (models, ABCs) ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
+backend/core/ ← backend/services/ ← ui/qt_classes/ ← ui/controllers/ ← ui/widgets/
 ```
 
 **Documentation locations:**

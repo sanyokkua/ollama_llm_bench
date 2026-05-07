@@ -1,14 +1,20 @@
-- task_id: "general_knowledge_tech_computing_android_art_adoption"
-  category: "General Knowledge"
-  sub_category: "Tech"
-  question: |
-    What specific year and month did Google officially replace Dalvik with Android Runtime (ART) as the default runtime in Android, and in which Android version number did this change become permanent?
-  expected_answer:
-    most_expected: |
-      Google officially replaced Dalvik with ART as the default runtime in October 2014, with the release of Android 5.0 Lollipop.
-    good_answer: |
-      ART became the default Android runtime in October 2014, starting with Android version 5.0.
-    pass_option: |
-      ART replaced Dalvik by default in Android 5.0 Lollipop released in October 2014.
-  incorrect_direction: |
-    Incorrect version number, wrong date, or confusing ART adoption with earlier preview phases.
+tasks:
+  - task_id: "general_knowledge_tech_computing_android_art_adoption"
+    category: "General Knowledge"
+    sub_category: "Tech"
+    task_type: factual_qa
+    difficulty: easy
+    response_scope: contains
+    question: |
+      What specific year and month did Google officially replace Dalvik with Android Runtime (ART) as the default runtime in Android, and in which Android version number did this change become permanent?
+    golden_answer: "Google officially replaced Dalvik with ART as the default runtime in October 2014, with the release of Android 5.0 Lollipop."
+    pass_criteria: "States October 2014 as the date. Identifies Android 5.0 (Lollipop) as the version where ART became the permanent default."
+    fail_criteria: "Incorrect version number (e.g., Android 4.4). Wrong date. Confusing ART adoption with earlier developer preview phases in Android 4.4."
+    required_terms:
+      exact:
+        - "Android 5.0"
+        - "October 2014"
+      semantic:
+        - "Lollipop"
+        - "default runtime"
+      forbidden: []

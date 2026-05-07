@@ -1,0 +1,84 @@
+# providers.yaml — LLM provider configuration for Ollama LLM Bench
+#
+# Copy this file to your app data directory and edit as needed.
+# Environment variables can be referenced as ${ENV_VAR_NAME}.
+# Set enabled: false for providers you are not using.
+
+providers:
+  # ── Local providers (OpenAI-compatible endpoints) ──────────────────────────
+
+  - id: ollama_local
+    label: "Ollama (local)"
+    type: openai_compatible
+    base_url: "http://localhost:11434/v1"
+    api_key: "ollama"  # Ollama ignores the key but the field is required
+    enabled: true
+    default_models:
+      - "llama3.2:3b"
+      - "mistral:7b"
+      - "qwen2.5:7b"
+
+  - id: lm_studio_local
+    label: "LM Studio (local)"
+    type: openai_compatible
+    base_url: "http://localhost:1234/v1"
+    api_key: "lm-studio"
+    enabled: false
+    default_models: []
+
+  - id: llamacpp_local
+    label: "llama.cpp server (local)"
+    type: openai_compatible
+    base_url: "http://localhost:8080/v1"
+    api_key: "no-key"
+    enabled: false
+    default_models: []
+
+  # ── Cloud providers ─────────────────────────────────────────────────────────
+
+  - id: openai
+    label: "OpenAI"
+    type: openai_compatible
+    base_url: "https://api.openai.com/v1"
+    api_key: "${OPENAI_API_KEY}"
+    enabled: false
+    default_models:
+      - "gpt-4o"
+      - "gpt-4o-mini"
+
+  - id: azure_openai
+    label: "Azure OpenAI"
+    type: openai_compatible
+    base_url: "${AZURE_OPENAI_ENDPOINT}"
+    api_key: "${AZURE_OPENAI_API_KEY}"
+    enabled: false
+    default_models: []
+
+  - id: anthropic
+    label: "Anthropic"
+    type: anthropic
+    api_key: "${ANTHROPIC_API_KEY}"
+    # base_url: "https://your-proxy.example.com"   # optional — defaults to api.anthropic.com
+    enabled: false
+    default_models:
+      - "claude-opus-4-6"
+      - "claude-sonnet-4-6"
+      - "claude-haiku-4-5-20251001"
+
+  - id: gemini
+    label: "Google Gemini"
+    type: gemini
+    api_key: "${GEMINI_API_KEY}"
+    # base_url: "https://your-proxy.example.com"   # optional — defaults to generativelanguage.googleapis.com
+    enabled: false
+    default_models:
+      - "gemini-2.0-flash"
+      - "gemini-1.5-pro"
+
+# ── Embedding configuration ───────────────────────────────────────────────────
+# Used by Layer 3 (cosine similarity) evaluation.
+# The provider_id must match one of the enabled providers above.
+
+embedding:
+  provider_id: ollama_local
+  model: "bge-m3"

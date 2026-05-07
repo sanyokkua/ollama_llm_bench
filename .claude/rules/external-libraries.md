@@ -60,7 +60,7 @@ MPL-2.0, LGPL-2.1, LGPL-3.0
 
 | Library | Migration Target |
 |---|---|
-| `PyQt6` | PySide6 (migration in progress) |
+| `PyQt6` | PySide6 — migration complete |
 | `marshmallow` | Pydantic v2 |
 | `pendulum` | `datetime` + `python-dateutil` |
 | `loguru` | `structlog` |

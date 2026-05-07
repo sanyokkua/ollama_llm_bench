@@ -94,7 +94,7 @@ root_packages = ["ollama_llm_bench"]
 [[tool.importlinter.contracts]]
 name = "Core must not import Qt modules"
 type = "forbidden"
-source_modules = ["ollama_llm_bench.core"]
+source_modules = ["ollama_llm_bench.backend.core"]
 forbidden_modules = ["PySide6", "PyQt6"]
 ```
 

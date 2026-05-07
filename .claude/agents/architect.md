@@ -29,18 +29,24 @@ files. Your only written output is PLAN.md (or PLAN-<feature>.md).
 via Ollama. Python 3.13+ with strict type hints, frozen dataclasses, ABC-based
 interfaces, constructor DI via `ContextProvider` singleton.
 
-**Migration state:** PyQt6 → PySide6 (ongoing), pyright → Mypy (ongoing). UV + hatchling migration complete. ABC-based interfaces for existing code; Protocol preferred for new interfaces.
+**Migration state:** PySide6 complete. UV + hatchling complete. Mypy is authoritative. ABC-based interfaces for existing code; Protocol preferred for new interfaces.
 
 **Architecture layers** (strict import direction):
 ```
-core/ ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
+backend/core/ ← backend/services/ ← ui/qt_classes/ ← ui/controllers/ ← ui/widgets/
 ```
 
-- `core/` — frozen dataclasses, ABCs in `interfaces.py`, StrEnums, constants
-- `services/` — concrete implementations (`SqLiteDataApi`, `OllamaApi`, etc.)
-- `qt_classes/` — `QtEventBus`, `BenchmarkExecutionTask`, `MetaQObjectABC`
+`backend/` — pure Python, zero PySide6 imports:
+- `backend/core/` — frozen dataclasses, ABCs in `interfaces.py`, StrEnums, constants
+- `backend/services/` — concrete implementations (providers, evaluators, `SqLiteDataApi`, etc.)
+- `backend/utils/` — standalone utility functions
+
+`ui/` — PySide6-dependent:
+- `ui/qt_classes/` — `QtEventBus`, `BenchmarkExecutionTask`, `MetaQObjectABC`
 - `ui/controllers/` — mediate between widgets and services
 - `ui/widgets/` — PySide6 widget classes
+- `ui/models/` — `QAbstractTableModel` subclasses
+- `ui/style/` — design tokens, QSS templates
 
 **DI wiring:** `app_context.py` → `_create_app_context()` → `ApplicationContext`
 → `ContextProvider.get_context()`. All services constructed with keyword-only
@@ -83,8 +89,9 @@ Invoke these skills at the specified points:
 - `/python-developer` — invoke when verifying naming conventions, DI patterns,
   or dataclass structure. After invoking, read
   `.claude/skills/python-developer/dependencies.md` to verify library availability.
-- `/pyside6` — invoke when the design involves Qt threading, signals, or
-  widget patterns. Loads MetaQObjectABC, EventBus, and QRunnable patterns.
+- `/pyside6-ui` — invoke when the design involves Qt threading, signals, widget
+  patterns, QSS theming, or layouts. Loads MetaQObjectABC, EventBus, QRunnable,
+  design tokens, and complete widget patterns.
 </skills>
 
 <instructions>
@@ -112,7 +119,6 @@ When given a feature request, bug report, migration need, or architectural quest
    - Sequence steps so tests pass after each
 
 5. **Analyze risks**
-   - PyQt6 → PySide6 compatibility
    - Thread safety (main thread vs QRunnable)
    - EventBus signal connection correctness
    - Pipeline no-throw contract compliance

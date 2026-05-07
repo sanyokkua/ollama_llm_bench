@@ -1,12 +1,23 @@
-- task_id: "data_extraction_transformation_multi_constraint_formatting"
-  category: "Data Extraction and Transformation"
-  sub_category: "Date Formats"
-  question: |
-    Format this date for EU (DD.MM.YYYY), US (MM/DD/YYYY), and ISO (YYYY-MM-DD) standards IN THIS ORDER. Separate formats with semicolon but NO spaces:
-    '15 March 2024'
-  expected_answer:
-    most_expected: "15.03.2024;03/15/2024;2024-03-15"
-    good_answer: "15.3.2024;3/15/2024;2024-03-15"
-    pass_option: "Any correctly formatted date string with EU, US, and ISO formats in order, separated by semicolons without spaces."
-  incorrect_direction: |
-    Formats out of order, extra spaces around semicolons, incorrect date formats, or wrong separators used.
+tasks:
+  - task_id: "data_extraction_transformation_multi_constraint_formatting"
+    category: "Data Extraction and Transformation"
+    sub_category: "Date Formats"
+    task_type: data_extraction
+    difficulty: easy
+    response_scope: exact
+    question: |
+      Format this date for EU (DD.MM.YYYY), US (MM/DD/YYYY), and ISO (YYYY-MM-DD) standards IN THIS ORDER.
+      Separate formats with semicolons but NO spaces:
+      '15 March 2024'
+    golden_answer: "15.03.2024;03/15/2024;2024-03-15"
+    pass_criteria: "Three date formats in the exact order EU;US;ISO, separated by semicolons without spaces. Zero-padded day and month. Correct year, month, day values for 15 March 2024."
+    fail_criteria: "Formats out of order. Extra spaces around semicolons. Incorrect date values. Wrong separators used. Missing leading zeros."
+    required_terms:
+      exact:
+        - "15.03.2024"
+        - "03/15/2024"
+        - "2024-03-15"
+      semantic: []
+      forbidden:
+        - " ; "
+        - "; "

@@ -1,15 +1,24 @@
-- task_id: "text_operations_rephrase_casual_ukrainian"
-  category: "Text Operations"
-  sub_category: "Rephrase"
-  question: |
-    Перефразуйте наступне речення у невимушеному (casual) стилі, зберігаючи основний зміст:
-    Моя комманда разом зі мноб планує презинтувати інноваційний продукт який як очекується суттєво впліне на конюнктуру рінку вже наступного тижня.
-  expected_answer:
-    most_expected: |
-      Ми з командою скоро покажемо новий продукт, який, як кажуть, реально змінить ситуацію на ринку вже наступного тижня.
-    good_answer: |
-      Наступного тижня ми з командою випустимо класний інноваційний продукт, що має вплинути на ринок.
-    pass_option: |
-      Простий і природний стиль із правильним сенсом і без грубих помилок.
-  incorrect_direction: |
-    Формальний стиль, граматичні помилки, спотворення сенсу.
+tasks:
+  - task_id: "text_operations_rephrase_casual_ukrainian"
+    category: "Text Operations"
+    sub_category: "Rephrase"
+    task_type: text_rewrite
+    difficulty: medium
+    response_scope: covers
+    question: |
+      Перефразуйте наступне речення у невимушеному (casual) стилі, зберігаючи основний зміст:
+      Моя комманда разом зі мноб планує презинтувати інноваційний продукт який як очекується суттєво впліне на конюнктуру рінку вже наступного тижня.
+    golden_answer: "Ми з командою скоро покажемо новий продукт, який, як кажуть, реально змінить ситуацію на ринку вже наступного тижня."
+    pass_criteria: "Casual, informal Ukrainian tone. Grammar corrected. Core meaning preserved: team presenting innovative product expected to impact the market next week."
+    fail_criteria: "Formal register. Original spelling errors retained. Meaning changed or information omitted."
+    required_terms:
+      exact: []
+      semantic:
+        - "команда"
+        - "продукт"
+        - "ринок"
+      forbidden:
+        - "комманда"
+        - "мноб"
+        - "презинтувати"
+        - "очекується"

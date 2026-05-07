@@ -1,15 +1,23 @@
-- task_id: "text_operations_rephrase_direct_ukrainian"
-  category: "Text Operations"
-  sub_category: "Rephrase"
-  question: |
-    Перефразуйте наступне речення у прямому, чіткому тоні, зберігаючи смисл:
-    Моя комманда разом зі мноб планує презинтувати інноваційний продукт який як очекується суттєво впліне на конюнктуру рінку вже наступного тижня.
-  expected_answer:
-    most_expected: |
-      Ми з командою презентуємо інноваційний продукт наступного тижня, який змінить ринок.
-    good_answer: |
-      Наступного тижня наша команда випустить продукт, що істотно вплине на кон’юнктуру ринку.
-    pass_option: |
-      Чітке і зрозуміле речення, без зайвих слів і граматичних помилок.
-  incorrect_direction: |
-    Надто складні або м’які формулювання, помилки, зміна змісту.
+tasks:
+  - task_id: "text_operations_rephrase_direct_ukrainian"
+    category: "Text Operations"
+    sub_category: "Rephrase"
+    task_type: text_rewrite
+    difficulty: medium
+    response_scope: covers
+    question: |
+      Перефразуйте наступне речення у прямому, чіткому тоні, зберігаючи смисл:
+      Моя комманда разом зі мноб планує презинтувати інноваційний продукт який як очекується суттєво впліне на конюнктуру рінку вже наступного тижня.
+    golden_answer: "Ми з командою презентуємо інноваційний продукт наступного тижня, який змінить ринок."
+    pass_criteria: "Direct, clear phrasing. Grammar corrected. Conveys the product presentation and market impact without unnecessary words."
+    fail_criteria: "Overly complex or vague phrasing. Original spelling errors retained. Meaning changed."
+    required_terms:
+      exact: []
+      semantic:
+        - "команда"
+        - "продукт"
+        - "ринок"
+      forbidden:
+        - "комманда"
+        - "мноб"
+        - "презинтувати"

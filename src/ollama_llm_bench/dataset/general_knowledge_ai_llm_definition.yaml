@@ -1,14 +1,19 @@
-- task_id: "general_knowledge_ai_llm_definition"
-  category: "General Knowledge"
-  sub_category: "AI"
-  question: |
-    What is the precise technical definition of a Large Language Model (LLM) according to the 2023 ACM Computing Classification System, and what specific parameter threshold distinguishes LLMs from smaller language models in academic literature?
-  expected_answer:
-    most_expected: |
-      The 2023 ACM Computing Classification System defines a Large Language Model (LLM) as a neural network-based language model with more than 1 billion parameters, trained on extensive textual corpora using self-supervised learning.
-    good_answer: |
-      LLMs are language models exceeding 1 billion parameters, per ACM 2023 classification.
-    pass_option: |
-      Models over 1B parameters qualify as LLMs according to ACM 2023.
-  incorrect_direction: |
-    Incorrect parameter threshold or vague definition not matching ACM standards.
+tasks:
+  - task_id: "general_knowledge_ai_llm_definition"
+    category: "General Knowledge"
+    sub_category: "AI"
+    task_type: factual_qa
+    difficulty: medium
+    response_scope: contains
+    question: |
+      What is the precise technical definition of a Large Language Model (LLM) according to the 2023 ACM Computing Classification System, and what specific parameter threshold distinguishes LLMs from smaller language models in academic literature?
+    golden_answer: "The 2023 ACM Computing Classification System defines a Large Language Model (LLM) as a neural network-based language model with more than 1 billion parameters, trained on extensive textual corpora using self-supervised learning."
+    pass_criteria: "States that LLMs have more than 1 billion parameters as the distinguishing threshold. References neural network or transformer architecture. Mentions training on large text corpora."
+    fail_criteria: "Incorrect parameter threshold (e.g., millions instead of billions). Vague definition not specifying the parameter count. Describes LLMs without mentioning the size threshold."
+    required_terms:
+      exact:
+        - "1 billion"
+      semantic:
+        - "parameter threshold"
+        - "language model"
+      forbidden: []

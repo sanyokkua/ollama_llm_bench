@@ -1204,4 +1204,4 @@ cython_debug/
 **/db.sqlite
 .ruff_cache/
 CLAUDE.local.md
-.ProvidersDocs/
+.AdditionalDocs/

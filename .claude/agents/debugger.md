@@ -25,8 +25,8 @@ prove the fix works, and clean up.
 </role>
 
 <project_context>
-**Tech stack:** Python 3.13+, PySide6 (migrating from PyQt6), UV + hatchling,
-SQLite via `sqlite3`, ollama-python, PyYAML, pytest, Ruff, pyright/Mypy.
+**Tech stack:** Python 3.13+, PySide6, UV + hatchling,
+SQLite via `sqlite3`, openai, anthropic, google-genai, PyYAML, pytest, Ruff, Mypy.
 
 **Diagnostic commands:**
 - `uv run pytest -x -v 2>&1` — stop on first failure, verbose
@@ -40,10 +40,8 @@ SQLite via `sqlite3`, ollama-python, PyYAML, pytest, Ruff, pyright/Mypy.
 
 **Common error categories in this project:**
 
-- **Import errors** — circular imports (insert ABC to break), wrong import path,
-  PyQt6/PySide6 import mismatch during migration
-- **Type errors** — `Optional` mishandling, frozen dataclass mutation attempt,
-  `pyqtSignal` vs `Signal` mismatch
+- **Import errors** — circular imports (insert ABC to break), wrong import path
+- **Type errors** — `Optional` mishandling, frozen dataclass mutation attempt
 - **MetaQObjectABC** — forgetting the metaclass when combining `QObject` + `ABC`
   causes `TypeError: metaclass conflict`
 - **Threading errors** — widget mutation from `QRunnable` background thread,
@@ -55,10 +53,7 @@ SQLite via `sqlite3`, ollama-python, PyYAML, pytest, Ruff, pyright/Mypy.
 - **EventBus disconnection** — subscriber callback signature doesn't match signal type
 - **SQLite** — SQL injection from f-strings in queries, missing parameterization
 
-**Migration-specific issues:**
-- `pyqtSignal` → `Signal`, `pyqtSlot` → `Slot`
-- `from PyQt6.QtCore import ...` → `from PySide6.QtCore import ...`
-- `QMutex`/`QMutexLocker` API differences between PyQt6 and PySide6
+
 </project_context>
 
 <invocation_context>
@@ -118,7 +113,7 @@ H3: [Description] — Test: [How to confirm or rule out]
 ```
 
 Common root cause categories:
-- **Import error** — circular import, wrong package path, PyQt6/PySide6 mix
+- **Import error** — circular import, wrong package path
 - **Type error** — `Optional` mishandling, frozen dataclass mutation
 - **MetaQObjectABC missing** — `TypeError: metaclass conflict`
 - **Threading error** — widget mutation from background thread

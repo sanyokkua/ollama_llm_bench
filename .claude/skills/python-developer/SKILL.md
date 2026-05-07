@@ -9,14 +9,14 @@ allowed-tools: Read, Grep, Glob
 ## This Project's Stack
 
 - **Python 3.13+** with strict type hints on every function, method, and variable
-- **PySide6** — Qt framework for UI (migrating from PyQt6)
+- **PySide6** — Qt framework for UI
 - **UV** — package manager with hatchling build backend
 - **SQLite** via stdlib `sqlite3` — benchmark data persistence
-- **ollama-python** — Ollama client for LLM inference
+- **openai** — OpenAI-compatible provider client (Ollama, LM Studio, OpenAI, Azure)
+- **anthropic** — Anthropic provider client
+- **google-genai** — Gemini provider client
 - **PyYAML** — dataset parsing
 - Constructor-based DI wired in `app_context.py` via `ContextProvider` singleton
-
-> **Migration note**: Existing code uses PyQt6 imports. New code MUST use PySide6. When touching existing files, migrate imports opportunistically.
 
 Supporting files:
 - [examples.md](examples.md) — complete code templates for this project's patterns
@@ -100,19 +100,19 @@ class ResultApi(ABC):
 
 ## Package / Layer Rules
 
-- `core/`: models, ABCs, constants — no Qt imports allowed
-- `services/`: concrete implementations of core ABCs
-- `qt_classes/`: Qt infrastructure (EventBus, QRunnable tasks, MetaQObjectABC)
+- `backend/core/`: domain models, ABCs, constants — no Qt imports allowed
+- `backend/services/`: concrete service implementations
+- `ui/qt_classes/`: Qt infrastructure (EventBus, QRunnable tasks, MetaQObjectABC)
 - `ui/controllers/`: controller classes mediating between UI and services
 - `ui/widgets/`: PySide6 widget classes
-- `utils/`: standalone utilities — never imported by `core/`
+- `backend/utils/`: standalone utilities — never imported by `backend/core/`
 
 **Import direction** (strict — enforced by import-linter):
 ```
-core/ ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
+backend/core/ ← backend/services/ ← ui/qt_classes/ ← ui/controllers/ ← ui/widgets/
 ```
 
-- **Absolute imports only** from root package: `from ollama_llm_bench.core.models import BenchmarkRun`
+- **Absolute imports only** from root package: `from ollama_llm_bench.backend.core.models import BenchmarkRun`
 - MUST NOT use relative imports
 - No cyclic dependencies — insert an ABC in `core/interfaces.py` to break cycles
 
@@ -131,8 +131,8 @@ ContextProvider.initialize(app_root, dataset_path)
 ```
 
 **Adding a new service requires:**
-1. ABC in `core/interfaces.py`
-2. Concrete class in `services/`
+1. ABC in `backend/core/interfaces.py`
+2. Concrete class in `backend/services/`
 3. Constructor parameter in `ApplicationContext.__init__()`
 4. Property accessor with `@override` in `ApplicationContext`
 5. Instantiation in `_create_app_context()`
@@ -197,7 +197,7 @@ self.table_widget.setItem(0, 0, item)  # crashes
 - [ ] Uses constructor injection with keyword-only args (`def __init__(self, *, dep: Dep)`)
 - [ ] Data classes use `@dataclass(frozen=True)`
 - [ ] No exceptions thrown to callers from pipeline methods
-- [ ] New ABCs added to `core/interfaces.py`
+- [ ] New ABCs added to `backend/core/interfaces.py`
 - [ ] `@override` on all overridden methods
 - [ ] Absolute imports from `ollama_llm_bench.*`
 - [ ] No Django/Flask/SQLAlchemy imports

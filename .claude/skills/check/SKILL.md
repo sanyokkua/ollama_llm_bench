@@ -1,6 +1,6 @@
 ---
 name: check
-description: Run the full quality pipeline — ruff lint, ruff format check, pyright, mypy, pytest — in the correct sequential order. Stops at first failure to avoid cascading noise.
+description: Run the full quality pipeline — ruff lint, ruff format check, mypy, pytest — in the correct sequential order. Stops at first failure to avoid cascading noise.
 allowed-tools: Bash
 ---
 
@@ -15,8 +15,7 @@ uv run ruff check --output-format=concise ${ARGUMENTS:-src/ tests/}
 # 2. Format compliance
 uv run ruff format --check ${ARGUMENTS:-src/ tests/}
 
-# 3. Type check — fast structural pass (pyright) then deep strict pass (mypy)
-uv run pyright src/
+# 3. Type check (mypy strict)
 uv run mypy src/
 
 # 4. Tests — only run if all type checks pass
@@ -32,6 +31,4 @@ uv run pytest -q --tb=short --no-header
 
 ## Why This Order
 
-Ruff catches syntax errors in seconds before Mypy wastes time on unparseable files. Mypy failures often predict test failures — fix types first. Run tests last so type errors don't obscure test failures.
-
-If Mypy and Pyright disagree on an error, **Mypy is authoritative**.
+Ruff catches syntax errors in seconds before Mypy wastes time on unparseable files. Run tests last so type errors don't obscure test failures.

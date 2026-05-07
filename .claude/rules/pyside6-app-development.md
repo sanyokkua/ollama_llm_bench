@@ -1,12 +1,12 @@
 ---
 description: "PySide6 application development rules — Qt event loop, signals/slots, widgets, threading, Model/View"
-globs: "src/ollama_llm_bench/qt_classes/**/*.py,src/ollama_llm_bench/ui/**/*.py"
+globs: "src/ollama_llm_bench/ui/qt_classes/**/*.py,src/ollama_llm_bench/ui/**/*.py"
 alwaysApply: false
 ---
 
 # PySide6 Application Development
 
-> **Migration note**: The existing codebase uses PyQt6 (`pyqtSignal`, `pyqtSlot`, `MetaQObjectABC`). New code MUST use PySide6 equivalents (`Signal`, `Slot`). When modifying existing PyQt6 files, follow the existing import style for consistency within that file.
+> PySide6 only. The codebase uses `from PySide6.QtCore import Signal, Slot` and `MetaQObjectABC` consistently.
 
 ## Critical Rules
 

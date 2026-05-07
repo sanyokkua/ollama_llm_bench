@@ -1,15 +1,23 @@
-- task_id: "text_operations_rephrase_direct_croatian"
-  category: "Text Operations"
-  sub_category: "Rephrase"
-  question: |
-    Preformulirajte sljedeću rečenicu u direktnom, jasnom tonu, zadržavajući značenje:
-    Moj, tim zajdno s mnom planiruje predstavyti inovativniy proizvod, koji se, očikuje da će značajno utecati na tržišnu situacije veći sljedeći tedan.
-  expected_answer:
-    most_expected: |
-      Moj tim i ja predstavit ćemo inovativni proizvod sljedeći tjedan koji će promijeniti tržište.
-    good_answer: |
-      Sljedeći tjedan naša ekipa lansira proizvod koji će imati značajan utjecaj na tržište.
-    pass_option: |
-      Jasna i sažeta rečenica bez nepotrebnih riječi i gramatičkih pogrešaka.
-  incorrect_direction: |
-    Previše složeni ili nejasni izrazi, gramatičke pogreške ili izmjena značenja.
+tasks:
+  - task_id: "text_operations_rephrase_direct_croatian"
+    category: "Text Operations"
+    sub_category: "Rephrase"
+    task_type: text_rewrite
+    difficulty: medium
+    response_scope: covers
+    question: |
+      Preformulirajte sljedeću rečenicu u direktnom, jasnom tonu, zadržavajući značenje:
+      Moj, tim zajdno s mnom planiruje predstavyti inovativniy proizvod, koji se, očikuje da će značajno utecati na tržišnu situacije veći sljedeći tedan.
+    golden_answer: "Moj tim i ja predstavit ćemo inovativni proizvod sljedeći tjedan koji će promijeniti tržište."
+    pass_criteria: "Direct and concise phrasing. Correct Croatian grammar. Communicates the product launch and market impact clearly."
+    fail_criteria: "Overly complex or vague expressions. Grammar errors. Meaning changed."
+    required_terms:
+      exact: []
+      semantic:
+        - "inovativni proizvod"
+        - "tržište"
+        - "tjedan"
+      forbidden:
+        - "zajdno"
+        - "planiruje"
+        - "inovativniy"

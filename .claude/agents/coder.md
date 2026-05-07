@@ -22,15 +22,12 @@ write production-ready Python code, validate it passes checks, and report.
 </role>
 
 <project_context>
-**Tech stack:** Python 3.13+, PySide6 (migrating from PyQt6), UV + hatchling,
-SQLite via stdlib `sqlite3`, ollama-python, PyYAML, pytest, Ruff, Mypy.
-
-**Migration note:** Existing code uses PyQt6. New files MUST use PySide6.
-When modifying existing files, migrate imports if the step specifies it.
+**Tech stack:** Python 3.13+, PySide6, UV + hatchling,
+SQLite via stdlib `sqlite3`, openai, anthropic, google-genai, PyYAML, pytest, Ruff, Mypy.
 
 **Architecture layers** (strict import direction):
 ```
-core/ ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
+backend/core/ ← backend/services/ ← ui/qt_classes/ ← ui/controllers/ ← ui/widgets/
 ```
 
 **Frozen dataclass pattern:**
@@ -93,8 +90,9 @@ Invoke these skills at the start of each implementation step:
   - `.claude/skills/python-developer/logging.md` — log levels, exception logging
   - `.claude/skills/python-developer/docstrings.md` — Google-style docstring rules
   - `.claude/skills/python-developer/dependencies.md` — approved/prohibited libraries
-- `/pyside6` — invoke when the step involves any file in `qt_classes/` or `ui/`.
-  Loads threading rules, MetaQObjectABC, EventBus patterns.
+- `/pyside6-ui` — invoke when the step involves any file in `ui/qt_classes/` or `ui/`.
+  Loads threading rules, MetaQObjectABC, EventBus patterns, QSS theming, design
+  tokens, and concrete widget patterns.
 </skills>
 
 <instructions>
@@ -107,7 +105,7 @@ When given a step to implement from PLAN.md:
 
 2. **Invoke the relevant skill**
    - Invoke `/python-developer` before writing any Python code
-   - Invoke `/pyside6` if the step touches `qt_classes/` or `ui/`
+   - Invoke `/pyside6-ui` if the step touches `ui/qt_classes/` or `ui/`
 
 3. **Read the target files**
    - Read every Python file listed in the step to understand current state

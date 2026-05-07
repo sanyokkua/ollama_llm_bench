@@ -1,4 +1,6 @@
 import logging
+import time
+from typing import Final, Protocol
 
 from ollama_llm_bench.backend.core.interfaces import (
     BenchmarkFlowApi,
@@ -6,11 +8,25 @@ from ollama_llm_bench.backend.core.interfaces import (
     EventBus,
     ResultApi,
 )
-from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, ReporterStatusMsg, SummaryTableItem
+from ollama_llm_bench.backend.core.models import (
+    AvgSummaryTableItem,
+    JudgeSummaryEvent,
+    ReporterStatusMsg,
+    SummaryTableItem,
+)
 from ollama_llm_bench.backend.core.stages_constants import STAGE_FAILED, STAGE_FINISHED
 from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 
 logger = logging.getLogger(__name__)
+
+_LIVE_UPDATE_DEBOUNCE_S: Final[float] = 0.5
+
+
+class _HasRunId(Protocol):
+    """Structural protocol for events that carry a run identifier."""
+
+    @property
+    def run_id(self) -> int: ...
 
 
 class StatusListener:
@@ -42,8 +58,12 @@ class StatusListener:
         self.event_bus = event_bus
         self.result_api = result_api
 
+        self._last_live_update: float = 0.0
+
         self.event_bus.subscribe_to_run_id_changed(self._run_id_changed)
         self.benchmark_flow_api.subscribe_to_benchmark_progress_events(self._progress_changed)
+        self.event_bus.subscribe_to_task_completed(self._on_task_or_judge_completed)
+        self.event_bus.subscribe_to_judge_completed(self._on_task_or_judge_completed)
 
     def _run_id_changed(self, run_id: int | None) -> None:
         """
@@ -63,6 +83,9 @@ class StatusListener:
             logger.warning(f"Failed to retrieve run {run_id}: {e}")
             self._post_tables_update(run_id)
             return
+
+        if run.judge_summary:
+            self.event_bus.emit_judge_summary(JudgeSummaryEvent(run_id=run.run_id, summary_text=run.judge_summary))
 
         self._post_tables_update(run.run_id)
 
@@ -85,6 +108,17 @@ class StatusListener:
                     logger.warning(f"failed to retrieve runs {e}")
                     self.event_bus.emit_run_ids_changed([])
                 self._post_tables_update(run_id)
+
+    def _on_task_or_judge_completed(self, event: _HasRunId) -> None:
+        """Refresh result tables after each task or judge event, debounced.
+
+        Args:
+            event: Any event carrying a run_id field.
+        """
+        now = time.monotonic()
+        if now - self._last_live_update >= _LIVE_UPDATE_DEBOUNCE_S:
+            self._last_live_update = now
+            self._post_tables_update(event.run_id)
 
     def _post_tables_update(self, run_id: int | None) -> None:
         """
@@ -109,7 +143,7 @@ class StatusListener:
             List of averaged summary items, or empty list on failure.
         """
         if run_id is None or run_id <= 0:
-            logger.warning("Attempted to get summary data when no run is selected")
+            logger.debug("Attempted to get summary data when no run is selected")
             return []
 
         try:
@@ -133,7 +167,7 @@ class StatusListener:
             List of detailed summary items, or empty list on failure.
         """
         if run_id is None or run_id <= 0:
-            logger.warning("Attempted to get detailed data when no run is selected")
+            logger.debug("Attempted to get detailed data when no run is selected")
             return []
 
         try:

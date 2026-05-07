@@ -3,7 +3,14 @@ from collections import defaultdict
 from typing import override
 
 from ollama_llm_bench.backend.core.interfaces import DataApi, ResultApi
-from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
+from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, EvalLayer, EvalVerdict, SummaryTableItem
+
+_LAYER_LABELS: dict[str, str] = {
+    EvalLayer.RULE_BASED.value: "L1:rules",
+    EvalLayer.KEYWORD.value: "L2:keywords",
+    EvalLayer.COSINE.value: "L3:cosine",
+    EvalLayer.LLM_JUDGE.value: "L4:judge",
+}
 
 logger = logging.getLogger(__name__)
 
@@ -59,19 +66,26 @@ class AppResultApi(ResultApi):
         avg_results = []
         for model_name, model_results_list in model_results.items():
             count = len(model_results_list)
-            total_time = sum(r.time_taken_ms or 0 for r in model_results_list)
-            total_tokens = sum(r.tokens_generated or 0 for r in model_results_list)
-            total_score = sum(r.evaluation_score or 0.0 for r in model_results_list)
+            total_time = sum(r.total_time_ms or 0 for r in model_results_list)
+            total_tokens = sum(r.completion_tokens or 0 for r in model_results_list)
+            total_score = sum(r.judge_score or 0.0 for r in model_results_list)
 
             avg_time = total_time / count
             avg_score = total_score / count
             avg_tokens_per_second = (total_tokens / total_time) * 1000 if total_time > 0 else 0.0
+
+            pass_count = sum(1 for r in model_results_list if r.final_verdict == EvalVerdict.PASS)
+            pass_rate = pass_count / count
+            ttft_values = [r.ttft_ms for r in model_results_list if r.ttft_ms is not None]
+            avg_ttft_ms: float | None = sum(ttft_values) / len(ttft_values) if ttft_values else None
 
             item = AvgSummaryTableItem(
                 model_name=model_name,
                 avg_time_ms=avg_time,
                 avg_tokens_per_second=avg_tokens_per_second,
                 avg_score=avg_score,
+                avg_ttft_ms=avg_ttft_ms,
+                pass_rate=pass_rate,
             )
             avg_results.append(item)
 
@@ -101,23 +115,36 @@ class AppResultApi(ResultApi):
         detailed_results = []
         valid_results_count = 0
         for result in results:
-            tokens_generated = result.tokens_generated or 0
-            if result.time_taken_ms and result.time_taken_ms > 0:
-                tokens_per_second = tokens_generated / result.time_taken_ms * 1000
+            tokens_generated = result.completion_tokens or 0
+            if result.total_time_ms and result.total_time_ms > 0:
+                tokens_per_second = tokens_generated / result.total_time_ms * 1000
             else:
                 tokens_per_second = 0.0
 
-            score_reason = result.evaluation_reason or ""
+            score_reason = result.judge_reasoning or ""
+
+            cosine_sim: float | None = result.cosine_similarity
+            resolution = _LAYER_LABELS.get(result.resolution_layer, "") if result.resolution_layer else ""
+
+            if result.judge_score is not None:
+                effective_score = result.judge_score
+            elif result.final_verdict and str(result.final_verdict).lower() == "pass":
+                effective_score = 1.0
+            else:
+                effective_score = 0.0
 
             item = SummaryTableItem(
                 model_name=result.model_name,
                 task_id=result.task_id,
+                task_category=result.task_category,
                 task_status=str(result.status),
-                time_ms=result.time_taken_ms or 0,
-                tokens=result.tokens_generated or 0,
+                time_ms=result.total_time_ms or 0,
+                tokens=result.completion_tokens or 0,
                 tokens_per_second=tokens_per_second or 0.0,
-                score=result.evaluation_score or 0.0,
+                score=effective_score,
                 score_reason=score_reason,
+                cosine_similarity=cosine_sim,
+                resolution_layer=resolution,
             )
             detailed_results.append(item)
             valid_results_count += 1

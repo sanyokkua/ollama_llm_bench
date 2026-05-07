@@ -1,3 +1,4 @@
+import importlib.resources
 import logging
 from pathlib import Path
 from typing import Final, override
@@ -7,32 +8,57 @@ from PySide6.QtCore import QMutex, QMutexLocker, QThreadPool
 
 from ollama_llm_bench.backend.core.interfaces import (
     AppContext,
+    AppSettingsServiceApi,
     BenchmarkFlowApi,
     BenchmarkTaskApi,
     DataApi,
+    EmbeddingProviderApi,
+    EvaluatorApi,
     EventBus,
     ITableSerializer,
+    JudgePromptServiceApi,
     LLMApi,
+    LLMJudgeEvaluatorApi,
+    LogFileWriterApi,
     PromptBuilderApi,
+    ProviderRegistryApi,
     ResultApi,
+    TaskFileLoaderApi,
 )
 from ollama_llm_bench.backend.core.ui_controllers import (
     LogWidgetControllerApi,
-    NewRunWidgetControllerApi,
-    PreviousRunWidgetControllerApi,
     ResultWidgetControllerApi,
+    RunConfigControllerApi,
+    SettingsWidgetControllerApi,
 )
 from ollama_llm_bench.backend.services.app_result_api import AppResultApi
+from ollama_llm_bench.backend.services.app_settings_service import (
+    SETTING_EMBEDDING_CUSTOM_PATTERNS,
+    AppSettingsService,
+)
+from ollama_llm_bench.backend.services.embedding_model_classifier import EmbeddingModelClassifier
+from ollama_llm_bench.backend.services.embedding_service import EmbeddingService
+from ollama_llm_bench.backend.services.evaluators.cosine_evaluator import CosineSimilarityEvaluator
+from ollama_llm_bench.backend.services.evaluators.keyword_evaluator import KeywordEvaluator
+from ollama_llm_bench.backend.services.evaluators.llm_judge_evaluator import LLMJudgeEvaluator
+from ollama_llm_bench.backend.services.evaluators.rule_based_evaluator import RuleBasedEvaluator
+from ollama_llm_bench.backend.services.judge_prompt_service import JudgePromptService
+from ollama_llm_bench.backend.services.judge_summary_service import JudgeSummaryService
+from ollama_llm_bench.backend.services.log_file_writer import LogFileWriter
 from ollama_llm_bench.backend.services.ollama_llm_api import OllamaApi
+from ollama_llm_bench.backend.services.performance_task_generator import PerformanceTaskGenerator
+from ollama_llm_bench.backend.services.provider_config_loader import ProviderConfigLoader
+from ollama_llm_bench.backend.services.provider_registry import ProviderRegistry
 from ollama_llm_bench.backend.services.simple_prompt_builder_api import SimplePromptBuilderApi
 from ollama_llm_bench.backend.services.sq_lite_data_api import SqLiteDataApi
 from ollama_llm_bench.backend.services.table_serializer import TableSerializer
+from ollama_llm_bench.backend.services.task_file_loader import TaskFileLoader
 from ollama_llm_bench.backend.services.yaml_benchmark_task_api import YamlBenchmarkTaskApi
 from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 from ollama_llm_bench.ui.controllers.log_widget_controller import LogWidgetController
-from ollama_llm_bench.ui.controllers.new_run_widget_controller import NewRunWidgetController
-from ollama_llm_bench.ui.controllers.previous_run_widget_controller import PreviousRunWidgetController
 from ollama_llm_bench.ui.controllers.result_widget_controller import ResultWidgetController
+from ollama_llm_bench.ui.controllers.run_config_controller import RunConfigController
+from ollama_llm_bench.ui.controllers.settings_widget_controller import SettingsWidgetController
 from ollama_llm_bench.ui.controllers.status_listener import StatusListener
 from ollama_llm_bench.ui.qt_classes.qt_benchmark_flow import QtBenchmarkFlowApi
 from ollama_llm_bench.ui.qt_classes.qt_event_bus import QtEventBus
@@ -43,6 +69,13 @@ _DB_FILE_NAME: Final[str] = "db.sqlite"
 logger = logging.getLogger(__name__)
 
 
+class _NullEmbeddingProvider:
+    """Fallback embedding provider used when no embedding backend is configured."""
+
+    def encode(self, texts: list[str]) -> list[list[float]]:
+        raise RuntimeError("No embedding provider configured")
+
+
 class ApplicationContext(AppContext):
     """
     Immutable application context container that provides access to all core services and controllers.
@@ -50,19 +83,24 @@ class ApplicationContext(AppContext):
     """
 
     __slots__ = (
+        "_app_settings_service",
         "_benchmark_flow_api",
         "_data_api",
         "_event_bus",
+        "_judge_prompt_service",
+        "_log_file_writer",
         "_log_widget_controller_api",
-        "_new_run_widget_controller_api",
         "_ollama_llm_api",
-        "_previous_run_widget_controller_api",
         "_prompt_builder_api",
+        "_provider_registry",
         "_result_api",
         "_result_widget_controller_api",
+        "_run_config_controller",
+        "_settings_widget_controller",
         "_status_listener",
         "_table_serializer",
         "_task_api",
+        "_task_file_loader",
     )
 
     def __init__(
@@ -75,12 +113,17 @@ class ApplicationContext(AppContext):
         result_api: ResultApi,
         benchmark_flow_api: BenchmarkFlowApi,
         event_bus: EventBus,
-        previous_run_widget_controller_api: PreviousRunWidgetControllerApi,
-        new_run_widget_controller_api: NewRunWidgetControllerApi,
         log_widget_controller_api: LogWidgetControllerApi,
         result_widget_controller_api: ResultWidgetControllerApi,
         table_serializer: ITableSerializer,
         status_listener: StatusListener,
+        provider_registry: ProviderRegistryApi,
+        app_settings_service: AppSettingsServiceApi,
+        task_file_loader: TaskFileLoaderApi,
+        judge_prompt_service: JudgePromptServiceApi,
+        log_file_writer: LogFileWriterApi,
+        settings_widget_controller: SettingsWidgetControllerApi,
+        run_config_controller: RunConfigControllerApi,
     ):
         self._ollama_llm_api = ollama_llm_api
         self._task_api = task_api
@@ -89,12 +132,17 @@ class ApplicationContext(AppContext):
         self._result_api = result_api
         self._benchmark_flow_api = benchmark_flow_api
         self._event_bus = event_bus
-        self._previous_run_widget_controller_api = previous_run_widget_controller_api
-        self._new_run_widget_controller_api = new_run_widget_controller_api
         self._log_widget_controller_api = log_widget_controller_api
         self._result_widget_controller_api = result_widget_controller_api
         self._table_serializer = table_serializer
         self._status_listener = status_listener
+        self._provider_registry = provider_registry
+        self._app_settings_service = app_settings_service
+        self._task_file_loader = task_file_loader
+        self._judge_prompt_service = judge_prompt_service
+        self._log_file_writer = log_file_writer
+        self._settings_widget_controller = settings_widget_controller
+        self._run_config_controller = run_config_controller
 
     @override
     def get_event_bus(self) -> EventBus:
@@ -105,26 +153,6 @@ class ApplicationContext(AppContext):
             Configured EventBus instance.
         """
         return self._event_bus
-
-    @override
-    def get_previous_run_widget_controller_api(self) -> PreviousRunWidgetControllerApi:
-        """
-        Retrieve the controller for the 'Previous Runs' widget.
-
-        Returns:
-            Controller API for managing previous run interactions.
-        """
-        return self._previous_run_widget_controller_api
-
-    @override
-    def get_new_run_widget_controller_api(self) -> NewRunWidgetControllerApi:
-        """
-        Retrieve the controller for the 'New Run' widget.
-
-        Returns:
-            Controller API for managing new run interactions.
-        """
-        return self._new_run_widget_controller_api
 
     @override
     def get_log_widget_controller_api(self) -> LogWidgetControllerApi:
@@ -216,6 +244,75 @@ class ApplicationContext(AppContext):
             logger.warning(f"exception {e}")
             event_bus.emit_models_test_changed([])
             event_bus.emit_models_judge_changed("")
+
+    @override
+    def get_provider_registry(self) -> ProviderRegistryApi:
+        """
+        Return the provider registry for multi-provider LLM access.
+
+        Returns:
+            Configured ProviderRegistryApi instance.
+        """
+        return self._provider_registry
+
+    @override
+    def get_app_settings_service(self) -> AppSettingsServiceApi:
+        """Retrieve the application settings KV-store service.
+
+        Returns:
+            AppSettingsServiceApi instance.
+        """
+        return self._app_settings_service
+
+    @override
+    def get_task_file_loader(self) -> TaskFileLoaderApi:
+        """Retrieve the V2 benchmark task file loader.
+
+        Returns:
+            TaskFileLoaderApi instance.
+        """
+        return self._task_file_loader
+
+    @override
+    def get_judge_prompt_service(self) -> JudgePromptServiceApi:
+        """Retrieve the judge prompt builder service.
+
+        Returns:
+            JudgePromptServiceApi instance.
+        """
+        return self._judge_prompt_service
+
+    @override
+    def get_log_file_writer(self) -> LogFileWriterApi:
+        """Retrieve the log file writer service.
+
+        Returns:
+            LogFileWriterApi instance for writing benchmark log entries to disk.
+        """
+        return self._log_file_writer
+
+    @override
+    def get_settings_widget_controller(self) -> SettingsWidgetControllerApi:
+        """Retrieve the settings dialog controller.
+
+        Returns:
+            Configured SettingsWidgetControllerApi instance.
+        """
+        return self._settings_widget_controller
+
+    @override
+    def get_run_config_controller(self) -> RunConfigControllerApi:
+        """Retrieve the unified run configuration controller.
+
+        Returns:
+            RunConfigControllerApi for provider/model discovery and benchmark lifecycle.
+        """
+        return self._run_config_controller
+
+    @override
+    def get_benchmark_flow_api(self) -> BenchmarkFlowApi:
+        """Retrieve the benchmark execution flow controller."""
+        return self._benchmark_flow_api
 
 
 class ContextProvider:
@@ -321,6 +418,44 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
     data_api = SqLiteDataApi(db_path)
     result_api = AppResultApi(data_api=data_api)
 
+    # Resolve providers.yaml — prefer app_root copy, fall back to package resource
+    providers_yaml_path = app_root / "providers.yaml"
+    if not providers_yaml_path.exists():
+        ref = importlib.resources.files("ollama_llm_bench").joinpath("providers.yaml")
+        providers_yaml_path = Path(str(ref))
+
+    config_loader = ProviderConfigLoader()
+    registry = ProviderRegistry(config_loader=config_loader, providers_yaml_path=providers_yaml_path)
+    try:
+        registry.load()
+    except Exception:
+        logger.exception("provider_registry_load_failed")
+
+    # V2 services — instantiate after registry so embedding provider is available
+    task_loader = TaskFileLoader()
+    perf_task_generator = PerformanceTaskGenerator()
+    app_settings = AppSettingsService(data_api=data_api)
+    judge_prompt_svc = JudgePromptService()
+    judge_summary_svc = JudgeSummaryService(provider_registry=registry)
+    log_file_writer = LogFileWriter(app_root=app_root)
+
+    embedding_provider: EmbeddingProviderApi
+    try:
+        embedding_provider = registry.get_embedding_provider()
+    except RuntimeError:
+        logger.warning("embedding_provider_unavailable_using_null_fallback")
+        embedding_provider = _NullEmbeddingProvider()
+
+    embedding_service = EmbeddingService(provider=embedding_provider)
+
+    rule_evaluator: EvaluatorApi = RuleBasedEvaluator()
+    keyword_evaluator: EvaluatorApi = KeywordEvaluator(embedding_service=embedding_provider)
+    cosine_evaluator: EvaluatorApi = CosineSimilarityEvaluator(embedding_service=embedding_provider)
+    llm_judge_evaluator: LLMJudgeEvaluatorApi = LLMJudgeEvaluator(
+        provider_registry=registry,
+        judge_prompt_service=judge_prompt_svc,
+    )
+
     # Configure thread pool for benchmark operations
     thread_pool = QThreadPool()
     thread_pool.setMaxThreadCount(1)  # Serial execution for simplicity
@@ -331,6 +466,18 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         prompt_builder_api=prompt_builder_api,
         llm_api=ollama_llm_api,
         thread_pool=thread_pool,
+        event_bus=event_bus,
+        provider_registry=registry,
+        task_loader=task_loader,
+        judge_prompt_service=judge_prompt_svc,
+        judge_summary_service=judge_summary_svc,
+        app_settings=app_settings,
+        rule_evaluator=rule_evaluator,
+        keyword_evaluator=keyword_evaluator,
+        cosine_evaluator=cosine_evaluator,
+        llm_judge_evaluator=llm_judge_evaluator,
+        log_file_writer=log_file_writer,
+        perf_task_generator=perf_task_generator,
     )
     benchmark_flow_api.subscribe_to_benchmark_status_events(
         lambda is_running: event_bus.emit_background_thread_is_running(
@@ -343,19 +490,6 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
             progress,
         ),
     )
-    previous_run_widget_controller_api = PreviousRunWidgetController(
-        data_api=data_api,
-        task_api=task_api,
-        benchmark_flow_api=benchmark_flow_api,
-        event_bus=event_bus,
-    )
-    new_run_widget_controller_api = NewRunWidgetController(
-        data_api=data_api,
-        task_api=task_api,
-        llm_api=ollama_llm_api,
-        event_bus=event_bus,
-        benchmark_flow_api=benchmark_flow_api,
-    )
     log_widget_controller_api = LogWidgetController(
         event_bus=event_bus,
     )
@@ -363,12 +497,36 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         event_bus=event_bus,
         data_api=data_api,
         table_serializer=table_serializer,
+        app_settings_service=app_settings,
     )
     status_listener = StatusListener(
         data_api=data_api,
         event_bus=event_bus,
         benchmark_flow_api=benchmark_flow_api,
         result_api=result_api,
+    )
+
+    settings_widget_controller = SettingsWidgetController(
+        provider_registry=registry,
+        provider_config_loader=config_loader,
+        app_settings=app_settings,
+        providers_yaml_path=providers_yaml_path,
+        embedding_service=embedding_service,
+        event_bus=event_bus,
+    )
+
+    custom_patterns_raw = app_settings.get(SETTING_EMBEDDING_CUSTOM_PATTERNS) or ""
+    custom_patterns = tuple(p.strip() for p in custom_patterns_raw.split(",") if p.strip())
+    embedding_classifier = EmbeddingModelClassifier(extra_patterns=custom_patterns)
+
+    run_config_controller = RunConfigController(
+        data_api=data_api,
+        provider_registry=registry,
+        benchmark_flow_api=benchmark_flow_api,
+        event_bus=event_bus,
+        task_file_loader=task_loader,
+        app_settings_service=app_settings,
+        embedding_classifier=embedding_classifier,
     )
 
     return ApplicationContext(
@@ -379,10 +537,15 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         result_api=result_api,
         benchmark_flow_api=benchmark_flow_api,
         event_bus=event_bus,
-        previous_run_widget_controller_api=previous_run_widget_controller_api,
-        new_run_widget_controller_api=new_run_widget_controller_api,
         log_widget_controller_api=log_widget_controller_api,
         result_widget_controller_api=result_widget_controller_api,
         table_serializer=table_serializer,
         status_listener=status_listener,
+        provider_registry=registry,
+        app_settings_service=app_settings,
+        task_file_loader=task_loader,
+        judge_prompt_service=judge_prompt_svc,
+        log_file_writer=log_file_writer,
+        settings_widget_controller=settings_widget_controller,
+        run_config_controller=run_config_controller,
     )

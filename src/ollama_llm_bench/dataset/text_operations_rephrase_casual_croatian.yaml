@@ -1,15 +1,24 @@
-- task_id: "text_operations_rephrase_casual_croatian"
-  category: "Text Operations"
-  sub_category: "Rephrase"
-  question: |
-    Preformulirajte sljedeću rečenicu u opuštenom (casual) stilu, zadržavajući osnovni smisao:
-    Moj, tim zajdno s mnom planiruje predstavyti inovativniy proizvod, koji se, očikuje da će značajno utecati na tržišnu situacije veći sljedeći tedan.
-  expected_answer:
-    most_expected: |
-      Moj tim i ja uskoro ćemo predstaviti novi proizvod koji bi mogao napraviti stvarnu razliku na tržištu već sljedeći tjedan.
-    good_answer: |
-      Zajedno s ekipom spremamo novi proizvod koji će, čini se, značajno promijeniti stvari na tržištu.
-    pass_option: |
-      Jednostavan i prirodan stil, bez gramatičkih pogrešaka i uz jasnoću značenja.
-  incorrect_direction: |
-    Formalni stil, gramatičke pogreške, ili gubitak glavne ideje.
+tasks:
+  - task_id: "text_operations_rephrase_casual_croatian"
+    category: "Text Operations"
+    sub_category: "Rephrase"
+    task_type: text_rewrite
+    difficulty: medium
+    response_scope: covers
+    question: |
+      Preformulirajte sljedeću rečenicu u opuštenom (casual) stilu, zadržavajući osnovni smisao:
+      Moj, tim zajdno s mnom planiruje predstavyti inovativniy proizvod, koji se, očikuje da će značajno utecati na tržišnu situacije veći sljedeći tedan.
+    golden_answer: "Moj tim i ja uskoro ćemo predstaviti novi proizvod koji bi mogao napraviti stvarnu razliku na tržištu već sljedeći tjedan."
+    pass_criteria: "Casual, natural tone. Correct Croatian grammar. Core meaning preserved: team presenting an innovative product that may impact the market next week."
+    fail_criteria: "Formal style. Grammar errors present. Original meaning changed or important information lost."
+    required_terms:
+      exact: []
+      semantic:
+        - "proizvod"
+        - "tržište"
+        - "tjedan"
+      forbidden:
+        - "zajdno"
+        - "planiruje"
+        - "predstavyti"
+        - "inovativniy"

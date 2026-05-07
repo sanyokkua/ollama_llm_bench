@@ -1,0 +1,2476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ollama LLM Bench v2.0 — UI/UX Design Guide &amp; Mockups</title>
+<style>
+/* ============================================================
+   ROOT TOKENS — These map directly to PySide6 QSS variables.
+   In PySide6: defined in ui/style/tokens.py as dicts,
+   injected into QSS templates via str.format() or .replace().
+   ============================================================ */
+:root {
+  /* Light Mode Tokens */
+  --light-bg-primary: #FDFDFD;
+  --light-bg-secondary: #F3F4F6;
+  --light-bg-card: #FFFFFF;
+  --light-bg-input: #FFFFFF;
+  --light-border: #D1D5DB;
+  --light-border-focus: #0D9488;
+  --light-primary: #0D9488;
+  --light-primary-hover: #0B7E73;
+  --light-primary-pressed: #096B62;
+  --light-primary-disabled: #A7D3CF;
+  --light-text-primary: #0F172A;
+  --light-text-secondary: #64748B;
+  --light-text-disabled: #9CA3AF;
+  --light-text-on-primary: #FFFFFF;
+  --light-accent: #8B5CF6;
+  --light-accent-light: #EDE9FE;
+  --light-success: #059669;
+  --light-success-bg: #ECFDF5;
+  --light-failure: #DC2626;
+  --light-failure-bg: #FEF2F2;
+  --light-warning: #D97706;
+  --light-warning-bg: #FFFBEB;
+  --light-selection: #CCFBF1;
+  --light-hover: #F0FDFA;
+  --light-scrollbar-bg: #E5E7EB;
+  --light-scrollbar-handle: #9CA3AF;
+
+  /* Dark Mode Tokens */
+  --dark-bg-primary: #111827;
+  --dark-bg-secondary: #1F2937;
+  --dark-bg-card: #263044;
+  --dark-bg-input: #1F2937;
+  --dark-border: #374151;
+  --dark-border-focus: #14B8A6;
+  --dark-primary: #14B8A6;
+  --dark-primary-hover: #0FA898;
+  --dark-primary-pressed: #0D9488;
+  --dark-primary-disabled: #2D5A54;
+  --dark-text-primary: #F9FAFB;
+  --dark-text-secondary: #9CA3AF;
+  --dark-text-disabled: #4B5563;
+  --dark-text-on-primary: #111827;
+  --dark-accent: #A78BFA;
+  --dark-accent-light: #2E1065;
+  --dark-success: #34D399;
+  --dark-success-bg: #064E3B;
+  --dark-failure: #F87171;
+  --dark-failure-bg: #7F1D1D;
+  --dark-warning: #FBBF24;
+  --dark-warning-bg: #78350F;
+  --dark-selection: #134E4A;
+  --dark-hover: #1A3A35;
+  --dark-scrollbar-bg: #1F2937;
+  --dark-scrollbar-handle: #4B5563;
+
+  /* Shared */
+  --font-sans: "Segoe UI", "SF Pro Display", Ubuntu, "Noto Sans", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", Consolas, "Courier New", monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+}
+
+/* ============================================================
+   PAGE LAYOUT (for this guide document only)
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  background: #0B0F19;
+  color: #E2E8F0;
+  line-height: 1.6;
+}
+.guide-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 32px 40px;
+}
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #14B8A6;
+}
+h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 48px 0 16px 0;
+  color: #F9FAFB;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #14B8A6;
+}
+h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 28px 0 10px 0;
+  color: #A78BFA;
+}
+h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 20px 0 8px 0;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+p, li { font-size: 14px; color: #CBD5E1; }
+p { margin-bottom: 10px; }
+ul { padding-left: 20px; margin-bottom: 12px; }
+li { margin-bottom: 4px; }
+code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: #1E293B;
+  color: #14B8A6;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+pre {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: #1E293B;
+  color: #E2E8F0;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+  border: 1px solid #334155;
+}
+.subtitle {
+  font-size: 14px;
+  color: #64748B;
+  margin-bottom: 32px;
+}
+.note {
+  background: #1E293B;
+  border-left: 3px solid #14B8A6;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+}
+.note strong { color: #14B8A6; }
+.warning-note {
+  background: #1C1508;
+  border-left: 3px solid #D97706;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+}
+.warning-note strong { color: #FBBF24; }
+
+/* Section containers */
+.section-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin: 16px 0;
+}
+@media (max-width: 1100px) {
+  .section-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   1. COLOR PALETTE SWATCHES
+   ============================================================ */
+.palette-row {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+}
+.swatch-color {
+  width: 100%;
+  height: 56px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 6px;
+}
+.swatch-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #CBD5E1;
+}
+.swatch-hex {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: #64748B;
+}
+.swatch-role {
+  font-size: 10px;
+  color: #475569;
+  text-align: center;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   2. QSS MAPPING TABLE
+   ============================================================ */
+.token-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.token-table th {
+  background: #1E293B;
+  color: #14B8A6;
+  text-align: left;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.token-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid #1E293B;
+  color: #CBD5E1;
+  vertical-align: top;
+}
+.token-table td:first-child {
+  font-family: var(--font-mono);
+  color: #A78BFA;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.token-table tr:hover td { background: rgba(20,184,166,0.05); }
+.color-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 6px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ============================================================
+   3. MOCKUP CONTAINERS
+   ============================================================ */
+.mockup-wrapper {
+  margin: 20px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #334155;
+}
+.mockup-label {
+  background: #1E293B;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mockup-label .state-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.state-idle { background: #374151; color: #9CA3AF; }
+.state-running { background: #064E3B; color: #34D399; }
+.state-paused { background: #78350F; color: #FBBF24; }
+.state-finished { background: #14532D; color: #4ADE80; }
+
+/* ============================================================
+   DARK THEME MOCKUP SURFACE
+   ============================================================ */
+.mock-dark {
+  background: #111827;
+  color: #F9FAFB;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 0;
+}
+
+/* LIGHT THEME MOCKUP SURFACE */
+.mock-light {
+  background: #FDFDFD;
+  color: #0F172A;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 0;
+}
+
+/* ============================================================
+   WIDGET PRIMITIVES — PySide6 QSS compatible styling
+   These map 1:1 to QSS selectors.
+   ============================================================ */
+
+/* --- QPushButton (primary) --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: none;
+  gap: 6px;
+  min-height: 32px;
+}
+.d-btn-primary {
+  background: #14B8A6;
+  color: #111827;
+}
+.d-btn-primary:hover { background: #0FA898; }
+.d-btn-primary.disabled {
+  background: #2D5A54;
+  color: #4B5563;
+  cursor: default;
+}
+.l-btn-primary {
+  background: #0D9488;
+  color: #FFFFFF;
+}
+.l-btn-primary:hover { background: #0B7E73; }
+.l-btn-primary.disabled {
+  background: #A7D3CF;
+  color: #6B7280;
+  cursor: default;
+}
+
+/* --- QPushButton (secondary / outline) --- */
+.d-btn-secondary {
+  background: transparent;
+  color: #14B8A6;
+  border: 1px solid #374151;
+}
+.d-btn-secondary:hover { background: #1A3A35; border-color: #14B8A6; }
+.l-btn-secondary {
+  background: transparent;
+  color: #0D9488;
+  border: 1px solid #D1D5DB;
+}
+.l-btn-secondary:hover { background: #F0FDFA; border-color: #0D9488; }
+
+/* --- QPushButton (danger) --- */
+.d-btn-danger {
+  background: transparent;
+  color: #F87171;
+  border: 1px solid #374151;
+}
+.d-btn-danger:hover { background: #7F1D1D; border-color: #F87171; }
+.l-btn-danger {
+  background: transparent;
+  color: #DC2626;
+  border: 1px solid #D1D5DB;
+}
+.l-btn-danger:hover { background: #FEF2F2; border-color: #DC2626; }
+
+/* --- QPushButton (icon / small) --- */
+.d-btn-icon {
+  background: transparent;
+  color: #9CA3AF;
+  border: 1px solid #374151;
+  padding: 4px 8px;
+  min-height: 28px;
+  font-size: 12px;
+}
+.d-btn-icon:hover { color: #14B8A6; border-color: #14B8A6; }
+
+/* --- QComboBox --- */
+.combo {
+  display: inline-flex;
+  align-items: center;
+  background: #1F2937;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 5px 12px;
+  color: #F9FAFB;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  min-height: 32px;
+  gap: 8px;
+}
+.combo .arrow { color: #9CA3AF; font-size: 10px; margin-left: auto; }
+.combo:hover, .combo.focused { border-color: #14B8A6; }
+.l-combo {
+  background: #FFFFFF;
+  border-color: #D1D5DB;
+  color: #0F172A;
+}
+.l-combo:hover, .l-combo.focused { border-color: #0D9488; }
+
+/* --- QLineEdit / QTextEdit --- */
+.input {
+  display: inline-block;
+  background: #1F2937;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 5px 12px;
+  color: #F9FAFB;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  min-height: 32px;
+}
+.input:focus, .input.focused { border-color: #14B8A6; }
+.input.placeholder { color: #4B5563; }
+.l-input {
+  background: #FFFFFF;
+  border-color: #D1D5DB;
+  color: #0F172A;
+}
+.l-input:focus, .l-input.focused { border-color: #0D9488; }
+
+/* --- QCheckBox --- */
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: #F9FAFB;
+}
+.checkbox-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid #374151;
+  background: #1F2937;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.checkbox-box.checked {
+  background: #14B8A6;
+  border-color: #14B8A6;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 700;
+}
+.l-checkbox-box {
+  border-color: #D1D5DB;
+  background: #FFFFFF;
+}
+.l-checkbox-box.checked {
+  background: #0D9488;
+  border-color: #0D9488;
+  color: #FFFFFF;
+}
+
+/* --- QRadioButton --- */
+.radio-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.radio-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #374151;
+  background: #1F2937;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.radio-dot.selected {
+  border-color: #14B8A6;
+}
+.radio-dot.selected::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #14B8A6;
+}
+.l-radio-dot {
+  border-color: #D1D5DB;
+  background: #FFFFFF;
+}
+.l-radio-dot.selected { border-color: #0D9488; }
+.l-radio-dot.selected::after { background: #0D9488; }
+
+/* --- QProgressBar --- */
+.progress-bar {
+  height: 20px;
+  background: #1F2937;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid #374151;
+}
+.progress-fill {
+  height: 100%;
+  background: #14B8A6;
+  border-radius: 10px;
+  transition: width 0.3s;
+}
+.progress-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #F9FAFB;
+}
+.l-progress-bar { background: #E5E7EB; border-color: #D1D5DB; }
+.l-progress-fill { background: #0D9488; }
+
+/* --- QTabBar --- */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #374151;
+  margin-bottom: 12px;
+}
+.tab-item {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9CA3AF;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+}
+.tab-item.active {
+  color: #14B8A6;
+  border-bottom-color: #14B8A6;
+}
+.tab-item:hover:not(.active) { color: #D1D5DB; }
+.l-tab-bar { border-bottom-color: #D1D5DB; }
+.l-tab-item { color: #64748B; }
+.l-tab-item.active { color: #0D9488; border-bottom-color: #0D9488; }
+
+/* --- Status badges --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 4px;
+}
+.badge-pass { background: #064E3B; color: #34D399; }
+.badge-fail { background: #7F1D1D; color: #F87171; }
+.badge-waiting { background: #78350F; color: #FBBF24; }
+.badge-not-completed { background: #374151; color: #9CA3AF; }
+.badge-stage { background: #1E293B; color: #14B8A6; border: 1px solid #14B8A6; }
+.badge-provider-type { background: #1E293B; color: #A78BFA; border: 1px solid #374151; font-size: 10px; }
+.l-badge-pass { background: #ECFDF5; color: #059669; }
+.l-badge-fail { background: #FEF2F2; color: #DC2626; }
+.l-badge-waiting { background: #FFFBEB; color: #D97706; }
+.l-badge-stage { background: #F0FDFA; color: #0D9488; border-color: #0D9488; }
+
+/* --- Health dot --- */
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.health-live { background: #34D399; }
+.health-down { background: #F87171; }
+.health-unknown { background: #FBBF24; }
+.l-health-live { background: #059669; }
+.l-health-down { background: #DC2626; }
+
+/* --- QTableView / QHeaderView --- */
+.table-wrapper {
+  border: 1px solid #374151;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mock-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.mock-table th {
+  background: #1E293B;
+  color: #9CA3AF;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #374151;
+  white-space: nowrap;
+}
+.mock-table th .sort-arrow { color: #4B5563; margin-left: 4px; }
+.mock-table th.sorted .sort-arrow { color: #14B8A6; }
+.mock-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #1F2937;
+  color: #E2E8F0;
+  white-space: nowrap;
+}
+.mock-table tr:hover td { background: rgba(20,184,166,0.05); }
+.mock-table tr.selected td { background: #134E4A; }
+.mock-table td.mono { font-family: var(--font-mono); font-size: 11px; }
+.mock-table td.truncated {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.l-table-wrapper { border-color: #D1D5DB; }
+.l-mock-table th { background: #F3F4F6; color: #64748B; border-bottom-color: #D1D5DB; }
+.l-mock-table td { color: #0F172A; border-bottom-color: #F3F4F6; }
+.l-mock-table tr.selected td { background: #CCFBF1; }
+.l-mock-table tr:hover td { background: #F0FDFA; }
+
+/* --- QGroupBox --- */
+.group-box {
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 8px 0;
+}
+.group-box-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #374151;
+}
+.l-group-box { border-color: #D1D5DB; }
+.l-group-box-title { color: #64748B; border-bottom-color: #D1D5DB; }
+
+/* --- QScrollArea (list items) --- */
+.list-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 4px;
+  gap: 8px;
+  font-size: 13px;
+}
+.list-item:hover { background: #1A3A35; }
+.list-item.selected { background: #134E4A; }
+.list-item .remove-btn {
+  color: #4B5563;
+  font-size: 12px;
+  margin-left: auto;
+  cursor: pointer;
+}
+.list-item .remove-btn:hover { color: #F87171; }
+
+/* --- Log entry cards --- */
+.log-entry {
+  padding: 10px 14px;
+  border-left: 3px solid transparent;
+  margin: 2px 0;
+  border-radius: 0 4px 4px 0;
+}
+.log-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #A78BFA;
+  margin-bottom: 4px;
+}
+.log-entry-expand {
+  color: #4B5563;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #1E293B;
+  margin: 4px 0;
+}
+.log-entry-expand:hover { background: #334155; color: #9CA3AF; }
+.log-response {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #CBD5E1;
+  padding: 6px 0;
+  line-height: 1.5;
+}
+.log-metrics {
+  font-size: 11px;
+  color: #64748B;
+  padding: 4px 8px;
+  background: #1E293B;
+  border-radius: 4px;
+  display: inline-flex;
+  gap: 12px;
+  margin: 4px 0;
+  font-family: var(--font-mono);
+}
+.log-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.log-thinking {
+  background: #1E293B;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 4px 0;
+  font-size: 11px;
+  color: #64748B;
+  font-style: italic;
+}
+
+/* --- Provider card --- */
+.provider-card {
+  background: #1F2937;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.provider-card .prov-info { flex: 1; }
+.provider-card .prov-name { font-weight: 600; font-size: 13px; color: #F9FAFB; }
+.provider-card .prov-url { font-size: 11px; color: #64748B; font-family: var(--font-mono); }
+.provider-card .prov-models { font-size: 11px; color: #9CA3AF; }
+.provider-card .prov-actions { display: flex; gap: 6px; align-items: center; }
+
+/* --- Drag-drop zone --- */
+.drop-zone {
+  border: 2px dashed #374151;
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  color: #4B5563;
+  font-size: 12px;
+}
+.drop-zone.active {
+  border-color: #14B8A6;
+  background: rgba(20,184,166,0.05);
+  color: #14B8A6;
+}
+
+/* --- Splitter handle --- */
+.splitter-handle {
+  width: 5px;
+  background: #374151;
+  cursor: col-resize;
+  flex-shrink: 0;
+}
+.splitter-handle:hover { background: #14B8A6; }
+.l-splitter-handle { background: #D1D5DB; }
+.l-splitter-handle:hover { background: #0D9488; }
+
+/* --- QToolTip --- */
+.mock-tooltip {
+  background: #1E293B;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #F9FAFB;
+  position: absolute;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* ============================================================
+   FULL APP MOCKUP LAYOUT
+   ============================================================ */
+.app-frame {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #374151;
+}
+.app-titlebar {
+  background: #0D1117;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9CA3AF;
+}
+.traffic-lights {
+  display: flex;
+  gap: 6px;
+}
+.traffic-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.traffic-close { background: #FF5F57; }
+.traffic-min { background: #FEBC2E; }
+.traffic-max { background: #28C840; }
+.app-titlebar .title { margin-left: 8px; flex: 1; }
+.app-titlebar .title-btn {
+  padding: 2px 10px;
+  border-radius: 4px;
+  background: #1F2937;
+  color: #9CA3AF;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #374151;
+}
+.app-titlebar .title-btn:hover { color: #14B8A6; border-color: #14B8A6; }
+
+.app-body {
+  display: flex;
+  height: 700px;
+}
+.panel {
+  overflow-y: auto;
+  padding: 16px;
+}
+.panel-left {
+  width: 280px;
+  min-width: 250px;
+  background: #111827;
+  border-right: 1px solid #374151;
+}
+.panel-center {
+  flex: 1;
+  background: #111827;
+  border-right: 1px solid #374151;
+}
+.panel-right {
+  width: 440px;
+  min-width: 380px;
+  background: #111827;
+}
+
+/* Light mode app */
+.l-app-titlebar { background: #E5E7EB; }
+.l-app-titlebar .title { color: #374151; }
+.l-app-titlebar .title-btn { background: #F3F4F6; color: #64748B; border-color: #D1D5DB; }
+.l-panel-left { background: #FDFDFD; border-right-color: #D1D5DB; }
+.l-panel-center { background: #FDFDFD; border-right-color: #D1D5DB; }
+.l-panel-right { background: #FDFDFD; }
+
+/* Section headers in panels */
+.panel-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 16px 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #374151;
+}
+.l-panel-section-title { color: #94A3B8; }
+.l-panel-section-title::after { background: #E5E7EB; }
+
+/* --- QMessageBox / QDialog overlay --- */
+.dialog-overlay {
+  background: rgba(0,0,0,0.6);
+  border-radius: 8px;
+  padding: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dialog-box {
+  background: #1F2937;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  padding: 24px;
+  width: 400px;
+}
+.dialog-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #F9FAFB;
+  margin-bottom: 8px;
+}
+.dialog-msg {
+  font-size: 13px;
+  color: #9CA3AF;
+  margin-bottom: 20px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.l-dialog-box { background: #FFFFFF; border-color: #D1D5DB; }
+.l-dialog-title { color: #0F172A; }
+.l-dialog-msg { color: #64748B; }
+
+/* Charts mockup */
+.chart-placeholder {
+  background: #1E293B;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 100px;
+  margin-bottom: 8px;
+}
+.bar {
+  width: 28px;
+  border-radius: 3px 3px 0 0;
+  position: relative;
+}
+.bar-label {
+  font-size: 9px;
+  color: #64748B;
+  text-align: center;
+  margin-top: 4px;
+  transform: rotate(-45deg);
+  transform-origin: center;
+  white-space: nowrap;
+}
+.chart-title {
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 8px;
+}
+</style>
+</head>
+<body>
+<div class="guide-container">
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<h1>Ollama LLM Bench v2.0 — UI/UX Design Guide</h1>
+<p class="subtitle">Color palette, design tokens, QSS rules, widget reference, and full interactive mockups for all application states. PySide6-compatible only — no browser-only CSS.</p>
+
+<div class="note">
+  <strong>For Claude Code:</strong> This document defines every color, spacing, and widget style. Use the QSS mapping tables to generate <code>ui/style/tokens.py</code> and <code>ui/style/theme_dark.qss</code> / <code>theme_light.qss</code>. Every hex value, radius, and padding here is the canonical source of truth.
+</div>
+
+<div class="warning-note">
+  <strong>PySide6 constraints:</strong> No CSS gradients with stops, no <code>box-shadow</code>, no <code>transition</code>, no <code>opacity</code> property, no <code>:hover</code> pseudo on non-interactive widgets. QSS supports: <code>background</code>, <code>color</code>, <code>border</code>, <code>border-radius</code>, <code>padding</code>, <code>margin</code>, <code>font-size</code>, <code>font-weight</code>, <code>font-family</code>, <code>min-height</code>, <code>min-width</code>, <code>max-height</code>, <code>max-width</code>. Sub-controls: <code>::drop-down</code>, <code>::down-arrow</code>, <code>::chunk</code>, <code>::handle</code>, <code>::indicator</code>, <code>::tab</code>, <code>::pane</code>, <code>::section</code>.
+</div>
+
+<!-- ============================================================
+     SECTION 1: COLOR PALETTE
+     ============================================================ -->
+<h2>1. Color Palette</h2>
+
+<h3>Dark Mode</h3>
+<div class="palette-row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#111827"></div>
+    <div class="swatch-label">Background</div>
+    <div class="swatch-hex">#111827</div>
+    <div class="swatch-role">QMainWindow, QDialog</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#1F2937"></div>
+    <div class="swatch-label">Secondary</div>
+    <div class="swatch-hex">#1F2937</div>
+    <div class="swatch-role">QGroupBox, QFrame, inputs</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#263044"></div>
+    <div class="swatch-label">Card</div>
+    <div class="swatch-hex">#263044</div>
+    <div class="swatch-role">Provider cards, log cards</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#1E293B"></div>
+    <div class="swatch-label">Surface</div>
+    <div class="swatch-hex">#1E293B</div>
+    <div class="swatch-role">QHeaderView, tooltips</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#374151"></div>
+    <div class="swatch-label">Border</div>
+    <div class="swatch-hex">#374151</div>
+    <div class="swatch-role">All borders, dividers</div>
+  </div>
+</div>
+<div class="palette-row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#14B8A6"></div>
+    <div class="swatch-label">Primary</div>
+    <div class="swatch-hex">#14B8A6</div>
+    <div class="swatch-role">Buttons, active tab, progress</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0FA898"></div>
+    <div class="swatch-label">Primary Hover</div>
+    <div class="swatch-hex">#0FA898</div>
+    <div class="swatch-role">QPushButton:hover</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0D9488"></div>
+    <div class="swatch-label">Primary Pressed</div>
+    <div class="swatch-hex">#0D9488</div>
+    <div class="swatch-role">QPushButton:pressed</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#2D5A54"></div>
+    <div class="swatch-label">Primary Disabled</div>
+    <div class="swatch-hex">#2D5A54</div>
+    <div class="swatch-role">QPushButton:disabled</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#A78BFA"></div>
+    <div class="swatch-label">Accent</div>
+    <div class="swatch-hex">#A78BFA</div>
+    <div class="swatch-role">Charts, highlights, links</div>
+  </div>
+</div>
+<div class="palette-row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#F9FAFB"></div>
+    <div class="swatch-label">Text</div>
+    <div class="swatch-hex">#F9FAFB</div>
+    <div class="swatch-role">QLabel primary text</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#9CA3AF"></div>
+    <div class="swatch-label">Text Secondary</div>
+    <div class="swatch-hex">#9CA3AF</div>
+    <div class="swatch-role">Labels, metadata, headers</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#4B5563"></div>
+    <div class="swatch-label">Text Disabled</div>
+    <div class="swatch-hex">#4B5563</div>
+    <div class="swatch-role">Disabled text, placeholder</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#34D399"></div>
+    <div class="swatch-label">Success</div>
+    <div class="swatch-hex">#34D399</div>
+    <div class="swatch-role">PASS, health live, complete</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#F87171"></div>
+    <div class="swatch-label">Failure</div>
+    <div class="swatch-hex">#F87171</div>
+    <div class="swatch-role">FAIL, health down, error</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#FBBF24"></div>
+    <div class="swatch-label">Warning</div>
+    <div class="swatch-hex">#FBBF24</div>
+    <div class="swatch-role">WAITING, health unknown</div>
+  </div>
+</div>
+
+<h3>Light Mode</h3>
+<div class="palette-row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#FDFDFD; border-color:#D1D5DB"></div>
+    <div class="swatch-label">Background</div>
+    <div class="swatch-hex">#FDFDFD</div>
+    <div class="swatch-role">QMainWindow, QDialog</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#F3F4F6; border-color:#D1D5DB"></div>
+    <div class="swatch-label">Secondary</div>
+    <div class="swatch-hex">#F3F4F6</div>
+    <div class="swatch-role">QGroupBox, QFrame, inputs</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#FFFFFF; border-color:#D1D5DB"></div>
+    <div class="swatch-label">Card</div>
+    <div class="swatch-hex">#FFFFFF</div>
+    <div class="swatch-role">Cards, elevated surfaces</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#D1D5DB"></div>
+    <div class="swatch-label">Border</div>
+    <div class="swatch-hex">#D1D5DB</div>
+    <div class="swatch-role">All borders, dividers</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0D9488"></div>
+    <div class="swatch-label">Primary</div>
+    <div class="swatch-hex">#0D9488</div>
+    <div class="swatch-role">Buttons, active tab, progress</div>
+  </div>
+</div>
+<div class="palette-row">
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0B7E73"></div>
+    <div class="swatch-label">Primary Hover</div>
+    <div class="swatch-hex">#0B7E73</div>
+    <div class="swatch-role">QPushButton:hover</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#8B5CF6"></div>
+    <div class="swatch-label">Accent</div>
+    <div class="swatch-hex">#8B5CF6</div>
+    <div class="swatch-role">Charts, highlights</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#0F172A"></div>
+    <div class="swatch-label">Text</div>
+    <div class="swatch-hex">#0F172A</div>
+    <div class="swatch-role">QLabel primary text</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#64748B"></div>
+    <div class="swatch-label">Text Secondary</div>
+    <div class="swatch-hex">#64748B</div>
+    <div class="swatch-role">Labels, metadata</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#059669"></div>
+    <div class="swatch-label">Success</div>
+    <div class="swatch-hex">#059669</div>
+    <div class="swatch-role">PASS, health live</div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background:#DC2626"></div>
+    <div class="swatch-label">Failure</div>
+    <div class="swatch-hex">#DC2626</div>
+    <div class="swatch-role">FAIL, health down</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SECTION 2: DESIGN TOKENS → QSS MAPPING
+     ============================================================ -->
+<h2>2. Design Tokens → QSS Mapping</h2>
+
+<p>These tokens are defined as Python dicts in <code>ui/style/tokens.py</code>. The QSS template files reference them via <code>{token_name}</code> placeholders.</p>
+
+<pre>
+# ui/style/tokens.py
+DARK = {
+    "bg_primary":       "#111827",
+    "bg_secondary":     "#1F2937",
+    "bg_card":          "#263044",
+    "bg_input":         "#1F2937",
+    "border":           "#374151",
+    "border_focus":     "#14B8A6",
+    "primary":          "#14B8A6",
+    "primary_hover":    "#0FA898",
+    "primary_pressed":  "#0D9488",
+    "primary_disabled": "#2D5A54",
+    "text_primary":     "#F9FAFB",
+    "text_secondary":   "#9CA3AF",
+    "text_disabled":    "#4B5563",
+    "text_on_primary":  "#111827",
+    "accent":           "#A78BFA",
+    "success":          "#34D399",
+    "success_bg":       "#064E3B",
+    "failure":          "#F87171",
+    "failure_bg":       "#7F1D1D",
+    "warning":          "#FBBF24",
+    "warning_bg":       "#78350F",
+    "selection":        "#134E4A",
+    "hover":            "#1A3A35",
+    "scrollbar_bg":     "#1F2937",
+    "scrollbar_handle": "#4B5563",
+}
+
+LIGHT = {
+    "bg_primary":       "#FDFDFD",
+    "bg_secondary":     "#F3F4F6",
+    "bg_card":          "#FFFFFF",
+    "bg_input":         "#FFFFFF",
+    "border":           "#D1D5DB",
+    "border_focus":     "#0D9488",
+    "primary":          "#0D9488",
+    "primary_hover":    "#0B7E73",
+    "primary_pressed":  "#096B62",
+    "primary_disabled": "#A7D3CF",
+    "text_primary":     "#0F172A",
+    "text_secondary":   "#64748B",
+    "text_disabled":    "#9CA3AF",
+    "text_on_primary":  "#FFFFFF",
+    "accent":           "#8B5CF6",
+    "success":          "#059669",
+    "success_bg":       "#ECFDF5",
+    "failure":          "#DC2626",
+    "failure_bg":       "#FEF2F2",
+    "warning":          "#D97706",
+    "warning_bg":       "#FFFBEB",
+    "selection":        "#CCFBF1",
+    "hover":            "#F0FDFA",
+    "scrollbar_bg":     "#E5E7EB",
+    "scrollbar_handle": "#9CA3AF",
+}
+
+SHARED = {
+    "font_sans":  '"SF Pro Text", "Segoe UI", "Cantarell", "Ubuntu", "Helvetica Neue", "Noto Sans", "DejaVu Sans", sans-serif',
+    "font_mono":  '"SF Mono", "Cascadia Mono", "Menlo", "Consolas", "Ubuntu Mono", "DejaVu Sans Mono", "Monaco", "Courier New", monospace',
+    "radius_sm":  "4px",
+    "radius_md":  "6px",
+    "radius_lg":  "8px",
+}
+</pre>
+
+<h3>QSS Selector Reference</h3>
+<table class="token-table">
+<tr><th>QSS Selector</th><th>Properties</th><th>Token(s)</th></tr>
+<tr><td>QMainWindow</td><td>background: {bg_primary}</td><td>bg_primary</td></tr>
+<tr><td>QDialog</td><td>background: {bg_primary}</td><td>bg_primary</td></tr>
+<tr><td>QLabel</td><td>color: {text_primary}; font-size: 13px</td><td>text_primary</td></tr>
+<tr><td>QLabel[role="secondary"]</td><td>color: {text_secondary}; font-size: 12px</td><td>text_secondary</td></tr>
+<tr><td>QLabel[role="heading"]</td><td>color: {text_secondary}; font-size: 11px; font-weight: 700; text-transform: uppercase</td><td>text_secondary</td></tr>
+<tr><td>QPushButton[role="primary"]</td><td>background: {primary}; color: {text_on_primary}; border: none; border-radius: {radius_md}; padding: 6px 16px; font-weight: 600; min-height: 32px</td><td>primary, text_on_primary, radius_md</td></tr>
+<tr><td>QPushButton[role="primary"]:hover</td><td>background: {primary_hover}</td><td>primary_hover</td></tr>
+<tr><td>QPushButton[role="primary"]:pressed</td><td>background: {primary_pressed}</td><td>primary_pressed</td></tr>
+<tr><td>QPushButton[role="primary"]:disabled</td><td>background: {primary_disabled}; color: {text_disabled}</td><td>primary_disabled, text_disabled</td></tr>
+<tr><td>QPushButton[role="secondary"]</td><td>background: transparent; color: {primary}; border: 1px solid {border}; border-radius: {radius_md}; padding: 6px 16px; min-height: 32px</td><td>primary, border, radius_md</td></tr>
+<tr><td>QPushButton[role="secondary"]:hover</td><td>background: {hover}; border-color: {primary}</td><td>hover, primary</td></tr>
+<tr><td>QPushButton[role="danger"]</td><td>background: transparent; color: {failure}; border: 1px solid {border}; border-radius: {radius_md}</td><td>failure, border</td></tr>
+<tr><td>QPushButton[role="danger"]:hover</td><td>background: {failure_bg}; border-color: {failure}</td><td>failure_bg, failure</td></tr>
+<tr><td>QComboBox</td><td>background: {bg_input}; border: 1px solid {border}; border-radius: {radius_md}; padding: 5px 12px; color: {text_primary}; min-height: 32px</td><td>bg_input, border, radius_md, text_primary</td></tr>
+<tr><td>QComboBox:focus</td><td>border-color: {border_focus}</td><td>border_focus</td></tr>
+<tr><td>QComboBox::drop-down</td><td>border: none; width: 20px</td><td>—</td></tr>
+<tr><td>QComboBox QAbstractItemView</td><td>background: {bg_secondary}; border: 1px solid {border}; selection-background-color: {selection}; color: {text_primary}</td><td>bg_secondary, border, selection, text_primary</td></tr>
+<tr><td>QLineEdit</td><td>background: {bg_input}; border: 1px solid {border}; border-radius: {radius_md}; padding: 5px 12px; color: {text_primary}; min-height: 32px</td><td>bg_input, border, radius_md, text_primary</td></tr>
+<tr><td>QLineEdit:focus</td><td>border-color: {border_focus}</td><td>border_focus</td></tr>
+<tr><td>QTextEdit</td><td>background: {bg_input}; border: 1px solid {border}; border-radius: {radius_md}; padding: 8px; color: {text_primary}; font-family: {font_mono}; font-size: 12px</td><td>bg_input, border, radius_md, text_primary, font_mono</td></tr>
+<tr><td>QCheckBox::indicator</td><td>width: 18px; height: 18px; border-radius: {radius_sm}; border: 2px solid {border}; background: {bg_input}</td><td>radius_sm, border, bg_input</td></tr>
+<tr><td>QCheckBox::indicator:checked</td><td>background: {primary}; border-color: {primary}; image: url(check_icon.svg)</td><td>primary</td></tr>
+<tr><td>QRadioButton::indicator</td><td>width: 18px; height: 18px; border-radius: 9px; border: 2px solid {border}; background: {bg_input}</td><td>border, bg_input</td></tr>
+<tr><td>QRadioButton::indicator:checked</td><td>border-color: {primary}; background: {primary} (inner dot via image)</td><td>primary</td></tr>
+<tr><td>QProgressBar</td><td>background: {bg_secondary}; border: 1px solid {border}; border-radius: 10px; min-height: 20px; text-align: center; font-size: 11px; color: {text_primary}</td><td>bg_secondary, border, text_primary</td></tr>
+<tr><td>QProgressBar::chunk</td><td>background: {primary}; border-radius: 10px</td><td>primary</td></tr>
+<tr><td>QTabBar::tab</td><td>padding: 8px 20px; color: {text_secondary}; font-weight: 600; border-bottom: 2px solid transparent</td><td>text_secondary</td></tr>
+<tr><td>QTabBar::tab:selected</td><td>color: {primary}; border-bottom-color: {primary}</td><td>primary</td></tr>
+<tr><td>QTableView</td><td>background: {bg_primary}; border: 1px solid {border}; gridline-color: {bg_secondary}; selection-background-color: {selection}; color: {text_primary}; font-size: 12px</td><td>bg_primary, border, bg_secondary, selection, text_primary</td></tr>
+<tr><td>QHeaderView::section</td><td>background: {bg_secondary}; color: {text_secondary}; font-weight: 600; font-size: 11px; padding: 8px 10px; border: none; border-bottom: 1px solid {border}</td><td>bg_secondary, text_secondary, border</td></tr>
+<tr><td>QGroupBox</td><td>border: 1px solid {border}; border-radius: {radius_md}; padding: 16px; margin-top: 16px</td><td>border, radius_md</td></tr>
+<tr><td>QGroupBox::title</td><td>color: {text_secondary}; font-size: 11px; font-weight: 700; subcontrol-origin: margin; subcontrol-position: top left; padding: 0 6px</td><td>text_secondary</td></tr>
+<tr><td>QScrollBar:vertical</td><td>background: {scrollbar_bg}; width: 8px; border-radius: 4px</td><td>scrollbar_bg</td></tr>
+<tr><td>QScrollBar::handle:vertical</td><td>background: {scrollbar_handle}; border-radius: 4px; min-height: 30px</td><td>scrollbar_handle</td></tr>
+<tr><td>QToolTip</td><td>background: {bg_secondary}; color: {text_primary}; border: 1px solid {border}; border-radius: {radius_sm}; padding: 6px 10px; font-size: 12px</td><td>bg_secondary, text_primary, border, radius_sm</td></tr>
+<tr><td>QSplitter::handle</td><td>background: {border}; width: 5px</td><td>border</td></tr>
+<tr><td>QSplitter::handle:hover</td><td>background: {primary}</td><td>primary</td></tr>
+</table>
+
+<!-- ============================================================
+     SECTION 3: WIDGET STATES GALLERY
+     ============================================================ -->
+<h2>3. Widget States Gallery</h2>
+<p>Every widget in every state, shown in both themes. These are the exact visual targets for QSS implementation.</p>
+
+<div class="section-grid">
+
+<!-- BUTTONS -->
+<div>
+<h3>QPushButton States — Dark</h3>
+<div style="background:#111827; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:10px;">
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <button class="btn d-btn-primary">Start Benchmark</button>
+    <button class="btn d-btn-primary" style="background:#0FA898">Hover</button>
+    <button class="btn d-btn-primary" style="background:#0D9488">Pressed</button>
+    <button class="btn d-btn-primary disabled">Disabled</button>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <button class="btn d-btn-secondary">Export CSV</button>
+    <button class="btn d-btn-secondary" style="background:#1A3A35; border-color:#14B8A6">Hover</button>
+    <button class="btn d-btn-danger">Delete Run</button>
+    <button class="btn d-btn-danger" style="background:#7F1D1D; border-color:#F87171">Hover</button>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <button class="btn d-btn-icon">&#x25B6; Start</button>
+    <button class="btn d-btn-icon">&#x23F8; Pause</button>
+    <button class="btn d-btn-icon" style="color:#F87171; border-color:#F87171">&#x23F9; Stop</button>
+    <button class="btn d-btn-icon" style="color:#4B5563; border-color:#2D2D2D; cursor:default">&#x23F9; Disabled</button>
+  </div>
+</div>
+</div>
+
+<div>
+<h3>QPushButton States — Light</h3>
+<div style="background:#FDFDFD; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:10px;">
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <button class="btn l-btn-primary">Start Benchmark</button>
+    <button class="btn l-btn-primary" style="background:#0B7E73">Hover</button>
+    <button class="btn l-btn-primary" style="background:#096B62">Pressed</button>
+    <button class="btn l-btn-primary disabled">Disabled</button>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <button class="btn l-btn-secondary">Export CSV</button>
+    <button class="btn l-btn-secondary" style="background:#F0FDFA; border-color:#0D9488">Hover</button>
+    <button class="btn l-btn-danger">Delete Run</button>
+    <button class="btn l-btn-danger" style="background:#FEF2F2; border-color:#DC2626">Hover</button>
+  </div>
+</div>
+</div>
+
+<!-- INPUTS -->
+<div>
+<h3>QComboBox / QLineEdit — Dark</h3>
+<div style="background:#111827; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:10px;">
+  <div class="combo" style="width:260px">Ollama (Local) <span class="arrow">&#x25BC;</span></div>
+  <div class="combo focused" style="width:260px">qwen3:8b <span class="arrow">&#x25BC;</span></div>
+  <div class="input" style="width:260px">bge-m3</div>
+  <div class="input focused" style="width:260px; border-color:#14B8A6">Search tasks...</div>
+  <div class="input placeholder" style="width:260px; color:#4B5563">Placeholder text</div>
+</div>
+</div>
+
+<div>
+<h3>QComboBox / QLineEdit — Light</h3>
+<div style="background:#FDFDFD; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:10px;">
+  <div class="combo l-combo" style="width:260px; color:#0F172A">Ollama (Local) <span class="arrow" style="color:#64748B">&#x25BC;</span></div>
+  <div class="combo l-combo focused" style="width:260px; color:#0F172A; border-color:#0D9488">qwen3:8b <span class="arrow" style="color:#64748B">&#x25BC;</span></div>
+  <div class="input l-input" style="width:260px">bge-m3</div>
+  <div class="input l-input" style="width:260px; border-color:#0D9488">Search tasks...</div>
+</div>
+</div>
+
+<!-- CHECKBOXES AND RADIOS -->
+<div>
+<h3>QCheckBox / QRadioButton — Dark</h3>
+<div style="background:#111827; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:4px;">
+  <div class="checkbox-row"><div class="checkbox-box checked">&#x2713;</div> llama3.1:8b-instruct-q4_K_M</div>
+  <div class="checkbox-row"><div class="checkbox-box checked">&#x2713;</div> qwen3:8b</div>
+  <div class="checkbox-row"><div class="checkbox-box"></div> gemma3:12b-it-qat</div>
+  <div class="checkbox-row"><div class="checkbox-box"></div> devstral:24b</div>
+  <div style="height:8px"></div>
+  <div class="radio-row" style="color:#F9FAFB"><div class="radio-dot"></div> Speed</div>
+  <div class="radio-row" style="color:#F9FAFB"><div class="radio-dot selected"><div style="width:10px;height:10px;border-radius:50%;background:#14B8A6"></div></div> Full Grading</div>
+  <div class="radio-row" style="color:#F9FAFB"><div class="radio-dot"></div> Prompt Eval</div>
+</div>
+</div>
+
+<div>
+<h3>QCheckBox / QRadioButton — Light</h3>
+<div style="background:#FDFDFD; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:4px;">
+  <div class="checkbox-row" style="color:#0F172A"><div class="checkbox-box l-checkbox-box checked" style="background:#0D9488; border-color:#0D9488; color:#FFF">&#x2713;</div> llama3.1:8b-instruct</div>
+  <div class="checkbox-row" style="color:#0F172A"><div class="checkbox-box l-checkbox-box checked" style="background:#0D9488; border-color:#0D9488; color:#FFF">&#x2713;</div> qwen3:8b</div>
+  <div class="checkbox-row" style="color:#0F172A"><div class="checkbox-box l-checkbox-box"></div> gemma3:12b-it-qat</div>
+  <div style="height:8px"></div>
+  <div class="radio-row" style="color:#0F172A"><div class="radio-dot l-radio-dot"></div> Speed</div>
+  <div class="radio-row" style="color:#0F172A"><div class="radio-dot l-radio-dot selected" style="border-color:#0D9488"><div style="width:10px;height:10px;border-radius:50%;background:#0D9488"></div></div> Full Grading</div>
+  <div class="radio-row" style="color:#0F172A"><div class="radio-dot l-radio-dot"></div> Prompt Eval</div>
+</div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div>
+<h3>QProgressBar States — Dark</h3>
+<div style="background:#111827; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:12px;">
+  <div>
+    <div style="font-size:11px; color:#9CA3AF; margin-bottom:4px">0% — Not started</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:0%"></div><div class="progress-text">0%</div></div>
+  </div>
+  <div>
+    <div style="font-size:11px; color:#9CA3AF; margin-bottom:4px">63% — Running</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:63%"></div><div class="progress-text">63% — 341 / 539</div></div>
+  </div>
+  <div>
+    <div style="font-size:11px; color:#9CA3AF; margin-bottom:4px">100% — Complete</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:100%; background:#34D399"></div><div class="progress-text" style="color:#111827">100% — Complete</div></div>
+  </div>
+  <div>
+    <div style="font-size:11px; color:#9CA3AF; margin-bottom:4px">Failed</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:45%; background:#F87171"></div><div class="progress-text">Failed at 45%</div></div>
+  </div>
+</div>
+</div>
+
+<!-- BADGES -->
+<div>
+<h3>Status Badges — Dark &amp; Light</h3>
+<div style="background:#111827; padding:20px; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+  <span class="badge badge-pass">&#x2713; PASS</span>
+  <span class="badge badge-fail">&#x2717; FAIL</span>
+  <span class="badge badge-waiting">&#x25CF; WAITING</span>
+  <span class="badge badge-not-completed">NOT COMPLETED</span>
+  <span class="badge badge-stage">BENCHMARKING</span>
+  <span class="badge badge-provider-type">openai_compatible</span>
+  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#F9FAFB"><span class="health-dot health-live"></span> Live</span>
+  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#F9FAFB"><span class="health-dot health-down"></span> Down</span>
+  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#F9FAFB"><span class="health-dot health-unknown"></span> Unknown</span>
+</div>
+<div style="background:#FDFDFD; padding:20px; border-radius:8px; display:flex; flex-wrap:wrap; gap:8px;">
+  <span class="badge l-badge-pass">&#x2713; PASS</span>
+  <span class="badge l-badge-fail">&#x2717; FAIL</span>
+  <span class="badge l-badge-waiting">&#x25CF; WAITING</span>
+  <span class="badge l-badge-stage">BENCHMARKING</span>
+  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#0F172A"><span class="health-dot l-health-live"></span> Live</span>
+  <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; color:#0F172A"><span class="health-dot l-health-down"></span> Down</span>
+</div>
+</div>
+
+</div> <!-- end section-grid -->
+
+<!-- ============================================================
+     SECTION 4: TABLE MOCKUPS
+     ============================================================ -->
+<h2>4. QTableView Mockups</h2>
+
+<h3>Summary Table — Full Grading Mode (Dark)</h3>
+<div class="table-wrapper" style="max-width:800px">
+<table class="mock-table">
+<tr>
+  <th class="sorted">Model <span class="sort-arrow">&#x25BC;</span></th>
+  <th>Time (s) <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+  <th>Tok/s <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+  <th>Score <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+  <th>Pass% <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+  <th>TTFT (ms) <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+</tr>
+<tr class="selected">
+  <td class="mono">qwen3:30b-a3b-thinking</td>
+  <td>72.02</td>
+  <td>8.3</td>
+  <td>0.78</td>
+  <td><span class="badge badge-pass" style="font-size:10px; padding:1px 6px">76%</span></td>
+  <td>312</td>
+</tr>
+<tr>
+  <td class="mono">gemma3:27b-it-qat</td>
+  <td>49.65</td>
+  <td>7.9</td>
+  <td>0.77</td>
+  <td><span class="badge badge-pass" style="font-size:10px; padding:1px 6px">74%</span></td>
+  <td>287</td>
+</tr>
+<tr>
+  <td class="mono">gemma3:12b-it-qat</td>
+  <td>22.80</td>
+  <td>17.0</td>
+  <td>0.67</td>
+  <td><span class="badge badge-waiting" style="font-size:10px; padding:1px 6px">64%</span></td>
+  <td>198</td>
+</tr>
+<tr>
+  <td class="mono">devstral:24b</td>
+  <td>23.83</td>
+  <td>9.35</td>
+  <td>0.63</td>
+  <td><span class="badge badge-waiting" style="font-size:10px; padding:1px 6px">60%</span></td>
+  <td>254</td>
+</tr>
+<tr>
+  <td class="mono">llama3.1:8b-instruct</td>
+  <td>7.82</td>
+  <td>26.3</td>
+  <td>0.46</td>
+  <td><span class="badge badge-fail" style="font-size:10px; padding:1px 6px">42%</span></td>
+  <td>89</td>
+</tr>
+</table>
+</div>
+
+<h3>Detailed Results Table — Full Grading Mode (Dark)</h3>
+<div class="table-wrapper" style="max-width:900px; margin-top:12px">
+<table class="mock-table">
+<tr>
+  <th>Model</th>
+  <th>Task</th>
+  <th>Verdict</th>
+  <th>Score</th>
+  <th>Cosine</th>
+  <th>Layer</th>
+  <th>Time (ms)</th>
+  <th>Reason</th>
+</tr>
+<tr>
+  <td class="mono">qwen3:30b</td>
+  <td class="truncated mono">coding_java_two_sum_indices</td>
+  <td><span class="badge badge-pass">&#x2713; PASS</span></td>
+  <td>0.82</td>
+  <td style="color:#64748B">N/A</td>
+  <td><span class="badge badge-stage" style="font-size:9px;padding:1px 5px">L4:judge</span></td>
+  <td>14320</td>
+  <td class="truncated" style="color:#9CA3AF">Correct algorithm, handles duplicates</td>
+</tr>
+<tr>
+  <td class="mono">qwen3:30b</td>
+  <td class="truncated mono">text_ops_rephrase_croatian</td>
+  <td><span class="badge badge-pass">&#x2713; PASS</span></td>
+  <td>0.91</td>
+  <td style="color:#A78BFA">0.89</td>
+  <td><span class="badge" style="background:#1E293B;color:#A78BFA;border:1px solid #374151;font-size:9px;padding:1px 5px">L3:cosine</span></td>
+  <td>42232</td>
+  <td class="truncated" style="color:#9CA3AF">Casual tone preserved, grammar correct</td>
+</tr>
+<tr>
+  <td class="mono">qwen3:30b</td>
+  <td class="truncated mono">general_knowledge_hp_object</td>
+  <td><span class="badge badge-fail">&#x2717; FAIL</span></td>
+  <td>0.21</td>
+  <td style="color:#A78BFA">0.41</td>
+  <td><span class="badge badge-stage" style="font-size:9px;padding:1px 5px">L4:judge</span></td>
+  <td>15593</td>
+  <td class="truncated" style="color:#9CA3AF">Incorrect chapter reference, missing detail</td>
+</tr>
+<tr>
+  <td class="mono">qwen3:30b</td>
+  <td class="truncated mono">coding_python_sort_edge</td>
+  <td><span class="badge badge-fail">&#x2717; FAIL</span></td>
+  <td style="color:#4B5563">—</td>
+  <td style="color:#4B5563">—</td>
+  <td><span class="badge" style="background:#7F1D1D;color:#F87171;font-size:9px;padding:1px 5px">L1:rules</span></td>
+  <td>0</td>
+  <td class="truncated" style="color:#F87171">Empty output</td>
+</tr>
+<tr>
+  <td class="mono">qwen3:30b</td>
+  <td class="truncated mono">data_extract_transaction</td>
+  <td><span class="badge badge-fail">&#x2717; FAIL</span></td>
+  <td style="color:#4B5563">—</td>
+  <td style="color:#4B5563">—</td>
+  <td><span class="badge" style="background:#78350F;color:#FBBF24;font-size:9px;padding:1px 5px">L2:keyword</span></td>
+  <td>8342</td>
+  <td class="truncated" style="color:#FBBF24">Missing: "HashMap"</td>
+</tr>
+</table>
+</div>
+
+<h3>Speed Mode Summary Table (Dark)</h3>
+<div class="table-wrapper" style="max-width:700px; margin-top:12px">
+<table class="mock-table">
+<tr>
+  <th class="sorted">Model <span class="sort-arrow">&#x25BC;</span></th>
+  <th>Time (s)</th>
+  <th>Tok/s</th>
+  <th>TTFT (ms)</th>
+  <th>Prompt Tokens</th>
+  <th>Completion Tokens</th>
+</tr>
+<tr class="selected">
+  <td class="mono">llama3.1:8b-instruct</td>
+  <td>7.82</td>
+  <td style="color:#34D399; font-weight:600">26.3</td>
+  <td>89</td>
+  <td>187</td>
+  <td>423</td>
+</tr>
+<tr>
+  <td class="mono">gemma3:12b-it-qat</td>
+  <td>22.80</td>
+  <td>17.0</td>
+  <td>198</td>
+  <td>192</td>
+  <td>391</td>
+</tr>
+<tr>
+  <td class="mono">qwen3:30b-a3b-thinking</td>
+  <td>72.02</td>
+  <td style="color:#F87171">8.3</td>
+  <td>312</td>
+  <td>205</td>
+  <td>598</td>
+</tr>
+</table>
+</div>
+
+<!-- ============================================================
+     SECTION 5: FULL APP MOCKUPS
+     ============================================================ -->
+<h2>5. Full Application Mockups</h2>
+
+<!-- ========== DARK MODE — RUNNING STATE ========== -->
+<h3>5.1 Main Window — Dark Theme — Benchmark Running (63%)</h3>
+<div class="mockup-wrapper">
+<div class="mockup-label">DARK THEME — BENCHMARK RUNNING <span class="state-badge state-running">RUNNING</span></div>
+<div class="app-frame">
+<div class="app-titlebar">
+  <div class="traffic-lights"><div class="traffic-dot traffic-close"></div><div class="traffic-dot traffic-min"></div><div class="traffic-dot traffic-max"></div></div>
+  <div class="title">Ollama LLM Bench v2.0</div>
+  <div class="title-btn">Settings</div>
+</div>
+<div class="app-body mock-dark">
+
+<!-- LEFT PANEL -->
+<div class="panel panel-left" style="overflow-y:auto;">
+  <div style="font-size:15px; font-weight:700; color:#F9FAFB; margin-bottom:12px;">Run Configuration</div>
+
+  <div class="panel-section-title">Mode</div>
+  <div style="display:flex; gap:12px; margin-bottom:4px;">
+    <div class="radio-row" style="color:#9CA3AF; font-size:12px"><div class="radio-dot"></div> Speed</div>
+    <div class="radio-row" style="color:#F9FAFB; font-size:12px"><div class="radio-dot selected"><div style="width:10px;height:10px;border-radius:50%;background:#14B8A6"></div></div> Full Grading</div>
+  </div>
+  <div class="radio-row" style="color:#9CA3AF; font-size:12px; margin-bottom:8px;"><div class="radio-dot"></div> Prompt Eval</div>
+
+  <div class="panel-section-title">Judge</div>
+  <div class="combo" style="width:100%; margin-bottom:6px;">Ollama (Local) <span class="arrow">&#x25BC;</span></div>
+  <div class="combo" style="width:100%; margin-bottom:4px; opacity:0.5;">qwen3:8b <span class="arrow">&#x25BC;</span></div>
+
+  <div class="panel-section-title">Test Models</div>
+  <div class="combo" style="width:100%; margin-bottom:6px; opacity:0.5;">Ollama (Local) <span class="arrow">&#x25BC;</span></div>
+  <div style="border:1px solid #374151; border-radius:6px; padding:4px; max-height:140px; overflow-y:auto; opacity:0.5;">
+    <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:14px;height:14px">&#x2713;</div> llama3.1:8b-instruct</div>
+    <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:14px;height:14px">&#x2713;</div> qwen3:8b</div>
+    <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:14px;height:14px">&#x2713;</div> gemma3:27b-it-qat</div>
+    <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:14px;height:14px">&#x2713;</div> devstral:24b</div>
+    <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:14px;height:14px">&#x2713;</div> cogito:14b</div>
+  </div>
+
+  <div class="panel-section-title">Task Files</div>
+  <div style="border:1px solid #374151; border-radius:6px; padding:6px; opacity:0.5;">
+    <div class="list-item" style="font-size:12px; color:#F9FAFB;">&#x1F4C4; coding.yaml <span class="remove-btn">&#x2715;</span></div>
+    <div class="list-item" style="font-size:12px; color:#F9FAFB;">&#x1F4C4; text_ops.yaml <span class="remove-btn">&#x2715;</span></div>
+    <div class="list-item" style="font-size:12px; color:#F9FAFB;">&#x1F4C4; general_knowledge.yaml <span class="remove-btn">&#x2715;</span></div>
+  </div>
+
+  <div style="margin-top:16px; display:flex; gap:6px;">
+    <button class="btn d-btn-primary disabled" style="flex:1; font-size:12px; padding:5px 10px">&#x25B6; Start</button>
+    <button class="btn d-btn-secondary" style="font-size:12px; padding:5px 10px; border-color:#FBBF24; color:#FBBF24">&#x23F8; Pause</button>
+    <button class="btn d-btn-danger" style="font-size:12px; padding:5px 10px; border-color:#F87171; color:#F87171">&#x23F9; Stop</button>
+  </div>
+</div>
+
+<!-- CENTER PANEL -->
+<div class="panel panel-center" style="display:flex; flex-direction:column;">
+  <!-- Progress area -->
+  <div style="padding-bottom:12px; border-bottom:1px solid #374151; margin-bottom:12px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+      <span class="badge badge-stage">BENCHMARKING</span>
+      <span style="font-size:12px; color:#9CA3AF">Provider:</span>
+      <span style="font-size:12px; color:#F9FAFB">Ollama (Local)</span>
+      <span class="health-dot health-live"></span>
+    </div>
+    <div class="progress-bar" style="margin-bottom:8px">
+      <div class="progress-fill" style="width:63%"></div>
+      <div class="progress-text">63% — 341 / 539</div>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:11px; color:#64748B; margin-bottom:4px;">
+      <span>ETA: ~1h 42m remaining</span>
+      <span>Elapsed: 2h 48m 33s</span>
+    </div>
+    <div style="font-size:12px; color:#9CA3AF;">
+      Model: <span style="color:#F9FAFB">gemma3:27b-it-qat</span>
+      &nbsp;&middot;&nbsp;
+      Task: <span style="color:#F9FAFB">general_knowledge_literature_harry_p...</span>
+    </div>
+  </div>
+
+  <!-- Log toolbar -->
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+    <span style="font-size:12px; font-weight:700; color:#9CA3AF;">LOG</span>
+    <div class="combo" style="padding:3px 8px; min-height:24px; font-size:11px;">Normal <span class="arrow">&#x25BC;</span></div>
+    <div style="flex:1"></div>
+    <button class="btn d-btn-icon" style="font-size:11px; padding:2px 8px; min-height:24px">Save</button>
+    <button class="btn d-btn-icon" style="font-size:11px; padding:2px 8px; min-height:24px">Clear</button>
+  </div>
+  <div class="input" style="width:100%; margin-bottom:8px; font-size:11px; min-height:26px; padding:3px 10px; color:#4B5563">Filter by model, task, or keyword...</div>
+
+  <!-- Log entries -->
+  <div style="flex:1; overflow-y:auto; padding-right:4px;">
+    <!-- Entry 1 -->
+    <div class="log-entry" style="border-left-color:#A78BFA;">
+      <div class="log-entry-header">&#x25B8; gemma3:27b — text_operations_rephrase_croatian</div>
+      <div class="log-entry-expand">&#x25B8; Prompt (click to expand)</div>
+      <div class="log-response">Evo nekoliko opcija, ovisno koliko opušteno želiš...</div>
+      <div class="log-metrics">42,232ms &middot; 1,840 tok &middot; 43.5 tok/s</div>
+      <div class="log-verdict">
+        <span class="badge badge-pass">&#x2713; PASS</span>
+        <span style="font-size:12px; color:#9CA3AF">0.82</span>
+        <span class="badge badge-stage" style="font-size:9px; padding:1px 5px">L4:judge</span>
+      </div>
+    </div>
+
+    <!-- Entry 2 — with thinking block -->
+    <div class="log-entry" style="border-left-color:#A78BFA;">
+      <div class="log-entry-header">&#x25B8; gemma3:27b — general_knowledge_hp_resurrection</div>
+      <div class="log-entry-expand">&#x25B8; Prompt (click to expand)</div>
+      <div class="log-thinking">&#x25B8; &lt;think&gt; block (312 tokens) — click to expand</div>
+      <div class="log-response">Harry Potter used the Resurrection Stone, one of the three Deathly Hallows...</div>
+      <div class="log-metrics">15,593ms &middot; 423 tok &middot; 27.1 tok/s &middot; TTFT 312ms</div>
+      <div class="log-verdict">
+        <span class="badge badge-pass">&#x2713; PASS</span>
+        <span style="font-size:12px; color:#9CA3AF">0.91</span>
+        <span class="badge" style="background:#1E293B;color:#A78BFA;border:1px solid #374151;font-size:9px;padding:1px 5px">L3:cosine</span>
+      </div>
+    </div>
+
+    <!-- Entry 3 — streaming -->
+    <div class="log-entry" style="border-left-color:#14B8A6;">
+      <div class="log-entry-header" style="color:#14B8A6">&#x25B8; gemma3:27b — coding_java_two_sum_indices</div>
+      <div class="log-entry-expand">&#x25B8; Prompt (click to expand)</div>
+      <div class="log-response" style="color:#14B8A6">
+        public int[] twoSum(int[] nums, int target) {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;Integer, Integer&gt; seen = new HashMap&lt;&gt;();<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; nums.length; i++) {<span style="display:inline-block;width:2px;height:14px;background:#14B8A6;animation:none;margin-left:1px">&#x2588;</span>
+      </div>
+      <div style="font-size:11px; color:#64748B; font-style:italic">Streaming... 4.2s elapsed</div>
+    </div>
+
+    <!-- Entry 4 — error -->
+    <div class="log-entry" style="border-left-color:#F87171; background:rgba(248,113,113,0.05);">
+      <div class="log-entry-header" style="color:#F87171">&#x2717; cogito:14b — coding_python_sort_edge</div>
+      <div style="font-size:12px; color:#F87171; padding:4px 0;">Error: Connection refused — Ollama not running or model not loaded</div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="panel panel-right" style="display:flex; flex-direction:column;">
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+    <span style="font-size:15px; font-weight:700; color:#F9FAFB;">Results</span>
+    <div style="flex:1"></div>
+    <div class="combo" style="font-size:11px; padding:3px 8px; min-height:24px;">Run #7 — 2026-04-15 10:00 <span class="arrow">&#x25BC;</span></div>
+  </div>
+  <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+    <button class="btn d-btn-secondary" style="font-size:11px; padding:3px 10px; min-height:24px">Compare Runs</button>
+    <button class="btn d-btn-danger" style="font-size:11px; padding:3px 10px; min-height:24px">Delete</button>
+    <button class="btn d-btn-secondary" style="font-size:11px; padding:3px 10px; min-height:24px">Export CSV</button>
+    <button class="btn d-btn-secondary" style="font-size:11px; padding:3px 10px; min-height:24px">Export MD</button>
+  </div>
+
+  <div style="font-size:11px; font-weight:700; color:#9CA3AF; text-transform:uppercase; margin-bottom:6px;">Summary — Average per Model</div>
+  <div class="table-wrapper" style="margin-bottom:12px; font-size:11px;">
+    <table class="mock-table" style="font-size:11px;">
+    <tr><th>Model</th><th>Time</th><th>Tok/s</th><th>Score</th><th>Pass%</th></tr>
+    <tr class="selected"><td class="mono">qwen3:30b</td><td>72.0s</td><td>8.3</td><td>0.78</td><td><span style="color:#34D399">76%</span></td></tr>
+    <tr><td class="mono">gemma3:27b</td><td>49.7s</td><td>7.9</td><td>0.77</td><td><span style="color:#34D399">74%</span></td></tr>
+    <tr><td class="mono">gemma3:12b</td><td>22.8s</td><td>17.0</td><td>0.67</td><td><span style="color:#FBBF24">64%</span></td></tr>
+    <tr><td class="mono">devstral:24b</td><td>23.8s</td><td>9.4</td><td>0.63</td><td><span style="color:#FBBF24">60%</span></td></tr>
+    </table>
+  </div>
+
+  <!-- Chart -->
+  <div style="font-size:11px; font-weight:700; color:#9CA3AF; text-transform:uppercase; margin-bottom:6px;">Charts</div>
+  <div style="display:flex; gap:4px; margin-bottom:8px;">
+    <button class="btn d-btn-primary" style="font-size:10px; padding:2px 8px; min-height:22px">Pass Rate</button>
+    <button class="btn d-btn-secondary" style="font-size:10px; padding:2px 8px; min-height:22px">Score</button>
+    <button class="btn d-btn-secondary" style="font-size:10px; padding:2px 8px; min-height:22px">Speed</button>
+    <button class="btn d-btn-secondary" style="font-size:10px; padding:2px 8px; min-height:22px">Cosine</button>
+  </div>
+  <div class="chart-placeholder" style="min-height:120px; margin-bottom:12px;">
+    <div class="bar-chart">
+      <div><div class="bar" style="height:76px; background:#14B8A6"></div><div class="bar-label">qwen3</div></div>
+      <div><div class="bar" style="height:74px; background:#14B8A6"></div><div class="bar-label">gem27</div></div>
+      <div><div class="bar" style="height:64px; background:#A78BFA"></div><div class="bar-label">gem12</div></div>
+      <div><div class="bar" style="height:60px; background:#A78BFA"></div><div class="bar-label">devst</div></div>
+      <div><div class="bar" style="height:42px; background:#F87171"></div><div class="bar-label">llama</div></div>
+    </div>
+    <div class="chart-title">Pass rate by model (%)</div>
+  </div>
+
+  <div style="font-size:11px; font-weight:700; color:#9CA3AF; text-transform:uppercase; margin-bottom:6px;">
+    Detailed &middot; Filter: <span style="display:inline-flex;"><div class="combo" style="font-size:10px; padding:1px 6px; min-height:18px; display:inline-flex;">All categories <span class="arrow">&#x25BC;</span></div></span>
+  </div>
+  <div class="table-wrapper" style="font-size:10px; flex:1; overflow-y:auto;">
+    <table class="mock-table" style="font-size:10px;">
+    <tr><th>Model</th><th>Task</th><th>Vrd</th><th>Scr</th><th>Cos</th><th>Lyr</th></tr>
+    <tr><td class="mono">qwen3:30b</td><td class="truncated mono" style="max-width:120px">coding_java_two_sum</td><td><span style="color:#34D399">&#x2713;</span></td><td>0.82</td><td style="color:#4B5563">—</td><td style="color:#9CA3AF">L4</td></tr>
+    <tr><td class="mono">qwen3:30b</td><td class="truncated mono" style="max-width:120px">text_rephrase_croatian</td><td><span style="color:#34D399">&#x2713;</span></td><td>0.91</td><td style="color:#A78BFA">0.89</td><td style="color:#A78BFA">L3</td></tr>
+    <tr><td class="mono">qwen3:30b</td><td class="truncated mono" style="max-width:120px">gen_know_hp_resurrect</td><td><span style="color:#F87171">&#x2717;</span></td><td>0.21</td><td style="color:#A78BFA">0.41</td><td style="color:#9CA3AF">L4</td></tr>
+    </table>
+  </div>
+
+  <div style="font-size:10px; color:#64748B; margin-top:8px; padding:6px 8px; background:#1E293B; border-radius:4px;">
+    Resolution: L1: 12 (2%) &middot; L2: 8 (1%) &middot; L3: 89 (17%) &middot; L4: 430 (80%)
+  </div>
+</div>
+
+</div><!-- app-body -->
+</div><!-- app-frame -->
+</div><!-- mockup-wrapper -->
+
+<!-- ========== DARK MODE — IDLE STATE ========== -->
+<h3>5.2 Main Window — Dark Theme — Idle (Ready to Start)</h3>
+<div class="mockup-wrapper">
+<div class="mockup-label">DARK THEME — IDLE <span class="state-badge state-idle">IDLE</span></div>
+<div class="app-frame">
+<div class="app-titlebar">
+  <div class="traffic-lights"><div class="traffic-dot traffic-close"></div><div class="traffic-dot traffic-min"></div><div class="traffic-dot traffic-max"></div></div>
+  <div class="title">Ollama LLM Bench v2.0</div>
+  <div class="title-btn">Settings</div>
+</div>
+<div class="app-body mock-dark" style="height:300px;">
+<div class="panel panel-left" style="overflow-y:auto;">
+  <div style="font-size:15px; font-weight:700; color:#F9FAFB; margin-bottom:12px;">Run Configuration</div>
+  <div class="panel-section-title">Mode</div>
+  <div style="display:flex; gap:12px; margin-bottom:4px;">
+    <div class="radio-row" style="color:#9CA3AF; font-size:12px"><div class="radio-dot"></div> Speed</div>
+    <div class="radio-row" style="color:#F9FAFB; font-size:12px"><div class="radio-dot selected"><div style="width:10px;height:10px;border-radius:50%;background:#14B8A6"></div></div> Full Grading</div>
+  </div>
+  <div class="panel-section-title">Judge</div>
+  <div class="combo" style="width:100%; margin-bottom:6px;">Ollama (Local) <span class="arrow">&#x25BC;</span></div>
+  <div class="combo" style="width:100%;">qwen3:8b <span class="arrow">&#x25BC;</span></div>
+  <div class="panel-section-title">Task Files</div>
+  <div class="drop-zone">Drop .yaml task files here<br>or use Add File / Add Folder</div>
+  <div style="margin-top:12px; display:flex; gap:6px;">
+    <button class="btn d-btn-primary" style="flex:1; font-size:12px; padding:5px 10px">&#x25B6; Start</button>
+    <button class="btn d-btn-icon disabled" style="font-size:12px; padding:5px 10px; color:#4B5563">&#x23F8;</button>
+    <button class="btn d-btn-icon disabled" style="font-size:12px; padding:5px 10px; color:#4B5563">&#x23F9;</button>
+  </div>
+</div>
+<div class="panel panel-center" style="display:flex; align-items:center; justify-content:center;">
+  <div style="text-align:center; color:#4B5563;">
+    <div style="font-size:32px; margin-bottom:8px;">&#x25B6;</div>
+    <div style="font-size:14px;">Configure and start a benchmark</div>
+    <div style="font-size:12px; margin-top:4px;">Select models, load tasks, then press Start</div>
+  </div>
+</div>
+<div class="panel panel-right" style="display:flex; align-items:center; justify-content:center;">
+  <div style="text-align:center; color:#4B5563;">
+    <div style="font-size:14px;">No results yet</div>
+    <div style="font-size:12px; margin-top:4px;">Run a benchmark or select a previous run</div>
+  </div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== LIGHT MODE — FINISHED STATE ========== -->
+<h3>5.3 Main Window — Light Theme — Benchmark Finished</h3>
+<div class="mockup-wrapper">
+<div class="mockup-label" style="background:#E5E7EB; color:#374151;">LIGHT THEME — BENCHMARK FINISHED <span class="state-badge state-finished" style="background:#ECFDF5; color:#059669">FINISHED</span></div>
+<div class="app-frame" style="border-color:#D1D5DB;">
+<div class="app-titlebar l-app-titlebar">
+  <div class="traffic-lights"><div class="traffic-dot traffic-close"></div><div class="traffic-dot traffic-min"></div><div class="traffic-dot traffic-max"></div></div>
+  <div class="title">Ollama LLM Bench v2.0</div>
+  <div class="title-btn" style="background:#F3F4F6; color:#374151; border-color:#D1D5DB">Settings</div>
+</div>
+<div class="app-body mock-light" style="height:340px;">
+<div class="panel l-panel-left" style="width:260px; border-right:1px solid #D1D5DB; overflow-y:auto;">
+  <div style="font-size:15px; font-weight:700; color:#0F172A; margin-bottom:12px;">Run Configuration</div>
+  <div class="panel-section-title l-panel-section-title" style="font-size:11px; color:#94A3B8;">Mode</div>
+  <div style="display:flex; gap:12px; margin-bottom:8px;">
+    <div class="radio-row" style="color:#64748B; font-size:12px"><div class="radio-dot l-radio-dot"></div> Speed</div>
+    <div class="radio-row" style="color:#0F172A; font-size:12px"><div class="radio-dot l-radio-dot selected" style="border-color:#0D9488"><div style="width:10px;height:10px;border-radius:50%;background:#0D9488"></div></div> Full Grading</div>
+  </div>
+  <div class="panel-section-title l-panel-section-title" style="font-size:11px; color:#94A3B8;">Judge</div>
+  <div class="combo l-combo" style="width:100%; margin-bottom:6px; color:#0F172A;">Ollama (Local) <span class="arrow" style="color:#64748B">&#x25BC;</span></div>
+  <div style="margin-top:12px; display:flex; gap:6px;">
+    <button class="btn l-btn-primary" style="flex:1; font-size:12px; padding:5px 10px">&#x25B6; Start New</button>
+  </div>
+</div>
+<div class="panel l-panel-center" style="flex:1; border-right:1px solid #D1D5DB; display:flex; flex-direction:column;">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+    <span class="badge l-badge-pass" style="font-weight:700; background:#ECFDF5; color:#059669;">FINISHED</span>
+    <span style="font-size:12px; color:#64748B">Ollama (Local)</span>
+    <span class="health-dot l-health-live"></span>
+  </div>
+  <div class="progress-bar l-progress-bar" style="margin-bottom:8px; border-color:#D1D5DB">
+    <div class="progress-fill l-progress-fill" style="width:100%; background:#059669"></div>
+    <div class="progress-text" style="color:#FFFFFF">100% — 539 / 539</div>
+  </div>
+  <div style="font-size:11px; color:#64748B; margin-bottom:12px;">Total time: 11h 30m 32s &middot; 5 models &middot; 49 tasks</div>
+  <div style="flex:1; overflow-y:auto;">
+    <div class="log-entry" style="border-left-color:#8B5CF6; border-left-width:3px;">
+      <div class="log-entry-header" style="color:#8B5CF6; font-size:12px;">&#x25B8; qwen3:30b — coding_java_two_sum_indices</div>
+      <div style="font-size:12px; color:#0F172A; font-family:var(--font-mono); padding:4px 0;">public int[] twoSum(int[] nums, int target) { ... }</div>
+      <div style="display:inline-flex; gap:8px; font-size:11px; color:#64748B; background:#F3F4F6; padding:3px 8px; border-radius:4px; margin:4px 0;">14,320ms &middot; 423 tok &middot; 29.5 tok/s</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+        <span class="badge l-badge-pass">&#x2713; PASS</span>
+        <span style="font-size:12px; color:#64748B">0.82</span>
+        <span class="badge l-badge-stage" style="font-size:9px; padding:1px 5px">L4:judge</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="panel l-panel-right" style="width:400px; display:flex; flex-direction:column;">
+  <div style="font-size:15px; font-weight:700; color:#0F172A; margin-bottom:8px;">Results</div>
+  <div class="table-wrapper l-table-wrapper" style="margin-bottom:12px;">
+    <table class="mock-table l-mock-table" style="font-size:11px;">
+    <tr><th>Model</th><th>Time</th><th>Score</th><th>Pass%</th></tr>
+    <tr class="selected"><td style="font-family:var(--font-mono);font-size:11px">qwen3:30b</td><td>72.0s</td><td>0.78</td><td style="color:#059669; font-weight:600">76%</td></tr>
+    <tr><td style="font-family:var(--font-mono);font-size:11px">gemma3:27b</td><td>49.7s</td><td>0.77</td><td style="color:#059669">74%</td></tr>
+    <tr><td style="font-family:var(--font-mono);font-size:11px">llama3.1:8b</td><td>7.8s</td><td>0.46</td><td style="color:#DC2626">42%</td></tr>
+    </table>
+  </div>
+  <div class="chart-placeholder" style="background:#F3F4F6; border-color:#D1D5DB; min-height:100px;">
+    <div class="bar-chart">
+      <div><div class="bar" style="height:76px; background:#0D9488"></div></div>
+      <div><div class="bar" style="height:74px; background:#0D9488"></div></div>
+      <div><div class="bar" style="height:64px; background:#8B5CF6"></div></div>
+      <div><div class="bar" style="height:42px; background:#DC2626"></div></div>
+    </div>
+    <div class="chart-title" style="color:#64748B">Pass rate</div>
+  </div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ============================================================
+     SECTION 6: DIALOG MOCKUPS
+     ============================================================ -->
+<h2>6. Dialog &amp; Popup Mockups</h2>
+
+<div class="section-grid">
+
+<!-- Settings Dialog -->
+<div>
+<h3>Settings Dialog — Providers Tab (Dark)</h3>
+<div style="background:#111827; padding:20px; border-radius:8px;">
+  <div class="dialog-box" style="width:100%; max-width:500px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <div class="dialog-title">Settings</div>
+      <button class="btn d-btn-icon" style="padding:2px 6px; min-height:20px">&#x2715;</button>
+    </div>
+    <div class="tab-bar" style="margin-bottom:16px;">
+      <div class="tab-item active">Providers</div>
+      <div class="tab-item">Evaluation</div>
+      <div class="tab-item">Events</div>
+      <div class="tab-item">Logging</div>
+      <div class="tab-item">UI</div>
+    </div>
+    <div class="provider-card">
+      <span class="health-dot health-live"></span>
+      <div class="prov-info">
+        <div class="prov-name">Ollama (Local)</div>
+        <div class="prov-url">http://localhost:11434/v1</div>
+        <div class="prov-models">14 models available</div>
+      </div>
+      <span class="badge badge-provider-type">openai_compatible</span>
+      <div class="prov-actions">
+        <button class="btn d-btn-secondary" style="font-size:10px; padding:2px 8px; min-height:22px">Test</button>
+        <button class="btn d-btn-secondary" style="font-size:10px; padding:2px 8px; min-height:22px">Edit</button>
+      </div>
+    </div>
+    <div class="provider-card" style="opacity:0.6;">
+      <span class="health-dot health-unknown"></span>
+      <div class="prov-info">
+        <div class="prov-name">LM Studio (Local)</div>
+        <div class="prov-url">http://localhost:1234/v1</div>
+        <div class="prov-models" style="color:#FBBF24">Disabled</div>
+      </div>
+      <span class="badge badge-provider-type">openai_compatible</span>
+      <div class="prov-actions">
+        <button class="btn d-btn-secondary" style="font-size:10px; padding:2px 8px; min-height:22px">Test</button>
+      </div>
+    </div>
+    <div class="provider-card">
+      <span class="health-dot health-live"></span>
+      <div class="prov-info">
+        <div class="prov-name">OpenAI</div>
+        <div class="prov-url">https://api.openai.com/v1</div>
+        <div class="prov-models">2 models available</div>
+      </div>
+      <span class="badge badge-provider-type">openai_compatible</span>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button class="btn d-btn-secondary" style="font-size:11px">Load config file</button>
+      <button class="btn d-btn-secondary" style="font-size:11px">Save config</button>
+      <button class="btn d-btn-secondary" style="font-size:11px">Reload</button>
+    </div>
+    <div class="drop-zone" style="margin-top:8px; padding:10px; font-size:11px;">Drop a .yaml config file here</div>
+    <div class="panel-section-title" style="margin-top:12px;">Embedding</div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div class="combo" style="flex:1; font-size:12px;">Ollama (Local) <span class="arrow">&#x25BC;</span></div>
+      <div class="input" style="width:100px; font-size:12px;">bge-m3</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Settings — Evaluation Tab -->
+<div>
+<h3>Settings Dialog — Evaluation Tab (Dark)</h3>
+<div style="background:#111827; padding:20px; border-radius:8px;">
+  <div class="dialog-box" style="width:100%; max-width:500px;">
+    <div class="dialog-title" style="margin-bottom:16px">Settings</div>
+    <div class="tab-bar" style="margin-bottom:16px;">
+      <div class="tab-item">Providers</div>
+      <div class="tab-item active">Evaluation</div>
+      <div class="tab-item">Events</div>
+      <div class="tab-item">Logging</div>
+      <div class="tab-item">UI</div>
+    </div>
+    <div class="group-box">
+      <div class="group-box-title">Evaluation Layers</div>
+      <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:16px;height:16px;font-size:10px">&#x2713;</div> Cosine similarity enabled</div>
+      <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:16px;height:16px;font-size:10px">&#x2713;</div> Keyword verification enabled</div>
+    </div>
+    <div class="group-box">
+      <div class="group-box-title">Cosine Auto-Pass Thresholds</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <span style="font-size:12px; color:#9CA3AF; width:90px">Exact scope:</span>
+        <div class="input" style="width:60px; font-size:12px; text-align:center; min-height:28px; padding:3px 8px">0.92</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <span style="font-size:12px; color:#9CA3AF; width:90px">Contains scope:</span>
+        <div class="input" style="width:60px; font-size:12px; text-align:center; min-height:28px; padding:3px 8px">0.85</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; color:#9CA3AF; width:90px">Covers scope:</span>
+        <div class="input" style="width:60px; font-size:12px; text-align:center; min-height:28px; padding:3px 8px">0.75</div>
+      </div>
+    </div>
+    <div class="group-box">
+      <div class="group-box-title">Judge Structured Output</div>
+      <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:16px;height:16px;font-size:10px">&#x2713;</div> Enforce JSON schema when provider supports it</div>
+      <div class="checkbox-row" style="font-size:12px"><div class="checkbox-box checked" style="width:16px;height:16px;font-size:10px">&#x2713;</div> Fallback to prompt + JSON parsing</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Confirmation Dialog -->
+<div>
+<h3>Confirmation Dialog — Delete Run (Dark)</h3>
+<div class="dialog-overlay" style="background:rgba(0,0,0,0.4); border-radius:8px; min-height:200px;">
+  <div class="dialog-box">
+    <div class="dialog-title">Delete Run #7?</div>
+    <div class="dialog-msg">This will permanently delete the benchmark run and all 539 associated results. This action cannot be undone.</div>
+    <div class="dialog-actions">
+      <button class="btn d-btn-secondary">Cancel</button>
+      <button class="btn d-btn-danger" style="background:#7F1D1D; border-color:#F87171">Delete</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Pause Dialog -->
+<div>
+<h3>Pause Dialog — Provider Switch (Dark)</h3>
+<div class="dialog-overlay" style="background:rgba(0,0,0,0.4); border-radius:8px; min-height:200px;">
+  <div class="dialog-box">
+    <div class="dialog-title">Switching Provider</div>
+    <div class="dialog-msg">
+      Moving from <span style="color:#14B8A6; font-weight:600">Ollama (Local)</span> to <span style="color:#14B8A6; font-weight:600">OpenAI</span>.<br><br>
+      Health check: <span class="health-dot health-live" style="vertical-align:middle;"></span> <span style="color:#34D399">Connected</span> — 2 models available.
+    </div>
+    <div class="dialog-actions">
+      <button class="btn d-btn-secondary">Skip Provider</button>
+      <button class="btn d-btn-primary">Continue</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Drag-and-drop active state -->
+<div>
+<h3>Drag-and-Drop Active State (Dark)</h3>
+<div style="background:#111827; padding:20px; border-radius:8px;">
+  <div class="drop-zone active" style="padding:32px;">
+    <div style="font-size:24px; margin-bottom:8px;">&#x1F4C4;</div>
+    <div style="font-size:14px; font-weight:600; color:#14B8A6;">Drop providers.yaml to import</div>
+    <div style="font-size:12px; color:#64748B; margin-top:4px;">File will be validated before replacing the current configuration</div>
+  </div>
+</div>
+</div>
+
+<!-- Error state -->
+<div>
+<h3>Provider Health Check Error (Dark)</h3>
+<div style="background:#111827; padding:20px; border-radius:8px;">
+  <div class="provider-card" style="border-color:#F87171;">
+    <span class="health-dot health-down"></span>
+    <div class="prov-info">
+      <div class="prov-name" style="color:#F87171">LM Studio (Local)</div>
+      <div class="prov-url">http://localhost:1234/v1</div>
+      <div class="prov-models" style="color:#F87171">Connection refused — LM Studio not running</div>
+    </div>
+    <div class="prov-actions">
+      <button class="btn d-btn-secondary" style="font-size:10px; padding:2px 8px; min-height:22px">Retry</button>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- section-grid -->
+
+<!-- ============================================================
+     SECTION 7: SPACING & TYPOGRAPHY REFERENCE
+     ============================================================ -->
+<h2>7. Spacing &amp; Typography Reference</h2>
+
+<div class="section-grid">
+<div>
+<h3>Spacing Scale</h3>
+<table class="token-table">
+<tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+<tr><td>spacing_xs</td><td>4px</td><td>Inline gaps, icon padding</td></tr>
+<tr><td>spacing_sm</td><td>8px</td><td>List item gaps, checkbox-label gap</td></tr>
+<tr><td>spacing_md</td><td>12px</td><td>Widget padding, group gaps</td></tr>
+<tr><td>spacing_lg</td><td>16px</td><td>Section padding, panel padding</td></tr>
+<tr><td>spacing_xl</td><td>24px</td><td>Section margins, dialog padding</td></tr>
+</table>
+
+<h3>Border Radius</h3>
+<table class="token-table">
+<tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+<tr><td>radius_sm</td><td>4px</td><td>Checkboxes, small badges, tooltips</td></tr>
+<tr><td>radius_md</td><td>6px</td><td>Buttons, inputs, combo boxes, cards</td></tr>
+<tr><td>radius_lg</td><td>8px</td><td>Dialogs, group boxes, panels</td></tr>
+<tr><td>10px</td><td>10px</td><td>Progress bar, pill badges</td></tr>
+</table>
+</div>
+
+<div>
+<h3>Typography Scale</h3>
+<table class="token-table">
+<tr><th>Element</th><th>Font</th><th>Size</th><th>Weight</th><th>QSS Target</th></tr>
+<tr><td>Window title</td><td>Sans</td><td>15px</td><td>700</td><td>QLabel[role="title"]</td></tr>
+<tr><td>Section heading</td><td>Sans</td><td>11px (uppercase)</td><td>700</td><td>QLabel[role="heading"]</td></tr>
+<tr><td>Body text</td><td>Sans</td><td>13px</td><td>400</td><td>QLabel</td></tr>
+<tr><td>Secondary text</td><td>Sans</td><td>12px</td><td>400</td><td>QLabel[role="secondary"]</td></tr>
+<tr><td>Button text</td><td>Sans</td><td>13px</td><td>600</td><td>QPushButton</td></tr>
+<tr><td>Small button</td><td>Sans</td><td>11px</td><td>600</td><td>QPushButton[size="small"]</td></tr>
+<tr><td>Table header</td><td>Sans</td><td>11px (uppercase)</td><td>600</td><td>QHeaderView::section</td></tr>
+<tr><td>Table cell</td><td>Sans</td><td>12px</td><td>400</td><td>QTableView</td></tr>
+<tr><td>Mono cell</td><td>Mono</td><td>11px</td><td>400</td><td>QTableView [font-family]</td></tr>
+<tr><td>Log response</td><td>Mono</td><td>12px</td><td>400</td><td>QTextEdit[role="log"]</td></tr>
+<tr><td>Badge text</td><td>Sans</td><td>11px</td><td>700</td><td>QLabel[role="badge"]</td></tr>
+<tr><td>Progress %</td><td>Sans</td><td>11px</td><td>600</td><td>QProgressBar (text)</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ============================================================
+     SECTION 8: QSS TEMPLATE EXAMPLE
+     ============================================================ -->
+<h2>8. QSS Template Example</h2>
+
+<div class="note">
+<strong>For Claude Code:</strong> Generate the actual QSS files using this pattern. The <code>{token}</code> placeholders are replaced at runtime by the Python dict from <code>tokens.py</code>.
+</div>
+
+<pre>
+/* theme_dark.qss — generated from tokens.DARK */
+
+QMainWindow, QDialog {
+    background-color: {bg_primary};
+    color: {text_primary};
+    font-family: {font_sans};
+    font-size: 13px;
+}
+
+QLabel {
+    color: {text_primary};
+}
+QLabel[role="secondary"] {
+    color: {text_secondary};
+    font-size: 12px;
+}
+QLabel[role="heading"] {
+    color: {text_secondary};
+    font-size: 11px;
+    font-weight: 700;
+}
+
+QPushButton[role="primary"] {
+    background-color: {primary};
+    color: {text_on_primary};
+    border: none;
+    border-radius: {radius_md};
+    padding: 6px 16px;
+    font-weight: 600;
+    min-height: 32px;
+}
+QPushButton[role="primary"]:hover {
+    background-color: {primary_hover};
+}
+QPushButton[role="primary"]:pressed {
+    background-color: {primary_pressed};
+}
+QPushButton[role="primary"]:disabled {
+    background-color: {primary_disabled};
+    color: {text_disabled};
+}
+
+QPushButton[role="secondary"] {
+    background-color: transparent;
+    color: {primary};
+    border: 1px solid {border};
+    border-radius: {radius_md};
+    padding: 6px 16px;
+    min-height: 32px;
+}
+QPushButton[role="secondary"]:hover {
+    background-color: {hover};
+    border-color: {primary};
+}
+
+QPushButton[role="danger"] {
+    background-color: transparent;
+    color: {failure};
+    border: 1px solid {border};
+    border-radius: {radius_md};
+}
+QPushButton[role="danger"]:hover {
+    background-color: {failure_bg};
+    border-color: {failure};
+}
+
+QComboBox {
+    background-color: {bg_input};
+    border: 1px solid {border};
+    border-radius: {radius_md};
+    padding: 5px 12px;
+    color: {text_primary};
+    min-height: 32px;
+}
+QComboBox:focus {
+    border-color: {border_focus};
+}
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+QComboBox QAbstractItemView {
+    background-color: {bg_secondary};
+    border: 1px solid {border};
+    selection-background-color: {selection};
+    color: {text_primary};
+}
+
+QLineEdit, QSpinBox, QDoubleSpinBox {
+    background-color: {bg_input};
+    border: 1px solid {border};
+    border-radius: {radius_md};
+    padding: 5px 12px;
+    color: {text_primary};
+    min-height: 32px;
+}
+QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border-color: {border_focus};
+}
+
+QTextEdit {
+    background-color: {bg_input};
+    border: 1px solid {border};
+    border-radius: {radius_md};
+    padding: 8px;
+    color: {text_primary};
+    font-family: {font_mono};
+    font-size: 12px;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: {radius_sm};
+    border: 2px solid {border};
+    background-color: {bg_input};
+}
+QCheckBox::indicator:checked {
+    background-color: {primary};
+    border-color: {primary};
+}
+
+QRadioButton::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    border: 2px solid {border};
+    background-color: {bg_input};
+}
+QRadioButton::indicator:checked {
+    border-color: {primary};
+}
+
+QProgressBar {
+    background-color: {bg_secondary};
+    border: 1px solid {border};
+    border-radius: 10px;
+    min-height: 20px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: {text_primary};
+}
+QProgressBar::chunk {
+    background-color: {primary};
+    border-radius: 10px;
+}
+
+QTabBar::tab {
+    padding: 8px 20px;
+    color: {text_secondary};
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+}
+QTabBar::tab:selected {
+    color: {primary};
+    border-bottom-color: {primary};
+}
+
+QTableView {
+    background-color: {bg_primary};
+    border: 1px solid {border};
+    gridline-color: {bg_secondary};
+    selection-background-color: {selection};
+    color: {text_primary};
+    font-size: 12px;
+}
+QHeaderView::section {
+    background-color: {bg_secondary};
+    color: {text_secondary};
+    font-weight: 600;
+    font-size: 11px;
+    padding: 8px 10px;
+    border: none;
+    border-bottom: 1px solid {border};
+}
+
+QGroupBox {
+    border: 1px solid {border};
+    border-radius: {radius_md};
+    padding: 16px;
+    margin-top: 16px;
+}
+QGroupBox::title {
+    color: {text_secondary};
+    font-size: 11px;
+    font-weight: 700;
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 6px;
+}
+
+QScrollBar:vertical {
+    background-color: {scrollbar_bg};
+    width: 8px;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical {
+    background-color: {scrollbar_handle};
+    border-radius: 4px;
+    min-height: 30px;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+QSplitter::handle {
+    background-color: {border};
+    width: 5px;
+}
+QSplitter::handle:hover {
+    background-color: {primary};
+}
+
+QToolTip {
+    background-color: {bg_secondary};
+    color: {text_primary};
+    border: 1px solid {border};
+    border-radius: {radius_sm};
+    padding: 6px 10px;
+    font-size: 12px;
+}
+</pre>
+
+<!-- ============================================================
+     SECTION 9: IMPLEMENTATION RULES FOR CLAUDE CODE
+     ============================================================ -->
+<h2>9. Implementation Rules for Claude Code</h2>
+
+<div class="note">
+<strong>These rules are for the AI agent implementing the UI.</strong> They encode the design decisions from this guide into machine-parseable constraints.
+</div>
+
+<h3>File Structure</h3>
+<pre>
+ui/
+  style/
+    tokens.py          # DARK, LIGHT, SHARED dicts
+    theme_dark.qss     # QSS template with {token} placeholders
+    theme_light.qss    # QSS template with {token} placeholders
+    theme_loader.py    # Reads QSS, replaces {tokens}, applies to QApp
+  widgets/
+    progress_widget.py      # Custom: stage badge + bar + ETA + model/task
+    log_widget.py           # Custom: structured log with collapsible entries
+    log_entry.py            # QFrame-based log entry card
+    provider_card.py        # QFrame: health dot + name + url + buttons
+    model_selector.py       # QListWidget with checkboxes + provider filter
+    task_file_list.py       # QListWidget with remove buttons + drag-drop
+    drop_zone_widget.py     # QLabel with drag-drop overlay styling
+    chart_widget.py         # QPainter-based bar/line chart
+    badge_label.py          # QLabel styled as badge (pass/fail/stage)
+    health_dot.py           # QLabel fixed-size colored dot
+</pre>
+
+<h3>Naming Conventions for QSS Properties</h3>
+<ul>
+  <li>Use <code>setProperty("role", "primary")</code> for button variants: <code>"primary"</code>, <code>"secondary"</code>, <code>"danger"</code>, <code>"icon"</code></li>
+  <li>Use <code>setProperty("role", "secondary")</code> for secondary QLabels</li>
+  <li>Use <code>setProperty("role", "heading")</code> for section heading QLabels</li>
+  <li>Use <code>setProperty("role", "title")</code> for panel title QLabels</li>
+  <li>Use <code>setProperty("size", "small")</code> for compact buttons</li>
+  <li>Use <code>setProperty("verdict", "pass")</code> or <code>"fail"</code> for verdict badges</li>
+  <li>Use <code>setProperty("health", "live")</code>, <code>"down"</code>, <code>"unknown"</code> for health dots</li>
+  <li>After setting a property, call <code>widget.style().unpolish(widget); widget.style().polish(widget)</code> to reapply QSS</li>
+</ul>
+
+<h3>Color Rules</h3>
+<ul>
+  <li><strong>Never hardcode hex colors</strong> in widget code. Always reference tokens from <code>tokens.py</code>.</li>
+  <li><strong>PASS = success color</strong> (#34D399 dark / #059669 light). <strong>FAIL = failure color</strong> (#F87171 dark / #DC2626 light).</li>
+  <li><strong>Scores 0.00–1.00 everywhere.</strong> Never display 0–100 scale. The setting key <code>ui.score_format</code> controls whether <code>0.78</code> or <code>78%</code> is shown, but the value is always stored as 0.00–1.00.</li>
+  <li><strong>Chart colors cycle</strong>: primary (#14B8A6) for top items, accent (#A78BFA) for middle, failure (#F87171) for bottom/failing items.</li>
+  <li><strong>Resolution layer colors</strong>: L1 = failure, L2 = warning, L3 = accent, L4 = primary.</li>
+</ul>
+
+<h3>Layout Rules</h3>
+<ul>
+  <li><strong>Three panels via QSplitter(Qt.Horizontal)</strong>: Left (280px default, 250px min), Center (flex), Right (440px default, 380px min).</li>
+  <li><strong>Minimum window size</strong>: 1200 x 700 px.</li>
+  <li><strong>Panel padding</strong>: 16px all sides.</li>
+  <li><strong>Section gaps</strong>: 16px between sections, 8px between widgets within a section.</li>
+  <li><strong>All scrollable areas</strong> use QScrollArea with 8px-wide styled scrollbar.</li>
+  <li><strong>Splitter handle</strong>: 5px wide, border color, hover = primary color.</li>
+</ul>
+
+<h3>Interaction Rules</h3>
+<ul>
+  <li><strong>During benchmark run</strong>: Left panel controls are disabled (opacity via QSS <code>:disabled</code>). Only Pause and Stop are active.</li>
+  <li><strong>Pause button</strong>: toggles between "Pause" and "Resume" text. Color switches to warning when paused.</li>
+  <li><strong>Table row selection</strong>: summary table selection filters detailed table. Use <code>selection-background-color</code> from tokens.</li>
+  <li><strong>Log auto-scroll</strong>: enabled by default. Disable when user scrolls up. Show "Jump to bottom" button (QPushButton, fixed position at bottom of log area).</li>
+  <li><strong>Drag-and-drop</strong>: Active state = border changes to primary color, dashed 2px. Background tints with primary at low opacity (use separate QSS class).</li>
+  <li><strong>Streaming text</strong>: append to QTextEdit at max 20 Hz. Do NOT call <code>append()</code> per token.</li>
+</ul>
+
+<h3>Widget-Specific Rules</h3>
+<ul>
+  <li><strong>ProgressWidget</strong>: QFrame containing: QLabel (stage badge), QProgressBar, QLabel (ETA), QLabel (provider + health dot), QLabel (model), QLabel (task). Each field updates independently.</li>
+  <li><strong>LogWidget</strong>: QScrollArea containing QVBoxLayout of LogEntry QFrames. Each LogEntry has a left border (3px, colored by entry type). Collapsible sections use QFrame with show/hide toggle.</li>
+  <li><strong>ProviderCard</strong>: QFrame with QHBoxLayout: health dot + QVBoxLayout(name, url, models) + badge + buttons. Border turns red when health = down.</li>
+  <li><strong>BadgeLabel</strong>: QLabel with fixed padding, border-radius 10px, background/color from verdict property. Use <code>setProperty("verdict", "pass")</code> and style via QSS.</li>
+  <li><strong>ChartWidget</strong>: QPainter-based. Draw bars with <code>painter.fillRect()</code>. Use token colors from Python dict. No external charting library required for MVP — simple bar charts only.</li>
+</ul>
+
+</div><!-- guide-container -->
+</body>
+</html>

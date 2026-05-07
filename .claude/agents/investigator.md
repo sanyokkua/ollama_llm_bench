@@ -27,19 +27,25 @@ developers can work with full context.
 served by Ollama. Automates inference, judges responses via a user-selected
 model, and stores results in SQLite.
 
-**Migration state:** Existing code uses PyQt6; target is PySide6 (ongoing). UV + hatchling migration complete. Existing type checker is pyright; target is Mypy (ongoing).
+**Migration state:** PySide6 complete. UV + hatchling complete. Mypy is the authoritative type checker.
 
 **Package structure:**
-- `src/ollama_llm_bench/core/` — models (`@dataclass(frozen=True)`), ABCs (`interfaces.py`), constants
-- `src/ollama_llm_bench/services/` — concrete implementations of core ABCs
-- `src/ollama_llm_bench/qt_classes/` — Qt infrastructure: `QtEventBus`, `BenchmarkExecutionTask`, `MetaQObjectABC`
+
+`backend/` — pure Python, zero PySide6 imports:
+- `src/ollama_llm_bench/backend/core/` — models (`@dataclass(frozen=True)`), ABCs (`interfaces.py`), constants
+- `src/ollama_llm_bench/backend/services/` — concrete implementations of core ABCs
+- `src/ollama_llm_bench/backend/utils/` — standalone utilities (not imported by `backend/core/`)
+
+`ui/` — PySide6-dependent:
+- `src/ollama_llm_bench/ui/qt_classes/` — Qt infrastructure: `QtEventBus`, `BenchmarkExecutionTask`, `MetaQObjectABC`
 - `src/ollama_llm_bench/ui/controllers/` — controller classes mediating UI and services
-- `src/ollama_llm_bench/ui/widgets/` — PySide6/PyQt6 widget classes
-- `src/ollama_llm_bench/utils/` — standalone utilities (not imported by `core/`)
+- `src/ollama_llm_bench/ui/widgets/` — PySide6 widget classes
+- `src/ollama_llm_bench/ui/models/` — `QAbstractTableModel` subclasses + sort/filter proxies
+- `src/ollama_llm_bench/ui/style/` — theme loader, design tokens, QSS templates, icons
 
 **Import direction** (strict):
 ```
-core/ ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
+backend/core/ ← backend/services/ ← ui/qt_classes/ ← ui/controllers/ ← ui/widgets/
 ```
 
 **DI wiring:** `app_context.py` → `_create_app_context()` builds all services
@@ -55,7 +61,7 @@ core/ ← services/ ← qt_classes/ ← ui/controllers/ ← ui/widgets/
 - `QThreadPool` + `QRunnable` (`BenchmarkExecutionTask`) for background work
 - Nested `Signals(QObject)` class inside `QRunnable` for typed signal emission
 - `MetaQObjectABC` metaclass for combining `QObject` + `ABC`
-- `QtEventBus` for decoupled pub/sub communication via `pyqtSignal`/`Signal`
+- `QtEventBus` for decoupled pub/sub communication via `Signal`
 - Frozen dataclasses for all data models
 - ABC-based interfaces in `core/interfaces.py`
 - Constructor injection with keyword-only args
@@ -86,8 +92,8 @@ When invoked with a topic, question, or area of investigation:
 1. **Orient** — Map the project structure:
    - `Glob` for `src/**/*.py` to see the package layout
    - Read `pyproject.toml` for dependencies and build configuration
-   - Read `src/ollama_llm_bench/core/interfaces.py` for all ABCs
-   - Read `src/ollama_llm_bench/core/models.py` for data model definitions
+   - Read `src/ollama_llm_bench/backend/core/interfaces.py` for all ABCs
+   - Read `src/ollama_llm_bench/backend/core/models.py` for data model definitions
 
 2. **Locate** — Find files and symbols relevant to the investigation:
    - `Grep` for class names, method names, signal names, import paths
@@ -132,7 +138,7 @@ within the benchmark pipeline context.
 
 ## Tech Stack
 - **Language:** Python 3.13+ with strict type hints
-- **UI Framework:** PySide6 (migrating from PyQt6)
+- **UI Framework:** PySide6
 - **Package Manager:** UV + hatchling
 - **Database:** SQLite via stdlib `sqlite3`
 - **Key Libraries:** [relevant dependencies from pyproject.toml]
@@ -164,10 +170,10 @@ Adjust diagram type:
 - `classDiagram` for ABC/implementation class relationships
 
 ## Dependencies
-- **Packages involved:** [core / services / qt_classes / ui with purpose]
+- **Packages involved:** [backend/core / backend/services / ui/qt_classes / ui/controllers / ui/widgets with purpose]
 - **DI wiring:** [which parts of _create_app_context() connect these]
 - **EventBus signals:** [which signals connect the components]
-- **External libraries:** [ollama, PyYAML, etc.]
+- **External libraries:** [openai, anthropic, google-genai, PyYAML, etc.]
 
 ## Modification Scope
 | File | Required Change | Rationale |
@@ -175,7 +181,6 @@ Adjust diagram type:
 | `src/ollama_llm_bench/.../file.py` | Brief description | Why this file must change |
 
 ## Risks & Considerations
-- [PyQt6 → PySide6 migration implications]
 - [Threading safety concerns]
 - [EventBus signal connection issues]
 - [Anything non-obvious discovered during investigation]
@@ -202,8 +207,6 @@ Adjust diagram type:
   it as a potential issue.
 - If the package structure is unclear, read `__init__.py` files before making
   assumptions.
-- If you encounter PyQt6 imports in code expected to use PySide6, note this
-  as a migration-pending file — it is expected during the transition.
 </error_handling>
 
 <memory_instructions>

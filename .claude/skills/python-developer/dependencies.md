@@ -20,7 +20,7 @@ Dependency rules for Ollama LLM Bench. See [SKILL.md](SKILL.md) for general Pyth
 
 | Library | Min Version | Role |
 |---------|-------------|------|
-| **PySide6** | 6.0 | Qt UI framework (migration target from PyQt6) |
+| **PySide6** | 6.0 | Qt UI framework |
 | **ollama** | 0.5.1 | Ollama Python client for LLM inference |
 | **PyYAML** | 6.0.2 | YAML parsing for benchmark dataset files |
 
@@ -95,7 +95,7 @@ MUST use stdlib before considering third-party alternatives:
 |---------|--------|
 | `django`, `flask`, `fastapi` | No web framework — desktop app |
 | `sqlalchemy`, `peewee` | No ORM — use stdlib `sqlite3` |
-| `PyQt6` | Migration target is PySide6 |
+| `PyQt6` | PySide6 only — migration complete |
 | `marshmallow` | Use Pydantic v2 for validation |
 | `loguru` | Use structlog (migration target) |
 | `black`, `autopep8`, `yapf` | Use Ruff |

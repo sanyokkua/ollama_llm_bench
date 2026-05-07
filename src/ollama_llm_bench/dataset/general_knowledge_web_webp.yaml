@@ -1,14 +1,19 @@
-- task_id: "general_knowledge_web_webp"
-  category: "General Knowledge"
-  sub_category: "Web"
-  question: |
-    What specific technical limitation led to the development of the WebP image format, and what exact year did Google officially release it as a replacement for JPEG and PNG formats?
-  expected_answer:
-    most_expected: |
-      WebP was developed to overcome JPEG and PNG’s limitations in compression efficiency and transparency support, providing better lossy and lossless compression. Google officially released WebP in September 2010.
-    good_answer: |
-      WebP improves compression and transparency over JPEG/PNG; released in 2010.
-    pass_option: |
-      Released 2010 to improve compression and support transparency.
-  incorrect_direction: |
-    Wrong year or misunderstanding of WebP’s technical purpose.
+tasks:
+  - task_id: "general_knowledge_web_webp"
+    category: "General Knowledge"
+    sub_category: "Web"
+    task_type: factual_qa
+    difficulty: easy
+    response_scope: contains
+    question: |
+      What specific technical limitations led to the development of the WebP image format, and what exact year did Google officially release it as a replacement for JPEG and PNG formats?
+    golden_answer: "WebP was developed to overcome JPEG and PNG's limitations in compression efficiency and transparency support, providing better lossy and lossless compression. Google officially released WebP in September 2010."
+    pass_criteria: "Identifies compression efficiency and transparency support as the key limitations driving WebP development. States the correct release year of 2010."
+    fail_criteria: "Wrong year (e.g., 2012, 2015). Misidentifying the technical purpose of WebP. Missing the compression efficiency aspect."
+    required_terms:
+      exact:
+        - "2010"
+      semantic:
+        - "compression"
+        - "transparency"
+      forbidden: []

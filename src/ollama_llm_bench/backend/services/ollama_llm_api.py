@@ -77,6 +77,7 @@ class OllamaApi(LLMApi):
     @override
     def inference(
         self,
+        *,
         model_name: str,
         user_prompt: str,
         system_prompt: str | None = None,
@@ -134,8 +135,8 @@ class OllamaApi(LLMApi):
 
             return InferenceResponse(
                 llm_response=full_response,
-                time_taken_ms=time_taken_ms,
-                tokens_generated=tokens_generated,
+                total_time_ms=time_taken_ms,
+                completion_tokens=tokens_generated,
             )
 
         except Exception as e:

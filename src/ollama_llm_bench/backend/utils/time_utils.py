@@ -79,3 +79,22 @@ def format_elapsed_time_interval(start_time: float, end_time: float) -> str:
     elapsed = format_elapsed_time(start_time, end_time)
 
     return f"Start time {start_str}, End time {end_str}. {elapsed}"
+
+
+def format_compact_duration(total_ms: float) -> str:
+    """Format a duration in milliseconds as a compact human-readable string.
+
+    Args:
+        total_ms: Duration in milliseconds. Negative values are clamped to 0.
+
+    Returns:
+        Compact string e.g. "2h 48m 33s", "5m 4s", "47s", "0s".
+    """
+    total_s = int(max(0.0, total_ms) / MILLISECONDS_PER_SECOND)
+    hours, rem = divmod(total_s, 3600)
+    minutes, seconds = divmod(rem, 60)
+    if hours > 0:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes > 0:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"

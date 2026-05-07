@@ -73,11 +73,11 @@ class SimplePromptBuilderApi(PromptBuilderApi):
 
         format_data = {
             "question": task.question,
-            "most_expected": task.expected_answer.most_expected,
-            "good_answer": task.expected_answer.good_answer,
-            "pass_option": task.expected_answer.pass_option,
-            "incorrect_direction": task.incorrect_direction,
-            "answer": benchmark_result.llm_response or "",
+            "most_expected": task.golden_answer,
+            "good_answer": task.golden_answer,
+            "pass_option": task.pass_criteria,
+            "incorrect_direction": task.fail_criteria,
+            "answer": benchmark_result.sanitized_response or "",
             "category": task.category,
             "sub_category": task.sub_category,
         }

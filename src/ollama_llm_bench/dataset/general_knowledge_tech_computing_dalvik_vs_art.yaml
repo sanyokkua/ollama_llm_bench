@@ -1,16 +1,26 @@
-- task_id: "general_knowledge_tech_computing_dalvik_vs_art"
-  category: "General Knowledge"
-  sub_category: "Tech"
-  question: |
-    What are the three fundamental technical differences between Dalvik Virtual Machine and Android Runtime (ART) regarding compilation approach, garbage collection, and application startup performance?
-  expected_answer:
-    most_expected: |
+tasks:
+  - task_id: "general_knowledge_tech_computing_dalvik_vs_art"
+    category: "General Knowledge"
+    sub_category: "Tech"
+    task_type: factual_qa
+    difficulty: medium
+    response_scope: covers
+    question: |
+      What are the three fundamental technical differences between Dalvik Virtual Machine and Android Runtime (ART) regarding compilation approach, garbage collection, and application startup performance?
+    golden_answer: |
       1. Compilation: Dalvik uses Just-In-Time (JIT) compilation, whereas ART uses Ahead-Of-Time (AOT) compilation.
-      2. Garbage Collection: ART features improved concurrent garbage collection with better pause time management compared to Dalvik’s simpler GC.
-      3. Startup Performance: ART improves app startup times by precompiling bytecode, unlike Dalvik's runtime compilation causing slower startups.
-    good_answer: |
-      Dalvik uses JIT, ART uses AOT; ART has better garbage collection; ART improves app startup by precompiling code.
-    pass_option: |
-      Dalvik compiles at runtime; ART compiles ahead of time; ART has enhanced GC and faster app launch.
-  incorrect_direction: |
-    Mixing compilation methods, inaccurate garbage collection details, or ignoring performance differences.
+      2. Garbage Collection: ART features improved concurrent garbage collection with better pause time management compared to Dalvik's simpler GC.
+      3. Startup Performance: ART improves app startup times by precompiling bytecode, unlike Dalvik's runtime compilation which causes slower startups.
+    pass_criteria: "Correctly states Dalvik uses JIT and ART uses AOT compilation. Mentions improved garbage collection in ART. Explains that ART improves startup time through precompilation. All three differences addressed."
+    fail_criteria: "Mixes up compilation methods (says ART uses JIT). Inaccurate garbage collection details. Ignores any of the three required differences. States ART has slower startup than Dalvik."
+    required_terms:
+      exact:
+        - "JIT"
+        - "AOT"
+      semantic:
+        - "garbage collection"
+        - "startup"
+        - "compilation"
+      forbidden:
+        - "ART uses JIT"
+        - "Dalvik uses AOT"

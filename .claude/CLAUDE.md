@@ -13,10 +13,10 @@ It automates inference across multiple models, judges responses using a user-sel
 | UI Framework | PySide6 |
 | Package Manager | UV with hatchling |
 | Database | SQLite via stdlib `sqlite3` |
-| LLM Client | ollama-python |
+| LLM Client | openai (Ollama, LM Studio, llama.cpp, OpenAI, Azure via /v1/), anthropic, google-genai |
 | Dataset | YAML benchmark tasks |
 | Linter/Formatter | Ruff |
-| Type Checker | Mypy (migrating from pyright) |
+| Type Checker | Mypy |
 | Testing | pytest + pytest-mock + pytest-cov |
 
 ## Commands
@@ -35,7 +35,6 @@ uv run ollama_llm_bench -d /path/to/dataset_folder
 # Lint (sequential order — ruff first, then types, then tests)
 uv run ruff check --output-format=concise src/ tests/
 uv run ruff format --check src/ tests/
-uv run pyright src/
 uv run mypy src/
 
 # Tests
@@ -46,7 +45,7 @@ uv run pytest -q --tb=short tests/path/test.py::test_name  # single test
 ./scripts/ai-check.sh
 ```
 
-**Check order is mandatory:** ruff → ruff format → pyright → mypy → pytest. If Mypy and Pyright disagree, **Mypy is authoritative**.
+**Check order is mandatory:** ruff → ruff format → mypy → pytest.
 
 ## Important
 
@@ -77,7 +76,7 @@ Two top-level groups under `src/ollama_llm_bench/`:
 | Package | Responsibility |
 |---------|---------------|
 | `backend/core/` | Frozen dataclasses, ABCs (`interfaces.py`), StrEnums, constants, SQL schema |
-| `backend/services/` | Concrete implementations: `OllamaApi`, `SqLiteDataApi`, `YamlBenchmarkTaskApi`, `SimplePromptBuilderApi`, `AppResultApi`, `TableSerializer` |
+| `backend/services/` | Concrete implementations: `ProviderRegistry`, `ProviderConfigLoader`, `OpenAICompatibleProvider`, `AnthropicProvider`, `GeminiProvider`, `OpenAIEmbeddingProvider`, `EmbeddingService`, `EmbeddingModelClassifier`, `SqLiteDataApi`, `AppSettingsService`, `JudgePromptService`, `JudgeSummaryService`, `RuleBasedEvaluator`, `KeywordEvaluator`, `CosineSimilarityEvaluator`, `LLMJudgeEvaluator`, `ModelNameParser`, `TaskFileLoader`, `PerformanceTaskGenerator`, `AppResultApi`, `TableSerializer` (legacy), `CircuitBreaker`, `LogFileWriter`, `ModeVisibilityPolicy`, `ProviderHealthChecker` |
 | `backend/utils/` | Pure utility functions: text parsing, time formatting, run sorting |
 
 **`ui/`** — PySide6-dependent:
@@ -109,6 +108,10 @@ Runs in `BenchmarkExecutionTask(QRunnable)` on `QThreadPool`:
 4. **Results** — compute averages → emit to UI via EventBus
 
 Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`.
+
+## V2 Status
+
+V2 is shipped. Multi-provider (OpenAI-compatible, Anthropic, Gemini), 4-layer eval pipeline, 3-panel UI, 5-table SQLite schema. Active maintenance and bug-fixing in `.AdditionalDocs/app_fixes/`.
 
 ## Coding Rules
 
@@ -168,7 +171,7 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 | Skill | Description | When to Use |
 |-------|-------------|-------------|
 | [python-developer](skills/python-developer/) | Coding standards, DI patterns, examples, logging, docstrings, dependencies | Writing or reviewing any Python code |
-| [pyside6](skills/pyside6/) | Threading, signals/slots, MetaQObjectABC, EventBus patterns | Writing Qt/UI code in `ui/qt_classes/` or `ui/` |
+| [pyside6-ui](skills/pyside6-ui/) | PySide6 UI development — QSS theming, design tokens, widget patterns, layouts, threading, signals/slots, Model/View, and custom painting | Writing or reviewing any PySide6 code in `ui/qt_classes/` or `ui/`, creating QSS stylesheets, implementing widgets or theming |
 | [project-docs](skills/project-docs/) | README structure, ADR format, inline comments, documentation lifecycle | Writing or updating project documentation |
 | [create-mermaid-diagrams](skills/create-mermaid-diagrams/) | Mermaid syntax rules, diagram types, validation checklist | Creating or updating architecture diagrams |
 | [write-pytest-tests](skills/write-pytest-tests/) | Test pyramid, fixtures, mocking, coverage, GUI isolation | Writing or reviewing test code |
@@ -197,5 +200,6 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 | `src/ollama_llm_bench/ui/qt_classes/qt_benchmark_execution_task.py` | `BenchmarkExecutionTask` — QRunnable background worker |
 | `src/ollama_llm_bench/ui/qt_classes/meta_class.py` | `MetaQObjectABC` — metaclass for QObject + ABC |
 | `src/ollama_llm_bench/backend/services/ollama_llm_api.py` | `OllamaApi` — Ollama client wrapper |
+| `src/ollama_llm_bench/backend/services/provider_registry.py` | `ProviderRegistry` — multi-provider composition root |
 | `src/ollama_llm_bench/backend/services/sq_lite_data_api.py` | `SqLiteDataApi` — SQLite CRUD operations |
 | `docs/project_specification.md` | Full project specification with behavioral requirements |

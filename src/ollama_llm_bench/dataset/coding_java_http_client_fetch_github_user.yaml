@@ -1,16 +1,19 @@
-- task_id: "coding_java_http_client_fetch_github_user"
-  category: "Coding"
-  sub_category: "Java"
-  question: |
-    Write a Java method using the standard Java HTTP Client (JDK 21) to fetch data 
-    from the GitHub public API endpoint `https://api.github.com/users/{username}`. 
-    The method should handle:
-      - HTTP errors (e.g., 4xx, 5xx)
-      - Connection and read timeouts
-      - JSON parsing of the response into a usable object or map
-    Assume the username will be passed as a method parameter.
-  expected_answer:
-    most_expected: |
+tasks:
+  - task_id: "coding_java_http_client_fetch_github_user"
+    category: "Coding"
+    sub_category: "Java"
+    task_type: code_generation
+    difficulty: medium
+    response_scope: covers
+    question: |
+      Write a Java method using the standard Java HTTP Client (JDK 21) to fetch data
+      from the GitHub public API endpoint `https://api.github.com/users/{username}`.
+      The method should handle:
+        - HTTP errors (e.g., 4xx, 5xx)
+        - Connection and read timeouts
+        - JSON parsing of the response into a usable object or map
+      Assume the username will be passed as a method parameter.
+    golden_answer: |
       import java.net.URI;
       import java.net.http.HttpClient;
       import java.net.http.HttpRequest;
@@ -39,14 +42,18 @@
           ObjectMapper mapper = new ObjectMapper();
           return mapper.readValue(response.body(), Map.class);
       }
-    good_answer: |
-      Uses `java.net.http.HttpClient` to send a GET request to the GitHub API, 
-      includes timeouts, checks the HTTP status code, and parses the JSON response 
-      into a Java object or map using a library like Jackson.
-    pass_option: |
-      Any valid Java method using the JDK 21 `HttpClient` to fetch the API data, 
-      with basic error handling and JSON parsing, even if exception handling or 
-      timeout configuration is minimal.
-  incorrect_direction: |
-    Uses a deprecated HTTP client, omits error handling entirely, fails to parse JSON, 
-    or writes code that will not compile in Java 21.
+    pass_criteria: "Uses `java.net.http.HttpClient` to send a GET request to the GitHub API, includes timeouts, checks the HTTP status code, and parses the JSON response into a Java object or map using a library like Jackson."
+    fail_criteria: "Uses a deprecated HTTP client, omits error handling entirely, fails to parse JSON, or writes code that will not compile in Java 21."
+    required_terms:
+      exact:
+        - "HttpClient"
+        - "HttpRequest"
+        - "HttpResponse"
+        - "Duration"
+      semantic:
+        - "timeout"
+        - "status code"
+        - "JSON parsing"
+      forbidden:
+        - "HttpURLConnection"
+        - "URLConnection"

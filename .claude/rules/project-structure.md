@@ -11,7 +11,7 @@ alwaysApply: false
 - MUST use the `src/` layout: all importable code under `src/ollama_llm_bench/`
 - MUST NOT import any Qt module (`PySide6`, `PyQt6`) in `core/` — it MUST be pure Python
 - Business logic MUST live in `core/` — MUST NOT place business logic in UI widgets or controllers
-- Dependencies MUST point inward: `ui/widgets/` → `ui/controllers/` → `services/` → `core/`
+- Dependencies MUST point inward: `ui/widgets/` → `ui/controllers/` → `backend/services/` → `backend/core/`
 - Tests MUST live in `tests/` at the project root — MUST NOT place tests inside `src/`
 - MUST use `pyproject.toml` as the single configuration source
 
@@ -33,20 +33,20 @@ This project uses a layered architecture with controller-mediated UI:
            │ uses
            ▼
 ┌─────────────────────────┐
-│     services/            │   Concrete service implementations
-│  (Ollama, SQLite, YAML)  │
+│     backend/services/    │   Concrete service implementations
+│  (providers, evaluators) │
 └──────────┬──────────────┘
            │ implements
            ▼
 ┌─────────────────────────┐
-│     core/                │   Pure Python — ABCs, models, constants
+│     backend/core/        │   Pure Python — ABCs, models, constants
 │  (interfaces, models)    │
 └─────────────────────────┘
 ```
 
 ### Qt Infrastructure Layer
 
-`qt_classes/` sits alongside but bridges `core/` and `ui/`:
+`ui/qt_classes/` sits alongside but bridges `backend/core/` and `ui/`:
 - Contains Qt threading infrastructure (`QRunnable`, `QThreadPool`)
 - Contains `EventBus` (pub/sub via Qt signals)
 - Contains `MetaQObjectABC` metaclass for combining `QObject` + `ABC`
@@ -55,17 +55,17 @@ This project uses a layered architecture with controller-mediated UI:
 
 | Package | Allowed Imports | Role |
 |---|---|---|
-| `core/` | stdlib only | Domain models, ABCs, constants, SQL schema |
-| `services/` | stdlib, third-party, `core/` | Concrete service implementations |
-| `qt_classes/` | stdlib, PySide6/PyQt6, `core/`, `services/` | Qt threading, EventBus |
-| `ui/controllers/` | stdlib, `core/`, `services/`, `qt_classes/` | Business flow mediation |
-| `ui/widgets/` | stdlib, PySide6/PyQt6, `core/`, `ui/controllers/` | UI rendering |
-| `utils/` | stdlib, `core/` | Pure utility functions |
+| `backend/core/` | stdlib only | Domain models, ABCs, constants, SQL schema |
+| `backend/services/` | stdlib, third-party, `backend/core/` | Concrete service implementations |
+| `ui/qt_classes/` | stdlib, PySide6, `backend/core/`, `backend/services/` | Qt threading, EventBus |
+| `ui/controllers/` | stdlib, `backend/core/`, `backend/services/`, `ui/qt_classes/` | Business flow mediation |
+| `ui/widgets/` | stdlib, PySide6, `backend/core/`, `ui/controllers/` | UI rendering |
+| `backend/utils/` | stdlib, `backend/core/` | Pure utility functions |
 | `dataset/` | — | YAML benchmark task files |
 
 ## Import Rules
 
-- MUST use absolute imports from root package: `from ollama_llm_bench.core.models import BenchmarkRun`
+- MUST use absolute imports from root package: `from ollama_llm_bench.backend.core.models import BenchmarkRun`
 - MUST NOT use relative imports (`.models`, `..utils`)
 - MUST organize imports: standard library → third-party → local, alphabetically within groups
 
@@ -78,7 +78,7 @@ root_packages = ["ollama_llm_bench"]
 [[tool.importlinter.contracts]]
 name = "Core must not import Qt modules"
 type = "forbidden"
-source_modules = ["ollama_llm_bench.core"]
+source_modules = ["ollama_llm_bench.backend.core"]
 forbidden_modules = ["PySide6", "PyQt6"]
 
 [[tool.importlinter.contracts]]
@@ -86,9 +86,8 @@ name = "Layer dependency direction"
 type = "layers"
 layers = [
     "ollama_llm_bench.ui",
-    "ollama_llm_bench.qt_classes",
-    "ollama_llm_bench.services",
-    "ollama_llm_bench.core",
+    "ollama_llm_bench.backend.services",
+    "ollama_llm_bench.backend.core",
 ]
 ```
 
@@ -97,12 +96,12 @@ layers = [
 | Component | Location |
 |---|---|
 | Source code | `src/ollama_llm_bench/` |
-| Business logic, models, ABCs | `src/ollama_llm_bench/core/` |
-| Service implementations | `src/ollama_llm_bench/services/` |
-| Qt infrastructure | `src/ollama_llm_bench/qt_classes/` |
+| Business logic, models, ABCs | `src/ollama_llm_bench/backend/core/` |
+| Service implementations | `src/ollama_llm_bench/backend/services/` |
+| Qt infrastructure | `src/ollama_llm_bench/ui/qt_classes/` |
 | Widget controllers | `src/ollama_llm_bench/ui/controllers/` |
 | UI widgets | `src/ollama_llm_bench/ui/widgets/` |
-| Utilities | `src/ollama_llm_bench/utils/` |
+| Utilities | `src/ollama_llm_bench/backend/utils/` |
 | Benchmark tasks | `src/ollama_llm_bench/dataset/` |
 | Tests | `tests/` |
 | Documentation | `docs/` |

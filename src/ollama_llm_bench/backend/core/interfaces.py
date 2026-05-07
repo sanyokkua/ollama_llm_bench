@@ -1,23 +1,60 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from pathlib import Path
+from typing import Protocol, runtime_checkable
 
 from ollama_llm_bench.backend.core.models import (
+    AppSetting,
+    AppSettingsChangedEvent,
     AvgSummaryTableItem,
+    BenchmarkFinishedEvent,
+    BenchmarkPausedEvent,
     BenchmarkResult,
     BenchmarkResultStatus,
+    BenchmarkResumedEvent,
     BenchmarkRun,
     BenchmarkRunStatus,
+    BenchmarkStartedEvent,
+    BenchmarkStoppedEvent,
     BenchmarkTask,
+    EvalLayer,
+    EvaluationResult,
     InferenceResponse,
+    InferenceStartedEvent,
+    JudgeCompletedEvent,
+    JudgeEvalRetryEvent,
+    JudgeEvalStartedEvent,
+    JudgeStartedEvent,
+    JudgeSummaryEvent,
+    LogEntryType,
+    ModelDescriptor,
+    ModelSwitchEvent,
+    ModeSwitchEvent,
+    ParsedModelName,
+    PerfAnalysisEvent,
+    PreviousRunsRefreshedEvent,
+    ProgressUpdateEvent,
+    PromptVariant,
+    ProviderConfig,
+    ProviderHealthCheckEvent,
+    ProviderRegistryReloadedEvent,
+    ProvidersConfig,
+    ProviderSwitchEvent,
     ReporterStatusMsg,
+    StreamChunk,
+    StreamingChunkEvent,
     SummaryTableItem,
+    TaskCompletedEvent,
+    TaskRetryEvent,
+    TaskSwitchEvent,
 )
 from ollama_llm_bench.backend.core.ui_controllers import (
     LogWidgetControllerApi,
-    NewRunWidgetControllerApi,
-    PreviousRunWidgetControllerApi,
     ResultWidgetControllerApi,
+    RunConfigControllerApi,
+    SettingsWidgetControllerApi,
 )
 
 
@@ -220,6 +257,62 @@ class DataApi(ABC):
             result_id: Unique ID of the result to delete.
         """
 
+    @abstractmethod
+    def get_app_setting(self, key: str) -> AppSetting | None:
+        """Retrieve an app setting by key, or None if not set.
+
+        Args:
+            key: Setting key to look up.
+
+        Returns:
+            The AppSetting if found, or None if the key is not stored.
+        """
+
+    @abstractmethod
+    def set_app_setting(self, *, key: str, value: str) -> None:
+        """Persist or update an app setting key-value pair.
+
+        Args:
+            key: Setting key to create or overwrite.
+            value: New value to store for the key.
+        """
+
+    @abstractmethod
+    def get_all_app_settings(self) -> list[AppSetting]:
+        """Retrieve all stored app settings.
+
+        Returns:
+            List of all AppSetting records; empty if none exist.
+        """
+
+    @abstractmethod
+    def create_prompt_variant(self, variant: PromptVariant) -> None:
+        """Store a new prompt variant for a Prompt Eval run.
+
+        Args:
+            variant: PromptVariant record to persist.
+        """
+
+    @abstractmethod
+    def retrieve_prompt_variants_for_run(self, run_id: int) -> list[PromptVariant]:
+        """Retrieve all prompt variants associated with a benchmark run.
+
+        Args:
+            run_id: Unique ID of the parent benchmark run.
+
+        Returns:
+            List of PromptVariant records for the run; empty if none exist.
+        """
+
+    @abstractmethod
+    def update_run_perf_analysis(self, *, run_id: int, analysis: str) -> None:
+        """Persist the LLM-generated performance analysis text for a finished run.
+
+        Args:
+            run_id: Unique ID of the benchmark run.
+            analysis: Analysis text produced by the judge LLM.
+        """
+
 
 class ResultApi(ABC):
     """
@@ -386,6 +479,22 @@ class BenchmarkFlowApi(ABC):
 
         Args:
             callback: Function to invoke with output strings.
+        """
+
+    @abstractmethod
+    def pause_execution(self) -> None:
+        """Pause the running benchmark at the next task boundary."""
+
+    @abstractmethod
+    def resume_execution(self) -> None:
+        """Resume a paused benchmark run."""
+
+    @abstractmethod
+    def shutdown(self, *, timeout_ms: int = 5000) -> None:
+        """Stop any running benchmark and wait for the worker thread to finish.
+
+        Args:
+            timeout_ms: Maximum milliseconds to wait for clean thread termination.
         """
 
     @abstractmethod
@@ -601,6 +710,202 @@ class EventBus(ABC):
             value: Message to broadcast.
         """
 
+    @abstractmethod
+    def subscribe_to_benchmark_started(self, callback: Callable[[BenchmarkStartedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_benchmark_started(self, event: BenchmarkStartedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_benchmark_paused(self, callback: Callable[[BenchmarkPausedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_benchmark_paused(self, event: BenchmarkPausedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_benchmark_resumed(self, callback: Callable[[BenchmarkResumedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_benchmark_resumed(self, event: BenchmarkResumedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_benchmark_stopped(self, callback: Callable[[BenchmarkStoppedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_benchmark_stopped(self, event: BenchmarkStoppedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_benchmark_finished(self, callback: Callable[[BenchmarkFinishedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_benchmark_finished(self, event: BenchmarkFinishedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_provider_switch(self, callback: Callable[[ProviderSwitchEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_provider_switch(self, event: ProviderSwitchEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_provider_health_check(self, callback: Callable[[ProviderHealthCheckEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_provider_health_check(self, event: ProviderHealthCheckEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_model_switch(self, callback: Callable[[ModelSwitchEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_model_switch(self, event: ModelSwitchEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_task_switch(self, callback: Callable[[TaskSwitchEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_task_switch(self, event: TaskSwitchEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_task_retry(self, callback: Callable[[TaskRetryEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_task_retry(self, event: TaskRetryEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_mode_switch(self, callback: Callable[[ModeSwitchEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_mode_switch(self, event: ModeSwitchEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_task_completed(self, callback: Callable[[TaskCompletedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_task_completed(self, event: TaskCompletedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_judge_started(self, callback: Callable[[JudgeStartedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_judge_started(self, event: JudgeStartedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_judge_completed(self, callback: Callable[[JudgeCompletedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_judge_completed(self, event: JudgeCompletedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_judge_eval_started(self, callback: Callable[[JudgeEvalStartedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_judge_eval_started(self, event: JudgeEvalStartedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_judge_eval_retry(self, callback: Callable[[JudgeEvalRetryEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_judge_eval_retry(self, event: JudgeEvalRetryEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_streaming_chunk(self, callback: Callable[[StreamingChunkEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_streaming_chunk(self, event: StreamingChunkEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_inference_started(self, callback: Callable[[InferenceStartedEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_inference_started(self, event: InferenceStartedEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_progress_update(self, callback: Callable[[ProgressUpdateEvent], None]) -> None: ...
+
+    @abstractmethod
+    def emit_progress_update(self, event: ProgressUpdateEvent) -> None: ...
+
+    @abstractmethod
+    def subscribe_to_judge_summary(self, callback: Callable[[JudgeSummaryEvent], None]) -> None:
+        """Subscribe to judge summary events.
+
+        Args:
+            callback: function to invoke with the generated JudgeSummaryEvent.
+        """
+
+    @abstractmethod
+    def emit_judge_summary(self, event: JudgeSummaryEvent) -> None:
+        """Emit a judge summary event.
+
+        Args:
+            event: the JudgeSummaryEvent containing run_id and summary_text.
+        """
+
+    @abstractmethod
+    def subscribe_to_perf_analysis(self, callback: Callable[[PerfAnalysisEvent], None]) -> None:
+        """Subscribe to performance analysis events.
+
+        Args:
+            callback: Function to invoke with the generated PerfAnalysisEvent.
+        """
+
+    @abstractmethod
+    def emit_perf_analysis(self, event: PerfAnalysisEvent) -> None:
+        """Emit a performance analysis event.
+
+        Args:
+            event: PerfAnalysisEvent containing run_id and analysis_text.
+        """
+
+    @abstractmethod
+    def subscribe_to_app_settings_changed(self, callback: Callable[[AppSettingsChangedEvent], None]) -> None:
+        """Subscribe to app settings changed events.
+
+        Args:
+            callback: Function to invoke with the AppSettingsChangedEvent when settings are saved.
+        """
+
+    @abstractmethod
+    def emit_app_settings_changed(self, event: AppSettingsChangedEvent) -> None:
+        """Emit an app settings changed event.
+
+        Args:
+            event: AppSettingsChangedEvent with the keys that changed.
+        """
+
+    @abstractmethod
+    def subscribe_to_provider_registry_reloaded(
+        self, callback: Callable[[ProviderRegistryReloadedEvent], None]
+    ) -> None:
+        """Subscribe to provider registry reloaded events.
+
+        Args:
+            callback: Function to invoke with the event after reload completes.
+        """
+
+    @abstractmethod
+    def emit_provider_registry_reloaded(self, event: ProviderRegistryReloadedEvent) -> None:
+        """Emit a provider registry reloaded event.
+
+        Args:
+            event: The reload completion event.
+        """
+
+    @abstractmethod
+    def subscribe_to_previous_runs_refreshed(self, callback: Callable[[PreviousRunsRefreshedEvent], None]) -> None:
+        """Subscribe to previous runs refreshed events.
+
+        Args:
+            callback: Function to invoke after the Previous Runs list is refreshed from DB.
+        """
+
+    @abstractmethod
+    def emit_previous_runs_refreshed(self, event: PreviousRunsRefreshedEvent) -> None:
+        """Emit a previous runs refreshed event.
+
+        Args:
+            event: The refresh completion event.
+        """
+
 
 class AppContext(ABC):
     """
@@ -614,24 +919,6 @@ class AppContext(ABC):
 
         Returns:
             EventBus for pub/sub communication.
-        """
-
-    @abstractmethod
-    def get_previous_run_widget_controller_api(self) -> PreviousRunWidgetControllerApi:
-        """
-        Retrieve the controller for the previous run widget.
-
-        Returns:
-            Controller API for managing previous run UI.
-        """
-
-    @abstractmethod
-    def get_new_run_widget_controller_api(self) -> NewRunWidgetControllerApi:
-        """
-        Retrieve the controller for the new run widget.
-
-        Returns:
-            Controller API for managing new run UI.
         """
 
     @abstractmethod
@@ -685,6 +972,71 @@ class AppContext(ABC):
         Trigger initial event broadcasts to synchronize UI components.
         """
 
+    @abstractmethod
+    def get_provider_registry(self) -> ProviderRegistryApi:
+        """
+        Retrieve the provider registry interface.
+
+        Returns:
+            ProviderRegistryApi for accessing LLM and embedding providers.
+        """
+
+    @abstractmethod
+    def get_app_settings_service(self) -> AppSettingsServiceApi:
+        """Retrieve the application settings KV-store service.
+
+        Returns:
+            AppSettingsServiceApi for reading and writing typed application settings.
+        """
+
+    @abstractmethod
+    def get_task_file_loader(self) -> TaskFileLoaderApi:
+        """Retrieve the V2 benchmark task file loader.
+
+        Returns:
+            TaskFileLoaderApi for loading tasks from YAML files or directories.
+        """
+
+    @abstractmethod
+    def get_judge_prompt_service(self) -> JudgePromptServiceApi:
+        """Retrieve the judge prompt builder service.
+
+        Returns:
+            JudgePromptServiceApi for constructing inference and judge prompts.
+        """
+
+    @abstractmethod
+    def get_log_file_writer(self) -> LogFileWriterApi:
+        """Retrieve the log file writer service.
+
+        Returns:
+            LogFileWriterApi for writing structured benchmark log entries to disk.
+        """
+
+    @abstractmethod
+    def get_settings_widget_controller(self) -> SettingsWidgetControllerApi:
+        """Retrieve the settings dialog controller.
+
+        Returns:
+            SettingsWidgetControllerApi for provider and feature flag management.
+        """
+
+    @abstractmethod
+    def get_run_config_controller(self) -> RunConfigControllerApi:
+        """Retrieve the unified run configuration controller.
+
+        Returns:
+            RunConfigControllerApi for provider/model discovery and benchmark lifecycle.
+        """
+
+    @abstractmethod
+    def get_benchmark_flow_api(self) -> BenchmarkFlowApi:
+        """Retrieve the benchmark execution flow controller.
+
+        Returns:
+            BenchmarkFlowApi for lifecycle control of benchmark runs.
+        """
+
 
 class ITableSerializer(ABC):
     """
@@ -726,3 +1078,234 @@ class ITableSerializer(ABC):
         Args:
             items: List of detailed items to save.
         """
+
+    @abstractmethod
+    def save_summary_as_csv_to_path(self, path: Path, items: list[AvgSummaryTableItem]) -> None:
+        """Export averaged summary results to a CSV file at the given path.
+
+        Args:
+            path: Full file path to write to.
+            items: List of averaged summary items to save.
+        """
+
+    @abstractmethod
+    def save_summary_as_md_to_path(self, path: Path, items: list[AvgSummaryTableItem]) -> None:
+        """Export averaged summary results to a Markdown file at the given path.
+
+        Args:
+            path: Full file path to write to.
+            items: List of averaged summary items to save.
+        """
+
+    @abstractmethod
+    def save_details_as_csv_to_path(self, path: Path, items: list[SummaryTableItem]) -> None:
+        """Export detailed benchmark results to a CSV file at the given path.
+
+        Args:
+            path: Full file path to write to.
+            items: List of detailed result items to save.
+        """
+
+    @abstractmethod
+    def save_details_as_md_to_path(self, path: Path, items: list[SummaryTableItem]) -> None:
+        """Export detailed benchmark results to a Markdown file at the given path.
+
+        Args:
+            path: Full file path to write to.
+            items: List of detailed result items to save.
+        """
+
+
+class ProviderConfigLoaderApi(Protocol):
+    """Protocol for loading and querying the providers.yaml configuration file."""
+
+    def load(self, path: Path) -> ProvidersConfig:
+        """Load and validate a providers.yaml file.
+
+        Args:
+            path: Path to the providers.yaml file.
+
+        Returns:
+            Parsed and validated ProvidersConfig.
+        """
+        ...
+
+    def get_enabled_providers(self, config: ProvidersConfig) -> list[ProviderConfig]:
+        """Return only the enabled providers from a loaded config.
+
+        Args:
+            config: A previously loaded ProvidersConfig.
+
+        Returns:
+            List of ProviderConfig instances where enabled is True.
+        """
+        ...
+
+
+class LLMProviderApi(Protocol):
+    """Protocol for synchronous and streaming LLM inference providers."""
+
+    @property
+    def provider_id(self) -> str: ...
+
+    @property
+    def provider_type(self) -> str: ...
+
+    def get_available_models(self) -> list[ModelDescriptor]: ...
+
+    def inference_sync(
+        self,
+        *,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float = 0.0,
+        max_tokens: int | None = None,
+        reasoning_effort: str = "medium",
+    ) -> InferenceResponse: ...
+
+    def inference_stream(
+        self,
+        *,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float = 0.0,
+        max_tokens: int | None = None,
+        reasoning_effort: str = "medium",
+    ) -> Generator[StreamChunk, None, InferenceResponse]: ...
+
+    def supports_structured_output(self) -> bool: ...
+
+    def supports_streaming(self) -> bool: ...
+
+    def warm_up(self, model: str) -> bool: ...
+
+
+class EmbeddingProviderApi(Protocol):
+    """Protocol for providers that produce vector embeddings."""
+
+    def encode(self, texts: list[str]) -> list[list[float]]: ...
+
+
+class ProviderRegistryApi(Protocol):
+    """Protocol for the registry that constructs and exposes all LLM providers."""
+
+    def load(self) -> None: ...
+
+    def reload(self) -> None: ...
+
+    def get_provider(self, provider_id: str) -> LLMProviderApi: ...
+
+    def get_all_providers(self) -> list[LLMProviderApi]: ...
+
+    def get_enabled_providers(self) -> list[LLMProviderApi]: ...
+
+    def get_embedding_provider(self) -> EmbeddingProviderApi: ...
+
+    def get_config(self) -> ProvidersConfig | None:
+        """Return the currently loaded ProvidersConfig, or None if load() has not succeeded."""
+        ...
+
+
+class ModelNameParserApi(Protocol):
+    """Parses Ollama-style model name strings into structured components."""
+
+    def parse(self, model_name: str) -> ParsedModelName: ...
+
+
+@runtime_checkable
+class TaskFileLoaderApi(Protocol):
+    """Protocol for loading V2 benchmark tasks from YAML files or directories."""
+
+    def load_tasks(self, file_paths: list[Path]) -> list[BenchmarkTask]: ...
+
+    def get_task(self, task_id: str) -> BenchmarkTask: ...
+
+    def scan_directory(self, directory: Path) -> list[Path]: ...
+
+
+@runtime_checkable
+class EvaluatorApi(Protocol):
+    """Protocol for evaluation layers 1-3 (rule-based, keyword, cosine)."""
+
+    @property
+    def layer(self) -> EvalLayer: ...
+
+    def evaluate(self, task: BenchmarkTask, result: BenchmarkResult) -> EvaluationResult: ...
+
+
+@runtime_checkable
+class LLMJudgeEvaluatorApi(Protocol):
+    """Protocol for evaluation layer 4 — LLM-based judge with provider context."""
+
+    @property
+    def layer(self) -> EvalLayer: ...
+
+    def evaluate(
+        self,
+        task: BenchmarkTask,
+        result: BenchmarkResult,
+        *,
+        judge_provider_id: str,
+        judge_model: str,
+    ) -> EvaluationResult: ...
+
+
+@runtime_checkable
+class JudgeSummaryServiceApi(Protocol):
+    """Generates a prose summary of a completed benchmark run using the judge model."""
+
+    def generate_summary(
+        self,
+        *,
+        run: BenchmarkRun,
+        results: list[BenchmarkResult],
+    ) -> str:
+        """Generate and return a prose summary string.
+
+        Args:
+            run: the completed benchmark run metadata.
+            results: all benchmark results for this run.
+
+        Returns:
+            Prose summary text from the judge model.
+        """
+        ...
+
+
+@runtime_checkable
+class JudgePromptServiceApi(Protocol):
+    """Protocol for building inference and judge prompts from benchmark tasks."""
+
+    def build_inference_prompt(self, task: BenchmarkTask) -> tuple[str, str]: ...
+
+    def build_judge_prompt(self, task: BenchmarkTask, result: BenchmarkResult) -> tuple[str, str]: ...
+
+
+@runtime_checkable
+class AppSettingsServiceApi(Protocol):
+    """Protocol for reading and writing typed application settings from persistent storage."""
+
+    def get(self, key: str, default: str | None = None) -> str | None: ...
+
+    def set(self, key: str, value: str) -> None: ...
+
+    def get_bool(self, key: str, default: bool = False) -> bool: ...
+
+    def get_int(self, key: str, default: int = 0) -> int: ...
+
+    def get_float(self, key: str, default: float = 0.0) -> float: ...
+
+    def reset_to_defaults(self) -> None:
+        """Reset all settings to their built-in default values."""
+        ...
+
+
+@runtime_checkable
+class LogFileWriterApi(Protocol):
+    """Protocol for writing structured benchmark log entries to disk."""
+
+    def write_entry(self, run_id: int, entry_type: LogEntryType, content: str) -> None: ...
+
+    def get_log_path(self, run_id: int) -> Path: ...
+
+    def close(self, run_id: int) -> None: ...

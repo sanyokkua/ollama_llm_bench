@@ -1,20 +1,23 @@
-- task_id: "coding_java_spring_user_crud_with_filtering_and_role"
-  category: "Coding"
-  sub_category: "Java"
-  question: |
-    Create a Spring Boot REST controller with CRUD operations for a `User` model 
-    having the following fields:
-      - `id` (Long)
-      - `name` (String)
-      - `age` (Integer)
-      - `gender` (String)
-    Requirements:
-      - `GET /users` endpoint should support optional query parameters for filtering by `name`, `age`, and `gender`.
-      - All controller methods must be accessible only to authenticated users with the `ADMIN` role.
-      - Use Spring Security annotations to enforce role-based access control.
-      - Assume you already have a `User` entity, `UserRepository` (Spring Data JPA), and basic Spring Security configuration.
-  expected_answer:
-    most_expected: |
+tasks:
+  - task_id: "coding_java_spring_user_crud_with_filtering_and_role"
+    category: "Coding"
+    sub_category: "Java"
+    task_type: code_generation
+    difficulty: hard
+    response_scope: covers
+    question: |
+      Create a Spring Boot REST controller with CRUD operations for a `User` model
+      having the following fields:
+        - `id` (Long)
+        - `name` (String)
+        - `age` (Integer)
+        - `gender` (String)
+      Requirements:
+        - `GET /users` endpoint should support optional query parameters for filtering by `name`, `age`, and `gender`.
+        - All controller methods must be accessible only to authenticated users with the `ADMIN` role.
+        - Use Spring Security annotations to enforce role-based access control.
+        - Assume you already have a `User` entity, `UserRepository` (Spring Data JPA), and basic Spring Security configuration.
+    golden_answer: |
       import org.springframework.beans.factory.annotation.Autowired;
       import org.springframework.http.ResponseEntity;
       import org.springframework.security.access.prepost.PreAuthorize;
@@ -75,16 +78,19 @@
               return ResponseEntity.noContent().build();
           }
       }
-    good_answer: |
-      Implements a Spring Boot REST controller for CRUD on a `User` entity, 
-      with `@PreAuthorize("hasRole('ADMIN')")` to restrict all methods to ADMIN users, 
-      and a `GET` endpoint that can filter by optional `name`, `age`, and `gender` parameters.
-      Uses `UserRepository` for persistence.
-    pass_option: |
-      Any valid Spring Boot controller with CRUD endpoints and admin-only access 
-      that supports optional filters for `GET /users`, even if repository filtering 
-      is implemented in-memory instead of with a custom query.
-  incorrect_direction: |
-    Omits role-based access control, ignores filter parameters entirely, 
-    or implements the controller without using proper Spring Boot annotations, 
-    making it non-functional in a typical Spring context.
+    pass_criteria: "Implements a Spring Boot REST controller for CRUD on a `User` entity, with `@PreAuthorize(\"hasRole('ADMIN')\")` to restrict all methods to ADMIN users, and a `GET` endpoint that can filter by optional `name`, `age`, and `gender` parameters. Uses `UserRepository` for persistence."
+    fail_criteria: "Omits role-based access control, ignores filter parameters entirely, or implements the controller without using proper Spring Boot annotations, making it non-functional in a typical Spring context."
+    required_terms:
+      exact:
+        - "@RestController"
+        - "@PreAuthorize"
+        - "hasRole('ADMIN')"
+        - "@RequestParam"
+        - "@PathVariable"
+      semantic:
+        - "CRUD operations"
+        - "optional filter"
+        - "role-based access"
+      forbidden:
+        - "@permitAll"
+        - "no authentication"

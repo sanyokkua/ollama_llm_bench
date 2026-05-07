@@ -1,14 +1,20 @@
-- task_id: "general_knowledge_literature_best_selling_2000_2009"
-  category: "General Knowledge"
-  sub_category: "Literature"
-  question: |
-    What is the precise title of the best-selling book series featuring magical elements during the period 2000-2009, and what was its verified global sales figure according to Guinness World Records?
-  expected_answer:
-    most_expected: |
-      The "Harry Potter" series by J.K. Rowling is the best-selling magical book series during 2000-2009, with verified global sales exceeding 450 million copies according to Guinness World Records.
-    good_answer: |
-      The "Harry Potter" book series sold over 450 million copies worldwide between 2000 and 2009, per Guinness World Records.
-    pass_option: |
-      Harry Potter series is the best-selling magical series from 2000-2009 with over 450 million copies sold worldwide.
-  incorrect_direction: |
-    Incorrect series title, wrong sales figures, or confusing it with other fantasy series.
+tasks:
+  - task_id: "general_knowledge_literature_best_selling_2000_2009"
+    category: "General Knowledge"
+    sub_category: "Literature"
+    task_type: factual_qa
+    difficulty: easy
+    response_scope: contains
+    question: |
+      What is the precise title of the best-selling book series featuring magical elements during the period 2000-2009, and what was its verified global sales figure according to Guinness World Records?
+    golden_answer: "The 'Harry Potter' series by J.K. Rowling is the best-selling magical book series during 2000-2009, with verified global sales exceeding 450 million copies according to Guinness World Records."
+    pass_criteria: "Names Harry Potter as the best-selling magical series of 2000-2009. States sales exceeding 450 million copies. References Guinness World Records or similar authoritative source."
+    fail_criteria: "Incorrect series title. Wrong sales figures. Confusing with other fantasy series. Missing the author or verification source."
+    required_terms:
+      exact:
+        - "Harry Potter"
+        - "450 million"
+      semantic:
+        - "Guinness World Records"
+        - "best-selling"
+      forbidden: []

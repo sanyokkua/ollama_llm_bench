@@ -1,15 +1,23 @@
-- task_id: "text_operations_translation_ukrainian_to_croatian_table"
-  category: "Text Operations"
-  sub_category: "Translation"
-  question: |
-    Prevedite sljedeći tekst na hrvatski:
-    Добрий день. Я хотів би дізнатися чи можу зняти готівку з банківської карти? Потрібно зняти з картки тисячу двісті сімдесят девʼять євро.
-  expected_answer:
-    most_expected: |
-      Dobar dan. Želio bih znati mogu li podići gotovinu s bankovne kartice? Trebam podići s kartice tisuću dvjesto sedamdeset devet eura.
-    good_answer: |
-      Pozdrav, želim provjeriti mogu li podići novac s bankovne kartice. Trebam podići 1279 eura.
-    pass_option: |
-      Upit o podizanju 1279 eura gotovine s bankovne kartice.
-  incorrect_direction: |
-    Prijevod je netočan, izostavlja važan dio teksta ili mijenja iznos i valutu.
+tasks:
+  - task_id: "text_operations_translation_ukrainian_to_croatian"
+    category: "Text Operations"
+    sub_category: "Translation"
+    task_type: translation
+    difficulty: easy
+    response_scope: contains
+    source_language: uk
+    target_language: hr
+    question: |
+      Prevedite sljedeći tekst na hrvatski:
+      Добрий день. Я хотів би дізнатися чи можу зняти готівку з банківської карти? Потрібно зняти з картки тисячу двісті сімдесят девʼять євро.
+    golden_answer: "Dobar dan. Želio bih znati mogu li podići gotovinu s bankovne kartice? Trebam podići s kartice tisuću dvjesto sedamdeset devet eura."
+    pass_criteria: "Translated into Croatian. Key details preserved: polite greeting, question about withdrawing cash from bank card, amount of 1279 euros."
+    fail_criteria: "Translation inaccurate or not in Croatian. Amount or currency incorrect. Important information omitted."
+    required_terms:
+      exact:
+        - "1279"
+      semantic:
+        - "gotovina"
+        - "kartica"
+        - "podići"
+      forbidden: []

@@ -1,74 +1,77 @@
 import argparse
 import logging
+import signal
 import sys
+import types
 from importlib import resources
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QApplication, QStyleFactory
 
 from ollama_llm_bench.app_context import ContextProvider
+from ollama_llm_bench.backend.core.app_paths import ensure_user_data_dir
 from ollama_llm_bench.ui.main_window import MainWindow
+from ollama_llm_bench.ui.style.theme_loader import apply_theme, connect_system_theme_listener, detect_system_theme
 
 logger = logging.getLogger(__name__)
 
 
-def configure_logger(log_level: str | None = None) -> int:
-    """
-    Configure logger. If log_level is None, disable logging completely.
-    Otherwise, set up logging with the specified level.
+_LOG_FILE_NAME: str = "app.log"
+_LOG_MAX_BYTES: int = 10_485_760  # 10 MB
+_LOG_BACKUP_COUNT: int = 5
+
+
+def configure_logger(log_level: str | None = None, *, app_root: Path | None = None) -> int:
+    """Configure root logger with an optional console handler and always-on file handler.
 
     Args:
-        log_level: Logging level as string ('debug', 'info', 'warning', 'error'),
-                   or None to disable logging.
+        log_level: Console log level ('debug', 'info', 'warning', 'error'), or None
+                   to suppress console output entirely.
+        app_root: If provided, a RotatingFileHandler writing DEBUG-level output to
+                  ``{app_root}/logs/app.log`` is always attached regardless of
+                  ``log_level``.
 
     Returns:
-        Configured logging level.
-
-    Raises:
-        Exception: If logger configuration fails.
+        Effective numeric log level that was configured for the console handler,
+        or ``logging.CRITICAL + 1`` when console output is disabled.
     """
     root_logger = logging.getLogger()
 
-    # Remove any existing handlers to reset
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
-    # If no log level specified, disable logging completely
-    if log_level is None:
-        root_logger.setLevel(logging.CRITICAL + 1)  # Set above CRITICAL (100)
-        return logging.CRITICAL + 1
+    formatter = logging.Formatter(
+        fmt="%(asctime)s [%(levelname)-8s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
-    # Otherwise configure with requested level
-    log_level = log_level.lower()
-    if log_level == "debug":
-        level = logging.DEBUG
-    elif log_level == "info":
-        level = logging.INFO
-    elif log_level == "warning":
-        level = logging.WARNING
-    else:  # Default to ERROR for any other value
-        level = logging.ERROR
+    console_level = logging.CRITICAL + 1
+    if log_level is not None:
+        level_map = {"debug": logging.DEBUG, "info": logging.INFO, "warning": logging.WARNING, "error": logging.ERROR}
+        console_level = level_map.get(log_level.lower(), logging.ERROR)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(console_level)
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
 
-    try:
-        formatter = logging.Formatter(
-            fmt="%(asctime)s [%(levelname)-8s] %(name)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+    if app_root is not None:
+        log_dir = app_root / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_handler = RotatingFileHandler(
+            log_dir / _LOG_FILE_NAME,
+            maxBytes=_LOG_MAX_BYTES,
+            backupCount=_LOG_BACKUP_COUNT,
+            encoding="utf-8",
         )
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(formatter)
-        root_logger.setLevel(level)
-        root_logger.addHandler(handler)
-        root_logger.propagate = False
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
 
-        # Only show these messages if level is INFO or lower
-        if level <= logging.INFO:
-            logging.info("Logger configured successfully")
-        if level <= logging.DEBUG:
-            logging.debug("Debug logging is enabled")
-        return level
-    except Exception as e:
-        print(f"Failed to configure logger: {e}", file=sys.stderr)
-        raise
+    root_logger.setLevel(logging.DEBUG if root_logger.handlers else logging.CRITICAL + 1)
+    root_logger.propagate = False
+    return console_level
 
 
 def get_dataset_path(custom_path: str | None = None) -> Path:
@@ -125,12 +128,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # Configure logger first so we can log any issues
-    log_level = configure_logger(args.log_level)
-
     try:
-        # Application root is CURRENT WORKING DIRECTORY
-        app_root = Path.cwd()
+        app_root = ensure_user_data_dir()
+        log_level = configure_logger(args.log_level, app_root=app_root)
 
         # Only log paths if logging is enabled
         if log_level <= logging.INFO:
@@ -143,15 +143,42 @@ def main() -> None:
         if log_level <= logging.INFO:
             logger.info(f"Dataset path: {dataset_path}")
 
+        QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
         app = QApplication(sys.argv)
+        fusion = QStyleFactory.create("Fusion")
+        if fusion:
+            app.setStyle(fusion)
+        apply_theme(app, detect_system_theme())
 
         # Initialize context after QApplication — Qt objects (QMutex, QThreadPool,
         # QtEventBus) must not be created before QApplication exists.
         ContextProvider.initialize(app_root, dataset_path=dataset_path)
         ctx = ContextProvider.get_context()
 
+        saved_theme = ctx.get_app_settings_service().get("ui.theme") or "system"
+        effective_theme = detect_system_theme() if saved_theme == "system" else saved_theme
+        apply_theme(app, effective_theme)
+
+        if saved_theme == "system":
+            connect_system_theme_listener(lambda t: apply_theme(app, t))
+
         main_window = MainWindow(ctx)
         main_window.show()
+
+        # Route SIGINT/SIGTERM through closeEvent for clean shutdown.
+        # The QTimer forces Python to process signals every 200ms while Qt's
+        # C++ event loop is running (otherwise signal delivery is delayed indefinitely).
+        def _handle_signal(signum: int, frame: types.FrameType | None) -> None:
+            logger.info(f"Received signal {signum} — closing main window")
+            main_window.close()
+
+        signal.signal(signal.SIGINT, _handle_signal)
+        signal.signal(signal.SIGTERM, _handle_signal)
+
+        _signal_timer = QTimer()
+        _signal_timer.timeout.connect(lambda: None)
+        _signal_timer.start(200)
+
         sys.exit(app.exec())
     except Exception as e:
         # Always print critical errors to stderr, even if logging is disabled
