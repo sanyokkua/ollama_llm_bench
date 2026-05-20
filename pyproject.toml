@@ -10,7 +10,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pyside6>=6.8.0,<7.0.0",
-    "ollama>=0.5.1,<0.6.0",
     "pyyaml>=6.0.2,<7.0.0",
     "openai>=2.32.0",
     "anthropic>=0.95.0",
@@ -72,7 +71,7 @@ output-format = "concise"
 exclude = [".venv", "__pycache__", ".mypy_cache", ".ruff_cache", "dist", "build"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "S", "SIM", "A", "C4", "RUF"]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "A", "C4", "RUF", "G"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
@@ -113,10 +112,7 @@ omit = [
     "*/ui/*",
     "*/app_context.py",
     "*/main.py",
-    # V1 legacy services superseded by V2
-    "*/services/ollama_llm_api.py",
-    "*/services/yaml_benchmark_task_api.py",
-    "*/services/simple_prompt_builder_api.py",
+    # Still uncovered (file I/O wrapper around csv/markdown writers)
     "*/services/table_serializer.py",
 ]
 

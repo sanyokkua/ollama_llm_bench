@@ -1,5 +1,6 @@
 """Service for loading and validating the providers.yaml configuration file."""
 
+import dataclasses
 import logging
 import os
 import re
@@ -201,11 +202,32 @@ class ProviderConfigLoader:
         """
         if not isinstance(raw, dict):
             logger.warning("'embedding' block missing or malformed; using defaults")
-            return EmbeddingConfig(provider_id="ollama_local", model="bge-m3")
+            return EmbeddingConfig(provider_id="ollama_local", model="")
 
         provider_id = str(raw.get("provider_id") or "ollama_local")
-        model = str(raw.get("model") or "bge-m3")
+        model = str(raw.get("model") or "")
         return EmbeddingConfig(provider_id=provider_id, model=model)
+
+    def resolve_env_vars(self, providers: list[ProviderConfig]) -> list[ProviderConfig]:
+        """Resolve ${ENV_VAR} placeholders in api_key_raw for each provider.
+
+        Disabled providers get an empty api_key to avoid triggering unnecessary
+        environment-variable warnings.
+
+        Args:
+            providers: List of ProviderConfig instances loaded from the database.
+
+        Returns:
+            New list of ProviderConfig instances with api_key populated.
+        """
+        result: list[ProviderConfig] = []
+        for p in providers:
+            if not p.enabled:
+                result.append(p)
+                continue
+            resolved_api_key = self._resolve_env(p.api_key_raw, provider_id=p.provider_id, field="api_key")
+            result.append(dataclasses.replace(p, api_key=resolved_api_key))
+        return result
 
     def _resolve_env(self, value: str, *, provider_id: str, field: str) -> str:
         """Replace ${VAR} references with environment variable values.

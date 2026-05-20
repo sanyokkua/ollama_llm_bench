@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 from pytest_mock import MockerFixture
 
 from ollama_llm_bench.backend.core.interfaces import AppContext, BenchmarkFlowApi, EventBus
+from ollama_llm_bench.backend.core.models import ReadinessVerdict, RunMode
 from ollama_llm_bench.backend.core.ui_controllers import ResultWidgetControllerApi
 from ollama_llm_bench.ui.controllers.run_config_controller import RunConfigController
 from ollama_llm_bench.ui.main_window import MainWindow
@@ -46,6 +47,9 @@ def run_config_panel(qapp: QApplication, mocker: MockerFixture) -> RunConfigPane
     mock_ctrl.get_provider_names.return_value = []
     mock_ctrl.get_healthy_provider_ids.return_value = []
     mock_ctrl.get_recent_runs.return_value = []
+    mock_ctrl.readiness_verdict.return_value = ReadinessVerdict(
+        mode=RunMode.SPEED, is_ready=True, issues=(), severity="ok"
+    )
     return RunConfigPanel(controller=cast(RunConfigController, mock_ctrl))
 
 
@@ -81,12 +85,12 @@ def main_window(qapp: QApplication, mocker: MockerFixture) -> MainWindow:
 # ---------------------------------------------------------------------------
 
 
-def test_on_benchmark_status_changed_disables_tab_widget_when_running(
+def test_on_benchmark_status_changed_keeps_tab_widget_enabled_when_running(
     run_config_panel: RunConfigPanel,
 ) -> None:
     run_config_panel._on_benchmark_status_changed(True)
 
-    assert not run_config_panel._tab_widget.isEnabled()
+    assert run_config_panel._tab_widget.isEnabled()
 
 
 def test_on_benchmark_status_changed_disables_start_button_when_running(

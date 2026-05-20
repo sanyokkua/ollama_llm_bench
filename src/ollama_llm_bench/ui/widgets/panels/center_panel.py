@@ -5,6 +5,7 @@ import logging
 from PySide6.QtWidgets import QFrame, QSizePolicy, QVBoxLayout, QWidget
 
 from ollama_llm_bench.backend.core.interfaces import AppSettingsServiceApi, BenchmarkFlowApi, EventBus
+from ollama_llm_bench.backend.core.ui_controllers import RunConfigControllerApi
 from ollama_llm_bench.ui.widgets.panels.progress_panel_widget import ProgressPanelWidget
 from ollama_llm_bench.ui.widgets.panels.result.log_widget import LogWidget
 
@@ -20,6 +21,7 @@ class CenterPanel(QWidget):
         event_bus: EventBus,
         benchmark_flow_api: BenchmarkFlowApi,
         app_settings: AppSettingsServiceApi,
+        run_config_controller: RunConfigControllerApi,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -27,6 +29,7 @@ class CenterPanel(QWidget):
             event_bus=event_bus,
             benchmark_flow_api=benchmark_flow_api,
             app_settings=app_settings,
+            run_config_controller=run_config_controller,
         )
         self._progress_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         separator = QFrame()

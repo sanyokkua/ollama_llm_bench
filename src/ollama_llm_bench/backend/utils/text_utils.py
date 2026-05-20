@@ -121,38 +121,59 @@ def parse_v2_judge_response(text: str) -> tuple[bool, EvalVerdict, float, str]:
         - ``reasoning``: Explanation string, or error description on failure.
 
     Note:
-        Attempts full JSON parsing first; falls back to regex extraction.
+        Attempts full JSON parse first (after stripping markdown fences),
+        then partial-JSON repair for truncated responses, then regex fallback.
         Distinct from the V1 ``parse_judge_response()`` which returns a 0-100 grade.
     """
-    cleaned = text.strip()
-    try:
-        data = json.loads(cleaned)
-        verdict_raw = str(data.get("verdict", "")).lower()
-        if verdict_raw == "pass":
-            verdict = EvalVerdict.PASS
-        elif verdict_raw == "fail":
-            verdict = EvalVerdict.FAIL
-        else:
-            verdict = EvalVerdict.UNKNOWN
-        score = max(0.0, min(1.0, float(data.get("score", 0.0))))
-        reasoning = str(data.get("reasoning", ""))
-        return False, verdict, score, reasoning
-    except (json.JSONDecodeError, ValueError, TypeError):
-        pass
+    cleaned = sanitize_json_string(text.strip())
+    extracted = extract_json_object(cleaned) or cleaned
 
-    # Regex fallback for partially malformed JSON
+    # 1. Full JSON parse
+    data = _try_json_loads(extracted)
+    if data is not None:
+        return _extract_verdict_tuple(data)
+
+    # 2. Partial-JSON repair for responses truncated at max_tokens
+    if extracted and not extracted.rstrip().endswith("}"):
+        repaired = extracted.rstrip().rstrip(",") + '"}'
+        data = _try_json_loads(repaired)
+        if data is not None:
+            return _extract_verdict_tuple(data)
+
+    # 3. Regex fallback with escaped-quote support
     v_match = re.search(r'"verdict"\s*:\s*"(pass|fail)"', cleaned, re.IGNORECASE)
     s_match = re.search(r'"score"\s*:\s*([0-9.]+)', cleaned)
-    r_match = re.search(r'"reasoning"\s*:\s*"([^"]+)"', cleaned)
+    r_match = re.search(r'"reasoning"\s*:\s*"((?:[^"\\]|\\.)*)"', cleaned)
     if v_match and s_match:
         verdict = EvalVerdict.PASS if v_match.group(1).lower() == "pass" else EvalVerdict.FAIL
         score = max(0.0, min(1.0, float(s_match.group(1))))
-        reasoning = r_match.group(1) if r_match else ""
-        return False, verdict, score, reasoning
+        reason = r_match.group(1) if r_match else ""
+        return False, verdict, score, reason
 
     preview = cleaned[:200] if cleaned else "(empty response)"
     logger.warning("parse_v2_judge_response_failed", extra={"preview": preview})
     return True, EvalVerdict.UNKNOWN, 0.0, f"Could not parse: {preview}"
+
+
+def _try_json_loads(s: str) -> dict[str, object] | None:
+    try:
+        result = json.loads(s)
+        return result if isinstance(result, dict) else None
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
+def _extract_verdict_tuple(data: dict[str, object]) -> tuple[bool, EvalVerdict, float, str]:
+    verdict_raw = str(data.get("verdict", "")).lower()
+    if verdict_raw == "pass":
+        verdict = EvalVerdict.PASS
+    elif verdict_raw == "fail":
+        verdict = EvalVerdict.FAIL
+    else:
+        verdict = EvalVerdict.UNKNOWN
+    score = max(0.0, min(1.0, float(data.get("score", 0.0))))  # type: ignore[arg-type]
+    reasoning = str(data.get("reasoning", ""))
+    return False, verdict, score, reasoning
 
 
 def sanitize_text(text: str) -> str:
@@ -170,16 +191,37 @@ def sanitize_text(text: str) -> str:
     if not text:
         logger.debug("sanitize_text: Empty input provided")
         return ""
-    logger.debug(f"sanitize_text: Input length={len(text)}")
+    logger.debug("sanitize_text: Input length=%d", len(text))
     try:
         cleaned_text = REASONING_TAG_PATTERN.sub("", text)
-        logger.debug(f"sanitize_text: Removed reasoning tags - new length={len(cleaned_text)}")
+        logger.debug("sanitize_text: Removed reasoning tags - new length=%d", len(cleaned_text))
         result = cleaned_text.strip()
-        logger.debug(f"sanitize_text: Output length={len(result)}")
+        logger.debug("sanitize_text: Output length=%d", len(result))
         return result
     except re.error as e:
-        logger.error(f"sanitize_text: Regex error during sanitization - {e}")
+        logger.error("sanitize_text: Regex error during sanitization - %s", e)
         return text.strip()
     except Exception as e:
-        logger.error(f"sanitize_text: Unexpected error during sanitization - {e}", exc_info=True)
+        logger.exception("sanitize_text: Unexpected error during sanitization - %s", e)
         return text.strip()
+
+
+def parse_json_string_list(raw: str | None) -> list[str]:
+    """Parse a JSON-encoded list of strings.
+
+    Args:
+        raw: JSON string representing a list, or None.
+
+    Returns:
+        Parsed list of strings, or empty list if None or malformed.
+    """
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return [str(item) for item in parsed]
+        return []
+    except (json.JSONDecodeError, TypeError):
+        logger.debug("parse_json_string_list_failed", extra={"raw": raw})
+        return []

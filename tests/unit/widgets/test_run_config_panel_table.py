@@ -7,7 +7,7 @@ from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QApplication
 from pytest_mock import MockerFixture
 
-from ollama_llm_bench.backend.core.models import BenchmarkRun, BenchmarkRunStatus, RunMode
+from ollama_llm_bench.backend.core.models import BenchmarkRun, BenchmarkRunStatus, ReadinessVerdict, RunMode
 from ollama_llm_bench.ui.controllers.run_config_controller import RunConfigController
 from ollama_llm_bench.ui.widgets.panels.run_config_panel import RunConfigPanel, _format_timestamp
 
@@ -49,7 +49,13 @@ def _make_run(
     )
 
 
-def _build_panel(qapp: QApplication, mocker: MockerFixture, runs: list[BenchmarkRun]) -> RunConfigPanel:
+def _build_panel(
+    qapp: QApplication,
+    mocker: MockerFixture,
+    runs: list[BenchmarkRun],
+    *,
+    is_resumable: bool = True,
+) -> RunConfigPanel:
     mock_ctrl = mocker.Mock(spec=RunConfigController)
     mock_svc = mocker.Mock()
     mock_svc.get_bool.return_value = True
@@ -58,6 +64,10 @@ def _build_panel(qapp: QApplication, mocker: MockerFixture, runs: list[Benchmark
     mock_ctrl.get_provider_names.return_value = []
     mock_ctrl.get_healthy_provider_ids.return_value = []
     mock_ctrl.get_recent_runs.return_value = runs
+    mock_ctrl.is_run_resumable.return_value = is_resumable
+    mock_ctrl.readiness_verdict.return_value = ReadinessVerdict(
+        mode=RunMode.SPEED, is_ready=True, issues=(), severity="ok"
+    )
     return RunConfigPanel(controller=cast(RunConfigController, mock_ctrl))
 
 
@@ -137,28 +147,37 @@ def test_runs_table_populates_tasks_count(qapp: QApplication, mocker: MockerFixt
 
 def test_resume_button_enabled_for_not_completed_row(qapp: QApplication, mocker: MockerFixture) -> None:
     runs = [_make_run(1, status=BenchmarkRunStatus.NOT_COMPLETED)]
-    panel = _build_panel(qapp, mocker, runs)
+    panel = _build_panel(qapp, mocker, runs, is_resumable=True)
 
     panel._runs_table.selectRow(0)
 
     assert panel._resume_btn.isEnabled() is True
 
 
-def test_resume_button_disabled_for_completed_row(qapp: QApplication, mocker: MockerFixture) -> None:
+def test_resume_button_disabled_for_fully_completed_row(qapp: QApplication, mocker: MockerFixture) -> None:
     runs = [_make_run(1, status=BenchmarkRunStatus.COMPLETED)]
-    panel = _build_panel(qapp, mocker, runs)
+    panel = _build_panel(qapp, mocker, runs, is_resumable=False)
 
     panel._runs_table.selectRow(0)
 
     assert panel._resume_btn.isEnabled() is False
-    assert "finished" in panel._resume_btn.toolTip()
+    assert "completed" in panel._resume_btn.toolTip()
 
 
-def test_resume_button_disabled_for_failed_row(qapp: QApplication, mocker: MockerFixture) -> None:
+def test_resume_button_enabled_for_failed_row(qapp: QApplication, mocker: MockerFixture) -> None:
+    # FAILED runs are now resumable
     runs = [_make_run(1, status=BenchmarkRunStatus.FAILED)]
-    panel = _build_panel(qapp, mocker, runs)
+    panel = _build_panel(qapp, mocker, runs, is_resumable=True)
 
     panel._runs_table.selectRow(0)
 
-    assert panel._resume_btn.isEnabled() is False
-    assert "not resumable" in panel._resume_btn.toolTip()
+    assert panel._resume_btn.isEnabled() is True
+
+
+def test_resume_button_enabled_for_stopped_row(qapp: QApplication, mocker: MockerFixture) -> None:
+    runs = [_make_run(1, status=BenchmarkRunStatus.STOPPED)]
+    panel = _build_panel(qapp, mocker, runs, is_resumable=True)
+
+    panel._runs_table.selectRow(0)
+
+    assert panel._resume_btn.isEnabled() is True

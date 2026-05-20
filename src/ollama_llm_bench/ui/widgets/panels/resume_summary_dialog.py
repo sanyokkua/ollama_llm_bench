@@ -12,9 +12,11 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QFrame,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -82,24 +84,25 @@ class ResumeSummaryDialog(QDialog):
         """Initialise the dialog by loading the run data and building the UI.
 
         Args:
-            run_id: ID of the NOT_COMPLETED run to resume.
+            run_id: ID of the unfinished or stopped run to resume.
             controller: Run configuration controller used for data access.
             parent: Optional parent widget for proper dialog stacking.
         """
         super().__init__(parent)
         self._run_id = run_id
         self._controller = controller
+        self.cloned_run_id: int | None = None
 
         self.setWindowTitle("Resume Benchmark")
         self.setMinimumWidth(_DIALOG_MIN_WIDTH)
 
         run = controller.get_run(run_id)
-        results = controller.get_results_for_run(run_id)
+        self._results = controller.get_results_for_run(run_id)
         enabled_providers = controller.get_enabled_provider_ids()
 
         drift_warnings = self._detect_drift(run, enabled_providers)
 
-        self._build_ui(run, results, drift_warnings)
+        self._build_ui(run, self._results, drift_warnings)
 
     # ------------------------------------------------------------------
     # Drift detection
@@ -134,6 +137,17 @@ class ResumeSummaryDialog(QDialog):
         heading = QLabel("Resume benchmark")
         heading.setProperty("role", "heading")
 
+        self._rename_btn = QToolButton()
+        self._rename_btn.setText("✏")
+        self._rename_btn.setToolTip("Rename this run")
+        self._rename_btn.setProperty("role", "icon-btn")
+        self._rename_btn.clicked.connect(self._on_rename_clicked)
+
+        heading_row = QHBoxLayout()
+        heading_row.addWidget(heading)
+        heading_row.addWidget(self._rename_btn)
+        heading_row.addStretch()
+
         note = QLabel(_FROZEN_CONFIG_NOTE)
         note.setProperty("role", "secondary")
         note.setWordWrap(True)
@@ -157,18 +171,44 @@ class ResumeSummaryDialog(QDialog):
 
         btn_box = QDialogButtonBox()
         resume_btn = btn_box.addButton("Resume Run", QDialogButtonBox.ButtonRole.AcceptRole)
+        copy_btn = btn_box.addButton("Resume as Copy…", QDialogButtonBox.ButtonRole.ActionRole)
         btn_box.addButton("Cancel", QDialogButtonBox.ButtonRole.RejectRole)
         if resume_btn is not None:
             resume_btn.setProperty("role", "primary")
+        if copy_btn is not None:
+            copy_btn.clicked.connect(self._on_resume_as_copy_clicked)
         btn_box.accepted.connect(self.accept)
         btn_box.rejected.connect(self.reject)
 
         root = QVBoxLayout(self)
         root.setSpacing(8)
-        root.addWidget(heading)
+        root.addLayout(heading_row)
         root.addWidget(note)
         root.addWidget(scroll, stretch=1)
         root.addWidget(btn_box)
+
+    def _on_resume_as_copy_clicked(self) -> None:
+        """Open the per-task retry selector and clone the run if the user confirms."""
+        from ollama_llm_bench.ui.widgets.panels.retry_selection_dialog import RetrySelectionDialog
+
+        dlg = RetrySelectionDialog(run_id=self._run_id, results=self._results, parent=self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        self.cloned_run_id = self._controller.clone_run_for_retry(
+            self._run_id, result_ids_to_retry=dlg.selected_result_ids
+        )
+        self.accept()
+
+    def _on_rename_clicked(self) -> None:
+        """Open the rename dialog for this run."""
+        from ollama_llm_bench.ui.widgets.panels.rename_run_dialog import RenameRunDialog
+
+        existing = self._controller.get_run_names(exclude_run_id=self._run_id)
+        run = self._controller.get_run(self._run_id)
+        current_name = run.run_name or run.timestamp
+        dlg = RenameRunDialog(current_name=current_name, existing_names=existing, parent=self)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self._controller.rename_run(run_id=self._run_id, new_name=dlg.new_name)
 
     def _build_drift_banner(self, warnings: list[str]) -> QFrame:
         banner = QFrame()

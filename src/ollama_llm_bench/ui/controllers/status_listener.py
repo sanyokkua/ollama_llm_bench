@@ -11,10 +11,11 @@ from ollama_llm_bench.backend.core.interfaces import (
 from ollama_llm_bench.backend.core.models import (
     AvgSummaryTableItem,
     JudgeSummaryEvent,
+    PerfAnalysisEvent,
+    PipelineStage,
     ReporterStatusMsg,
     SummaryTableItem,
 )
-from ollama_llm_bench.backend.core.stages_constants import STAGE_FAILED, STAGE_FINISHED
 from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 
 logger = logging.getLogger(__name__)
@@ -80,12 +81,16 @@ class StatusListener:
         try:
             run = self.data_api.retrieve_benchmark_run(run_id)
         except Exception as e:
-            logger.warning(f"Failed to retrieve run {run_id}: {e}")
+            logger.warning("Failed to retrieve run %s: %s", run_id, e)
             self._post_tables_update(run_id)
             return
 
         if run.judge_summary:
             self.event_bus.emit_judge_summary(JudgeSummaryEvent(run_id=run.run_id, summary_text=run.judge_summary))
+        if run.perf_analysis_result:
+            self.event_bus.emit_perf_analysis(
+                PerfAnalysisEvent(run_id=run.run_id, analysis_text=run.perf_analysis_result)
+            )
 
         self._post_tables_update(run.run_id)
 
@@ -99,13 +104,13 @@ class StatusListener:
         if status is not None:
             stage = status.current_stage
             run_id = status.current_run_id
-            if stage in [STAGE_FINISHED, STAGE_FAILED]:
+            if stage in (PipelineStage.FINISHED, PipelineStage.FAILED):
                 self.event_bus.emit_run_id_changed(run_id)
                 try:
                     runs_list = get_benchmark_runs(self.data_api)
                     self.event_bus.emit_run_ids_changed(runs_list)
                 except Exception as e:
-                    logger.warning(f"failed to retrieve runs {e}")
+                    logger.warning("failed to retrieve runs %s", e)
                     self.event_bus.emit_run_ids_changed([])
                 self._post_tables_update(run_id)
 
@@ -149,11 +154,13 @@ class StatusListener:
         try:
             summary = self.result_api.retrieve_avg_benchmark_results_for_run(run_id)
             logger.info(
-                f"Retrieved summary data for run ID {run_id} with {len(summary)} model summaries",
+                "Retrieved summary data for run ID %s with %d model summaries",
+                run_id,
+                len(summary),
             )
             return summary
         except Exception as e:
-            logger.error(f"Failed to retrieve summary data for run {run_id}: {e!s}")
+            logger.error("Failed to retrieve summary data for run %s: %s", run_id, e)
             return []
 
     def _get_detailed_data(self, run_id: int | None) -> list[SummaryTableItem]:
@@ -173,9 +180,11 @@ class StatusListener:
         try:
             detailed = self.result_api.retrieve_detailed_benchmark_results_for_run(run_id)
             logger.info(
-                f"Retrieved detailed data for run ID {run_id} with {len(detailed)} task results",
+                "Retrieved detailed data for run ID %s with %d task results",
+                run_id,
+                len(detailed),
             )
             return detailed
         except Exception as e:
-            logger.error(f"Failed to retrieve detailed data for run {run_id}: {e!s}")
+            logger.error("Failed to retrieve detailed data for run %s: %s", run_id, e)
             return []

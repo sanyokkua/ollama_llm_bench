@@ -1,6 +1,7 @@
 """Unit tests for StatusListener live-update debounce and table-refresh logic."""
 
 import time
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,10 +19,10 @@ from ollama_llm_bench.backend.core.models import (
     EvalVerdict,
     JudgeCompletedEvent,
     ModelDescriptor,
+    PipelineStage,
     ReporterStatusMsg,
     TaskCompletedEvent,
 )
-from ollama_llm_bench.backend.core.stages_constants import STAGE_FAILED, STAGE_FINISHED
 from ollama_llm_bench.ui.controllers.status_listener import StatusListener
 
 # ---------------------------------------------------------------------------
@@ -68,22 +69,22 @@ def _make_judge_completed_event(run_id: int = 1) -> JudgeCompletedEvent:
 
 @pytest.fixture
 def mock_data_api(mocker: MockerFixture) -> MagicMock:
-    return mocker.Mock(spec=DataApi)
+    return cast(MagicMock, mocker.Mock(spec=DataApi))
 
 
 @pytest.fixture
 def mock_flow_api(mocker: MockerFixture) -> MagicMock:
-    return mocker.Mock(spec=BenchmarkFlowApi)
+    return cast(MagicMock, mocker.Mock(spec=BenchmarkFlowApi))
 
 
 @pytest.fixture
 def mock_event_bus(mocker: MockerFixture) -> MagicMock:
-    return mocker.Mock(spec=EventBus)
+    return cast(MagicMock, mocker.Mock(spec=EventBus))
 
 
 @pytest.fixture
 def mock_result_api(mocker: MockerFixture) -> MagicMock:
-    api = mocker.Mock(spec=ResultApi)
+    api = cast(MagicMock, mocker.Mock(spec=ResultApi))
     api.retrieve_avg_benchmark_results_for_run.return_value = []
     api.retrieve_detailed_benchmark_results_for_run.return_value = []
     return api
@@ -155,7 +156,7 @@ def test_task_completed_after_debounce_window_triggers_second_update(
 
 
 # ---------------------------------------------------------------------------
-# Test 3 — STAGE_FINISHED bypasses debounce via _progress_changed
+# Test 3 — PipelineStage.FINISHED bypasses debounce via _progress_changed
 # ---------------------------------------------------------------------------
 
 
@@ -173,7 +174,7 @@ def test_progress_finished_always_triggers_table_update(
 
     status_msg = ReporterStatusMsg(
         current_run_id=1,
-        current_stage=STAGE_FINISHED,
+        current_stage=PipelineStage.FINISHED,
     )
 
     # Act
@@ -226,7 +227,7 @@ def test_task_completed_debounce_timestamp_updated_on_first_call(
 
 
 # ---------------------------------------------------------------------------
-# Test 6 — STAGE_FAILED also triggers table update via _progress_changed
+# Test 6 — PipelineStage.FAILED also triggers table update via _progress_changed
 # ---------------------------------------------------------------------------
 
 
@@ -239,7 +240,7 @@ def test_progress_failed_triggers_table_update(
     mock_data_api.retrieve_benchmark_runs.return_value = []
     status_msg = ReporterStatusMsg(
         current_run_id=5,
-        current_stage=STAGE_FAILED,
+        current_stage=PipelineStage.FAILED,
     )
 
     # Act

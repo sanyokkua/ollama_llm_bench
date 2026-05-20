@@ -359,6 +359,23 @@ OUTPUT_INSTRUCTIONS: dict[PromptOutputSize, str] = {
 }
 
 
+INPUT_SIZE_DESCRIPTIONS: dict[PromptInputSize, str] = {
+    PromptInputSize.TINY: "XS · Tiny (~40 tokens)",
+    PromptInputSize.SMALL: "SM · Short (~250 tokens)",
+    PromptInputSize.MEDIUM: "MD · Medium (~550 tokens)",
+    PromptInputSize.LARGE: "LG · Long (~1 100 tokens)",
+    PromptInputSize.HUGE: "XL · Huge (~2 500 tokens)",
+}
+
+OUTPUT_SIZE_DESCRIPTIONS: dict[PromptOutputSize, str] = {
+    PromptOutputSize.XS: "XS · 1 sentence",
+    PromptOutputSize.SM: "SM · 5 sentences",
+    PromptOutputSize.MD: "MD · 20 sentences",
+    PromptOutputSize.LG: "LG · 100 sentences",
+    PromptOutputSize.XL: "XL · 500 sentences",
+}
+
+
 def build_performance_prompt(input_size: PromptInputSize, output_size: PromptOutputSize) -> str:
     """Return the combined input prompt and output instruction for a performance cell."""
     return PERFORMANCE_PROMPTS[input_size] + OUTPUT_INSTRUCTIONS[output_size]

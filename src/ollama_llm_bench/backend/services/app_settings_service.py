@@ -34,9 +34,14 @@ SETTING_TASK_TIMEOUT_S: str = (
 SETTING_RETRY_COUNT: str = "benchmark.retry_count"  # int; default 3
 SETTING_RETRY_TIMEOUT_MIN_S: str = "benchmark.retry_timeout_min_s"  # int seconds; default 300 (5 min)
 SETTING_RETRY_TIMEOUT_MAX_S: str = "benchmark.retry_timeout_max_s"  # int seconds; default 900 (15 min)
+SETTING_RETRY_MAX_FAILURES_TO_EXCLUDE: str = "benchmark.retry_max_failures_to_exclude"
 SETTING_JUDGE_OVERRIDE_KEYWORD_FAIL: str = "feature.judge_override_keyword_fail"
 SETTING_JUDGE_OVERRIDE_COSINE_LOW: str = "feature.judge_override_cosine_low"
 SETTING_JUDGE_RUN_ANALYSIS_ENABLED: str = "feature.judge_run_analysis_enabled"
+SETTING_PROVIDER_TRIP_THRESHOLD: str = "benchmark.provider_trip_threshold"
+SETTING_PROVIDER_TRIP_WINDOW_S: str = "benchmark.provider_trip_window_s"
+SETTING_PROVIDER_TRIP_PROBE_INTERVAL_S: str = "benchmark.provider_trip_probe_s"
+SETTING_PROVIDER_STOP_ON_TRIP: str = "benchmark.provider_stop_on_trip"
 
 _DEFAULTS: dict[str, str] = {
     SETTING_PAUSE_ON_PROVIDER_SWITCH: "false",
@@ -62,9 +67,14 @@ _DEFAULTS: dict[str, str] = {
     SETTING_RETRY_COUNT: "3",
     SETTING_RETRY_TIMEOUT_MIN_S: "300",
     SETTING_RETRY_TIMEOUT_MAX_S: "900",
+    SETTING_RETRY_MAX_FAILURES_TO_EXCLUDE: "3",
     SETTING_JUDGE_OVERRIDE_KEYWORD_FAIL: "false",
     SETTING_JUDGE_OVERRIDE_COSINE_LOW: "false",
     SETTING_JUDGE_RUN_ANALYSIS_ENABLED: "false",
+    SETTING_PROVIDER_TRIP_THRESHOLD: "3",
+    SETTING_PROVIDER_TRIP_WINDOW_S: "600",
+    SETTING_PROVIDER_TRIP_PROBE_INTERVAL_S: "60",
+    SETTING_PROVIDER_STOP_ON_TRIP: "true",
 }
 
 

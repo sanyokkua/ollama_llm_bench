@@ -113,7 +113,7 @@ Inlined inside `BenchmarkTask`; not persisted directly.
 ### `BenchmarkTask`
 
 A task loaded from a dataset YAML file; immutable after load.
-Not persisted to SQLite — tasks live in the YAML dataset and are cached by `YamlBenchmarkTaskApi`.
+Not persisted to SQLite — tasks live in the YAML dataset and are cached by `TaskFileLoader`.
 
 | Field | Type | Purpose |
 |---|---|---|
@@ -156,7 +156,7 @@ Default values mean new results can be inserted with minimal boilerplate: only `
 
 ### `InferenceResponse`
 
-Return type of `LLMApi.inference`.
+Return type of `LLMProviderApi.inference_sync` and `LLMProviderApi.inference_stream`.
 Not persisted — its fields are copied into the matching `BenchmarkResult` columns.
 
 | Field | Type | Default |
@@ -247,21 +247,21 @@ Stored in `results.status`. Drives the resume logic in `BenchmarkExecutionTask`.
 | `COMPLETED` | Evaluation finished successfully | Terminal state |
 | `FAILED` | Unrecoverable error — `error_message` is set | Terminal state |
 
-## Stage Constants
+## Pipeline Stages
 
-String constants in `src/ollama_llm_bench/core/stages_constants.py`, carried in `ReporterStatusMsg.current_stage`:
+`PipelineStage(StrEnum)` in `src/ollama_llm_bench/backend/core/models.py`, carried in `ReporterStatusMsg.current_stage`:
 
-| Constant | Value |
+| Member | Value |
 |---|---|
-| `STAGE_INITIALIZING` | `"Initializing"` |
-| `STAGE_BENCHMARKING` | `"Benchmarking"` |
-| `STAGE_JUDGING` | `"Judging"` |
-| `STAGE_FINISHED` | `"Finished"` |
-| `STAGE_FAILED` | `"Failed"` |
+| `PipelineStage.INITIALIZING` | `"Initializing"` |
+| `PipelineStage.BENCHMARKING` | `"Benchmarking"` |
+| `PipelineStage.JUDGING` | `"Judging"` |
+| `PipelineStage.FINISHED` | `"Finished"` |
+| `PipelineStage.FAILED` | `"Failed"` |
 
 ## Prompt Constants
 
-`src/ollama_llm_bench/core/prompt_constants.py` defines two multi-line templates used by `SimplePromptBuilderApi.build_judge_prompt`:
+`src/ollama_llm_bench/backend/core/prompt_constants.py` defines two multi-line templates used by `JudgePromptService.build_judge_prompt`:
 
 - `SYSTEM_PROMPT` — instructs the judge how to score, including category-specific weight rubrics and the tiered score mapping.
 - `USER_PROMPT` — contains `{question}`, `{most_expected}`, `{good_answer}`, `{pass_option}`, `{incorrect_direction}`, `{answer}`, `{category}`, `{sub_category}` placeholders, filled by `str.replace`.

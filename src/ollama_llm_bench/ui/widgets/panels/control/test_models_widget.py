@@ -46,7 +46,7 @@ class _ModelFetchWorker(QRunnable):
     class Signals(QObject):
         """Typed signals for _ModelFetchWorker."""
 
-        finished: Signal = Signal(str, list)  # provider_id, list[str]
+        finished: Signal = Signal(str, list)  # provider_id, list[ModelDescriptor]
 
     def __init__(self, provider_id: str, controller: RunConfigController) -> None:
         """Initialise the fetch worker.
@@ -68,15 +68,15 @@ class _ModelFetchWorker(QRunnable):
         Never raises — errors are logged and an empty list is emitted.
         """
         try:
-            models = self._controller.get_models_for_provider(self._provider_id)
+            descriptors = self._controller.get_descriptors_for_provider(self._provider_id)
         except Exception:
             _logger.warning(
                 "Failed to fetch models for provider %s",
                 self._provider_id,
                 exc_info=True,
             )
-            models = []
-        self.signals.finished.emit(self._provider_id, models)
+            descriptors = []
+        self.signals.finished.emit(self._provider_id, descriptors)
 
 
 class TestModelsWidget(QWidget):
@@ -127,12 +127,15 @@ class TestModelsWidget(QWidget):
         self._last_browse_provider_id: str = ""
         # Cache of fetched models per provider: provider_id → list[str]
         self._provider_models: dict[str, list[str]] = {}
+        # Cache of full descriptors per provider: provider_id → model_name → ModelDescriptor
+        self._provider_descriptors: dict[str, dict[str, ModelDescriptor]] = {}
 
         self._create_widgets()
         self._configure_widgets()
         self._build_layout()
         self._connect_signals()
         self._refresh_providers()
+        self._controller.subscribe_to_provider_registry_reloaded(self._refresh_providers, parent=self)
 
     # ------------------------------------------------------------------
     # Widget creation
@@ -279,7 +282,7 @@ class TestModelsWidget(QWidget):
         self._threadpool.start(worker)
 
     @Slot(str, list)
-    def _on_models_fetched(self, provider_id: str, models: list[str]) -> None:
+    def _on_models_fetched(self, provider_id: str, descriptors: list[ModelDescriptor]) -> None:
         """Handle freshly fetched model list on the main thread.
 
         Caches the result, then populates the available list if the browsed
@@ -288,16 +291,18 @@ class TestModelsWidget(QWidget):
 
         Args:
             provider_id: The provider the fetch was initiated for.
-            models: Raw model names returned by the provider.
+            descriptors: Full ModelDescriptor list returned by the provider.
         """
+        model_names = [d.model_name for d in descriptors]
         # Detect removed selections
-        removed_count = self._prune_missing_models(provider_id, models)
-        self._provider_models[provider_id] = models
+        removed_count = self._prune_missing_models(provider_id, model_names)
+        self._provider_models[provider_id] = model_names
+        self._provider_descriptors[provider_id] = {d.model_name: d for d in descriptors}
         self._removed_label.setVisible(removed_count > 0)
 
         # Only repopulate if this provider is still browsed
         if self._browse_combo.currentText() == provider_id:
-            self._populate_available_list(provider_id, models)
+            self._populate_available_list(provider_id, model_names)
 
     def _prune_missing_models(self, provider_id: str, available_models: list[str]) -> int:
         """Remove from the store any selections for ``provider_id`` that are no longer available.
@@ -409,12 +414,14 @@ class TestModelsWidget(QWidget):
         key: ModelSelectionKey = item.data(Qt.ItemDataRole.UserRole)
         if item.checkState() == Qt.CheckState.Checked:
             provider_label = self._browse_combo.currentText()
-            descriptor = ModelDescriptor(
-                provider_id=key.provider_id,
-                provider_type="openai_compatible",
-                model_name=key.model_name,
-                display_label=f"{provider_label} · {key.model_name}",
-            )
+            descriptor = self._provider_descriptors.get(key.provider_id, {}).get(key.model_name)
+            if descriptor is None:
+                descriptor = ModelDescriptor(
+                    provider_id=key.provider_id,
+                    provider_type="",
+                    model_name=key.model_name,
+                    display_label=f"{provider_label} · {key.model_name}",
+                )
             self._store.add(descriptor)
         else:
             self._store.remove(key)
@@ -461,12 +468,14 @@ class TestModelsWidget(QWidget):
             key: ModelSelectionKey = item.data(Qt.ItemDataRole.UserRole)
             if item.checkState() == Qt.CheckState.Checked:
                 if not self._store.contains(key):
-                    descriptor = ModelDescriptor(
-                        provider_id=key.provider_id,
-                        provider_type="openai_compatible",
-                        model_name=key.model_name,
-                        display_label=f"{provider_label} · {key.model_name}",
-                    )
+                    descriptor = self._provider_descriptors.get(key.provider_id, {}).get(key.model_name)
+                    if descriptor is None:
+                        descriptor = ModelDescriptor(
+                            provider_id=key.provider_id,
+                            provider_type="",
+                            model_name=key.model_name,
+                            display_label=f"{provider_label} · {key.model_name}",
+                        )
                     self._store.add(descriptor)
             else:
                 if self._store.contains(key):

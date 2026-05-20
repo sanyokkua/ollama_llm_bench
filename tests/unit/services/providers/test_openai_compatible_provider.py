@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import openai
 from pytest_mock import MockerFixture
 
-from ollama_llm_bench.backend.core.models import InferenceResponse, ModelDescriptor, StreamChunk
+from ollama_llm_bench.backend.core.models import HealthProbeResult, InferenceResponse, ModelDescriptor, StreamChunk
 from ollama_llm_bench.backend.services.model_name_parser import ModelNameParser
 from ollama_llm_bench.backend.services.providers.openai_compatible_provider import OpenAICompatibleProvider
 
@@ -726,9 +726,9 @@ class TestOpenAICompatibleProviderWarmUp:
         assert result is False
 
     def test_warm_up_retries_three_times_before_failing(self, mocker: MockerFixture) -> None:
-        # Arrange
+        # Arrange — use a 503 error so the classifier marks it as retryable
         provider, mock_client = _make_provider(mocker)
-        mock_client.chat.completions.create.side_effect = openai.OpenAIError("timeout")
+        mock_client.chat.completions.create.side_effect = openai.OpenAIError("Error code: 503 - Server Error")
         mocker.patch("ollama_llm_bench.backend.services.providers.openai_compatible_provider.time.sleep")
 
         # Act
@@ -738,9 +738,9 @@ class TestOpenAICompatibleProviderWarmUp:
         assert mock_client.chat.completions.create.call_count == 3
 
     def test_warm_up_sleeps_between_failed_attempts(self, mocker: MockerFixture) -> None:
-        # Arrange
+        # Arrange — use a 503 error so the classifier marks it as retryable
         provider, mock_client = _make_provider(mocker)
-        mock_client.chat.completions.create.side_effect = openai.OpenAIError("timeout")
+        mock_client.chat.completions.create.side_effect = openai.OpenAIError("Error code: 503 - Server Error")
         mock_sleep = mocker.patch("ollama_llm_bench.backend.services.providers.openai_compatible_provider.time.sleep")
 
         # Act
@@ -750,11 +750,11 @@ class TestOpenAICompatibleProviderWarmUp:
         assert mock_sleep.call_count == 2
 
     def test_warm_up_succeeds_on_second_attempt_returns_true(self, mocker: MockerFixture) -> None:
-        # Arrange — first attempt fails, second succeeds
+        # Arrange — first attempt raises a retryable 503, second succeeds
         provider, mock_client = _make_provider(mocker)
         mock_response = _make_sync_response(mocker, content="hi")
         mock_client.chat.completions.create.side_effect = [
-            openai.OpenAIError("temporary failure"),
+            openai.OpenAIError("Error code: 503 - Server Error"),
             mock_response,
         ]
         mocker.patch("ollama_llm_bench.backend.services.providers.openai_compatible_provider.time.sleep")
@@ -788,3 +788,66 @@ class TestOpenAICompatibleProviderWarmUp:
         # Assert
         call_kwargs = mock_client.chat.completions.create.call_args.kwargs
         assert call_kwargs["model"] == "mistral:7b"
+
+
+class TestOpenAICompatibleProviderProbeHealth:
+    """Tests for probe_health."""
+
+    def test_probe_health_reachable_returns_model_count(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        model_a = mocker.Mock()
+        model_b = mocker.Mock()
+        mock_client.models.list.return_value.data = [model_a, model_b]
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert isinstance(result, HealthProbeResult)
+        assert result.reachable is True
+        assert result.model_count_observed == 2
+
+    def test_probe_health_connection_refused_returns_not_reachable(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        mock_client.models.list.side_effect = openai.APIConnectionError(request=mocker.Mock())
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert result.reachable is False
+        assert result.error_message is not None
+
+    def test_probe_health_auth_error_returns_not_reachable(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        mock_client.models.list.side_effect = openai.AuthenticationError(
+            message="Unauthorized",
+            response=mocker.Mock(),
+            body=None,
+        )
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert result.reachable is False
+        assert result.error_message == "Authentication failed — check API key."
+
+    def test_probe_health_other_openai_error_returns_not_reachable(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        mock_client.models.list.side_effect = openai.RateLimitError(
+            message="Rate limited",
+            response=mocker.Mock(),
+            body=None,
+        )
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert result.reachable is False
+        assert result.error_message is not None

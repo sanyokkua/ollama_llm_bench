@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QPushButton,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -56,6 +57,7 @@ class TaskFilesWidget(QWidget):
         self._task_label = QLabel("Task Files")
         self._task_files_list = QListWidget()
         self._drop_hint_label = QLabel(_DROP_HINT_TEXT)
+        self._stack = QStackedWidget()
         self._add_file_btn = QPushButton("Add File")
         self._add_folder_btn = QPushButton("Add Folder")
         self._remove_file_btn = QPushButton("Remove")
@@ -69,7 +71,7 @@ class TaskFilesWidget(QWidget):
         self._task_label.setProperty("role", "secondary")
 
         self._drop_hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._drop_hint_label.setProperty("role", "secondary")
+        self._drop_hint_label.setProperty("role", "drop-zone")
 
         self._drag_drop_handler.install_on(self._task_files_list)
 
@@ -96,12 +98,15 @@ class TaskFilesWidget(QWidget):
         btn_row.addWidget(self._add_folder_btn)
         btn_row.addWidget(self._remove_file_btn)
 
+        self._stack.addWidget(self._drop_hint_label)  # index 0 — shown when empty
+        self._stack.addWidget(self._task_files_list)  # index 1 — shown when populated
+        self._stack.setCurrentIndex(0)
+
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(3)
         outer.addWidget(self._task_label)
-        outer.addWidget(self._task_files_list)
-        outer.addWidget(self._drop_hint_label)
+        outer.addWidget(self._stack, stretch=1)
         outer.addLayout(btn_row)
 
     # ------------------------------------------------------------------
@@ -137,7 +142,7 @@ class TaskFilesWidget(QWidget):
             return
         self._task_paths.append(path)
         self._task_files_list.addItem(path.name)
-        self._drop_hint_label.setVisible(False)
+        self._stack.setCurrentIndex(1)
         self.tasks_changed.emit()
 
     def _remove_selected_task_file(self) -> None:
@@ -147,7 +152,7 @@ class TaskFilesWidget(QWidget):
             self._task_files_list.takeItem(row)
             del self._task_paths[row]
         if self._task_files_list.count() == 0:
-            self._drop_hint_label.setVisible(True)
+            self._stack.setCurrentIndex(0)
         self.tasks_changed.emit()
 
     # ------------------------------------------------------------------

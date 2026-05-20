@@ -9,7 +9,7 @@ from PySide6.QtGui import QStandardItemModel
 from PySide6.QtWidgets import QComboBox, QStackedWidget, QVBoxLayout, QWidget
 
 from ollama_llm_bench.backend.core.interfaces import AppSettingsServiceApi
-from ollama_llm_bench.backend.core.models import BenchmarkResult, BenchmarkRun
+from ollama_llm_bench.backend.core.models import BenchmarkResult, BenchmarkRun, RunMode
 from ollama_llm_bench.backend.services.charts.aggregations import (
     Chart1TtftAggregator,
     Chart2TpsAggregator,
@@ -34,22 +34,26 @@ logger = logging.getLogger(__name__)
 _SETTING_LAST_CHART = "ui.charts_last_chart"
 _DEFAULT_CHART = "Success Rate per model"
 
-# (display_name, aggregator_factory, chart_kind_or_"heatmap")
-_CHART_REGISTRY: list[tuple[str, type[BaseChartAggregator], str]] = [
+_ALL_MODES: frozenset[RunMode] = frozenset(RunMode)
+_TIMED_MODES: frozenset[RunMode] = frozenset({RunMode.PERFORMANCE, RunMode.SPEED, RunMode.FULL_GRADING})
+_GRADING_MODES: frozenset[RunMode] = frozenset({RunMode.FULL_GRADING, RunMode.PROMPT_EVAL})
+
+# (display_name, aggregator_factory, chart_kind_or_"heatmap", allowed_run_modes)
+_CHART_REGISTRY: list[tuple[str, type[BaseChartAggregator], str, frozenset[RunMode]]] = [
     # Performance group
-    ("Avg TTFT per model", Chart1TtftAggregator, "bar"),
-    ("Avg TPS per model", Chart2TpsAggregator, "bar"),
-    ("Avg Time per model", Chart3TimeAggregator, "bar"),
-    ("Success / Failed per model", Chart4SuccessFailedAggregator, "hbar_stacked"),
-    ("Time vs Tokens", Chart8TimeTokensAggregator, "scatter"),
-    ("Tokens per task (distribution)", Chart12BoxplotAggregator, "boxplot"),
+    ("Avg TTFT per model", Chart1TtftAggregator, "bar", _TIMED_MODES),
+    ("Avg TPS per model", Chart2TpsAggregator, "bar", _TIMED_MODES),
+    ("Avg Time per model", Chart3TimeAggregator, "bar", _ALL_MODES),
+    ("Success / Failed per model", Chart4SuccessFailedAggregator, "hbar_stacked", _ALL_MODES),
+    ("Time vs Tokens", Chart8TimeTokensAggregator, "scatter", _TIMED_MODES),
+    ("Tokens per task (distribution)", Chart12BoxplotAggregator, "boxplot", _TIMED_MODES),
     # Grading group
-    ("Success Rate per model", Chart5PassRateAggregator, "bar"),
-    ("Avg Grade per model", Chart6AvgGradeAggregator, "bar"),
-    ("Pass / Fail counts per model", Chart7VerdictCountsAggregator, "stacked_bar"),
-    ("Per-task heatmap", Chart9HeatmapAggregator, "heatmap"),
-    ("Per-category bar", Chart10CategoryBarAggregator, "bar"),
-    ("Speed vs Quality", Chart11SpeedQualityAggregator, "scatter"),
+    ("Success Rate per model", Chart5PassRateAggregator, "bar", _GRADING_MODES),
+    ("Avg Grade per model", Chart6AvgGradeAggregator, "bar", _GRADING_MODES),
+    ("Pass / Fail counts per model", Chart7VerdictCountsAggregator, "stacked_bar", _GRADING_MODES),
+    ("Per-task heatmap", Chart9HeatmapAggregator, "heatmap", _GRADING_MODES),
+    ("Per-category bar", Chart10CategoryBarAggregator, "bar", _GRADING_MODES),
+    ("Speed vs Quality", Chart11SpeedQualityAggregator, "scatter", frozenset({RunMode.FULL_GRADING})),
 ]
 
 _PERF_HEADER = "── Performance ──"
@@ -76,7 +80,7 @@ class ChartsSwitcherWidget(QWidget):
         self._populate_selector()
         self._stack = QStackedWidget()
         # Pre-allocate placeholder pages for each chart
-        for name, _, _ in _CHART_REGISTRY:
+        for name, _, _, _ in _CHART_REGISTRY:
             placeholder = QWidget()
             page_idx = self._stack.addWidget(placeholder)
             self._name_to_stack_page[name] = page_idx
@@ -93,7 +97,7 @@ class ChartsSwitcherWidget(QWidget):
         # Add Performance header
         self._chart_selector.addItem(_PERF_HEADER)
         _disable_last_item(self._chart_selector)
-        for name, _, _ in _CHART_REGISTRY:
+        for name, _, _, _ in _CHART_REGISTRY:
             if name == _GRADING_START_NAME:
                 self._chart_selector.addItem(_GRADING_HEADER)
                 _disable_last_item(self._chart_selector)
@@ -116,8 +120,29 @@ class ChartsSwitcherWidget(QWidget):
         """Push new run and results to all already-instantiated chart frames."""
         self._run = run
         self._results = results
+        self._apply_mode_filter(run.run_mode if run else None)
         for frame in self._frame_map.values():
             frame.update_run_data(run=run, results=results)
+
+    def _apply_mode_filter(self, run_mode: RunMode | None) -> None:
+        """Enable or disable combo items based on the run mode."""
+        raw_model = self._chart_selector.model()
+        if not isinstance(raw_model, QStandardItemModel):
+            return
+        for entry_name, _, _, allowed_modes in _CHART_REGISTRY:
+            idx = self._chart_selector.findText(entry_name)
+            if idx < 0:
+                continue
+            item = raw_model.item(idx)
+            if item is None:
+                continue
+            enabled = run_mode is None or run_mode in allowed_modes
+            if enabled:
+                item.setEnabled(True)
+                item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+            else:
+                item.setEnabled(False)
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
 
     def _on_chart_selected(self, index: int) -> None:
         name = self._chart_selector.itemText(index)
@@ -164,7 +189,7 @@ def _disable_last_item(combo: QComboBox) -> None:
 
 def _build_frame(name: str, tokens: dict[str, str]) -> ChartFrame | HeatmapFrame:
     """Instantiate the correct frame type for the given chart name."""
-    for entry_name, agg_cls, kind in _CHART_REGISTRY:
+    for entry_name, agg_cls, kind, _ in _CHART_REGISTRY:
         if entry_name == name:
             if kind == "heatmap":
                 return HeatmapFrame(aggregator=agg_cls(), tokens=tokens)

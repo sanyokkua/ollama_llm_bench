@@ -6,67 +6,90 @@ import pytest
 from pytest_mock import MockerFixture
 
 from ollama_llm_bench.backend.core.interfaces import LLMProviderApi
-from ollama_llm_bench.backend.core.models import ModelDescriptor
+from ollama_llm_bench.backend.core.models import HealthProbeResult
 from ollama_llm_bench.backend.services.provider_health_checker import HealthCheckResult, ProviderHealthChecker
 
 
-def _fake_descriptor(provider_id: str = "p1", model_name: str = "llama3") -> ModelDescriptor:
-    return ModelDescriptor(
-        provider_id=provider_id,
-        provider_type="openai_compatible",
-        model_name=model_name,
-        display_label=model_name,
-    )
-
-
 class TestProviderHealthChecker:
-    def test_check_success_returns_is_healthy_true_with_model_count_and_latency(self, mocker: MockerFixture) -> None:
-        """When get_available_models returns models, result is healthy with correct count and non-negative latency."""
+    def test_check_reachable_with_models_returns_healthy_with_count(self, mocker: MockerFixture) -> None:
+        """When probe_health returns reachable=True with models, result is healthy with correct count."""
         mock_provider = mocker.Mock(spec=LLMProviderApi)
         mock_provider.provider_id = "p1"
-        mock_provider.get_available_models.return_value = [_fake_descriptor(), _fake_descriptor(model_name="qwen")]
+        mock_provider.probe_health.return_value = HealthProbeResult(reachable=True, model_count_observed=3)
 
-        checker = ProviderHealthChecker()
-        result: HealthCheckResult = checker.check(mock_provider)
+        result: HealthCheckResult = ProviderHealthChecker().check(mock_provider)
 
         assert result.is_healthy is True
-        assert result.model_count == 2
+        assert result.model_count == 3
         assert result.latency_ms >= 0
         assert result.error_message == ""
         assert result.provider_id == "p1"
 
-    def test_check_failure_returns_is_healthy_false_with_error_message(self, mocker: MockerFixture) -> None:
-        """When get_available_models raises, result is not healthy and carries the error message."""
+    def test_check_reachable_no_models_returns_healthy_with_zero_count(self, mocker: MockerFixture) -> None:
+        """When probe_health returns reachable=True with zero models, is_healthy=True and model_count=0."""
         mock_provider = mocker.Mock(spec=LLMProviderApi)
         mock_provider.provider_id = "p2"
-        mock_provider.get_available_models.side_effect = RuntimeError("connection refused")
+        mock_provider.probe_health.return_value = HealthProbeResult(reachable=True, model_count_observed=0)
 
-        checker = ProviderHealthChecker()
-        result: HealthCheckResult = checker.check(mock_provider)
+        result: HealthCheckResult = ProviderHealthChecker().check(mock_provider)
+
+        assert result.is_healthy is True
+        assert result.model_count == 0
+        assert result.error_message == ""
+
+    def test_check_connection_refused_returns_unhealthy_with_error(self, mocker: MockerFixture) -> None:
+        """When probe_health returns reachable=False, result is not healthy and carries the error message."""
+        mock_provider = mocker.Mock(spec=LLMProviderApi)
+        mock_provider.provider_id = "p3"
+        mock_provider.probe_health.return_value = HealthProbeResult(reachable=False, error_message="Connection refused")
+
+        result: HealthCheckResult = ProviderHealthChecker().check(mock_provider)
 
         assert result.is_healthy is False
-        assert "connection refused" in result.error_message
+        assert "Connection refused" in result.error_message
         assert result.model_count == 0
-        assert result.latency_ms == 0
+
+    def test_check_auth_error_returns_unhealthy_with_auth_message(self, mocker: MockerFixture) -> None:
+        """When probe_health returns an auth error, result carries the authentication failure message."""
+        mock_provider = mocker.Mock(spec=LLMProviderApi)
+        mock_provider.provider_id = "p4"
+        mock_provider.probe_health.return_value = HealthProbeResult(
+            reachable=False, error_message="Authentication failed — check API key."
+        )
+
+        result: HealthCheckResult = ProviderHealthChecker().check(mock_provider)
+
+        assert result.is_healthy is False
+        assert "Authentication" in result.error_message
+
+    def test_check_probe_raises_returns_unhealthy(self, mocker: MockerFixture) -> None:
+        """When probe_health raises an unexpected exception, result is not healthy."""
+        mock_provider = mocker.Mock(spec=LLMProviderApi)
+        mock_provider.provider_id = "p5"
+        mock_provider.probe_health.side_effect = RuntimeError("unexpected error")
+
+        result: HealthCheckResult = ProviderHealthChecker().check(mock_provider)
+
+        assert result.is_healthy is False
+        assert "unexpected error" in result.error_message
+        assert result.model_count == 0
 
     @pytest.mark.slow
-    def test_check_timeout_returns_is_healthy_false(self, mocker: MockerFixture) -> None:
-        """When get_available_models blocks indefinitely, the 5-second timeout fires and result is not healthy."""
+    def test_check_timeout_returns_unhealthy_with_timeout_message(self, mocker: MockerFixture) -> None:
+        """When probe_health blocks indefinitely, the 5-second timeout fires and result is not healthy."""
         barrier = threading.Event()
 
         mock_provider = mocker.Mock(spec=LLMProviderApi)
-        mock_provider.provider_id = "p3"
+        mock_provider.provider_id = "p6"
 
-        def _block() -> list[ModelDescriptor]:
+        def _block() -> HealthProbeResult:
             barrier.wait(timeout=60)
-            return []
+            return HealthProbeResult(reachable=True)
 
-        mock_provider.get_available_models.side_effect = _block
+        mock_provider.probe_health.side_effect = _block
 
-        checker = ProviderHealthChecker()
-        result: HealthCheckResult = checker.check(mock_provider)
-
-        # Unblock the background thread so it can finish cleanly
+        result: HealthCheckResult = ProviderHealthChecker().check(mock_provider)
         barrier.set()
 
         assert result.is_healthy is False
+        assert "timed out" in result.error_message

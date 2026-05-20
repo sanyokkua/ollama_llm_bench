@@ -3,27 +3,32 @@
 import logging
 import os
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
 
-from PySide6.QtCore import QThreadPool, Slot
+from PySide6.QtCore import QModelIndex, Qt, QThreadPool, Slot
 from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QCheckBox,
     QComboBox,
+    QDialog,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
-    QInputDialog,
+    QHeaderView,
     QLabel,
-    QLineEdit,
     QMessageBox,
     QPushButton,
-    QScrollArea,
+    QTableView,
     QVBoxLayout,
     QWidget,
 )
+from shiboken6 import isValid
 
 from ollama_llm_bench.backend.core.models import (
+    AppReadinessChangedEvent,
     EmbeddingConfig,
     ProviderConfig,
     ProvidersConfig,
@@ -31,29 +36,61 @@ from ollama_llm_bench.backend.core.models import (
 )
 from ollama_llm_bench.backend.core.ui_controllers import SettingsWidgetControllerApi
 from ollama_llm_bench.backend.services.provider_health_checker import HealthCheckResult, ProviderHealthChecker
+from ollama_llm_bench.ui.models.provider_table_model import (
+    COL_ACTIONS,
+    COL_BASE_URL,
+    COL_ENABLED,
+    COL_HEALTH,
+    COL_LABEL,
+    COL_TYPE,
+    ProviderTableModel,
+)
 from ollama_llm_bench.ui.qt_classes.drag_drop_handler import DragDropHandler
 from ollama_llm_bench.ui.qt_classes.provider_health_runnable import ProviderHealthRunnable
 from ollama_llm_bench.ui.style.style_utils import repolish
-from ollama_llm_bench.ui.widgets.settings.provider_card_widget import ProviderCardWidget
+from ollama_llm_bench.ui.widgets.settings.env_var_conversion_dialog import EnvVarConversionDialog
+from ollama_llm_bench.ui.widgets.settings.provider_actions_delegate import ProviderActionsDelegate
+from ollama_llm_bench.ui.widgets.settings.provider_edit_dialog import ProviderEditDialog
 
 logger = logging.getLogger(__name__)
 
 _LABEL_NO_PROVIDERS: Final[str] = "No providers loaded."
-_DEFAULT_EMBEDDING_MODEL: Final[str] = "bge-m3"
 _FILTER_YAML: Final[str] = "YAML Files (*.yaml *.yml)"
 _DIALOG_TITLE_LOAD: Final[str] = "Load Providers Config"
 _DIALOG_TITLE_SAVE: Final[str] = "Save Providers Config"
 _DEFAULT_SAVE_FILENAME: Final[str] = "providers.yaml"
-_PLAIN_KEY_RE: Final[re.Pattern[str]] = re.compile(r"^\$\{[A-Z_][A-Z0-9_]*\}$")
 _ENV_VAR_RE: Final[re.Pattern[str]] = re.compile(r"^\$\{([A-Z_][A-Z0-9_]*)\}$")
 _DISABLED_TOOLTIP: Final[str] = "Provider is disabled. Enable it in this tab to test its connection."
 _ENV_MISSING_TOOLTIP: Final[str] = "Environment variable {var} is not set. The provider is unavailable at runtime."
+_LOCAL_TRIVIAL_KEYS: Final[frozenset[str]] = frozenset(
+    {
+        "ollama",
+        "lm-studio",
+        "lmstudio",
+        "none",
+        "no-key",
+        "sk-no-key-required",
+        "",
+    }
+)
+_LOCAL_HOST_RE: Final[re.Pattern[str]] = re.compile(r"^https?://(127\.0\.0\.1|localhost|0\.0\.0\.0)(:\d+)?(/.*)?$")
+_ACTIONS_COL_MIN_WIDTH: Final[int] = 200
+
+
+def _should_prompt_for_envvar(cfg: ProviderConfig) -> bool:
+    """Return True when this provider's API key warrants an env-var conversion prompt."""
+    if not cfg.api_key_raw:
+        return False
+    if _ENV_VAR_RE.fullmatch(cfg.api_key_raw):
+        return False
+    base_url: str = cfg.base_url or ""
+    return not (cfg.api_key_raw.strip() in _LOCAL_TRIVIAL_KEYS and bool(_LOCAL_HOST_RE.match(base_url)))
 
 
 class ProvidersTabWidget(QWidget):
     """Tab content for provider management in the settings dialog.
 
-    Shows scrollable provider cards, file management buttons, and
+    Shows a QTableView of provider rows, file management buttons, and
     the embedding provider/model selection at the bottom.
     """
 
@@ -65,10 +102,15 @@ class ProvidersTabWidget(QWidget):
         """
         super().__init__()
         self._controller: SettingsWidgetControllerApi = controller
-        self._cards: list[ProviderCardWidget] = []
         self._in_flight: set[str] = set()
+        self._pending_enable: set[str] = set()
+        self._last_health: dict[str, HealthCheckResult] = {}
         self._health_checker: ProviderHealthChecker = ProviderHealthChecker()
         self._is_dirty: bool = False
+        self._discovered_embedding_models: list[str] = []
+        self._saved_embedding_model: str = ""
+        self._model: ProviderTableModel = ProviderTableModel([])
+        self._delegate: ProviderActionsDelegate = ProviderActionsDelegate(self)
         self._setup_ui()
         self._setup_signals()
         self._populate_providers()
@@ -78,7 +120,7 @@ class ProvidersTabWidget(QWidget):
         self._save_changes_btn: QPushButton = QPushButton("Save Changes")
         self._save_changes_btn.setProperty("role", "primary")
         self._save_changes_btn.setToolTip(
-            "Save current providers list to providers.yaml in the application data folder."
+            "Save providers to the database. A YAML backup is also written to the application data folder."
         )
 
         self._import_btn: QPushButton = QPushButton("Import config…")
@@ -88,8 +130,12 @@ class ProvidersTabWidget(QWidget):
         self._export_btn.setToolTip("Save the current providers list to a file you choose (for sharing / backup).")
 
         self._reload_btn: QPushButton = QPushButton("Reload")
-        self._reload_btn.setToolTip(
-            "Discard unsaved changes and re-read providers.yaml from disk. Useful if you edited the file externally."
+        self._reload_btn.setToolTip("Discard unsaved changes and reload providers from the database.")
+
+        self._reset_defaults_btn: QPushButton = QPushButton("Reset to Defaults")
+        self._reset_defaults_btn.setProperty("role", "danger")
+        self._reset_defaults_btn.setToolTip(
+            "Restore all providers to factory defaults. Your customisations will be lost."
         )
 
         button_row: QHBoxLayout = QHBoxLayout()
@@ -97,36 +143,46 @@ class ProvidersTabWidget(QWidget):
         button_row.addWidget(self._import_btn)
         button_row.addWidget(self._export_btn)
         button_row.addWidget(self._reload_btn)
+        button_row.addWidget(self._reset_defaults_btn)
         button_row.addStretch()
 
         # Add Provider button
         self._add_provider_btn: QPushButton = QPushButton("Add Provider")
         self._add_provider_btn.setToolTip("Add a new provider entry to the list.")
 
-        # Cards scroll area
-        self._cards_layout: QVBoxLayout = QVBoxLayout()
-        self._cards_layout.setContentsMargins(16, 16, 16, 16)
-
-        cards_container: QWidget = QWidget()
-        cards_container.setLayout(self._cards_layout)
-
-        scroll: QScrollArea = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(cards_container)
+        # Providers table
+        self._table: QTableView = QTableView()
+        self._table.setModel(self._model)
+        self._table.setItemDelegateForColumn(COL_ACTIONS, self._delegate)
+        self._table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self._table.verticalHeader().setVisible(False)
+        self._table.setAlternatingRowColors(True)
+        header: QHeaderView = self._table.horizontalHeader()
+        header.setSectionResizeMode(COL_HEALTH, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(COL_LABEL, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(COL_TYPE, QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(COL_BASE_URL, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(COL_ENABLED, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(COL_ACTIONS, QHeaderView.ResizeMode.Interactive)
+        self._table.setColumnWidth(COL_ACTIONS, _ACTIONS_COL_MIN_WIDTH)
 
         # Embedding section
         self._embedding_provider_combo: QComboBox = QComboBox()
         self._embedding_model_combo: QComboBox = QComboBox()
         self._embedding_model_combo.setEditable(True)
         self._embedding_model_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self._embedding_model_combo.addItem(_DEFAULT_EMBEDDING_MODEL)
-        self._embedding_model_combo.setCurrentText(_DEFAULT_EMBEDDING_MODEL)
+        self._embedding_model_combo.setPlaceholderText("Select embedding model")
+        self._embedding_model_combo.setEnabled(False)
         self._embedding_model_combo.setToolTip(
             "Select a discovered model or type a custom model name. Models are fetched from the selected provider."
         )
-        self._embedding_model_combo.setPlaceholderText("Select or type model name")
+        self._embedding_show_all_check: QCheckBox = QCheckBox("Show all models")
+        self._embedding_show_all_check.setToolTip(
+            "Show all models from the provider, not just embedding-classified ones."
+        )
 
-        # Test button + status label
         self._embedding_test_button: QPushButton = QPushButton("Test Embedding")
         self._embedding_test_button.setProperty("size", "small")
         self._embedding_test_button.setToolTip(
@@ -143,8 +199,14 @@ class ProvidersTabWidget(QWidget):
 
         provider_desc: QLabel = QLabel("Provider that serves the embedding model for semantic similarity grading.")
         provider_desc.setWordWrap(True)
-        model_desc: QLabel = QLabel("Embedding model name (e.g. bge-m3). Must be available on the selected provider.")
+        model_desc: QLabel = QLabel(
+            "Embedding model for semantic similarity grading. Must be available on the selected provider."
+        )
         model_desc.setWordWrap(True)
+
+        model_row: QHBoxLayout = QHBoxLayout()
+        model_row.addWidget(self._embedding_model_combo, stretch=1)
+        model_row.addWidget(self._embedding_show_all_check)
 
         embedding_layout: QVBoxLayout = QVBoxLayout()
         embedding_layout.addWidget(provider_desc)
@@ -152,7 +214,7 @@ class ProvidersTabWidget(QWidget):
         embedding_layout.addWidget(self._embedding_provider_combo)
         embedding_layout.addWidget(model_desc)
         embedding_layout.addWidget(QLabel("Model:"))
-        embedding_layout.addWidget(self._embedding_model_combo)
+        embedding_layout.addLayout(model_row)
         embedding_layout.addLayout(test_row)
 
         embedding_group: QGroupBox = QGroupBox("Embedding")
@@ -162,7 +224,7 @@ class ProvidersTabWidget(QWidget):
         root: QVBoxLayout = QVBoxLayout()
         root.addLayout(button_row)
         root.addWidget(self._add_provider_btn)
-        root.addWidget(scroll)
+        root.addWidget(self._table)
         root.addWidget(embedding_group)
         self.setLayout(root)
 
@@ -171,20 +233,27 @@ class ProvidersTabWidget(QWidget):
         self._import_btn.clicked.connect(self._handle_import_config)
         self._export_btn.clicked.connect(self._handle_export_config)
         self._reload_btn.clicked.connect(self._handle_reload)
+        self._reset_defaults_btn.clicked.connect(self._handle_reset_to_defaults)
         self._add_provider_btn.clicked.connect(self._handle_add_provider)
         self._embedding_test_button.clicked.connect(self._handle_test_embedding)
         self._embedding_provider_combo.currentIndexChanged.connect(self._handle_embedding_provider_changed)
+        self._embedding_show_all_check.toggled.connect(lambda _: self._handle_embedding_provider_changed())
+
+        self._table.clicked.connect(self._on_table_cell_clicked)
+        self._model.provider_user_edited.connect(self._on_model_user_edit)
+        self._delegate.signals.test_requested.connect(self._on_test_requested)
+        self._delegate.signals.edit_requested.connect(self._on_edit_requested)
+        self._delegate.signals.delete_requested.connect(self._on_delete_requested)
+        self._delegate.signals.reset_requested.connect(self._on_reset_provider_requested)
 
         self._drag_handler: DragDropHandler = DragDropHandler(parent=self)
         self._drag_handler.install_on(self)
         self._drag_handler.yaml_file_dropped.connect(self._handle_dropped_yaml)
 
-    def _set_dirty(self, dirty: bool) -> None:
-        """Update dirty state and reflect it in the Save Changes button label.
+        self._controller.subscribe_to_provider_registry_reloaded(self._on_provider_registry_reloaded, parent=self)
+        self._controller.subscribe_to_app_readiness_changed(self._on_readiness_changed, parent=self)
 
-        Args:
-            dirty: True if there are unsaved changes.
-        """
+    def _set_dirty(self, dirty: bool) -> None:
         self._is_dirty = dirty
         label = "Save Changes *" if dirty else "Save Changes"
         self._save_changes_btn.setText(label)
@@ -195,116 +264,118 @@ class ProvidersTabWidget(QWidget):
         return self._is_dirty
 
     def _populate_providers(self) -> None:
-        # Remove existing cards from layout and list
-        for card in self._cards:
-            card.setParent(None)
-            card.deleteLater()
-        self._cards.clear()
+        if not isValid(self):
+            return
 
-        # Remove trailing stretch if present
-        last_idx = self._cards_layout.count() - 1
-        if last_idx >= 0:
-            item = self._cards_layout.itemAt(last_idx)
-            if item is not None and item.spacerItem() is not None:
-                self._cards_layout.removeItem(item)
+        self._close_all_persistent_editors()
 
         config: ProvidersConfig | None = self._controller.get_providers_config()
         if config is None or not config.providers:
-            self._cards_layout.addWidget(QLabel(_LABEL_NO_PROVIDERS))
-            self._cards_layout.addStretch()
+            self._model = ProviderTableModel([])
+            self._table.setModel(self._model)
+            self._model.provider_user_edited.connect(self._on_model_user_edit)
             self._embedding_provider_combo.clear()
             return
 
-        all_ids: set[str] = {pc.provider_id for pc in config.providers}
-        for provider_config in config.providers:
-            card = ProviderCardWidget(
-                config=provider_config,
-                used_ids=all_ids - {provider_config.provider_id},
-            )
-            card.test_config_requested.connect(self._handle_test_connection)
-            card.card_changed.connect(self._on_card_changed)
-            card.delete_requested.connect(self._handle_delete_provider)
-            self._cards.append(card)
-            self._cards_layout.addWidget(card)
-        self._cards_layout.addStretch()
+        self._model = ProviderTableModel(list(config.providers))
+        self._table.setModel(self._model)
+        self._model.provider_user_edited.connect(self._on_model_user_edit)
+        self._open_all_persistent_editors()
 
+        for cfg in config.providers:
+            if cfg.last_test_status is not None:
+                self._last_health[cfg.provider_id] = HealthCheckResult(
+                    provider_id=cfg.provider_id,
+                    is_healthy=(cfg.last_test_status == "healthy"),
+                    model_count=0,
+                    error_message=cfg.last_test_message or "",
+                    latency_ms=0,
+                )
+
+        saved_model = config.embedding.model or ""
+        self._saved_embedding_model = saved_model
+        saved_id = config.embedding.provider_id
+
+        self._embedding_provider_combo.blockSignals(True)
         self._embedding_provider_combo.clear()
         for provider_config in config.providers:
             if provider_config.enabled:
                 self._embedding_provider_combo.addItem(provider_config.label, provider_config.provider_id)
-
-        saved_model = config.embedding.model or _DEFAULT_EMBEDDING_MODEL
-        self._embedding_model_combo.setCurrentText(saved_model)
-        saved_id = config.embedding.provider_id
         for i in range(self._embedding_provider_combo.count()):
             if self._embedding_provider_combo.itemData(i) == saved_id:
                 self._embedding_provider_combo.setCurrentIndex(i)
                 break
+        self._embedding_provider_combo.blockSignals(False)
 
-        # Trigger model list fetch for initially selected provider
-        initial_id: object = self._embedding_provider_combo.currentData()
-        if isinstance(initial_id, str) and initial_id:
-            self._handle_embedding_provider_changed(self._embedding_provider_combo.currentIndex())
+        if saved_model:
+            self._embedding_model_combo.setCurrentText(saved_model)
+
+        self._handle_embedding_provider_changed()
 
         self._check_env_warnings()
 
-    def _on_card_changed(self) -> None:
-        """Handle changes from any provider card — mark dirty and validate all cards."""
-        self._set_dirty(True)
-        any_invalid = any(not card.is_form_valid for card in self._cards)
-        self._save_changes_btn.setEnabled(not any_invalid)
+    def _open_all_persistent_editors(self) -> None:
+        for row in range(self._model.rowCount()):
+            self._table.openPersistentEditor(self._model.index(row, COL_ACTIONS))
 
-    def _handle_embedding_provider_changed(self, _index: int) -> None:
-        """Fetch available models from the newly selected embedding provider.
+    def _close_all_persistent_editors(self) -> None:
+        for row in range(self._model.rowCount()):
+            self._table.closePersistentEditor(self._model.index(row, COL_ACTIONS))
 
-        Replaces the model combo items with discovered model names while
-        preserving any previously typed or selected model text.
-        """
-        raw_id: object = self._embedding_provider_combo.currentData()
-        provider_id: str = raw_id if isinstance(raw_id, str) else ""
-        if not provider_id:
+    def _refresh_persistent_editors(self, from_row: int = 0) -> None:
+        """Close and reopen persistent editors from from_row onward to refresh row-index closures."""
+        for row in range(from_row, self._model.rowCount()):
+            idx = self._model.index(row, COL_ACTIONS)
+            self._table.closePersistentEditor(idx)
+            self._table.openPersistentEditor(idx)
+
+    @Slot(QModelIndex)
+    def _on_table_cell_clicked(self, index: QModelIndex) -> None:
+        if index.column() != COL_ENABLED:
             return
+        current = self._model.data(index, Qt.ItemDataRole.CheckStateRole)
+        new_state = Qt.CheckState.Unchecked if current == Qt.CheckState.Checked else Qt.CheckState.Checked
+        self._model.setData(index, new_state, Qt.ItemDataRole.CheckStateRole)
 
-        current_text = self._embedding_model_combo.currentText()
-        self._embedding_model_combo.clear()
-        self._embedding_model_combo.addItem("Loading…")
-        self._embedding_model_combo.setEnabled(False)
+    def _on_model_user_edit(self, provider_id: str) -> None:
+        """Mark dirty when the user directly toggles the Enabled checkbox in the table."""
+        self._set_dirty(True)
+        if self._model.is_enabled(provider_id):
+            self._gate_enable(provider_id)
 
-        def _on_models(names: list[str]) -> None:
-            self._embedding_model_combo.clear()
-            self._embedding_model_combo.setEnabled(True)
-            if names:
-                for name in names:
-                    self._embedding_model_combo.addItem(name)
-            # Restore previous selection or typed text
-            if current_text and current_text != "Loading…":
-                idx = self._embedding_model_combo.findText(current_text)
-                if idx >= 0:
-                    self._embedding_model_combo.setCurrentIndex(idx)
-                else:
-                    self._embedding_model_combo.setCurrentText(current_text)
-            elif names:
-                self._embedding_model_combo.setCurrentIndex(0)
+    def _gate_enable(self, provider_id: str) -> None:
+        """Block enabling a provider unless it has a passing health result.
 
-        self._controller.get_models_for_provider(provider_id, _on_models)
+        If the provider has no passing health result on record, reverts the enable flag,
+        marks it as testing, and queues a health check. _on_health_check_completed will
+        enable it on success once the check completes.
+        """
+        health = self._last_health.get(provider_id)
+        if health is not None and health.is_healthy:
+            return  # already tested and healthy — allow enable immediately
+        self._model.set_enable(provider_id, False)
+        self._model.set_health(provider_id, "testing", "Testing connection before enabling…")
+        self._pending_enable.add(provider_id)
+        self._run_health_check_for(provider_id)
 
     def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
         self._run_initial_health_checks()
 
     def _run_initial_health_checks(self) -> None:
-        for card in self._cards:
-            config: ProviderConfig = card.get_edited_config()
+        for row in range(self._model.rowCount()):
+            config = self._model.get_config(row)
             if not config.enabled:
-                card.set_health(state="unknown", tooltip=_DISABLED_TOOLTIP)
+                self._model.set_health(config.provider_id, "unknown", _DISABLED_TOOLTIP)
                 continue
             m = _ENV_VAR_RE.fullmatch(config.api_key_raw)
             if m:
                 var_name: str = m.group(1)
                 if not os.environ.get(var_name):
-                    card.set_health(
-                        state="down",
-                        tooltip=_ENV_MISSING_TOOLTIP.format(var=var_name),
+                    self._model.set_health(
+                        config.provider_id,
+                        "down",
+                        _ENV_MISSING_TOOLTIP.format(var=var_name),
                     )
                     continue
             self._run_health_check_for(config.provider_id)
@@ -314,6 +385,8 @@ class ProvidersTabWidget(QWidget):
             return
         provider = self._controller.get_provider_instance(provider_id)
         if provider is None:
+            self._pending_enable.discard(provider_id)
+            self._model.set_health(provider_id, "unknown", "Save providers before testing.")
             return
         self._in_flight.add(provider_id)
         runnable = ProviderHealthRunnable(provider=provider, checker=self._health_checker)
@@ -325,43 +398,114 @@ class ProvidersTabWidget(QWidget):
         if not isinstance(result, HealthCheckResult):
             return
         self._in_flight.discard(result.provider_id)
-        for card in self._cards:
-            if card.get_edited_config().provider_id == result.provider_id:
-                if result.is_healthy:
-                    card.set_health(
-                        state="live",
-                        tooltip=f"{result.model_count} models available · {result.latency_ms} ms",
-                        model_count=result.model_count,
-                        latency_ms=result.latency_ms,
-                    )
-                else:
-                    card.set_health(
-                        state="down",
-                        tooltip=result.error_message or "Provider unreachable.",
-                        error_message=result.error_message,
-                    )
+        self._last_health[result.provider_id] = result
+        self._model.apply_health_result(result)
+        if result.provider_id in self._pending_enable:
+            self._pending_enable.discard(result.provider_id)
+            if result.is_healthy:
+                self._model.set_enable(result.provider_id, True)
+        self._controller.set_last_test_status(
+            result.provider_id,
+            "healthy" if result.is_healthy else "down",
+            datetime.now(UTC).isoformat(),
+            result.error_message,
+        )
+
+    def _on_test_requested(self, row: int) -> None:
+        """Handle Test button click for a table row."""
+        config = self._model.get_config(row)
+        m = _ENV_VAR_RE.fullmatch(config.api_key_raw)
+        if m:
+            var_name: str = m.group(1)
+            if not os.environ.get(var_name):
+                self._model.set_health(
+                    config.provider_id,
+                    "down",
+                    _ENV_MISSING_TOOLTIP.format(var=var_name),
+                )
                 return
+        self._model.set_health(config.provider_id, "testing", "Testing…")
+        self._run_health_check_for(config.provider_id)
 
-    def _handle_test_connection(self, config: object) -> None:
-        """Handle a test connection request from a provider card.
+    def _on_edit_requested(self, row: int) -> None:
+        """Open the edit dialog for the given table row."""
+        config = self._model.get_config(row)
+        all_ids = {c.provider_id for c in self._model.all_configs()} - {config.provider_id}
+        dlg = ProviderEditDialog(config=config, used_ids=all_ids, is_new=False, parent=self)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self._model.update_config(row, dlg.edited_config)
+            self._set_dirty(True)
 
-        Args:
-            config: ProviderConfig emitted by the card's test_config_requested signal.
-        """
-        if not isinstance(config, ProviderConfig):
+    @Slot(int)
+    def _on_reset_provider_requested(self, row: int) -> None:
+        """Revert the provider at the given row to its YAML defaults."""
+        config = self._model.get_config(row)
+        default_config = self._controller.get_default_provider_config(config.provider_id)
+        if default_config is None:
+            QMessageBox.information(
+                self,
+                "No Factory Default",
+                f"'{config.label}' is a custom provider and has no factory default to reset to.",
+            )
             return
-        typed_config: ProviderConfig = config
-        for card in self._cards:
-            if card.get_edited_config().provider_id == typed_config.provider_id:
-                card.reset_health()
-                break
-        self._run_health_check_for(typed_config.provider_id)
+        self._model.update_config(row, default_config)
+        self._set_dirty(True)
+
+    def _on_delete_requested(self, row: int) -> None:
+        """Confirm and remove the provider at the given table row."""
+        config = self._model.get_config(row)
+        raw_id: object = self._embedding_provider_combo.currentData()
+        if isinstance(raw_id, str) and raw_id == config.provider_id:
+            QMessageBox.information(
+                self,
+                "Embedding provider removed",
+                "The deleted provider was selected as the embedding provider. "
+                "Please select another provider in the Embedding section.",
+            )
+        answer = QMessageBox.question(
+            self,
+            "Delete Provider",
+            f"Delete provider '{config.label}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self._model.remove_row_for_provider(config.provider_id)
+        self._refresh_persistent_editors(from_row=row)
+        self._set_dirty(True)
+
+    def _handle_add_provider(self) -> None:
+        """Add a new provider via dialog."""
+        existing_ids: set[str] = {c.provider_id for c in self._model.all_configs()}
+        n = 1
+        while f"new_provider_{n}" in existing_ids:
+            n += 1
+        new_id = f"new_provider_{n}"
+        new_config = ProviderConfig(
+            provider_id=new_id,
+            label="New provider",
+            provider_type=ProviderType.OPENAI_COMPATIBLE,
+            api_key="",
+            api_key_raw="",
+            enabled=False,
+        )
+        row = self._model.append_config(new_config)
+        self._table.openPersistentEditor(self._model.index(row, COL_ACTIONS))
+
+        used_ids = existing_ids  # new_id not yet committed — exclude it from "used" for uniqueness check
+        dlg = ProviderEditDialog(config=new_config, used_ids=used_ids, is_new=True, parent=self)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self._model.update_config(row, dlg.edited_config)
+            self._set_dirty(True)
+        else:
+            self._table.closePersistentEditor(self._model.index(row, COL_ACTIONS))
+            self._model.remove_row_for_provider(new_id)
 
     def _handle_test_embedding(self) -> None:
-        """Test the selected embedding provider and model, updating the status label."""
         raw_id: object = self._embedding_provider_combo.currentData()
         provider_id: str = raw_id if isinstance(raw_id, str) else ""
-        model: str = self._embedding_model_combo.currentText().strip() or _DEFAULT_EMBEDDING_MODEL
+        model: str = self._embedding_model_combo.currentText().strip()
 
         if not provider_id:
             self._embedding_status_label.setText("No provider selected")
@@ -377,6 +521,8 @@ class ProvidersTabWidget(QWidget):
         repolish(self._embedding_status_label)
 
         def _on_result(is_working: bool, dim: int, message: str) -> None:
+            if not isValid(self):
+                return
             self._embedding_test_button.setEnabled(True)
             tone = "success" if is_working else "error"
             self._embedding_status_label.setText(message)
@@ -384,119 +530,48 @@ class ProvidersTabWidget(QWidget):
             self._embedding_status_label.setVisible(True)
             repolish(self._embedding_status_label)
 
-        self._controller.test_embedding_connection(provider_id, model, _on_result)
-
-    def _handle_delete_provider(self, provider_id: str) -> None:
-        """Remove the provider card matching provider_id from the layout and list.
-
-        Args:
-            provider_id: The provider_id of the card to remove.
-        """
-        for card in self._cards:
-            if card.get_edited_config().provider_id == provider_id:
-                raw_id: object = self._embedding_provider_combo.currentData()
-                if isinstance(raw_id, str) and raw_id == provider_id:
-                    QMessageBox.information(
-                        self,
-                        "Embedding provider removed",
-                        "The deleted provider was selected as the embedding provider. "
-                        "Please select another provider in the Embedding section.",
-                    )
-                self._cards.remove(card)
-                self._cards_layout.removeWidget(card)
-                card.setParent(None)
-                card.deleteLater()
-                self._set_dirty(True)
-                return
-
-    def _handle_add_provider(self) -> None:
-        """Add a new blank provider card to the list."""
-        existing_ids: set[str] = {c.get_edited_config().provider_id for c in self._cards}
-        n = 1
-        while f"new_provider_{n}" in existing_ids:
-            n += 1
-        new_id = f"new_provider_{n}"
-
-        new_config = ProviderConfig(
-            provider_id=new_id,
-            label="New provider",
-            provider_type=ProviderType.OPENAI_COMPATIBLE,
-            api_key="",
-            api_key_raw="",
-            enabled=False,
-        )
-        all_ids = existing_ids | {new_id}
-        card = ProviderCardWidget(
-            config=new_config,
-            used_ids=all_ids - {new_id},
-        )
-        card.test_config_requested.connect(self._handle_test_connection)
-        card.card_changed.connect(self._on_card_changed)
-        card.delete_requested.connect(self._handle_delete_provider)
-
-        # Insert before the trailing stretch
-        insert_pos = self._cards_layout.count()
-        last = self._cards_layout.itemAt(insert_pos - 1)
-        if last is not None and last.spacerItem() is not None:
-            insert_pos -= 1
-        self._cards_layout.insertWidget(insert_pos, card)
-        self._cards.append(card)
-
-        # Auto-expand the new card
-        card._edit_button.click()
-
-        self._set_dirty(True)
+        self._controller.test_embedding_connection(provider_id, model, _on_result, parent=self)
 
     def _handle_save_changes(self) -> None:
-        """Validate, optionally convert plain API keys, then save to the standard path."""
-        for card in self._cards:
-            cfg = card.get_edited_config()
-            raw_key = cfg.api_key_raw
-            if raw_key and not _PLAIN_KEY_RE.match(raw_key):
-                provider_label = cfg.label
-                msg_box = QMessageBox(self)
-                msg_box.setWindowTitle("Plain API key detected")
-                msg_box.setText(
-                    f"Provider '{provider_label}' has a plain API key value.\n"
-                    "It is recommended to store it as an environment variable reference."
-                )
-                msg_box.addButton("Save plain value", QMessageBox.ButtonRole.DestructiveRole)
-                convert_btn = msg_box.addButton("Save as env var (recommended)", QMessageBox.ButtonRole.AcceptRole)
-                cancel_btn = msg_box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
-                msg_box.exec()
-                clicked = msg_box.clickedButton()
-                if clicked is cancel_btn:
-                    return
-                if clicked is convert_btn:
-                    default_var = f"{cfg.provider_id.upper()}_API_KEY"
-                    var_name, ok = QInputDialog.getText(
-                        self,
-                        "Environment variable name",
-                        (f"Save as environment variable (add to your shell profile):\nexport {default_var}=<your_key>"),
-                        QLineEdit.EchoMode.Normal,
-                        default_var,
-                    )
-                    if not ok or not var_name.strip():
-                        return
-                    updated_config = ProviderConfig(
-                        provider_id=cfg.provider_id,
-                        label=cfg.label,
-                        provider_type=cfg.provider_type,
-                        api_key="",
-                        api_key_raw=f"${{{var_name.strip()}}}",
-                        enabled=cfg.enabled,
-                        base_url=cfg.base_url,
-                        default_models=cfg.default_models,
-                        azure_deployment=cfg.azure_deployment,
-                        azure_api_version=cfg.azure_api_version,
-                    )
-                    card._edit_form.populate(updated_config)
+        configs = self._model.all_configs()
+        needing_action = [c for c in configs if _should_prompt_for_envvar(c)]
+        if needing_action:
+            dialog = EnvVarConversionDialog(configs_needing_action=needing_action, parent=self)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+            resolved_map = {c.provider_id: c for c in dialog.resolved_configs}
+            for i, orig_cfg in enumerate(configs):
+                resolved = resolved_map.get(orig_cfg.provider_id)
+                if resolved is not None and resolved.api_key_raw != orig_cfg.api_key_raw:
+                    self._model.update_config(i, resolved)
 
-        # Collect all configs
-        collected = tuple(card.get_edited_config() for card in self._cards)
+        collected = tuple(self._model.all_configs())
         raw_id: object = self._embedding_provider_combo.currentData()
         embedding_provider_id: str = raw_id if isinstance(raw_id, str) else ""
-        embedding_model = self._embedding_model_combo.currentText().strip() or _DEFAULT_EMBEDDING_MODEL
+        embedding_model = self._embedding_model_combo.currentText().strip()
+
+        if embedding_provider_id:
+            provider_enabled = any(c.provider_id == embedding_provider_id and c.enabled for c in collected)
+            if not provider_enabled:
+                QMessageBox.warning(
+                    self,
+                    "Embedding Provider Disabled",
+                    "The selected embedding provider is disabled. "
+                    "Cosine-similarity grading will be unavailable until an enabled provider is chosen.",
+                )
+
+        if (
+            embedding_model
+            and self._discovered_embedding_models
+            and embedding_model not in self._discovered_embedding_models
+        ):
+            QMessageBox.information(
+                self,
+                "Unknown Model Name",
+                f"'{embedding_model}' was not found in the discovered model list. "
+                "Saving anyway — verify the name is correct.",
+            )
+
         config = ProvidersConfig(
             providers=collected,
             embedding=EmbeddingConfig(provider_id=embedding_provider_id, model=embedding_model),
@@ -504,19 +579,51 @@ class ProvidersTabWidget(QWidget):
 
         if self._controller.save_providers_config_to_standard_path(config):
             self._set_dirty(False)
-            self._populate_providers()
         else:
             QMessageBox.warning(
                 self,
                 "Save Failed",
-                "Could not save providers.yaml. Check the log for details.",
+                "Could not save provider configuration. Check the log for details.",
             )
 
-    def _handle_import_config(self) -> None:
-        """Import providers config from a user-selected YAML file.
+    def _handle_embedding_provider_changed(self, _index: int = 0) -> None:
+        raw_id: object = self._embedding_provider_combo.currentData()
+        provider_id: str = raw_id if isinstance(raw_id, str) else ""
+        if not provider_id:
+            return
 
-        Prompts before discarding unsaved changes.
-        """
+        _LOADING = "Loading…"
+        live = self._embedding_model_combo.currentText()
+        saved = live if (live and live != _LOADING) else self._saved_embedding_model
+
+        self._embedding_model_combo.clear()
+        self._embedding_model_combo.addItem(_LOADING)
+        self._embedding_model_combo.setEnabled(False)
+
+        def _on_models(names: list[str]) -> None:
+            if not isValid(self):
+                return
+            show_all = self._embedding_show_all_check.isChecked()
+            filtered = [n for n in names if self._controller.is_embedding_model(n)]
+            display = names if (show_all or not filtered) else filtered
+            self._embedding_model_combo.clear()
+            self._embedding_model_combo.setEnabled(True)
+            self._discovered_embedding_models = list(display)
+            if display:
+                self._embedding_model_combo.addItems(display)
+                if saved and saved in display:
+                    self._embedding_model_combo.setCurrentText(saved)
+                else:
+                    self._embedding_model_combo.setCurrentIndex(0)
+            else:
+                self._embedding_status_label.setText(
+                    "No embedding-capable models found. Cosine-similarity grading will be unavailable."
+                )
+                self._embedding_status_label.setVisible(True)
+
+        self._controller.get_models_for_provider(provider_id, _on_models, parent=self)
+
+    def _handle_import_config(self) -> None:
         if self._is_dirty:
             answer = QMessageBox.question(
                 self,
@@ -537,13 +644,12 @@ class ProvidersTabWidget(QWidget):
             QMessageBox.warning(self, "Import Failed", "Could not import the selected YAML file.")
 
     def _handle_export_config(self) -> None:
-        """Export the current providers config to a user-chosen YAML file."""
-        if not self._cards:
+        if self._model.rowCount() == 0:
             return
-        collected = tuple(card.get_edited_config() for card in self._cards)
+        collected = tuple(self._model.all_configs())
         raw_id: object = self._embedding_provider_combo.currentData()
         embedding_provider_id: str = raw_id if isinstance(raw_id, str) else ""
-        embedding_model = self._embedding_model_combo.currentText().strip() or _DEFAULT_EMBEDDING_MODEL
+        embedding_model = self._embedding_model_combo.currentText().strip()
         config = ProvidersConfig(
             providers=collected,
             embedding=EmbeddingConfig(provider_id=embedding_provider_id, model=embedding_model),
@@ -554,15 +660,11 @@ class ProvidersTabWidget(QWidget):
         self._controller.save_providers_yaml(Path(path_str), config)
 
     def _handle_reload(self) -> None:
-        """Discard unsaved changes and reload providers from disk.
-
-        Prompts the user before discarding changes when dirty.
-        """
         if self._is_dirty:
             answer = QMessageBox.question(
                 self,
                 "Discard Changes",
-                "Discard unsaved changes and reload providers.yaml from disk?",
+                "Discard unsaved changes and reload provider configuration from the database?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Cancel,
             )
@@ -572,19 +674,32 @@ class ProvidersTabWidget(QWidget):
         self._set_dirty(False)
         self._populate_providers()
 
+    def _handle_reset_to_defaults(self) -> None:
+        """Restore all providers to factory defaults after confirmation."""
+        answer = QMessageBox.question(
+            self,
+            "Reset to Defaults",
+            "This will restore all providers to factory defaults.\nYour customisations will be lost. Proceed?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        self._controller.reset_providers_to_defaults()  # emits provider_registry_reloaded → _populate_providers
+        self._set_dirty(False)
+
     def _check_env_warnings(self) -> None:
-        """Inspect each card's API key and show/hide env-var warning labels."""
-        for card in self._cards:
-            cfg = card.get_edited_config()
-            m = _ENV_VAR_RE.match(cfg.api_key_raw)
+        for config in self._model.all_configs():
+            m = _ENV_VAR_RE.fullmatch(config.api_key_raw)
             if m:
                 var_name = m.group(1)
                 if not os.environ.get(var_name):
-                    card.show_unset_env_warning(var_name)
-                else:
-                    card.hide_env_warning()
-            else:
-                card.hide_env_warning()
+                    tooltip = _ENV_MISSING_TOOLTIP.format(var=var_name)
+                    row = self._model.find_row(config.provider_id)
+                    if row >= 0:
+                        current_state = self._model.get_health_state(config.provider_id)
+                        if current_state == "unknown":
+                            self._model.set_health(config.provider_id, "down", tooltip)
 
     def _handle_dropped_yaml(self, path: Path) -> None:
         if self._controller.load_providers_yaml(path):
@@ -592,3 +707,26 @@ class ProvidersTabWidget(QWidget):
             self._populate_providers()
         else:
             logger.warning("dropped_yaml_load_failed", extra={"path": str(path)})
+
+    @Slot()
+    def _on_provider_registry_reloaded(self) -> None:
+        self._populate_providers()
+
+    def _on_readiness_changed(self, event: AppReadinessChangedEvent) -> None:
+        """Update the embedding status label based on app readiness state.
+
+        Args:
+            event: AppReadinessChangedEvent snapshot emitted after a background probe.
+        """
+        if event.embedding_ok:
+            tone = "success"
+            text = "✓ Embedding available"
+        elif event.embedding_error:
+            tone = "error"
+            text = f"✗ {event.embedding_error}"
+        else:
+            return
+        self._embedding_status_label.setText(text)
+        self._embedding_status_label.setProperty("status_tone", tone)
+        self._embedding_status_label.setVisible(True)
+        repolish(self._embedding_status_label)

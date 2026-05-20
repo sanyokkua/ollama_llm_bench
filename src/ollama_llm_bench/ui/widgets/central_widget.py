@@ -46,6 +46,7 @@ class CentralWidget(QWidget):
             event_bus=ctx.get_event_bus(),
             benchmark_flow_api=ctx.get_benchmark_flow_api(),
             app_settings=ctx.get_app_settings_service(),
+            run_config_controller=ctx.get_run_config_controller(),
         )
         self._center_panel.setMinimumWidth(_CENTER_MIN_WIDTH)
 
@@ -53,9 +54,9 @@ class CentralWidget(QWidget):
         self._results_panel.setMinimumWidth(_RIGHT_MIN_WIDTH)
 
         self._setup_layout()
-        self._event_bus.subscribe_to_benchmark_started(self._on_benchmark_started)
-        self._event_bus.subscribe_to_benchmark_finished(self._on_benchmark_finished)
-        self._event_bus.subscribe_to_benchmark_stopped(self._on_benchmark_stopped)
+        self._event_bus.subscribe_to_benchmark_started(self._on_benchmark_started, parent=self)
+        self._event_bus.subscribe_to_benchmark_finished(self._on_benchmark_finished, parent=self)
+        self._event_bus.subscribe_to_benchmark_stopped(self._on_benchmark_stopped, parent=self)
         logger.info("CentralWidget initialized with 3-panel layout")
 
     def _setup_layout(self) -> None:

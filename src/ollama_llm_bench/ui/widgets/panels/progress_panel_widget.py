@@ -8,6 +8,7 @@ from typing import Final
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QFontMetrics, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressBar,
     QPushButton,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -33,9 +35,12 @@ from ollama_llm_bench.backend.core.models import (
     PipelineStage,
     ProgressUpdateEvent,
     RunMode,
+    RunRenamedEvent,
     TaskRetryEvent,
     TaskSwitchEvent,
 )
+from ollama_llm_bench.backend.core.ui_controllers import RunConfigControllerApi
+from ollama_llm_bench.backend.utils.format import format_attempt_durations, format_progress_label
 from ollama_llm_bench.backend.utils.time_utils import format_compact_duration
 from ollama_llm_bench.ui.style.style_utils import repolish
 from ollama_llm_bench.ui.style.tokens import SHARED_TOKENS
@@ -67,6 +72,7 @@ class ProgressPanelWidget(QWidget):
         event_bus: EventBus,
         benchmark_flow_api: BenchmarkFlowApi,
         app_settings: AppSettingsServiceApi,
+        run_config_controller: RunConfigControllerApi,
         parent: QWidget | None = None,
     ) -> None:
         """Initialize the progress panel widget.
@@ -75,11 +81,13 @@ class ProgressPanelWidget(QWidget):
             event_bus: Application event bus for subscribing to progress events.
             benchmark_flow_api: API for controlling benchmark execution lifecycle.
             app_settings: Application settings service for user preferences.
+            run_config_controller: Controller for run management including rename operations.
             parent: Optional parent widget.
         """
         super().__init__(parent)
         self._flow_api = benchmark_flow_api
         self._app_settings = app_settings
+        self._run_config_controller = run_config_controller
 
         # Runtime state
         self._bench_start_ms: float = 0.0
@@ -87,9 +95,11 @@ class ProgressPanelWidget(QWidget):
         self._is_paused: bool = False
         self._current_run_mode: RunMode | None = None
         self._run_name_full: str = ""
+        self._current_run_id: int | None = None
 
         # Phase 1 — create child widgets
         self._run_name_label: QLabel = QLabel("")
+        self._rename_btn: QToolButton = QToolButton()
         self._stage_badge: QLabel = QLabel(_DASH)
         self._pause_btn: QPushButton = QPushButton("Pause")
         self._stop_btn: QPushButton = QPushButton("Stop")
@@ -128,6 +138,11 @@ class ProgressPanelWidget(QWidget):
         self._run_name_label.setVisible(False)
         self._run_name_label.setWordWrap(False)
 
+        self._rename_btn.setText("✏")
+        self._rename_btn.setToolTip("Rename this run")
+        self._rename_btn.setProperty("role", "icon-btn")
+        self._rename_btn.setVisible(False)
+
         self._pause_btn.setProperty("role", "secondary")
         self._pause_btn.setEnabled(False)
         self._stop_btn.setProperty("role", "danger")
@@ -157,22 +172,24 @@ class ProgressPanelWidget(QWidget):
         # Phase 4 — signals
         self._pause_btn.clicked.connect(self._on_pause_clicked)
         self._stop_btn.clicked.connect(self._on_stop_clicked)
+        self._rename_btn.clicked.connect(self._on_rename_clicked)
         pause_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         pause_shortcut.activated.connect(self._on_pause_clicked)
         stop_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
         stop_shortcut.activated.connect(self._on_stop_clicked)
 
         # Phase 5 — EventBus subscriptions
-        event_bus.subscribe_to_benchmark_started(self._on_benchmark_started)
-        event_bus.subscribe_to_benchmark_paused(self._on_benchmark_paused)
-        event_bus.subscribe_to_benchmark_resumed(self._on_benchmark_resumed)
-        event_bus.subscribe_to_task_switch(self._on_task_switch)
-        event_bus.subscribe_to_task_retry(self._on_task_retry)
-        event_bus.subscribe_to_progress_update(self._on_progress_update)
-        event_bus.subscribe_to_benchmark_finished(self._on_benchmark_finished)
-        event_bus.subscribe_to_benchmark_stopped(self._on_benchmark_stopped)
-        event_bus.subscribe_to_judge_eval_started(self._on_judge_eval_started)
-        event_bus.subscribe_to_judge_eval_retry(self._on_judge_eval_retry)
+        event_bus.subscribe_to_benchmark_started(self._on_benchmark_started, parent=self)
+        event_bus.subscribe_to_run_renamed(self._on_run_renamed, parent=self)
+        event_bus.subscribe_to_benchmark_paused(self._on_benchmark_paused, parent=self)
+        event_bus.subscribe_to_benchmark_resumed(self._on_benchmark_resumed, parent=self)
+        event_bus.subscribe_to_task_switch(self._on_task_switch, parent=self)
+        event_bus.subscribe_to_task_retry(self._on_task_retry, parent=self)
+        event_bus.subscribe_to_progress_update(self._on_progress_update, parent=self)
+        event_bus.subscribe_to_benchmark_finished(self._on_benchmark_finished, parent=self)
+        event_bus.subscribe_to_benchmark_stopped(self._on_benchmark_stopped, parent=self)
+        event_bus.subscribe_to_judge_eval_started(self._on_judge_eval_started, parent=self)
+        event_bus.subscribe_to_judge_eval_retry(self._on_judge_eval_retry, parent=self)
 
         logger.debug("ProgressPanelWidget initialized")
 
@@ -235,10 +252,15 @@ class ProgressPanelWidget(QWidget):
         middle_row.addWidget(run_group, 1)
         middle_row.addWidget(model_group, 1)
 
+        run_name_row = QHBoxLayout()
+        run_name_row.setSpacing(4)
+        run_name_row.addWidget(self._run_name_label, 1)
+        run_name_row.addWidget(self._rename_btn)
+
         layout = QVBoxLayout()
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
-        layout.addWidget(self._run_name_label)
+        layout.addLayout(run_name_row)
         layout.addLayout(status_row)
         layout.addLayout(middle_row)
         layout.addWidget(task_group)
@@ -292,6 +314,33 @@ class ProgressPanelWidget(QWidget):
             self._stop_btn.setEnabled(False)
             self._flow_api.stop_execution()
 
+    def _on_rename_clicked(self) -> None:
+        """Open the rename dialog and persist the new name if accepted."""
+        if self._current_run_id is None:
+            return
+        from ollama_llm_bench.ui.widgets.panels.rename_run_dialog import RenameRunDialog
+
+        existing = self._run_config_controller.get_run_names(exclude_run_id=self._current_run_id)
+        dlg = RenameRunDialog(
+            current_name=self._run_name_full,
+            existing_names=existing,
+            parent=self,
+        )
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self._run_config_controller.rename_run(run_id=self._current_run_id, new_name=dlg.new_name)
+
+    def _on_run_renamed(self, event: RunRenamedEvent) -> None:
+        """Update the run name label when the current run is renamed.
+
+        Args:
+            event: RunRenamedEvent containing the run_id and new_name.
+        """
+        if event.run_id != self._current_run_id:
+            return
+        self._run_name_full = event.new_name
+        self._run_name_label.setToolTip(event.new_name)
+        self._update_run_name_elided()
+
     # ------------------------------------------------------------------
     # EventBus handlers — lifecycle
     # ------------------------------------------------------------------
@@ -305,12 +354,14 @@ class ProgressPanelWidget(QWidget):
         self._bench_start_ms = time.monotonic() * 1000.0
         self._task_start_ms_cached = 0.0
         self._current_run_mode = event.run_mode
+        self._current_run_id = event.run_id
         self._is_paused = False
         self._pause_btn.setEnabled(True)
         self._pause_btn.setText("Pause")
         self._pause_btn.setProperty("role", "secondary")
         repolish(self._pause_btn)
         self._stop_btn.setEnabled(True)
+        self._rename_btn.setVisible(True)
         # Run name
         name = (
             event.run_name if event.run_name else f"Run #{event.run_id} · {datetime.now().strftime('%Y-%m-%d %H:%M')}"
@@ -411,9 +462,7 @@ class ProgressPanelWidget(QWidget):
         self._retry_reason_label.setText(f"Reason: {reason}")
         self._retry_reason_label.setVisible(True)
         if event.attempt_durations_ms:
-            parts = [f"Attempt {i + 1}: {d // 1000}s" for i, d in enumerate(event.attempt_durations_ms)]
-            total_s = sum(event.attempt_durations_ms) // 1000
-            self._retry_durations_label.setText(" · ".join(parts) + f" · Total: {total_s}s")
+            self._retry_durations_label.setText(format_attempt_durations(event.attempt_durations_ms))
             self._retry_durations_label.setVisible(True)
         self._task_elapsed_label.setText("0s")
         self._task_start_ms_cached = time.monotonic() * 1000.0
@@ -468,7 +517,7 @@ class ProgressPanelWidget(QWidget):
             self._update_context_labels(event.current_provider, event.current_model, event.current_task)
             self._update_status_counts(event.counts_by_status)
         except (ValueError, TypeError) as exc:
-            logger.error("Failed to process progress update: %s", exc, exc_info=True)
+            logger.exception("Failed to process progress update: %s", exc)
 
     # ------------------------------------------------------------------
     # Live timer tick
@@ -537,11 +586,7 @@ class ProgressPanelWidget(QWidget):
             completed: Number of completed tasks.
             total: Total number of tasks.
         """
-        if total <= 0:
-            self._progress_label.setText("0 / 0 (0%)")
-            return
-        pct = min(100, max(0, int(completed / total * 100)))
-        self._progress_label.setText(f"{completed} / {total} ({pct}%)")
+        self._progress_label.setText(format_progress_label(completed, total))
 
     def _update_eta_label(self, estimated_remaining_ms: float | None) -> None:
         """Update the ETA label using compact human-readable duration.

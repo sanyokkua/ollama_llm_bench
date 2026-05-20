@@ -23,6 +23,15 @@ from ollama_llm_bench.backend.services.charts.base_chart import (
 )
 
 # ---------------------------------------------------------------------------
+# Module-level constants
+# ---------------------------------------------------------------------------
+
+# Statuses that indicate valid inference data (judging may still be pending).
+_INFERENCE_STATUSES: frozenset[BenchmarkResultStatus] = frozenset(
+    {BenchmarkResultStatus.COMPLETED, BenchmarkResultStatus.WAITING_FOR_JUDGE}
+)
+
+# ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
 
@@ -104,7 +113,7 @@ class Chart1TtftAggregator(BaseChartAggregator):
         filters: ChartFilters,
     ) -> ChartData:
         """Compute average TTFT (ms) grouped by model, sorted ascending."""
-        total = [r for r in results if r.status == BenchmarkResultStatus.COMPLETED and not r.has_inference_error]
+        total = [r for r in results if r.status in _INFERENCE_STATUSES and not r.has_inference_error]
         valid = [r for r in total if r.ttft_ms is not None]
         excluded = len(total) - len(valid)
 
@@ -153,7 +162,7 @@ class Chart2TpsAggregator(BaseChartAggregator):
         filters: ChartFilters,
     ) -> ChartData:
         """Compute average tokens/s grouped by model, sorted descending."""
-        total = [r for r in results if r.status == BenchmarkResultStatus.COMPLETED and not r.has_inference_error]
+        total = [r for r in results if r.status in _INFERENCE_STATUSES and not r.has_inference_error]
         valid = [r for r in total if r.tokens_per_second is not None and r.tokens_per_second > 0]
         excluded = len(total) - len(valid)
 
@@ -203,7 +212,7 @@ class Chart3TimeAggregator(BaseChartAggregator):
         filters: ChartFilters,
     ) -> ChartData:
         """Compute average total_time_ms per model, optionally dropping top-10% outliers."""
-        base = [r for r in results if r.status == BenchmarkResultStatus.COMPLETED and not r.has_inference_error]
+        base = [r for r in results if r.status in _INFERENCE_STATUSES and not r.has_inference_error]
         valid = [r for r in base if r.total_time_ms is not None]
 
         if filters.included_models:
@@ -279,6 +288,7 @@ class Chart4SuccessFailedAggregator(BaseChartAggregator):
 
         successful_counts: list[float] = []
         failed_counts: list[float] = []
+        incomplete_counts: list[float] = []
         for model in all_models:
             model_rows = [r for r in rows if r.model_name == model]
             successful = sum(
@@ -296,16 +306,18 @@ class Chart4SuccessFailedAggregator(BaseChartAggregator):
                     for r in model_rows
                     if r.has_inference_error or r.has_judge_error or r.status == BenchmarkResultStatus.FAILED
                 )
+            incomplete = len(model_rows) - successful - failed
             successful_counts.append(float(successful))
             failed_counts.append(float(failed))
+            incomplete_counts.append(float(max(0, incomplete)))
 
         if not all_models:
             return ChartData(empty_state_message="No results available.")
 
         return ChartData(
-            series_labels=("Successful", "Failed"),
+            series_labels=("Successful", "Failed", "Incomplete"),
             category_labels=tuple(all_models),
-            series_data=(tuple(successful_counts), tuple(failed_counts)),
+            series_data=(tuple(successful_counts), tuple(failed_counts), tuple(incomplete_counts)),
         )
 
 
@@ -458,6 +470,8 @@ class Chart7VerdictCountsAggregator(BaseChartAggregator):
 
         if stack_mode == "layer":
             all_layers = sorted({r.resolution_layer for r in rows if r.resolution_layer is not None})
+            if not all_layers:
+                return ChartData(empty_state_message="No resolution-layer data available.")
             series_data: list[tuple[float, ...]] = []
             for layer in all_layers:
                 counts = tuple(
@@ -529,6 +543,10 @@ class Chart8TimeTokensAggregator(BaseChartAggregator):
             points.append((avg_tokens, avg_time_s, model))
 
         log_scale = bool(filters.extra.get("log_scale", False))
+        if log_scale:
+            points = [(t, s, m) for (t, s, m) in points if t > 0 and s > 0]
+        if not points:
+            return ChartData(empty_state_message="No token/time data with positive values for the current filters.")
         return ChartData(
             scatter_points=tuple(points),
             extra={"log_scale": log_scale},
@@ -632,6 +650,16 @@ class Chart9HeatmapAggregator(BaseChartAggregator):
                     match = next((r for r in rows if r.model_name == model and r.task_id == task), None)
                     cells[(task, model)] = self._cell_value(match) if match else None
 
+        if not cells or all(v is None for v in cells.values()):
+            mode_str = run.run_mode.value if run else "this"
+            return ChartData(
+                empty_state_message=(
+                    f"Heatmap requires judge scores or verdicts. "
+                    f"This {mode_str} run does not produce them. "
+                    "Enable judging or use FULL_GRADING mode."
+                )
+            )
+
         heatmap = HeatmapData(
             row_labels=tuple(task_keys),
             col_labels=tuple(sorted_models),
@@ -668,19 +696,19 @@ class Chart10CategoryBarAggregator(BaseChartAggregator):
         category: str,
         rows: list[BenchmarkResult],
         score_type: str,
-    ) -> float:
-        """Compute score for one (model, category) cell; returns -1.0 if no data."""
+    ) -> float | None:
+        """Compute score for one (model, category) cell; returns None if no data."""
         cell_rows = [r for r in rows if r.model_name == model and r.task_category == category]
         if not cell_rows:
-            return -1.0
+            return None
         if score_type == "pass_rate":
             verdict_rows = [r for r in cell_rows if r.final_verdict is not None]
             if not verdict_rows:
-                return -1.0
+                return None
             return sum(1 for r in verdict_rows if r.final_verdict == "pass") / len(verdict_rows) * 100.0
         # avg_score
         scored = [r.judge_score for r in cell_rows if r.judge_score is not None]
-        return statistics.mean(scored) if scored else -1.0
+        return statistics.mean(scored) if scored else None
 
     @override
     def compute_data(
@@ -703,17 +731,29 @@ class Chart10CategoryBarAggregator(BaseChartAggregator):
         all_categories = sorted({r.task_category for r in rows})
 
         missing_pairs = 0
+        total_pairs = 0
         series_data: list[tuple[float, ...]] = []
         for model in all_models:
             cat_scores: list[float] = []
             for cat in all_categories:
+                total_pairs += 1
                 val = self._cell_score(model, cat, rows, score_type)
-                if val < 0:
+                if val is None:
                     missing_pairs += 1
-                cat_scores.append(val)
+                    cat_scores.append(0.0)
+                else:
+                    cat_scores.append(val)
             series_data.append(tuple(cat_scores))
 
-        footnote = f"{missing_pairs} (model, category) pairs had no data (sentinel -1)." if missing_pairs > 0 else ""
+        if missing_pairs == total_pairs:
+            mode_str = run.run_mode.value if run else "this"
+            return ChartData(
+                empty_state_message=(
+                    f"Per-category bar requires judge scores. This {mode_str} run does not produce them."
+                )
+            )
+
+        footnote = f"{missing_pairs} of {total_pairs} (model, category) pairs had no data." if missing_pairs > 0 else ""
         return ChartData(
             series_labels=tuple(all_models),
             category_labels=tuple(all_categories),
@@ -825,9 +865,16 @@ class Chart12BoxplotAggregator(BaseChartAggregator):
 
         grouped = _group_by_model(valid, lambda r: _to_float(r.completion_tokens))
         sorted_models = sorted(grouped)
+        degenerate_models = [m for m in sorted_models if len(grouped[m]) < 5]
         box_sets = tuple(self._box_set_for(grouped[m]) for m in sorted_models)
+
+        footnote = ""
+        if degenerate_models:
+            names = ", ".join(degenerate_models)
+            footnote = f"Note: {names} has <5 samples — shown as mean±stdev, not a true box plot."
 
         return ChartData(
             series_labels=tuple(sorted_models),
             box_sets=box_sets,
+            footnote=footnote,
         )

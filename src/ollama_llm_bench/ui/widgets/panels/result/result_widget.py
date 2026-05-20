@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
@@ -21,6 +22,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTableView,
     QTabWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -31,6 +33,7 @@ from ollama_llm_bench.backend.core.models import (
     BenchmarkRun,
     JudgeSummaryEvent,
     PerfAnalysisEvent,
+    RunRenamedEvent,
     SummaryTableItem,
 )
 from ollama_llm_bench.backend.core.ui_controllers import ResultWidgetControllerApi
@@ -73,6 +76,10 @@ class ResultWidget(QWidget):
         self._latest_summary: list[AvgSummaryTableItem] = []
         self._latest_details: list[SummaryTableItem] = []
         self._judge_summaries: dict[int, str] = {}
+        self._perf_analyses: dict[int, str] = {}
+        self._active_run_id: int | None = None
+        self._user_selected_run: bool = False
+        self._benchmark_is_running: bool = False
         self._summary_detach_dialog: TableDetachDialog | None = None
         self._detailed_detach_dialog: TableDetachDialog | None = None
 
@@ -93,6 +100,11 @@ class ResultWidget(QWidget):
         self._delete_button.setToolTip(
             "Permanently delete the selected benchmark run and all its stored results from the database."
         )
+        self._rename_run_btn = QToolButton()
+        self._rename_run_btn.setText("✏")
+        self._rename_run_btn.setToolTip("Rename this run")
+        self._rename_run_btn.setProperty("role", "icon-btn")
+        self._rename_run_btn.setEnabled(False)
         self._summary_label = QLabel(_SUMMARY_LABEL_TEXT)
         self._detailed_label = QLabel(_DETAILED_LABEL_TEXT)
         self._summary_csv_button = QPushButton("Export as CSV")
@@ -157,7 +169,6 @@ class ResultWidget(QWidget):
 
         self._benchmark_sensitive_widgets: list[QWidget] = [
             self._run_label,
-            self._run_dropdown,
             self._delete_button,
             self._summary_label,
             self._detailed_label,
@@ -218,6 +229,7 @@ class ResultWidget(QWidget):
         top_layout = QHBoxLayout()
         top_layout.addWidget(self._run_label)
         top_layout.addWidget(self._run_dropdown)
+        top_layout.addWidget(self._rename_run_btn)
         top_layout.addWidget(self._delete_button)
         top_layout.addStretch()
 
@@ -458,6 +470,8 @@ class ResultWidget(QWidget):
     def _connect_signals(self) -> None:
         """Connect UI widget signals to handler methods."""
         self._run_dropdown.currentIndexChanged.connect(self._on_run_dropdown_changed)
+        self._run_dropdown.activated.connect(self._on_run_dropdown_activated)
+        self._rename_run_btn.clicked.connect(self._on_rename_run_clicked)
         self._delete_button.clicked.connect(self._controller.handle_delete_click)
         self._summary_csv_button.clicked.connect(self._on_summary_export_csv)
         self._summary_md_button.clicked.connect(self._on_summary_export_md)
@@ -473,14 +487,15 @@ class ResultWidget(QWidget):
 
     def _subscribe_to_controller_events(self) -> None:
         """Subscribe to controller state updates and initialise checkbox state."""
-        self._controller.subscribe_to_runs_change(self._on_runs_changed)
-        self._controller.subscribe_to_run_id_changed(self._on_run_id_changed)
-        self._controller.subscribe_to_summary_data_change(self._on_summary_data_changed)
-        self._controller.subscribe_to_detailed_data_change(self._on_detailed_data_changed)
-        self._controller.subscribe_to_benchmark_status_change(self._on_benchmark_is_running_changed)
-        self._controller.subscribe_to_judge_summary(self._on_judge_summary_received)
-        self._controller.subscribe_to_perf_analysis(self._on_perf_analysis_received)
-        self._controller.subscribe_to_chart_data_change(self._on_chart_data_changed)
+        self._controller.subscribe_to_runs_change(self._on_runs_changed, parent=self)
+        self._controller.subscribe_to_run_id_changed(self._on_run_id_changed, parent=self)
+        self._controller.subscribe_to_summary_data_change(self._on_summary_data_changed, parent=self)
+        self._controller.subscribe_to_detailed_data_change(self._on_detailed_data_changed, parent=self)
+        self._controller.subscribe_to_benchmark_status_change(self._on_benchmark_is_running_changed, parent=self)
+        self._controller.subscribe_to_judge_summary(self._on_judge_summary_received, parent=self)
+        self._controller.subscribe_to_perf_analysis(self._on_perf_analysis_received, parent=self)
+        self._controller.subscribe_to_chart_data_change(self._on_chart_data_changed, parent=self)
+        self._controller.subscribe_to_run_renamed(self._on_run_renamed, parent=self)
         initial = self._controller.get_also_save_to_default()
         self._summary_also_save_checkbox.setChecked(initial)
         self._details_also_save_checkbox.setChecked(initial)
@@ -492,11 +507,17 @@ class ResultWidget(QWidget):
     def _on_run_dropdown_changed(self) -> None:
         """Handle user selection of a different benchmark run from the dropdown."""
         run_id = self._run_dropdown.currentData()
+        self._rename_run_btn.setEnabled(run_id is not None)
         if run_id is not None:
             self._summary_proxy.clear_all_filters()
             self._detailed_proxy.clear_all_filters()
             self._controller.handle_run_selection_change(run_id)
             logger.debug("Run ID selected: %s", run_id)
+
+    def _on_run_dropdown_activated(self) -> None:
+        """Mark that the user has explicitly chosen a run from the dropdown."""
+        if self._run_dropdown.currentData() is not None:
+            self._user_selected_run = True
 
     def _on_runs_changed(self, run_ids: list[tuple[int, str]]) -> None:
         """Update the run dropdown with available benchmark runs.
@@ -505,9 +526,38 @@ class ResultWidget(QWidget):
             run_ids: List of (run_id, run_name) tuples.
         """
         logger.debug("Updating runs list: %d entries", len(run_ids))
+        # Preserve the user's manual selection across dropdown rebuilds.
+        preserved_id = self._run_dropdown.currentData() if self._user_selected_run else None
         self._run_dropdown.clear()
         for run_id, name in run_ids:
             self._run_dropdown.addItem(name, run_id)
+        restore_id = preserved_id if preserved_id is not None else self._active_run_id
+        if restore_id is not None:
+            set_benchmark_run_on_dropdown(restore_id, self._run_dropdown, logger)
+
+    def _on_rename_run_clicked(self) -> None:
+        """Open the rename dialog for the currently selected run."""
+        from ollama_llm_bench.ui.widgets.panels.rename_run_dialog import RenameRunDialog
+
+        run_id: int | None = self._run_dropdown.currentData()
+        if run_id is None:
+            return
+        existing = self._controller.get_run_names(exclude_run_id=run_id)
+        current_name = self._run_dropdown.currentText()
+        dlg = RenameRunDialog(current_name=current_name, existing_names=existing, parent=self)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self._controller.rename_run(run_id=run_id, new_name=dlg.new_name)
+
+    def _on_run_renamed(self, event: RunRenamedEvent) -> None:
+        """Update the dropdown item text when a run is renamed.
+
+        Args:
+            event: The rename event carrying run_id and new_name.
+        """
+        for i in range(self._run_dropdown.count()):
+            if self._run_dropdown.itemData(i) == event.run_id:
+                self._run_dropdown.setItemText(i, event.new_name)
+                break
 
     def _on_run_id_changed(self, run_id: int | None) -> None:
         """Sync the dropdown selection with the currently active run ID.
@@ -515,14 +565,28 @@ class ResultWidget(QWidget):
         Args:
             run_id: Identifier of the active run, or None when no run is selected.
         """
+        self._active_run_id = run_id
         if run_id is None:
             return
+        # While a benchmark is running, don't override the user's explicit run selection.
+        if self._benchmark_is_running and self._user_selected_run and run_id != self._run_dropdown.currentData():
+            return
         set_benchmark_run_on_dropdown(run_id, self._run_dropdown, logger)
-        cached = self._judge_summaries.get(run_id)
-        if cached:
-            self._judge_analysis_widget.show_summary(cached)
+        if run_id in self._judge_summaries:
+            self._judge_analysis_widget.show_summary(self._judge_summaries[run_id])
+        elif run_id in self._perf_analyses:
+            self._judge_analysis_widget.show_perf_analysis(self._perf_analyses[run_id])
         else:
-            self._judge_analysis_widget.clear()
+            # Cache is cold (e.g. after app restart) — fall back to DB read.
+            run = self._controller.get_run(run_id)
+            if run is not None and run.judge_summary:
+                self._judge_summaries[run_id] = run.judge_summary
+                self._judge_analysis_widget.show_summary(run.judge_summary)
+            elif run is not None and run.perf_analysis_result:
+                self._perf_analyses[run_id] = run.perf_analysis_result
+                self._judge_analysis_widget.show_perf_analysis(run.perf_analysis_result)
+            else:
+                self._judge_analysis_widget.clear()
 
     def _on_summary_data_changed(self, data: list[AvgSummaryTableItem]) -> None:
         """Update the summary table model and refresh charts.
@@ -552,10 +616,12 @@ class ResultWidget(QWidget):
             is_running: Current execution state of the benchmark.
         """
         logger.debug("Benchmark state changed: %s", "running" if is_running else "stopped")
+        self._benchmark_is_running = is_running
         enabled = not is_running
         for widget in self._benchmark_sensitive_widgets:
             widget.setEnabled(enabled)
         if is_running:
+            self._user_selected_run = False
             self._judge_analysis_widget.show_pending()
 
     def _on_judge_summary_received(self, event: JudgeSummaryEvent) -> None:
@@ -570,11 +636,12 @@ class ResultWidget(QWidget):
             self._judge_analysis_widget.show_summary(event.summary_text)
 
     def _on_perf_analysis_received(self, event: PerfAnalysisEvent) -> None:
-        """Display performance analysis when the matching run is selected.
+        """Cache performance analysis and display it if the matching run is selected.
 
         Args:
             event: Performance analysis event carrying run_id and analysis_text.
         """
+        self._perf_analyses[event.run_id] = event.analysis_text
         current_run: int | None = self._run_dropdown.currentData()
         if current_run == event.run_id:
             self._judge_analysis_widget.show_perf_analysis(event.analysis_text)
@@ -602,7 +669,7 @@ class ResultWidget(QWidget):
             self._task_detail_widget.clear()
             return
         item = items[source_row]
-        result = self._controller.handle_task_selected(item.model_name, item.task_id)
+        result = self._controller.handle_task_selected(item.model_name, item.task_id, item.prompt_version)
         if result is not None:
             self._task_detail_widget.show_result(result)
         else:

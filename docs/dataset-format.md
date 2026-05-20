@@ -2,7 +2,7 @@
 
 Every benchmark task lives in a YAML file under `src/ollama_llm_bench/dataset/`.
 There are currently **50** task files bundled with the package.
-Files are loaded at runtime by `YamlBenchmarkTaskApi` and cached in memory for the life of the process.
+Files are loaded at runtime by `TaskFileLoader` and cached in memory for the life of the process.
 
 ## File Layout
 
@@ -21,7 +21,7 @@ Convention in the current dataset is one file = one task, wrapped in a top-level
 ## Schema
 
 Every task must be a mapping with the following fields.
-All fields are **required** — missing fields cause the task to be skipped with a warning log (`YamlBenchmarkTaskApi.load_tasks` catches `KeyError`).
+All fields are **required** — missing fields cause the task to be skipped with a warning log (`TaskFileLoader.load_tasks` catches `KeyError`).
 
 ```yaml
 - task_id: string                       # unique identifier
@@ -42,7 +42,7 @@ All fields are **required** — missing fields cause the task to be skipped with
 | `task_id` | `str` | yes | Unique across all tasks. Used as `task_id` foreign key in the `results` SQL table and referenced by `BenchmarkTask.task_id`. Convention: `<category>_<sub_category>_<short_slug>`. |
 | `category` | `str` | yes | Broad category hint passed to the judge as `{category}` in the judge prompt. Used by `SYSTEM_PROMPT` to choose weighting rubric. |
 | `sub_category` | `str` | yes | Refinement (e.g. language for coding tasks). Passed as `{sub_category}`. |
-| `question` | `str` | yes | The raw question text. Sent **verbatim** to the test model during benchmarking (`SimplePromptBuilderApi.build_prompt` returns it unchanged). Multi-line YAML scalars (`\|` block style) are preferred. |
+| `question` | `str` | yes | The raw question text. Sent **verbatim** to the test model during benchmarking (`JudgePromptService.build_inference_prompt` returns it as the user prompt). Multi-line YAML scalars (`\|` block style) are preferred. |
 | `expected_answer.most_expected` | `str` | yes | Tier 1 reference — the ideal answer. If the test model's output exactly matches this (after trivial normalization), the judge should grade **1.00**. |
 | `expected_answer.good_answer` | `str` | yes | Tier 2 reference — an acceptable answer with minor misses. Target score **0.65 – 0.95**. |
 | `expected_answer.pass_option` | `str` | yes | Tier 3 reference — the bare minimum to pass. Target score **0.30 – 0.79**. |
@@ -127,18 +127,16 @@ See the `Category-specific weights` block in `SYSTEM_PROMPT` (lines 19–25 of `
 
 ## Loading Behaviour
 
-`YamlBenchmarkTaskApi.load_tasks()` iterates `task_folder_path.iterdir()`:
+`TaskFileLoader.load_tasks(file_paths)` parses each provided YAML path:
 
-1. Skips non-files.
-2. Skips files whose suffix is not `.yaml` or `.yml`.
-3. Parses each file with `yaml.safe_load`.
-4. Treats the result as a single task if it is a `dict`, or a list of tasks if it is a `list`.
-5. Constructs a `BenchmarkTask` for each entry; on `KeyError` (missing field) logs a warning and skips.
-6. Populates both `self._tasks_cache` (list) and `self._task_cache_map` (dict keyed by `task_id`).
-7. Returns the cached list on subsequent calls without re-reading files.
+1. Skips paths whose suffix is not `.yaml` or `.yml`.
+2. Parses each file with `yaml.safe_load`.
+3. Treats the result as a single task if it is a `dict`, or a list of tasks if it is a `list`.
+4. Constructs a `BenchmarkTask` for each entry; on `KeyError` (missing field) logs a warning and skips.
+5. Caches by `task_id` for O(1) lookup via `get_task(task_id)`.
 
-Look-ups via `get_task(task_id)` are O(1) after the first `load_tasks()` call.
-The loader does **not** validate uniqueness of `task_id` — a duplicate ID across files will silently overwrite the earlier entry in `_task_cache_map`.
+`scan_directory(directory)` returns all YAML/YML paths under the given folder, ready to feed into `load_tasks`.
+The loader does **not** validate uniqueness of `task_id` — a duplicate ID across files will silently overwrite the earlier entry.
 
 ## Dataset Path Resolution
 
@@ -148,7 +146,7 @@ The loader does **not** validate uniqueness of `task_id` — a duplicate ID acro
 2. Otherwise try `importlib.resources.path('ollama_llm_bench', 'dataset')` — the packaged location when installed via `uv sync` or a wheel.
 3. Otherwise fall back to `Path(__file__).parent / 'dataset'` — the development source tree.
 
-The resolved path is then passed to `ContextProvider.initialize(app_root, dataset_path)` → `_create_app_context` → `YamlBenchmarkTaskApi(task_folder_path=dataset_path)`.
+The resolved path is then passed to `ContextProvider.initialize(app_root, dataset_path)` → `_create_app_context`. `RunConfigController` and `BenchmarkExecutionTask` discover task files inside this folder via `TaskFileLoader.scan_directory(...)`.
 
 ### CLI Example
 
@@ -175,5 +173,5 @@ uv run ollama_llm_bench -d /path/to/my_benchmark_tasks
 
 - [data-model.md](data-model.md) — the `BenchmarkTask` / `BenchmarkTaskAnswer` dataclasses
 - [benchmark-pipeline.md](benchmark-pipeline.md) — how the judge uses these fields
-- [services-reference.md](services-reference.md) — `YamlBenchmarkTaskApi` API reference
+- [services-reference.md](services-reference.md) — `TaskFileLoader` API reference
 - [configuration.md](configuration.md) — the `--dataset` CLI flag

@@ -2,6 +2,7 @@
 
 import pytest
 from PySide6.QtCore import QModelIndex, Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication
 
 from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
@@ -56,6 +57,7 @@ def _make_summary_item(
     cosine_similarity: float | None = None,
     resolution_layer: str = "layer1",
     score_reason: str = "good answer",
+    error_message: str = "",
 ) -> SummaryTableItem:
     return SummaryTableItem(
         model_name=model_name,
@@ -68,6 +70,7 @@ def _make_summary_item(
         cosine_similarity=cosine_similarity,
         resolution_layer=resolution_layer,
         score_reason=score_reason,
+        error_message=error_message,
     )
 
 
@@ -96,7 +99,7 @@ def test_summary_model_column_count(qapp: QApplication) -> None:
     count = model.columnCount()
 
     # Assert
-    assert count == 6
+    assert count == 7
 
 
 def test_summary_model_header_data(qapp: QApplication) -> None:
@@ -219,7 +222,7 @@ def test_detailed_model_column_count(qapp: QApplication) -> None:
     count = model.columnCount()
 
     # Assert
-    assert count == 10
+    assert count == 11
 
 
 def test_detailed_model_cosine_none_display(qapp: QApplication) -> None:
@@ -280,3 +283,51 @@ def test_detailed_model_text_alignment_text_col(qapp: QApplication) -> None:
 
     # Assert
     assert result == Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+
+
+def test_detailed_model_error_column_returns_error_message(qapp: QApplication) -> None:
+    # Arrange
+    model = DetailedTableModel()
+    model.update_data([_make_summary_item(error_message="inference timeout")])
+
+    # Act
+    result = model.data(model.index(0, 10), Qt.ItemDataRole.DisplayRole)
+
+    # Assert
+    assert result == "inference timeout"
+
+
+def test_detailed_model_error_column_returns_none_when_empty(qapp: QApplication) -> None:
+    # Arrange
+    model = DetailedTableModel()
+    model.update_data([_make_summary_item(error_message="")])
+
+    # Act
+    result = model.data(model.index(0, 10), Qt.ItemDataRole.DisplayRole)
+
+    # Assert
+    assert result is None
+
+
+def test_detailed_model_foreground_role_returns_error_color_when_error(qapp: QApplication) -> None:
+    # Arrange
+    model = DetailedTableModel()
+    model.update_data([_make_summary_item(error_message="bad json")])
+
+    # Act
+    result = model.data(model.index(0, 0), Qt.ItemDataRole.ForegroundRole)
+
+    # Assert
+    assert result == QColor("#e05252")
+
+
+def test_detailed_model_foreground_role_returns_none_when_no_error(qapp: QApplication) -> None:
+    # Arrange
+    model = DetailedTableModel()
+    model.update_data([_make_summary_item(error_message="")])
+
+    # Act
+    result = model.data(model.index(0, 0), Qt.ItemDataRole.ForegroundRole)
+
+    # Assert
+    assert result is None

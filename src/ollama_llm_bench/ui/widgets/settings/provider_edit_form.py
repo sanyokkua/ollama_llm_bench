@@ -1,11 +1,12 @@
 """ProviderEditForm — labelled QFormLayout for editing a single provider's configuration."""
 
 import logging
+import os
 import re
 from typing import Final
 from urllib.parse import urlparse
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QPoint, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QPushButton,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -34,7 +36,7 @@ _TYPE_ANTHROPIC: Final[str] = ProviderType.ANTHROPIC.value
 _TYPE_GEMINI: Final[str] = ProviderType.GEMINI.value
 
 _ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[a-z0-9_]+$")
-_ENV_VAR_PATTERN: Final[re.Pattern[str]] = re.compile(r"^\$\{[A-Z_][A-Z0-9_]*\}$")
+_ENV_VAR_PATTERN: Final[re.Pattern[str]] = re.compile(r"^\$\{([A-Z_][A-Z0-9_]*)\}$")
 
 _TOOLTIP_ID: Final[str] = (
     "Stable internal identifier. Used in the database to link results to this provider. "
@@ -124,6 +126,11 @@ class ProviderEditForm(QWidget):
         self._api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self._api_key_edit.setToolTip(_TOOLTIP_API_KEY)
 
+        self._read_env_btn: QPushButton = QPushButton("Read env")
+        self._read_env_btn.setFlat(True)
+        self._read_env_btn.setToolTip("Check if the referenced environment variable is currently set.")
+        self._read_env_btn.setVisible(False)
+
         self._api_key_error: QLabel = QLabel()
         self._api_key_error.setProperty("status_tone", "error")
         self._api_key_error.setVisible(False)
@@ -174,7 +181,13 @@ class ProviderEditForm(QWidget):
         self._form_layout.addRow("", self._label_error)
         self._form_layout.addRow("Type:", self._type_combo)
         self._form_layout.addRow("Enabled:", self._enabled_check)
-        self._form_layout.addRow("API key:", self._api_key_edit)
+        _api_key_container = QWidget()
+        _api_key_row = QHBoxLayout(_api_key_container)
+        _api_key_row.setContentsMargins(0, 0, 0, 0)
+        _api_key_row.setSpacing(4)
+        _api_key_row.addWidget(self._api_key_edit, stretch=1)
+        _api_key_row.addWidget(self._read_env_btn)
+        self._form_layout.addRow("API key:", _api_key_container)
         self._form_layout.addRow("", self._api_key_error)
 
         # Conditional rows — openai_compatible
@@ -215,6 +228,7 @@ class ProviderEditForm(QWidget):
         self._type_combo.currentTextChanged.connect(self._on_type_changed)
         self._enabled_check.stateChanged.connect(self._on_field_changed)
         self._api_key_edit.textChanged.connect(self._on_field_changed)
+        self._read_env_btn.clicked.connect(self._on_read_env_clicked)
 
         self._base_url_edit.textChanged.connect(self._on_field_changed)
         self._azure_flag.stateChanged.connect(self._on_azure_flag_changed)
@@ -234,7 +248,24 @@ class ProviderEditForm(QWidget):
     def _on_field_changed(self) -> None:
         """Handle any field change: validate then emit form_changed."""
         self._validate()
+        self._update_read_env_visibility()
         self.form_changed.emit()
+
+    def _update_read_env_visibility(self) -> None:
+        self._read_env_btn.setVisible(bool(_ENV_VAR_PATTERN.match(self._api_key_edit.text())))
+
+    def _on_read_env_clicked(self) -> None:
+        m = _ENV_VAR_PATTERN.match(self._api_key_edit.text())
+        if not m:
+            return
+        var_name = m.group(1)
+        value = os.environ.get(var_name)
+        if value is None:
+            msg = f"{var_name} is not set in the current environment."
+        else:
+            masked = "****" if len(value) <= 8 else f"{value[:4]}…{value[-4:]}"
+            msg = f"{var_name} = {masked}"
+        QToolTip.showText(self._read_env_btn.mapToGlobal(QPoint(0, self._read_env_btn.height())), msg)
 
     def _on_type_changed(self, _text: str) -> None:
         """Handle provider type change: update visibility then run generic handler."""
@@ -425,11 +456,13 @@ class ProviderEditForm(QWidget):
             azure_api_version=azure_api_version,
         )
 
-    def populate(self, config: ProviderConfig) -> None:
+    def populate(self, config: ProviderConfig, *, lock_type: bool = False) -> None:
         """Fill all form fields from a ProviderConfig without emitting form_changed.
 
         Args:
             config: Provider configuration to load into the form.
+            lock_type: When True, the type combo is disabled to prevent accidental
+                protocol changes on existing providers.
         """
         # Block signals during population
         self._id_edit.blockSignals(True)
@@ -485,6 +518,8 @@ class ProviderEditForm(QWidget):
             self._models_list.clear()
             for model in config.default_models:
                 self._models_list.addItem(model)
+
+            self._type_combo.setEnabled(not lock_type)
         finally:
             self._id_edit.blockSignals(False)
             self._label_edit.blockSignals(False)
@@ -500,3 +535,9 @@ class ProviderEditForm(QWidget):
 
         self._update_field_visibility()
         self._validate()
+        self._update_read_env_visibility()
+
+    def lock_provider_id(self) -> None:
+        """Disable the provider_id field for edit-existing mode."""
+        self._id_edit.setEnabled(False)
+        self._id_edit.setReadOnly(True)

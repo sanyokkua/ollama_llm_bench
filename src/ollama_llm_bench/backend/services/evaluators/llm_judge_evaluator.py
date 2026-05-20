@@ -14,7 +14,7 @@ from ollama_llm_bench.backend.utils.text_utils import parse_v2_judge_response
 
 logger = logging.getLogger(__name__)
 
-_MAX_JUDGE_TOKENS = 256
+_MAX_JUDGE_TOKENS = 512
 _JUDGE_TEMPERATURE = 0.0
 
 
@@ -89,6 +89,7 @@ class LLMJudgeEvaluator:
             "llm_judge_provider_capability",
             extra={"provider_id": judge_provider_id, "supports_structured_output": supports_json},
         )
+        response_format: dict[str, str] | None = {"type": "json_object"} if supports_json else None
 
         try:
             inference_response = provider.inference_sync(
@@ -96,6 +97,7 @@ class LLMJudgeEvaluator:
                 messages=messages,
                 temperature=_JUDGE_TEMPERATURE,
                 max_tokens=_MAX_JUDGE_TOKENS,
+                response_format=response_format,
             )
         except Exception:
             logger.warning(

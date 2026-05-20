@@ -3,8 +3,11 @@
 from typing import Any, override
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QPersistentModelIndex, Qt
+from PySide6.QtGui import QColor
 
 from ollama_llm_bench.backend.core.models import AvgSummaryTableItem
+
+_ERROR_COLOR = QColor("#e05252")
 
 _INVALID_INDEX: QModelIndex = QModelIndex()
 
@@ -15,6 +18,7 @@ _HEADERS: list[str] = [
     "AVG. SCORE",
     "PASS%",
     "AVG. TTFT (ms)",
+    "ERRORS",
 ]
 
 
@@ -26,7 +30,7 @@ class SummaryTableModel(QAbstractTableModel):
     correct proxy-model sorting.
     """
 
-    NUMERIC_COLUMNS: frozenset[int] = frozenset({1, 2, 3, 4, 5})
+    NUMERIC_COLUMNS: frozenset[int] = frozenset({1, 2, 3, 4, 5, 6})
 
     def __init__(self, parent: QObject | None = None) -> None:
         """Initialise with an empty item list."""
@@ -118,6 +122,9 @@ class SummaryTableModel(QAbstractTableModel):
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
+        if role == Qt.ItemDataRole.ForegroundRole and item.failed_count > 0:
+            return _ERROR_COLOR
+
         return None
 
     def _display_value(self, item: AvgSummaryTableItem, col: int) -> str | None:
@@ -145,6 +152,8 @@ class SummaryTableModel(QAbstractTableModel):
                 if item.avg_ttft_ms is not None:
                     return f"{item.avg_ttft_ms:.0f}"
                 return "—"
+            case 6:
+                return str(item.failed_count) if item.failed_count > 0 else None
             case _:
                 return None
 
@@ -171,6 +180,8 @@ class SummaryTableModel(QAbstractTableModel):
                 return item.pass_rate * 100
             case 5:
                 return item.avg_ttft_ms
+            case 6:
+                return float(item.failed_count)
             case _:
                 return None
 

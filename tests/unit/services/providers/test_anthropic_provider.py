@@ -6,7 +6,7 @@ import anthropic
 import httpx
 from pytest_mock import MockerFixture
 
-from ollama_llm_bench.backend.core.models import InferenceResponse, ModelDescriptor, StreamChunk
+from ollama_llm_bench.backend.core.models import HealthProbeResult, InferenceResponse, ModelDescriptor, StreamChunk
 from ollama_llm_bench.backend.services.providers.anthropic_provider import AnthropicProvider
 
 _PROVIDER_ID = "anthropic_cloud"
@@ -562,3 +562,49 @@ def test_constructor_with_base_url_passes_it_to_sdk(mocker: MockerFixture) -> No
     # Assert
     call_kwargs = mock_cls.call_args.kwargs
     assert call_kwargs.get("base_url") == proxy_url
+
+
+class TestAnthropicProviderProbeHealth:
+    """Tests for probe_health."""
+
+    def test_probe_health_reachable_returns_model_count(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        model_item = mocker.Mock()
+        mock_client.models.list.return_value.data = [model_item]
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert isinstance(result, HealthProbeResult)
+        assert result.reachable is True
+        assert result.model_count_observed == 1
+
+    def test_probe_health_auth_error_returns_not_reachable(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        mock_client.models.list.side_effect = anthropic.AuthenticationError(
+            message="Invalid API key",
+            response=mocker.Mock(),
+            body=None,
+        )
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert result.reachable is False
+        assert result.error_message == "Authentication failed — check API key."
+
+    def test_probe_health_connection_error_returns_not_reachable(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        mock_client.models.list.side_effect = anthropic.APIConnectionError(request=mocker.Mock())
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert result.reachable is False
+        assert result.error_message is not None

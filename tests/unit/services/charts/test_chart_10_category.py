@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
+from ollama_llm_bench.backend.core.models import BenchmarkResult
 from ollama_llm_bench.backend.services.charts.aggregations import Chart10CategoryBarAggregator
 from ollama_llm_bench.backend.services.charts.base_chart import ChartFilters
 
 
-def test_chart10_avg_score_mode(make_result) -> None:
+def test_chart10_avg_score_mode(make_result: Callable[..., BenchmarkResult]) -> None:
     # Arrange
     results = [
         make_result(model_name="a", task_category="math", judge_score=0.8),
@@ -26,7 +29,7 @@ def test_chart10_avg_score_mode(make_result) -> None:
     assert abs(data.series_data[0][0] - 0.7) < 0.01
 
 
-def test_chart10_pass_rate_mode(make_result) -> None:
+def test_chart10_pass_rate_mode(make_result: Callable[..., BenchmarkResult]) -> None:
     # Arrange
     results = [
         make_result(model_name="a", task_category="math", final_verdict="pass"),
@@ -46,7 +49,7 @@ def test_chart10_pass_rate_mode(make_result) -> None:
     assert abs(data.series_data[0][0] - 50.0) < 0.01
 
 
-def test_chart10_score_vs_pass_rate_produce_different_values(make_result) -> None:
+def test_chart10_score_vs_pass_rate_produce_different_values(make_result: Callable[..., BenchmarkResult]) -> None:
     # Arrange
     results = [
         make_result(model_name="a", task_category="math", judge_score=0.8, final_verdict="pass"),
@@ -73,8 +76,8 @@ def test_chart10_score_vs_pass_rate_produce_different_values(make_result) -> Non
     assert d_score.series_data[0][0] != d_rate.series_data[0][0]
 
 
-def test_chart10_missing_model_category_pair_sentinel(make_result) -> None:
-    # Arrange: model "a" has no data for category "code" — should get sentinel -1.0
+def test_chart10_missing_model_category_pair_sentinel(make_result: Callable[..., BenchmarkResult]) -> None:
+    # Arrange: model "a" has no data for category "code" — missing pair uses 0.0
     results = [
         make_result(model_name="a", task_category="math", judge_score=0.9),
     ]
@@ -97,9 +100,11 @@ def test_chart10_missing_model_category_pair_sentinel(make_result) -> None:
     assert "missing" in data.footnote.lower() or data.footnote != ""
 
 
-def test_chart10_empty_results_returns_empty_state(all_filters) -> None:
+def test_chart10_empty_results_returns_empty_state(
+    all_filters: Callable[[list[BenchmarkResult]], ChartFilters],
+) -> None:
     # Arrange
-    results = []
+    results: list[BenchmarkResult] = []
 
     # Act
     data = Chart10CategoryBarAggregator().compute_data(run=None, results=results, filters=all_filters(results))
@@ -108,7 +113,7 @@ def test_chart10_empty_results_returns_empty_state(all_filters) -> None:
     assert data.empty_state_message != ""
 
 
-def test_chart10_series_labels_are_model_names(make_result) -> None:
+def test_chart10_series_labels_are_model_names(make_result: Callable[..., BenchmarkResult]) -> None:
     # Arrange
     results = [
         make_result(model_name="alpha", task_category="math", judge_score=0.5),
@@ -128,7 +133,7 @@ def test_chart10_series_labels_are_model_names(make_result) -> None:
     assert "beta" in data.series_labels
 
 
-def test_chart10_category_labels_are_categories(make_result) -> None:
+def test_chart10_category_labels_are_categories(make_result: Callable[..., BenchmarkResult]) -> None:
     # Arrange
     results = [
         make_result(model_name="a", task_category="math", judge_score=0.5),

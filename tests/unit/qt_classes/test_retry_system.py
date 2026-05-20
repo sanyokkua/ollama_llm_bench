@@ -29,6 +29,7 @@ from ollama_llm_bench.backend.core.models import (
 )
 from ollama_llm_bench.backend.services.app_settings_service import (
     SETTING_RETRY_COUNT,
+    SETTING_RETRY_MAX_FAILURES_TO_EXCLUDE,
     SETTING_RETRY_TIMEOUT_MAX_S,
     SETTING_RETRY_TIMEOUT_MIN_S,
 )
@@ -66,6 +67,10 @@ def _make_result(task_id: str = "t1") -> BenchmarkResult:
 
 
 def _make_exec_task(mocker: MockerFixture) -> BenchmarkExecutionTask:
+    app_settings = mocker.Mock(spec=AppSettingsServiceApi)
+    # Return 1 for all int settings so AdaptiveTimeoutService init does not fail.
+    # Individual tests may override side_effect to return specific values.
+    app_settings.get_int.return_value = 1
     task = BenchmarkExecutionTask(
         run_id=1,
         data_api=mocker.Mock(spec=DataApi),
@@ -74,7 +79,7 @@ def _make_exec_task(mocker: MockerFixture) -> BenchmarkExecutionTask:
         judge_summary_service=mocker.Mock(spec=JudgeSummaryServiceApi),
         provider_registry=mocker.Mock(spec=ProviderRegistryApi),
         event_bus=mocker.Mock(spec=EventBus),
-        app_settings=mocker.Mock(spec=AppSettingsServiceApi),
+        app_settings=app_settings,
         rule_evaluator=mocker.Mock(spec=EvaluatorApi),
         keyword_evaluator=mocker.Mock(spec=EvaluatorApi),
         cosine_evaluator=mocker.Mock(spec=EvaluatorApi),
@@ -86,47 +91,22 @@ def _make_exec_task(mocker: MockerFixture) -> BenchmarkExecutionTask:
 
 
 # ---------------------------------------------------------------------------
-# _calc_attempt_timeout tests
-# ---------------------------------------------------------------------------
-
-
-def test_calc_attempt_timeout_single_attempt_returns_min() -> None:
-    result = BenchmarkExecutionTask._calc_attempt_timeout(30, 300, 0, 1)
-    assert result == 30
-
-
-def test_calc_attempt_timeout_first_attempt_is_min() -> None:
-    result = BenchmarkExecutionTask._calc_attempt_timeout(30, 300, 0, 3)
-    assert result == 30
-
-
-def test_calc_attempt_timeout_last_attempt_is_max() -> None:
-    result = BenchmarkExecutionTask._calc_attempt_timeout(30, 300, 2, 3)
-    assert result == 300
-
-
-def test_calc_attempt_timeout_middle_is_geometric() -> None:
-    min_s, max_s = 30, 300
-    mid = BenchmarkExecutionTask._calc_attempt_timeout(min_s, max_s, 1, 3)
-    expected = round(min_s * (max_s / min_s) ** 0.5)
-    assert mid == expected
-    assert min_s < mid < max_s
-
-
-def test_calc_attempt_timeout_equal_min_max_returns_min() -> None:
-    result = BenchmarkExecutionTask._calc_attempt_timeout(120, 120, 1, 3)
-    assert result == 120
-
-
-def test_calc_attempt_timeout_clamps_to_range() -> None:
-    # With min > max (misconfiguration), result should clamp to min
-    result = BenchmarkExecutionTask._calc_attempt_timeout(300, 30, 0, 1)
-    assert result == 300  # min_s is returned for single attempt regardless of max
-
-
-# ---------------------------------------------------------------------------
 # _run_inference_with_retry tests
 # ---------------------------------------------------------------------------
+
+
+def _patch_get_int(mocker: MockerFixture, exec_task: BenchmarkExecutionTask) -> None:
+    """Patch app_settings.get_int with retry-specific values."""
+    mocker.patch.object(
+        exec_task._app_settings,
+        "get_int",
+        side_effect=lambda key, default=0: {
+            SETTING_RETRY_COUNT: 3,
+            SETTING_RETRY_TIMEOUT_MIN_S: 30,
+            SETTING_RETRY_TIMEOUT_MAX_S: 300,
+            SETTING_RETRY_MAX_FAILURES_TO_EXCLUDE: 3,
+        }.get(key, default),
+    )
 
 
 def test_run_inference_with_retry_succeeds_on_first_attempt(mocker: MockerFixture) -> None:
@@ -134,20 +114,15 @@ def test_run_inference_with_retry_succeeds_on_first_attempt(mocker: MockerFixtur
     task = _make_task()
     result = _make_result()
     provider = mocker.Mock(spec=LLMProviderApi)
-
-    exec_task._app_settings.get_int.side_effect = lambda key, default=0: {
-        SETTING_RETRY_COUNT: 3,
-        SETTING_RETRY_TIMEOUT_MIN_S: 30,
-        SETTING_RETRY_TIMEOUT_MAX_S: 300,
-    }.get(key, default)
+    _patch_get_int(mocker, exec_task)
 
     updated_result = _make_result()
-    exec_task._run_inference = mocker.Mock(return_value=updated_result)  # type: ignore[method-assign]
+    inference_mock = mocker.patch.object(exec_task, "_run_inference", return_value=updated_result)
 
     returned = exec_task._run_inference_with_retry(provider, "m1", result, task, BenchmarkResultStatus.COMPLETED)
 
     assert returned is updated_result
-    assert exec_task._run_inference.call_count == 1
+    assert inference_mock.call_count == 1
 
 
 def test_run_inference_with_retry_succeeds_on_second_attempt(mocker: MockerFixture) -> None:
@@ -155,12 +130,7 @@ def test_run_inference_with_retry_succeeds_on_second_attempt(mocker: MockerFixtu
     task = _make_task()
     result = _make_result()
     provider = mocker.Mock(spec=LLMProviderApi)
-
-    exec_task._app_settings.get_int.side_effect = lambda key, default=0: {
-        SETTING_RETRY_COUNT: 3,
-        SETTING_RETRY_TIMEOUT_MIN_S: 30,
-        SETTING_RETRY_TIMEOUT_MAX_S: 300,
-    }.get(key, default)
+    _patch_get_int(mocker, exec_task)
 
     updated_result = _make_result()
     call_count = 0
@@ -172,7 +142,7 @@ def test_run_inference_with_retry_succeeds_on_second_attempt(mocker: MockerFixtu
             exec_task._attempt_timed_out = True
         return updated_result
 
-    exec_task._run_inference = _fake_inference  # type: ignore[method-assign]
+    mocker.patch.object(exec_task, "_run_inference", side_effect=_fake_inference)
 
     returned = exec_task._run_inference_with_retry(provider, "m1", result, task, BenchmarkResultStatus.COMPLETED)
 
@@ -185,18 +155,13 @@ def test_run_inference_with_retry_fails_after_all_retries(mocker: MockerFixture)
     task = _make_task()
     result = _make_result()
     provider = mocker.Mock(spec=LLMProviderApi)
-
-    exec_task._app_settings.get_int.side_effect = lambda key, default=0: {
-        SETTING_RETRY_COUNT: 3,
-        SETTING_RETRY_TIMEOUT_MIN_S: 30,
-        SETTING_RETRY_TIMEOUT_MAX_S: 300,
-    }.get(key, default)
+    _patch_get_int(mocker, exec_task)
 
     def _always_timeout(*_args: object, **_kwargs: object) -> BenchmarkResult:
         exec_task._attempt_timed_out = True
         return _make_result()
 
-    exec_task._run_inference = _always_timeout  # type: ignore[method-assign]
+    mocker.patch.object(exec_task, "_run_inference", side_effect=_always_timeout)
 
     with pytest.raises(TimeoutError, match="timed out after 3 attempt"):
         exec_task._run_inference_with_retry(provider, "m1", result, task, BenchmarkResultStatus.COMPLETED)
@@ -207,14 +172,8 @@ def test_run_inference_with_retry_stops_when_stop_requested(mocker: MockerFixtur
     task = _make_task()
     result = _make_result()
     provider = mocker.Mock(spec=LLMProviderApi)
+    _patch_get_int(mocker, exec_task)
 
-    exec_task._app_settings.get_int.side_effect = lambda key, default=0: {
-        SETTING_RETRY_COUNT: 3,
-        SETTING_RETRY_TIMEOUT_MIN_S: 30,
-        SETTING_RETRY_TIMEOUT_MAX_S: 300,
-    }.get(key, default)
-
-    # Simulate stop being requested before the first attempt
     exec_task._stop_requested = True
 
     with pytest.raises(StopIteration):

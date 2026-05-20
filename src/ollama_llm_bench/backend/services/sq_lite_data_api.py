@@ -15,32 +15,53 @@ from ollama_llm_bench.backend.core.models import (
     BenchmarkResultStatus,
     BenchmarkRun,
     BenchmarkRunStatus,
+    EmbeddingConfig,
     PromptVariant,
+    ProviderConfig,
+    ProviderType,
     RunMode,
 )
 from ollama_llm_bench.backend.core.sql_constants import (
+    CREATE_EMBEDDING_CONFIG_TABLE,
+    CREATE_INDEX_RUN_NAME_UNIQUE,
+    CREATE_MODEL_CAPABILITIES_TABLE,
+    CREATE_PROVIDERS_TABLE,
     DB_SCHEMA,
     DELETE_BENCHMARK_RUN,
     DELETE_PROMPT_VARIANTS_BY_RUN_ID,
+    DELETE_PROVIDER,
     DELETE_RESULT,
     DELETE_RESULTS_BY_RUN_ID,
     INSERT_BENCHMARK_RUN,
     INSERT_PROMPT_VARIANT,
     INSERT_RESULT,
     MIGRATE_ADD_PERFORMANCE_COLUMNS,
+    MIGRATE_ADD_RUN_NAME,
+    MIGRATE_FIX_COMPLETED_WITH_NON_TERMINAL_RESULTS,
+    MIGRATE_PROMPT_VARIANTS_COMPOSITE_PK,
     SELECT_ALL_APP_SETTINGS,
     SELECT_ALL_BENCHMARK_RUNS,
+    SELECT_ALL_PROVIDERS,
     SELECT_APP_SETTING_BY_KEY,
     SELECT_BENCHMARK_RUN_BY_ID,
     SELECT_BENCHMARK_RUNS_BY_STATUS,
+    SELECT_EMBEDDING_CONFIG,
+    SELECT_MODEL_CAPABILITY,
     SELECT_PROMPT_VARIANTS_BY_RUN_ID,
+    SELECT_PROVIDERS_COUNT,
     SELECT_RESULT_BY_ID,
     SELECT_RESULTS_BY_RUN_ID,
     SELECT_RESULTS_BY_RUN_ID_AND_STATUS,
+    SELECT_STATUS_COUNTS_BY_RUN_ID,
     UPDATE_BENCHMARK_RUN,
+    UPDATE_PROVIDER_TEST_STATUS,
     UPDATE_RESULT,
+    UPDATE_RUN_NAME,
     UPDATE_RUN_PERF_ANALYSIS,
     UPSERT_APP_SETTING,
+    UPSERT_EMBEDDING_CONFIG,
+    UPSERT_MODEL_CAPABILITY,
+    UPSERT_PROVIDER,
 )
 
 logger = logging.getLogger(__name__)
@@ -97,6 +118,26 @@ class SqLiteDataApi(DataApi):
                 if stmt:
                     with contextlib.suppress(sqlite3.OperationalError):
                         conn.execute(stmt)
+            with contextlib.suppress(sqlite3.OperationalError):
+                conn.execute(MIGRATE_ADD_RUN_NAME)
+            with contextlib.suppress(sqlite3.OperationalError):
+                conn.execute(CREATE_INDEX_RUN_NAME_UNIQUE)
+            conn.execute(CREATE_MODEL_CAPABILITIES_TABLE)
+            with contextlib.suppress(Exception):
+                conn.execute(MIGRATE_FIX_COMPLETED_WITH_NON_TERMINAL_RESULTS)
+            conn.execute(CREATE_PROVIDERS_TABLE)
+            with contextlib.suppress(Exception):
+                conn.executescript(MIGRATE_PROMPT_VARIANTS_COMPOSITE_PK)
+            conn.execute(CREATE_EMBEDDING_CONFIG_TABLE)
+            self._migrate_providers_test_status(conn)
+
+    def _migrate_providers_test_status(self, conn: sqlite3.Connection) -> None:
+        """Add last_test_status/at/message columns to providers if they do not yet exist."""
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(providers)")}
+        for col in ("last_test_status", "last_test_at", "last_test_message"):
+            if col not in existing:
+                with contextlib.suppress(sqlite3.OperationalError):
+                    conn.execute(f"ALTER TABLE providers ADD COLUMN {col} TEXT")
 
     def _row_to_benchmark_run(self, row: sqlite3.Row) -> BenchmarkRun:
         """Build a BenchmarkRun from a sqlite3.Row using named column access.
@@ -124,6 +165,7 @@ class SqLiteDataApi(DataApi):
             judge_summary=row["judge_summary"],
             performance_config=row["performance_config"],
             perf_analysis_result=row["perf_analysis_result"],
+            run_name=row["run_name"],
         )
 
     def _row_to_benchmark_result(self, row: sqlite3.Row) -> BenchmarkResult:
@@ -235,6 +277,7 @@ class SqLiteDataApi(DataApi):
                     benchmark_run.judge_summary,
                     benchmark_run.performance_config,
                     benchmark_run.perf_analysis_result,
+                    benchmark_run.run_name,
                 ),
             )
             run_id = cursor.lastrowid
@@ -321,6 +364,7 @@ class SqLiteDataApi(DataApi):
                     benchmark_run.judge_summary,
                     benchmark_run.performance_config,
                     benchmark_run.perf_analysis_result,
+                    benchmark_run.run_name,
                     benchmark_run.run_id,
                 ),
             )
@@ -355,6 +399,19 @@ class SqLiteDataApi(DataApi):
         with self._get_connection() as conn:
             conn.execute(UPDATE_RUN_PERF_ANALYSIS, (analysis, run_id))
         logger.info("Stored perf analysis for run_id=%d", run_id)
+
+    @override
+    def update_run_name(self, *, run_id: int, run_name: str) -> None:
+        """Persist a user-supplied display name for a benchmark run.
+
+        Args:
+            run_id: Unique ID of the benchmark run.
+            run_name: New display name for the run.
+        """
+        logger.debug("Updating run_name for run_id=%d", run_id)
+        with self._get_connection() as conn:
+            conn.execute(UPDATE_RUN_NAME, (run_name, run_id))
+        logger.info("Updated run_name for run_id=%d", run_id)
 
     # ------------------------------------------------------------------
     # BenchmarkResult CRUD
@@ -453,6 +510,20 @@ class SqLiteDataApi(DataApi):
         results = [self._row_to_benchmark_result(row) for row in rows]
         logger.debug("Retrieved %d results for run ID %d with status %s", len(results), run_id, status)
         return results
+
+    @override
+    def retrieve_status_counts_for_run(self, run_id: int) -> dict[str, int]:
+        """Return a mapping of status value → row count for the given run.
+
+        Args:
+            run_id: Benchmark run to aggregate.
+
+        Returns:
+            Dict mapping BenchmarkResultStatus string values to their counts.
+        """
+        with self._get_connection() as conn:
+            rows = conn.execute(SELECT_STATUS_COUNTS_BY_RUN_ID, (run_id,)).fetchall()
+        return dict(rows)
 
     @override
     def update_benchmark_result(self, benchmark_result: BenchmarkResult) -> None:
@@ -577,6 +648,41 @@ class SqLiteDataApi(DataApi):
             )
             for row in rows
         ]
+
+    @override
+    def reset_results(self, result_ids: list[int]) -> None:
+        """Reset listed result rows to NOT_COMPLETED, clearing all inferred fields.
+
+        Args:
+            result_ids: IDs of the benchmark results to reset.
+        """
+        if not result_ids:
+            return
+        placeholders = "(" + ", ".join("?" * len(result_ids)) + ")"
+        # Placeholders are constructed from len(result_ids) only — no user-supplied text in the query.
+        sql = (
+            f"UPDATE benchmark_results "  # noqa: S608
+            "SET status = 'NOT_COMPLETED', "
+            "completed_at = NULL, raw_response = NULL, sanitized_response = NULL, "
+            "response_char_length = NULL, has_thinking_block = 0, "
+            "total_time_ms = NULL, ttft_ms = NULL, prompt_tokens = NULL, "
+            "completion_tokens = NULL, tokens_per_second = NULL, "
+            "rule_check_result = NULL, rule_check_flag = NULL, rule_check_resolved = 0, "
+            "keyword_check_result = NULL, missing_exact_terms = NULL, "
+            "found_forbidden_terms = NULL, semantic_term_scores = NULL, "
+            "keyword_check_resolved = 0, cosine_similarity = NULL, "
+            "cosine_embedding_model = NULL, cosine_strategy = NULL, "
+            "cosine_auto_pass = 0, cosine_resolved = 0, "
+            "judge_result = NULL, judge_score = NULL, judge_reasoning = NULL, "
+            "judge_prompt_template = NULL, judge_time_ms = NULL, "
+            "judge_completion_tokens = NULL, final_verdict = NULL, "
+            "resolution_layer = NULL, has_inference_error = 0, "
+            "inference_error_message = NULL, has_judge_error = 0, "
+            f"judge_error_message = NULL WHERE result_id IN {placeholders}"
+        )
+        with self._get_connection() as conn:
+            cursor = conn.execute(sql, result_ids)
+        logger.debug("reset_results: reset %d rows", cursor.rowcount)
 
     # ------------------------------------------------------------------
     # Private parameter builders
@@ -725,3 +831,173 @@ class SqLiteDataApi(DataApi):
             r.judge_error_message,
             r.result_id,
         )
+
+    # ------------------------------------------------------------------
+    # Model capabilities
+    # ------------------------------------------------------------------
+
+    @override
+    def get_model_capability(self, provider_id: str, model_name: str, capability: str) -> int | None:
+        """Retrieve a stored model capability flag as a raw integer.
+
+        Args:
+            provider_id: Provider identifier.
+            model_name: Model identifier.
+            capability: Capability key.
+
+        Returns:
+            1 if supported, 0 if not supported, -1 if unknown, None if no row exists.
+        """
+        with self._get_connection() as conn:
+            row = conn.execute(SELECT_MODEL_CAPABILITY, (provider_id, model_name, capability)).fetchone()
+        if row is None:
+            return None
+        return int(row["supported"])
+
+    @override
+    def set_model_capability(
+        self,
+        provider_id: str,
+        model_name: str,
+        capability: str,
+        *,
+        supported: bool,
+        observed_via: str,
+        detail: str | None = None,
+    ) -> None:
+        """Persist or update a model capability observation.
+
+        Args:
+            provider_id: Provider identifier.
+            model_name: Model identifier.
+            capability: Capability key.
+            supported: True if the capability is supported, False otherwise.
+            observed_via: Short label describing how the observation was made.
+            detail: Optional additional context such as the raw error message.
+        """
+        with self._get_connection() as conn:
+            conn.execute(
+                UPSERT_MODEL_CAPABILITY,
+                (
+                    provider_id,
+                    model_name,
+                    capability,
+                    1 if supported else 0,
+                    datetime.now(UTC).isoformat(),
+                    observed_via,
+                    detail,
+                ),
+            )
+
+    # ------------------------------------------------------------------
+    # Providers
+    # ------------------------------------------------------------------
+
+    def _row_to_provider_config(self, row: sqlite3.Row) -> ProviderConfig:
+        raw_key: str = row["api_key_raw"] or ""
+        default_models_json: str = row["default_models"] or "[]"
+        try:
+            default_models: tuple[str, ...] = tuple(str(m) for m in json.loads(default_models_json))
+        except (json.JSONDecodeError, TypeError):
+            default_models = ()
+        return ProviderConfig(
+            provider_id=str(row["provider_id"]),
+            label=str(row["label"] or ""),
+            provider_type=ProviderType(str(row["provider_type"])),
+            api_key=raw_key,
+            api_key_raw=raw_key,
+            enabled=bool(row["enabled"]),
+            base_url=str(row["base_url"]) if row["base_url"] is not None else None,
+            default_models=default_models,
+            azure_deployment=str(row["azure_deployment"]) if row["azure_deployment"] is not None else None,
+            azure_api_version=str(row["azure_api_version"]) if row["azure_api_version"] is not None else None,
+            last_test_status=str(row["last_test_status"]) if row["last_test_status"] is not None else None,
+            last_test_at=str(row["last_test_at"]) if row["last_test_at"] is not None else None,
+            last_test_message=str(row["last_test_message"]) if row["last_test_message"] is not None else None,
+        )
+
+    @override
+    def count_providers(self) -> int:
+        """Return the total number of provider rows in the providers table."""
+        with self._get_connection() as conn:
+            row = conn.execute(SELECT_PROVIDERS_COUNT).fetchone()
+        return int(row["cnt"]) if row is not None else 0
+
+    @override
+    def load_all_providers(self) -> list[ProviderConfig]:
+        """Load all provider rows from the providers table."""
+        with self._get_connection() as conn:
+            rows = conn.execute(SELECT_ALL_PROVIDERS).fetchall()
+        return [self._row_to_provider_config(r) for r in rows]
+
+    @override
+    def upsert_provider(self, provider: ProviderConfig) -> None:
+        """Insert or replace a provider row, storing api_key_raw."""
+        with self._get_connection() as conn:
+            conn.execute(
+                UPSERT_PROVIDER,
+                (
+                    provider.provider_id,
+                    provider.label,
+                    provider.provider_type.value,
+                    provider.api_key_raw,
+                    int(provider.enabled),
+                    provider.base_url,
+                    json.dumps(list(provider.default_models)),
+                    provider.azure_deployment,
+                    provider.azure_api_version,
+                ),
+            )
+
+    @override
+    def delete_provider(self, provider_id: str) -> None:
+        """Delete a provider row by its identifier."""
+        with self._get_connection() as conn:
+            conn.execute(DELETE_PROVIDER, (provider_id,))
+
+    @override
+    def load_embedding_config(self) -> EmbeddingConfig | None:
+        """Load the singleton embedding config row."""
+        with self._get_connection() as conn:
+            row = conn.execute(SELECT_EMBEDDING_CONFIG).fetchone()
+        if row is None:
+            return None
+        return EmbeddingConfig(provider_id=str(row["provider_id"]), model=str(row["model"]))
+
+    @override
+    def upsert_embedding_config(self, config: EmbeddingConfig) -> None:
+        """Insert or replace the singleton embedding config row."""
+        with self._get_connection() as conn:
+            conn.execute(UPSERT_EMBEDDING_CONFIG, (config.provider_id, config.model))
+
+    @override
+    def replace_all_providers(self, providers: list[ProviderConfig]) -> None:
+        """Delete all existing providers and insert providers atomically.
+
+        Args:
+            providers: Replacement list of ProviderConfig instances.
+        """
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM providers")
+            for p in providers:
+                conn.execute(
+                    UPSERT_PROVIDER,
+                    (
+                        p.provider_id,
+                        p.label,
+                        p.provider_type.value,
+                        p.api_key_raw,
+                        int(p.enabled),
+                        p.base_url,
+                        json.dumps(list(p.default_models)),
+                        p.azure_deployment,
+                        p.azure_api_version,
+                    ),
+                )
+        logger.debug("replace_all_providers: replaced with %d providers", len(providers))
+
+    @override
+    def update_provider_test_status(self, provider_id: str, status: str, tested_at: str, message: str) -> None:
+        """Persist the last health-check result columns for a provider row."""
+        with self._get_connection() as conn:
+            conn.execute(UPDATE_PROVIDER_TEST_STATUS, (status, tested_at, message, provider_id))

@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import override
+from typing import TYPE_CHECKING, override
+
+if TYPE_CHECKING:
+    from PySide6.QtCore import QObject
 
 from ollama_llm_bench.backend.core.interfaces import (
     AppSettingsServiceApi,
     DataApi,
     EventBus,
-    ITableSerializer,
+    TableSerializerApi,
 )
 from ollama_llm_bench.backend.core.models import (
     AvgSummaryTableItem,
@@ -15,6 +20,7 @@ from ollama_llm_bench.backend.core.models import (
     BenchmarkRun,
     JudgeSummaryEvent,
     PerfAnalysisEvent,
+    RunRenamedEvent,
     SummaryTableItem,
 )
 from ollama_llm_bench.backend.core.ui_controllers import ResultWidgetControllerApi
@@ -34,7 +40,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
         *,
         data_api: DataApi,
         event_bus: EventBus,
-        table_serializer: ITableSerializer,
+        table_serializer: TableSerializerApi,
         app_settings_service: AppSettingsServiceApi,
     ):
         """
@@ -75,9 +81,9 @@ class ResultWidgetController(ResultWidgetControllerApi):
             try:
                 results = self.data_api.retrieve_benchmark_results_for_run(run_id)
                 for r in results:
-                    self._full_results_cache[f"{r.model_name}|{r.task_id}"] = r
+                    self._full_results_cache[f"{r.model_name}|{r.task_id}|{r.prompt_version}"] = r
             except Exception as e:
-                logger.warning(f"Failed to cache full results for run {run_id}: {e}")
+                logger.warning("Failed to cache full results for run %s: %s", run_id, e)
         self._emit_chart_data()
 
     def _set_avg_summary(self, summary: list[AvgSummaryTableItem]) -> None:
@@ -89,6 +95,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
         """
         value = summary or []
         self._avg_summary = value
+        self._emit_chart_data()
 
     def _set_detailed_summary(self, detailed_summary: list[SummaryTableItem]) -> None:
         """
@@ -103,20 +110,20 @@ class ResultWidgetController(ResultWidgetControllerApi):
         """
         value = detailed_summary or []
         self._detailed_summary = value
-        if self._selected_run_id is None:
+        if self._selected_run_id is None or self._selected_run_id <= 0:
             return
-        incoming_keys = {f"{item.model_name}|{item.task_id}" for item in value}
+        incoming_keys = {f"{item.model_name}|{item.task_id}|{item.prompt_version}" for item in value}
         new_keys = incoming_keys - self._full_results_cache.keys()
         if not new_keys:
             return
         try:
             results = self.data_api.retrieve_benchmark_results_for_run(self._selected_run_id)
             for r in results:
-                key = f"{r.model_name}|{r.task_id}"
+                key = f"{r.model_name}|{r.task_id}|{r.prompt_version}"
                 if key in new_keys:
                     self._full_results_cache[key] = r
         except Exception as e:
-            logger.warning(f"Failed to update live cache for run {self._selected_run_id}: {e}")
+            logger.warning("Failed to update live cache for run %s: %s", self._selected_run_id, e)
         self._emit_chart_data()
 
     def handle_run_selection_change(self, run_id: int | None) -> None:
@@ -178,7 +185,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
             self.table_serializer.save_summary_as_csv(self._avg_summary)
             self.event_bus.emit_global_event_msg("Summary exported as CSV")
         except Exception as e:
-            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
+            logger.warning("Failed to save summary data for run %s: %s", self._selected_run_id, e)
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
     def handle_summary_export_md_click(self, _: object) -> None:
@@ -193,7 +200,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
             self.table_serializer.save_summary_as_md(self._avg_summary)
             self.event_bus.emit_global_event_msg("Summary exported as Markdown")
         except Exception as e:
-            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
+            logger.warning("Failed to save summary data for run %s: %s", self._selected_run_id, e)
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
     def handle_detailed_export_csv_click(self, _: object) -> None:
@@ -208,7 +215,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
             self.table_serializer.save_details_as_csv(self._detailed_summary)
             self.event_bus.emit_global_event_msg("Details exported as CSV")
         except Exception as e:
-            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
+            logger.warning("Failed to save summary data for run %s: %s", self._selected_run_id, e)
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
     def handle_detailed_export_md_click(self, _: object) -> None:
@@ -223,18 +230,19 @@ class ResultWidgetController(ResultWidgetControllerApi):
             self.table_serializer.save_details_as_md(self._detailed_summary)
             self.event_bus.emit_global_event_msg("Details exported as Markdown")
         except Exception as e:
-            logger.warning(f"Failed to save summary data for run {self._selected_run_id}: {e!s}")
+            logger.warning("Failed to save summary data for run %s: %s", self._selected_run_id, e)
             self.event_bus.emit_global_event_msg("Failed to save summary data")
 
     @override
-    def handle_task_selected(self, model_name: str, task_id: str) -> BenchmarkResult | None:
+    def handle_task_selected(self, model_name: str, task_id: str, prompt_version: str = "v1") -> BenchmarkResult | None:
         """Return the full BenchmarkResult for a selected task row, or None if not found.
 
         Args:
             model_name: Model name from the selected table row.
             task_id: Task ID from the selected table row.
+            prompt_version: Prompt variant version string.
         """
-        return self._full_results_cache.get(f"{model_name}|{task_id}")
+        return self._full_results_cache.get(f"{model_name}|{task_id}|{prompt_version}")
 
     @override
     def export_summary_csv(self, save_path: Path, *, also_save_to_default: bool) -> None:
@@ -251,7 +259,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
                 self.table_serializer.save_summary_as_csv(self._avg_summary)
             self.event_bus.emit_global_event_msg("Summary exported as CSV")
         except Exception as e:
-            logger.warning(f"Failed to export summary CSV: {e!s}")
+            logger.warning("Failed to export summary CSV: %s", e)
             self.event_bus.emit_global_event_msg("Failed to export summary as CSV")
 
     @override
@@ -269,7 +277,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
                 self.table_serializer.save_summary_as_md(self._avg_summary)
             self.event_bus.emit_global_event_msg("Summary exported as Markdown")
         except Exception as e:
-            logger.warning(f"Failed to export summary Markdown: {e!s}")
+            logger.warning("Failed to export summary Markdown: %s", e)
             self.event_bus.emit_global_event_msg("Failed to export summary as Markdown")
 
     @override
@@ -287,7 +295,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
                 self.table_serializer.save_details_as_csv(self._detailed_summary)
             self.event_bus.emit_global_event_msg("Details exported as CSV")
         except Exception as e:
-            logger.warning(f"Failed to export details CSV: {e!s}")
+            logger.warning("Failed to export details CSV: %s", e)
             self.event_bus.emit_global_event_msg("Failed to export details as CSV")
 
     @override
@@ -305,7 +313,7 @@ class ResultWidgetController(ResultWidgetControllerApi):
                 self.table_serializer.save_details_as_md(self._detailed_summary)
             self.event_bus.emit_global_event_msg("Details exported as Markdown")
         except Exception as e:
-            logger.warning(f"Failed to export details Markdown: {e!s}")
+            logger.warning("Failed to export details Markdown: %s", e)
             self.event_bus.emit_global_event_msg("Failed to export details as Markdown")
 
     @override
@@ -322,7 +330,12 @@ class ResultWidgetController(ResultWidgetControllerApi):
         """
         self._app_settings_service.set("export_also_save_to_default", str(value).lower())
 
-    def subscribe_to_runs_change(self, callback: Callable[[list[tuple[int, str]]], None]) -> None:
+    def subscribe_to_runs_change(
+        self,
+        callback: Callable[[list[tuple[int, str]]], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
         """
         Subscribe to changes in the list of available benchmark runs.
 
@@ -330,9 +343,14 @@ class ResultWidgetController(ResultWidgetControllerApi):
             callback: Function to invoke with updated list of (run_id, run_name) tuples.
         """
         logger.debug("subscribe_to_runs_change")
-        self.event_bus.subscribe_to_run_ids_changed(callback)
+        self.event_bus.subscribe_to_run_ids_changed(callback, parent=parent)
 
-    def subscribe_to_run_id_changed(self, callback: Callable[[int | None], None]) -> None:
+    def subscribe_to_run_id_changed(
+        self,
+        callback: Callable[[int | None], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
         """
         Subscribe to changes in the currently selected run ID.
 
@@ -340,9 +358,14 @@ class ResultWidgetController(ResultWidgetControllerApi):
             callback: Function to invoke with the new run ID (or None).
         """
         logger.debug("subscribe_to_run_id_changed")
-        self.event_bus.subscribe_to_run_id_changed(callback)
+        self.event_bus.subscribe_to_run_id_changed(callback, parent=parent)
 
-    def subscribe_to_summary_data_change(self, callback: Callable[[list[AvgSummaryTableItem]], None]) -> None:
+    def subscribe_to_summary_data_change(
+        self,
+        callback: Callable[[list[AvgSummaryTableItem]], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
         """
         Subscribe to changes in the summary results data.
 
@@ -350,9 +373,14 @@ class ResultWidgetController(ResultWidgetControllerApi):
             callback: Function to invoke with updated average summary items.
         """
         logger.debug("subscribe_to_summary_data_change")
-        self.event_bus.subscribe_to_table_summary_data_changed(callback)
+        self.event_bus.subscribe_to_table_summary_data_changed(callback, parent=parent)
 
-    def subscribe_to_detailed_data_change(self, callback: Callable[[list[SummaryTableItem]], None]) -> None:
+    def subscribe_to_detailed_data_change(
+        self,
+        callback: Callable[[list[SummaryTableItem]], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
         """
         Subscribe to changes in the detailed results data.
 
@@ -360,9 +388,14 @@ class ResultWidgetController(ResultWidgetControllerApi):
             callback: Function to invoke with updated detailed summary items.
         """
         logger.debug("subscribe_to_detailed_data_change")
-        self.event_bus.subscribe_to_table_detailed_data_change(callback)
+        self.event_bus.subscribe_to_table_detailed_data_change(callback, parent=parent)
 
-    def subscribe_to_benchmark_status_change(self, callback: Callable[[bool], None]) -> None:
+    def subscribe_to_benchmark_status_change(
+        self,
+        callback: Callable[[bool], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
         """
         Subscribe to changes in benchmark execution status.
 
@@ -370,26 +403,36 @@ class ResultWidgetController(ResultWidgetControllerApi):
             callback: Function to invoke with True (running) or False (idle).
         """
         logger.debug("subscribe_to_benchmark_status_change")
-        self.event_bus.subscribe_to_background_thread_is_running(callback)
+        self.event_bus.subscribe_to_background_thread_is_running(callback, parent=parent)
 
-    def subscribe_to_judge_summary(self, callback: Callable[[JudgeSummaryEvent], None]) -> None:
+    def subscribe_to_judge_summary(
+        self,
+        callback: Callable[[JudgeSummaryEvent], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
         """Subscribe to judge summary events emitted after a full-grading run.
 
         Args:
             callback: Function to invoke with JudgeSummaryEvent (run_id, summary_text).
         """
         logger.debug("subscribe_to_judge_summary")
-        self.event_bus.subscribe_to_judge_summary(callback)
+        self.event_bus.subscribe_to_judge_summary(callback, parent=parent)
 
     @override
-    def subscribe_to_perf_analysis(self, callback: Callable[[PerfAnalysisEvent], None]) -> None:
+    def subscribe_to_perf_analysis(
+        self,
+        callback: Callable[[PerfAnalysisEvent], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
         """Subscribe to performance analysis events emitted after Performance or Speed runs.
 
         Args:
             callback: Function to invoke with PerfAnalysisEvent (run_id, analysis_text).
         """
         logger.debug("subscribe_to_perf_analysis")
-        self.event_bus.subscribe_to_perf_analysis(callback)
+        self.event_bus.subscribe_to_perf_analysis(callback, parent=parent)
 
     def _emit_chart_data(self) -> None:
         """Notify all chart data subscribers with the current run and results cache."""
@@ -397,17 +440,20 @@ class ResultWidgetController(ResultWidgetControllerApi):
             return
         results = list(self._full_results_cache.values())
         run: BenchmarkRun | None = None
-        if self._selected_run_id is not None:
+        if self._selected_run_id is not None and self._selected_run_id > 0:
             try:
                 run = self.data_api.retrieve_benchmark_run(self._selected_run_id)
             except Exception as e:
-                logger.warning(f"Failed to retrieve run {self._selected_run_id} for chart data: {e}")
+                logger.warning("Failed to retrieve run %s for chart data: %s", self._selected_run_id, e)
         for callback in self._chart_data_callbacks:
             callback(run, results)
 
     @override
     def subscribe_to_chart_data_change(
-        self, callback: Callable[[BenchmarkRun | None, list[BenchmarkResult]], None]
+        self,
+        callback: Callable[[BenchmarkRun | None, list[BenchmarkResult]], None],
+        *,
+        parent: QObject | None = None,
     ) -> None:
         """Register a callback to receive chart data updates.
 
@@ -421,3 +467,61 @@ class ResultWidgetController(ResultWidgetControllerApi):
     def get_app_settings_service(self) -> AppSettingsServiceApi:
         """Return the app settings service for persistent KV storage."""
         return self._app_settings_service
+
+    @override
+    def get_run_names(self, *, exclude_run_id: int | None = None) -> frozenset[str]:
+        """Return the case-folded set of existing run names, optionally excluding one run.
+
+        Args:
+            exclude_run_id: Optional run ID whose name should be excluded from the result.
+
+        Returns:
+            Frozenset of case-folded run name strings.
+        """
+        try:
+            runs = self.data_api.retrieve_benchmark_runs()
+            return frozenset(
+                r.run_name.casefold() for r in runs if r.run_name is not None and r.run_id != exclude_run_id
+            )
+        except Exception as e:
+            logger.warning("Failed to retrieve run names: %s", e)
+            return frozenset()
+
+    @override
+    def rename_run(self, *, run_id: int, new_name: str) -> None:
+        """Rename a benchmark run and broadcast the change via the event bus.
+
+        Args:
+            run_id: Unique ID of the run to rename.
+            new_name: The new display name to assign.
+        """
+        self.data_api.update_run_name(run_id=run_id, run_name=new_name)
+        self.event_bus.emit_run_renamed(RunRenamedEvent(run_id=run_id, new_name=new_name))
+        self.event_bus.emit_run_ids_changed(get_benchmark_runs(self.data_api))
+
+    @override
+    def get_run(self, run_id: int) -> BenchmarkRun | None:
+        """Return the BenchmarkRun for the given ID, or None if not found.
+
+        Args:
+            run_id: Unique identifier of the benchmark run.
+        """
+        try:
+            return self.data_api.retrieve_benchmark_run(run_id)
+        except Exception as e:
+            logger.warning("Failed to retrieve run %d: %s", run_id, e)
+            return None
+
+    @override
+    def subscribe_to_run_renamed(
+        self,
+        callback: Callable[[RunRenamedEvent], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
+        """Subscribe to run renamed events.
+
+        Args:
+            callback: Function to invoke with the RunRenamedEvent when a run is renamed.
+        """
+        self.event_bus.subscribe_to_run_renamed(callback, parent=parent)

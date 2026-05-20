@@ -12,11 +12,11 @@ def set_benchmark_run_on_dropdown(run_id: int, combobox: QComboBox, logger: logg
         combobox: The QComboBox to update.
         logger: Logger instance for status messages.
     """
-    logger.debug(f"Run ID changed to {run_id}")
+    logger.debug("Run ID changed to %s", run_id)
 
     # Find the index that has the matching run_id as user data
     for i in range(combobox.count()):
         if combobox.itemData(i) == run_id:
             combobox.setCurrentIndex(i)
             return
-    logger.debug(f"Run ID {run_id} not found in dropdown")
+    logger.debug("Run ID %s not found in dropdown", run_id)

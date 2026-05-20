@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## AI Config Locations
+
+All AI/Claude configuration lives under `.claude/` **except** `.mcp.json`:
+
+- `.claude/CLAUDE.md` — this file (project-level guidance).
+- `.claude/settings.json` — project settings, hooks, permissions.
+- `.claude/settings.local.json` — local overrides (gitignored).
+- `.claude/agents/`, `.claude/skills/`, `.claude/rules/` — agent definitions, skills, rule docs.
+- `.claude/agent-memory/` — persisted memory across sessions.
+- `.mcp.json` (repo root) — **kept at root by necessity**: Claude Code's project-level MCP server discovery is hard-coded to look for `.mcp.json` at the repo root and does not recognize `.claude/.mcp.json`. Treat this as the only AI config that lives outside `.claude/`.
+
+Temporary or scratch artifacts (planning files, baseline snapshots, archived old plans) live under `.AdditionalDocs/` (gitignored).
+
 ## Project Overview
 
 **Ollama LLM Bench** is a PySide6 desktop application that benchmarks local LLMs served by Ollama.
@@ -76,16 +89,16 @@ Two top-level groups under `src/ollama_llm_bench/`:
 | Package | Responsibility |
 |---------|---------------|
 | `backend/core/` | Frozen dataclasses, ABCs (`interfaces.py`), StrEnums, constants, SQL schema |
-| `backend/services/` | Concrete implementations: `ProviderRegistry`, `ProviderConfigLoader`, `OpenAICompatibleProvider`, `AnthropicProvider`, `GeminiProvider`, `OpenAIEmbeddingProvider`, `EmbeddingService`, `EmbeddingModelClassifier`, `SqLiteDataApi`, `AppSettingsService`, `JudgePromptService`, `JudgeSummaryService`, `RuleBasedEvaluator`, `KeywordEvaluator`, `CosineSimilarityEvaluator`, `LLMJudgeEvaluator`, `ModelNameParser`, `TaskFileLoader`, `PerformanceTaskGenerator`, `AppResultApi`, `TableSerializer` (legacy), `CircuitBreaker`, `LogFileWriter`, `ModeVisibilityPolicy`, `ProviderHealthChecker` |
+| `backend/services/` | Concrete implementations: `ProviderRegistry`, `ProviderConfigLoader`, `SqliteProviderConfigRepository`, `OpenAICompatibleProvider`, `AnthropicProvider`, `GeminiProvider`, `OpenAIEmbeddingProvider`, `EmbeddingService`, `EmbeddingModelClassifier`, `SqLiteDataApi`, `AppSettingsService`, `AppReadinessService`, `AdaptiveTimeoutService`, `LlmErrorClassifier`, `ModelCapabilityService`, `JudgePromptService`, `JudgeSummaryService`, `RuleBasedEvaluator`, `KeywordEvaluator`, `CosineSimilarityEvaluator`, `LLMJudgeEvaluator`, `ModelNameParser`, `TaskFileLoader`, `PerformanceTaskGenerator`, `AppResultApi`, `TableSerializer`, `CircuitBreaker`, `LogFileWriter`, `ModeVisibilityPolicy`, `ProviderHealthChecker`; sub-packages: `charts/` (12 `BaseChartAggregator` subclasses), `evaluators/`, `providers/` |
 | `backend/utils/` | Pure utility functions: text parsing, time formatting, run sorting |
 
 **`ui/`** — PySide6-dependent:
 
 | Package | Responsibility |
 |---------|---------------|
-| `ui/qt_classes/` | Qt infrastructure: `QtEventBus` (pub/sub), `BenchmarkExecutionTask` (QRunnable), `QtBenchmarkFlowApi` (lifecycle), `MetaQObjectABC` |
-| `ui/controllers/` | Controllers mediating UI ↔ services: `NewRunWidgetController`, `PreviousRunWidgetController`, `ResultWidgetController`, `LogWidgetController`, `StatusListener` |
-| `ui/widgets/` | PySide6 widgets: `MainWindow` → `CentralWidget` (QSplitter) → panels |
+| `ui/qt_classes/` | Qt infrastructure: `QtEventBus` (pub/sub), `BenchmarkExecutionTask` (QRunnable), `QtBenchmarkFlowApi` (lifecycle), `MetaQObjectABC`, `NotificationService`, `DragDropHandler`, `ProviderHealthRunnable` |
+| `ui/controllers/` | Controllers mediating UI ↔ services: `RunConfigController`, `SettingsWidgetController`, `ResultWidgetController`, `LogWidgetController`, `StatusListener` |
+| `ui/widgets/` | PySide6 widgets: `MainWindow` → `CentralWidget` (QSplitter) → panels; key sub-packages: `panels/control/` (run config controls), `panels/result/` (result display and charts), `settings/` (provider dialogs: `ProvidersTabWidget`, `ProviderEditDialog`, `ProviderEditForm`, `ProviderActionsDelegate`, `EnvVarConversionDialog`), `common/` (reusable badge/health widgets) |
 | `ui/utils/` | Qt-dependent utilities: `widget_utils` (combobox helper) |
 
 ### Dependency Injection
@@ -111,7 +124,7 @@ Pipeline **never throws** — errors captured in `BenchmarkResult.error_message`
 
 ## V2 Status
 
-V2 is shipped. Multi-provider (OpenAI-compatible, Anthropic, Gemini), 4-layer eval pipeline, 3-panel UI, 5-table SQLite schema. Active maintenance and bug-fixing in `.AdditionalDocs/app_fixes/`.
+V2 is shipped. Multi-provider (OpenAI-compatible, Anthropic, Gemini), 4-layer eval pipeline, 3-panel UI, 9-table SQLite schema. Provider configuration migrated from `providers.yaml` to the `providers` SQLite table (`SqliteProviderConfigRepository`). Active work is bug-fixing and cleanup. Temporary planning and scratch files live under `.AdditionalDocs/` (gitignored).
 
 ## Coding Rules
 
@@ -181,8 +194,8 @@ V2 is shipped. Multi-provider (OpenAI-compatible, Anthropic, Gemini), 4-layer ev
 | Agent | Model | Description | Use After |
 |-------|-------|-------------|-----------|
 | [investigator](agents/investigator.md) | haiku | Read-only codebase mapping, data flow tracing, modification scope | Starting any new task |
-| [architect](agents/architect.md) | sonnet | Technical design, trade-off analysis, PLAN.md creation | Investigation, before implementation |
-| [coder](agents/coder.md) | sonnet | Surgical implementation of one PLAN.md step at a time | Architect produces approved plan |
+| [architect](agents/architect.md) | sonnet | Technical design, trade-off analysis, plan creation under `~/.claude/plans/` or `.AdditionalDocs/` | Investigation, before implementation |
+| [coder](agents/coder.md) | sonnet | Surgical implementation of one plan step at a time | Architect produces approved plan |
 | [debugger](agents/debugger.md) | sonnet | Root cause analysis, hypothesis-driven diagnosis, minimal fix | Test failure, runtime error |
 | [tester](agents/tester.md) | sonnet | Comprehensive pytest tests, boundary conditions, regression tests | After implementation |
 | [docs-writer](agents/docs-writer.md) | haiku | README, ADRs, docstrings, CHANGELOG, diagram updates | After feature completion |
@@ -202,4 +215,10 @@ V2 is shipped. Multi-provider (OpenAI-compatible, Anthropic, Gemini), 4-layer ev
 | `src/ollama_llm_bench/backend/services/ollama_llm_api.py` | `OllamaApi` — Ollama client wrapper |
 | `src/ollama_llm_bench/backend/services/provider_registry.py` | `ProviderRegistry` — multi-provider composition root |
 | `src/ollama_llm_bench/backend/services/sq_lite_data_api.py` | `SqLiteDataApi` — SQLite CRUD operations |
+| `src/ollama_llm_bench/backend/services/sqlite_provider_config_repository.py` | `SqliteProviderConfigRepository` — primary persistent store for provider config (SQLite `providers` table) |
+| `src/ollama_llm_bench/backend/services/charts/` | Chart aggregation services — 12 `BaseChartAggregator` subclasses |
 | `docs/project_specification.md` | Full project specification with behavioral requirements |
+
+## App Folder
+
+On the development machine, app folder with DB and Logs are placed here: "/Users/ok/Library/Application Support/OllamaLLMBench"

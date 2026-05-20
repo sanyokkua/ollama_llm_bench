@@ -1,23 +1,47 @@
 # Services API Reference
 
-This document lists every service interface (ABC) in `src/ollama_llm_bench/core/interfaces.py` alongside its concrete implementation under `src/ollama_llm_bench/services/` or `src/ollama_llm_bench/qt_classes/`.
+This document lists every service interface (ABC and Protocol) in `src/ollama_llm_bench/core/interfaces.py` alongside its concrete implementations.
 Docstrings are in the source and the coding rules require Google-style summaries; this document provides the cross-reference and usage notes you cannot derive by reading a single file.
 
-## Interface → Implementation Map
+## V2 Provider Layer (Multi-Provider Support)
 
 ```mermaid
 classDiagram
-    class LLMApi {
-        <<ABC>>
-        +get_models_list() list~str~
-        +warm_up(model_name) bool
-        +inference(...) InferenceResponse
+    class LLMProviderApi {
+        <<Protocol>>
+        +warm_up(model) bool
+        +inference_sync(...) InferenceResponse
+        +inference_stream(...) Generator
+        +list_models() list~str~
     }
-    class OllamaApi {
-        -_ollama_client: ollama.Client
-    }
-    LLMApi <|.. OllamaApi
+    class OpenAICompatibleProvider
+    class AnthropicProvider
+    class GeminiProvider
+    LLMProviderApi <|.. OpenAICompatibleProvider
+    LLMProviderApi <|.. AnthropicProvider
+    LLMProviderApi <|.. GeminiProvider
 
+    class EmbeddingProviderApi {
+        <<Protocol>>
+        +encode(texts) list~list~float~~
+    }
+    class OpenAIEmbeddingProvider
+    EmbeddingProviderApi <|.. OpenAIEmbeddingProvider
+
+    class ProviderRegistryApi {
+        <<Protocol>>
+        +get_provider(provider_id) LLMProviderApi
+        +get_embedding_provider() EmbeddingProviderApi
+        +list_providers() list
+    }
+    class ProviderRegistry
+    ProviderRegistryApi <|.. ProviderRegistry
+```
+
+## Core Service Layer (Data + Results)
+
+```mermaid
+classDiagram
     class DataApi {
         <<ABC>>
         +create_benchmark_run(run) int
@@ -40,32 +64,66 @@ classDiagram
     }
     class AppResultApi
     ResultApi <|.. AppResultApi
+```
 
-    class BenchmarkTaskApi {
-        <<ABC>>
-        +load_tasks() list
+## Evaluation Pipeline
+
+```mermaid
+classDiagram
+    class EvaluatorApi {
+        <<Protocol>>
+        +evaluate(response) EvaluationResult
+    }
+    class RuleBasedEvaluator
+    class KeywordEvaluator
+    class CosineSimilarityEvaluator
+    EvaluatorApi <|.. RuleBasedEvaluator
+    EvaluatorApi <|.. KeywordEvaluator
+    EvaluatorApi <|.. CosineSimilarityEvaluator
+
+    class LLMJudgeEvaluatorApi {
+        <<Protocol>>
+        +evaluate(response) EvaluationResult
+        +reset()
+    }
+    class LLMJudgeEvaluator
+    LLMJudgeEvaluatorApi <|.. LLMJudgeEvaluator
+```
+
+## Task + Prompt Services
+
+```mermaid
+classDiagram
+    class TaskFileLoaderApi {
+        <<Protocol>>
+        +load_tasks() list~BenchmarkTask~
         +get_task(task_id) BenchmarkTask
     }
-    class YamlBenchmarkTaskApi
-    BenchmarkTaskApi <|.. YamlBenchmarkTaskApi
+    class TaskFileLoader
+    TaskFileLoaderApi <|.. TaskFileLoader
 
-    class PromptBuilderApi {
-        <<ABC>>
-        +build_prompt(task_id) str
-        +build_judge_prompt(result) tuple
+    class JudgePromptServiceApi {
+        <<Protocol>>
+        +build_inference_prompt(task) str
+        +build_judge_prompt(task, result) tuple~str~
     }
-    class SimplePromptBuilderApi
-    PromptBuilderApi <|.. SimplePromptBuilderApi
+    class JudgePromptService
+    JudgePromptServiceApi <|.. JudgePromptService
+```
 
-    class BenchmarkFlowApi {
+## Infrastructure + Export
+
+```mermaid
+classDiagram
+    class TableSerializerApi {
         <<ABC>>
-        +start_execution(run_id)
-        +stop_execution()
-        +is_running() bool
-        +get_current_run_id() int
+        +save_summary_as_csv(items)
+        +save_summary_as_md(items)
+        +save_details_as_csv(items)
+        +save_details_as_md(items)
     }
-    class QtBenchmarkFlowApi
-    BenchmarkFlowApi <|.. QtBenchmarkFlowApi
+    class TableSerializer
+    TableSerializerApi <|.. TableSerializer
 
     class EventBus {
         <<ABC>>
@@ -75,57 +133,55 @@ classDiagram
     class QtEventBus
     EventBus <|.. QtEventBus
 
-    class ITableSerializer {
+    class BenchmarkFlowApi {
         <<ABC>>
-        +save_summary_as_csv(items)
-        +save_summary_as_md(items)
-        +save_details_as_csv(items)
-        +save_details_as_md(items)
+        +start_execution(run_id)
+        +stop_execution()
+        +is_running() bool
     }
-    class TableSerializer
-    ITableSerializer <|.. TableSerializer
+    class QtBenchmarkFlowApi
+    BenchmarkFlowApi <|.. QtBenchmarkFlowApi
 ```
 
-## `LLMApi` → `OllamaApi`
+## `LLMProviderApi` (Protocol)
 
-- **ABC**: `src/ollama_llm_bench/core/interfaces.py` (`class LLMApi`).
-- **Implementation**: `src/ollama_llm_bench/services/ollama_llm_api.py` (`class OllamaApi`).
-- **Dependencies**: an `ollama.Client` instance (created in `_create_app_context` with `timeout=300`).
+- **Protocol**: `src/ollama_llm_bench/core/interfaces.py` (`class LLMProviderApi`).
+- **Implementations**: 
+  - `OpenAICompatibleProvider` — OpenAI, Ollama, LM Studio, llama.cpp, Azure `/v1/` endpoints
+  - `AnthropicProvider` — Anthropic Claude models
+  - `GeminiProvider` — Google Gemini models
+- **Dependencies**: Provider-specific client libraries (openai, anthropic, google-genai).
 
 ### Methods
 
 | Method | Signature | Notes |
 |---|---|---|
-| `get_models_list` | `() -> list[str]` | Sorted, deduplicated list of Ollama model names. Returns `[]` on error (logged). **Annotation bug**: the source annotation says `List[dict]` but the body returns `list[str]` — see [technical-debt.md](technical-debt.md). |
-| `warm_up` | `(model_name: str) -> bool` | Calls `generate(model=..., prompt="Say Hello")` with up to **5** attempts; sleeps **30 s** between failures. Returns `True` on first success, `False` if all retries fail. |
-| `inference` | `(*, model_name, user_prompt, system_prompt=None, on_llm_response=None, on_is_stop_signal=None, is_judge_mode=False) -> InferenceResponse` | Calls `client.generate(..., stream=False)`, measures wall clock, counts `response.eval_count` tokens, sanitises the response with `sanitize_text` (strips `<think>...</think>`). On exception, returns `InferenceResponse(has_error=True, error_message=...)`. |
+| `warm_up` | `(model: str) -> bool` | Issue a minimal inference to warm up the model. Retry logic varies by provider. Returns `True` on success, `False` if all retries exhaust. |
+| `inference_sync` | `(*, model, prompt, system_prompt="", ...) -> InferenceResponse` | Synchronous inference request. Measures wall-clock time, tokenizes response, captures errors in `InferenceResponse.has_error`. |
+| `inference_stream` | `(*, model, prompt, system_prompt="") -> Generator[StreamChunk, None, None]` | Streaming inference. Yields `StreamChunk` objects; used for real-time log updates. |
+| `list_models` | `() -> list[str]` | Return sorted list of available model names for this provider. |
 
 ### Usage Pattern
 
 ```python
-# Warm up once before looping
-if not llm_api.warm_up(model_name):
-    return  # bail — Ollama is unresponsive
+provider = provider_registry.get_provider(model_name)
+if not provider.warm_up(model_name):
+    return  # bail — provider is unresponsive
 
-# Per task
-response = llm_api.inference(
-    model_name=model_name,
-    user_prompt=prompt,
-    system_prompt="",          # benchmarking stage: no system prompt
-    on_llm_response=callback,  # live log stream
-    on_is_stop_signal=self.is_stopped,  # cooperative cancellation
+response = provider.inference_sync(
+    model=model_name,
+    prompt=user_prompt,
+    system_prompt="",
 )
 ```
-
-The cancellation callback `on_is_stop_signal` is plumbed through the Ollama client but `OllamaApi.inference` does not currently check it during the blocking `generate` call — the user's stop request is honoured *between* inferences, not mid-inference.
 
 ### Callers
 
 - `BenchmarkExecutionTask._execute_benchmark_task` — benchmarking inference
-- `BenchmarkExecutionTask._judge_task` — judging inference (with `is_judge_mode=True`)
+- `BenchmarkExecutionTask._judge_task` — judging inference
 - `BenchmarkExecutionTask._warmup_model` — pre-flight warm-up
-- `NewRunWidgetController._get_available_models` — populate the test models list
-- `ApplicationContext.send_initialization_events` — populate the judge dropdown on app start
+- `RunConfigController.refresh_models` — populate model lists
+- `ProviderHealthChecker` — periodic provider connectivity checks
 
 ## `DataApi` → `SqLiteDataApi`
 
@@ -189,17 +245,17 @@ Both return `[]` on any exception (logged).
 
 - `StatusListener._get_summary_data` and `StatusListener._get_detailed_data` — called whenever the selected run changes or a benchmark stage transitions to `FINISHED` / `FAILED`.
 
-## `BenchmarkTaskApi` → `YamlBenchmarkTaskApi`
+## `TaskFileLoaderApi` (Protocol)
 
-- **ABC**: `core/interfaces.py` (`class BenchmarkTaskApi`).
-- **Implementation**: `src/ollama_llm_bench/services/yaml_benchmark_task_api.py`.
-- **Dependency**: `task_folder_path: Path` (keyword-only).
+- **Protocol**: `core/interfaces.py` (`class TaskFileLoaderApi`).
+- **Implementation**: `src/ollama_llm_bench/services/task_file_loader.py` (`class TaskFileLoader`).
+- **Dependency**: `dataset_path: Path` (keyword-only), discovered at app startup.
 
 ### Methods
 
 | Method | Returns | Notes |
 |---|---|---|
-| `load_tasks()` | `list[BenchmarkTask]` | Iterates `*.yaml` / `*.yml` in the folder, parses with `yaml.safe_load`, accepts either single-object or list-of-objects shape, skips malformed entries with a warning. **Cached** — subsequent calls return `self._tasks_cache`. |
+| `load_tasks()` | `list[BenchmarkTask]` | Iterates `*.yaml` / `*.yml` in the dataset folder, parses with `yaml.safe_load`, accepts either single-object or list-of-objects shape, skips malformed entries with a warning. **Cached** — subsequent calls return `self._tasks_cache`. |
 | `get_task(task_id)` | `BenchmarkTask` | Lazy-loads the cache if empty, then returns from an internal `dict`. Raises `ValueError` if `task_id` is missing. |
 
 ### Error Handling
@@ -212,24 +268,25 @@ See [dataset-format.md](dataset-format.md) for the required field set.
 
 ### Callers
 
-- `NewRunWidgetController.handle_start_click` — calls `load_tasks()` to produce per-model `BenchmarkResult` rows.
-- `SimplePromptBuilderApi.build_prompt` / `build_judge_prompt` — calls `get_task(task_id)`.
+- `RunConfigController.handle_start_click` — calls `load_tasks()` to populate benchmark task set.
+- `BenchmarkExecutionTask` — calls `get_task(task_id)` during inference to retrieve question text.
+- `JudgePromptService.build_judge_prompt` — calls `get_task(task_id)` to retrieve expected answers.
 
-## `PromptBuilderApi` → `SimplePromptBuilderApi`
+## `JudgePromptServiceApi` → `JudgePromptService`
 
-- **ABC**: `core/interfaces.py` (`class PromptBuilderApi`).
-- **Implementation**: `src/ollama_llm_bench/services/simple_prompt_builder_api.py`.
-- **Dependency**: `task_api: BenchmarkTaskApi`.
+- **Protocol**: `core/interfaces.py` (`class JudgePromptServiceApi`).
+- **Implementation**: `src/ollama_llm_bench/services/judge_prompt_service.py`.
+- **Dependency**: none (stateless).
 
 ### Methods
 
 | Method | Returns | Notes |
 |---|---|---|
-| `build_prompt(task_id)` | `str` | Returns `task.question` verbatim. No templating. The test model sees the raw question. |
-| `build_judge_prompt(benchmark_result)` | `tuple[str, str]` — `(user_prompt, system_prompt)` | Looks up the task by `benchmark_result.task_id`, fills the `USER_PROMPT` template via `str.replace` over 8 placeholders (`{question}`, `{most_expected}`, `{good_answer}`, `{pass_option}`, `{incorrect_direction}`, `{answer}`, `{category}`, `{sub_category}`), returns it alongside the static `SYSTEM_PROMPT`. |
+| `build_inference_prompt(task)` | `tuple[str, str]` — `(system_prompt, user_prompt)` | Returns the raw task question as the user prompt for test-model inference. System prompt is typically empty or minimal guidance. |
+| `build_judge_prompt(task, result)` | `tuple[str, str]` — `(system_prompt, judge_prompt)` | Looks up the task, fills the judge `USER_PROMPT` template via `str.replace` over placeholders (`{question}`, `{most_expected}`, `{good_answer}`, `{pass_option}`, `{incorrect_direction}`, `{answer}`, `{category}`, `{sub_category}`), returns it alongside the static `SYSTEM_PROMPT`. |
 
 The system prompt is the large rubric in `core/prompt_constants.py` and is always the same string.
-The user prompt differs per task and per test model (because `{answer}` is the test model's response).
+The user prompt differs per task and per test model (because `{answer}` is the model's response).
 
 ### Callers
 
@@ -287,9 +344,9 @@ See [architecture.md](architecture.md#eventbus) for the full signal catalogue an
 **Usage convention**: components that need to *listen* receive the `EventBus` in their constructor and immediately call `subscribe_to_*` methods.
 Components that need to *publish* hold the same reference and call `emit_*` methods.
 
-## `ITableSerializer` → `TableSerializer`
+## `TableSerializerApi` → `TableSerializer`
 
-- **ABC**: `core/interfaces.py` (`class ITableSerializer`).
+- **ABC**: `core/interfaces.py` (`class TableSerializerApi`).
 - **Implementation**: `src/ollama_llm_bench/services/table_serializer.py`.
 - **Dependency**: `root_dir: Path` (created if missing).
 
@@ -319,13 +376,17 @@ Every service has its dependencies fixed at construction time in `app_context._c
 
 | Service | Constructor arguments |
 |---|---|
-| `OllamaApi` | `client: ollama.Client` |
+| `OpenAICompatibleProvider` | `*, provider_id, provider_type, base_url, api_key, name_parser` |
+| `AnthropicProvider` | `*, provider_id, api_key, default_models, base_url` |
+| `GeminiProvider` | `*, provider_id, api_key, default_models, base_url` |
+| `ProviderRegistry` | `*, config_loader, providers_yaml_path` |
 | `SqLiteDataApi` | `db_path: Path` |
 | `AppResultApi` | `*, data_api: DataApi` |
-| `YamlBenchmarkTaskApi` | `*, task_folder_path: Path` |
-| `SimplePromptBuilderApi` | `*, task_api: BenchmarkTaskApi` |
+| `TaskFileLoader` | *(none — stateless)* |
+| `JudgePromptService` | *(none — stateless)* |
+| `JudgeSummaryService` | `*, provider_registry` |
 | `TableSerializer` | `root_dir: Path` |
-| `QtBenchmarkFlowApi` | `*, data_api, task_api, prompt_builder_api, llm_api, thread_pool` |
+| `QtBenchmarkFlowApi` | `*, data_api, thread_pool, event_bus, provider_registry, task_loader, judge_prompt_service, judge_summary_service, app_settings, rule_evaluator, keyword_evaluator, cosine_evaluator, llm_judge_evaluator, log_file_writer, perf_task_generator` |
 | `QtEventBus` | *(none)* |
 
 Controllers follow the same keyword-only-argument convention — see [developer-guide.md](developer-guide.md).

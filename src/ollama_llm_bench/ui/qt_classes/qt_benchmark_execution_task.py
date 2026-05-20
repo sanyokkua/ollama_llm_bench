@@ -4,10 +4,10 @@ import dataclasses
 import hashlib
 import json
 import logging
-import statistics
 import threading
 import time
 from collections import defaultdict
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -23,6 +23,8 @@ from ollama_llm_bench.backend.core.interfaces import (
     LLMJudgeEvaluatorApi,
     LLMProviderApi,
     LogFileWriterApi,
+    ModelCapabilityServiceApi,
+    ProviderCircuitBreakerApi,
     ProviderRegistryApi,
     TaskFileLoaderApi,
 )
@@ -69,6 +71,7 @@ from ollama_llm_bench.backend.core.models import (
     TaskRetryEvent,
     TaskSwitchEvent,
 )
+from ollama_llm_bench.backend.services.adaptive_timeout_service import AdaptiveTimeoutService
 from ollama_llm_bench.backend.services.app_settings_service import (
     SETTING_COSINE_ENABLED,
     SETTING_JUDGE_OVERRIDE_COSINE_LOW,
@@ -78,14 +81,17 @@ from ollama_llm_bench.backend.services.app_settings_service import (
     SETTING_PAUSE_ON_MODEL_SWITCH,
     SETTING_PAUSE_ON_PROVIDER_SWITCH,
     SETTING_PAUSE_ON_STAGE_SWITCH,
+    SETTING_PROVIDER_STOP_ON_TRIP,
     SETTING_REASONING_EFFORT_DEFAULT,
     SETTING_RETRY_COUNT,
+    SETTING_RETRY_MAX_FAILURES_TO_EXCLUDE,
     SETTING_RETRY_TIMEOUT_MAX_S,
     SETTING_RETRY_TIMEOUT_MIN_S,
     SETTING_STOP_ON_PROVIDER_ERROR,
     SETTING_STREAMING_ENABLED,
     SETTING_WARMUP_ENABLED,
 )
+from ollama_llm_bench.backend.services.llm_error_classifier import LlmErrorClassifier
 from ollama_llm_bench.backend.services.performance_task_generator import PerformanceTaskGenerator
 from ollama_llm_bench.backend.utils.text_utils import sanitize_text
 from ollama_llm_bench.backend.utils.time_utils import format_elapsed_time
@@ -138,6 +144,8 @@ class BenchmarkExecutionTask(QRunnable):
         llm_judge_evaluator: LLMJudgeEvaluatorApi,
         log_file_writer: LogFileWriterApi,
         perf_task_generator: PerformanceTaskGenerator | None = None,
+        capability_service: ModelCapabilityServiceApi | None = None,
+        circuit_breaker: ProviderCircuitBreakerApi | None = None,
     ) -> None:
         super().__init__()
         self._run_id = run_id
@@ -154,6 +162,9 @@ class BenchmarkExecutionTask(QRunnable):
         self._llm_judge_evaluator = llm_judge_evaluator
         self._log_file_writer = log_file_writer
         self._perf_task_generator = perf_task_generator
+        self._capability_service = capability_service
+        self._circuit_breaker = circuit_breaker
+        self._classifier = LlmErrorClassifier()
 
         self.logger = logging.getLogger(f"{__name__}.BenchmarkExecutionTask[{run_id}]")
         self.signals = self.Signals()
@@ -166,6 +177,15 @@ class BenchmarkExecutionTask(QRunnable):
 
         # Per-attempt timeout flag — set by timer, cleared before each retry
         self._attempt_timed_out: bool = False
+
+        self._adaptive_timeout = AdaptiveTimeoutService(
+            min_s=self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MIN_S),
+            max_s=self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MAX_S),
+            retry_count=max(1, self._app_settings.get_int(SETTING_RETRY_COUNT)),
+            max_failures_to_exclude=self._app_settings.get_int(SETTING_RETRY_MAX_FAILURES_TO_EXCLUDE),
+        )
+        self._excluded_notified: set[tuple[str, str]] = set()
+        self._tripped_notified: set[str] = set()
 
         # Pipeline state
         self._stage: PipelineStage = PipelineStage.INITIALIZING
@@ -270,22 +290,18 @@ class BenchmarkExecutionTask(QRunnable):
                     if not self._check_pause_or_stop():
                         return
                 self._check_embedding_provider_health()
-                self._stage_judging(
+                if not self._stage_judging(
                     run,
                     judge_override_keyword_fail=_judge_override_keyword,
                     judge_override_cosine_low=_judge_override_cosine,
-                )
+                ):
+                    return
 
-            if _judge_run_analysis and run.run_mode in (RunMode.SPEED, RunMode.PERFORMANCE):
-                if run.judge_provider_id and run.judge_model:
-                    self._stage_performance_analysis(run)
-                else:
-                    self._notify_warn(
-                        "Run-level analysis skipped: no judge model configured. "
-                        "Pick a judge in the Run Configuration panel."
-                    )
-            elif run.run_mode == RunMode.FULL_GRADING:
-                self._generate_and_emit_judge_summary(run)
+            if self._stop_requested:
+                return
+
+            if _judge_run_analysis:
+                self._stage_run_analysis(run)
 
             self._stage = PipelineStage.FINISHED
             self._notify(f"Benchmark run #{self._run_id} finished.")
@@ -302,8 +318,16 @@ class BenchmarkExecutionTask(QRunnable):
             end_time_ms = time.monotonic() * 1000.0
             total_ms = end_time_ms - self._start_time_ms
 
-            if self._stage == PipelineStage.FINISHED:
-                self._persist_run_terminal(BenchmarkRunStatus.COMPLETED, self._completed_tasks)
+            if self._stop_requested and self._stage not in (PipelineStage.FINISHED, PipelineStage.FAILED):
+                self._persist_run_terminal(BenchmarkRunStatus.STOPPED, self._completed_tasks)
+            elif self._stage == PipelineStage.FINISHED:
+                finished_results = self._data_api.retrieve_benchmark_results_for_run(self._run_id)
+                all_clean = bool(finished_results) and all(
+                    r.status == BenchmarkResultStatus.COMPLETED and not r.has_inference_error and not r.has_judge_error
+                    for r in finished_results
+                )
+                final_status = BenchmarkRunStatus.COMPLETED if all_clean else BenchmarkRunStatus.STOPPED
+                self._persist_run_terminal(final_status, self._completed_tasks)
             elif self._stage == PipelineStage.FAILED:
                 self._persist_run_terminal(BenchmarkRunStatus.FAILED, self._completed_tasks)
 
@@ -336,19 +360,31 @@ class BenchmarkExecutionTask(QRunnable):
             self._notify(format_elapsed_time(self._start_time_ms / 1000.0, end_time_ms / 1000.0))
 
     # ------------------------------------------------------------------
-    # Judge summary
+    # Run analysis
     # ------------------------------------------------------------------
 
-    def _generate_and_emit_judge_summary(self, run: BenchmarkRun) -> None:
-        """Call the judge summary service, persist the result to the DB, then emit the event."""
+    def _stage_run_analysis(self, run: BenchmarkRun) -> None:
+        """Generate post-run analysis for any run mode via JudgeSummaryService."""
+        self._notify("=== RUN ANALYSIS ===")
+        if not (run.judge_provider_id and run.judge_model):
+            self._notify_warn(
+                "Run-level analysis skipped: no judge model configured. Pick a judge in the Run Configuration panel."
+            )
+            return
         try:
-            all_results = self._data_api.retrieve_benchmark_results_for_run(run.run_id)
-            summary_text = self._judge_summary_service.generate_summary(run=run, results=all_results)
-            updated_run = dataclasses.replace(run, judge_summary=summary_text)
-            self._data_api.update_benchmark_run(updated_run)
-            self._event_bus.emit_judge_summary(JudgeSummaryEvent(run_id=self._run_id, summary_text=summary_text))
+            results = self._data_api.retrieve_benchmark_results_for_run(run.run_id)
+            summary = self._judge_summary_service.generate_summary(run=run, results=results)
+            if run.run_mode == RunMode.FULL_GRADING:
+                updated_run = dataclasses.replace(run, judge_summary=summary)
+                self._data_api.update_benchmark_run(updated_run)
+                self._event_bus.emit_judge_summary(JudgeSummaryEvent(run_id=run.run_id, summary_text=summary))
+            else:
+                self._data_api.update_run_perf_analysis(run_id=run.run_id, analysis=summary)
+                self._event_bus.emit_perf_analysis(PerfAnalysisEvent(run_id=run.run_id, analysis_text=summary))
+            self._notify("Run analysis complete.")
         except Exception as exc:
-            self.logger.warning("judge_summary_failed", extra={"error": str(exc)})
+            self.logger.warning("run_analysis_failed", extra={"error": str(exc)})
+            self._notify_warn(f"Run analysis failed: {exc}")
 
     # ------------------------------------------------------------------
     # Run-state persistence helpers
@@ -442,6 +478,7 @@ class BenchmarkExecutionTask(QRunnable):
                 total_tasks=self._total_tasks,
                 models=tuple(descriptors),
                 run_mode=run.run_mode,
+                run_name=run.run_name,
             )
         )
         self._emit_progress()
@@ -463,9 +500,8 @@ class BenchmarkExecutionTask(QRunnable):
             self._notify_warn("Prompt eval mode: no variants found for this run.")
             return {t.task_id: t for t in task_list}
 
-        desc = descriptors[0] if descriptors else None
-        if desc is None:
-            self._notify_warn("Prompt eval mode: no model descriptor found.")
+        if not descriptors:
+            self._notify_warn("Prompt eval mode: no model descriptors found.")
             return {t.task_id: t for t in task_list}
 
         existing = self._data_api.retrieve_benchmark_results_for_run(self._run_id)
@@ -473,6 +509,7 @@ class BenchmarkExecutionTask(QRunnable):
 
         new_rows = [
             self._build_prompt_eval_result(run, desc, task, variant)
+            for desc in descriptors
             for variant in variants
             for task in task_list
             if (desc.provider_id, desc.model_name, task.task_id, variant.variant_id) not in existing_keys
@@ -512,8 +549,9 @@ class BenchmarkExecutionTask(QRunnable):
         for r in pending:
             by_provider[r.provider_id].append(r)
 
+        providers_list = list(by_provider.keys())
         prev_provider_id: str | None = None
-        for provider_id, provider_results in by_provider.items():
+        for provider_idx, (provider_id, provider_results) in enumerate(by_provider.items()):
             if not self._check_pause_or_stop():
                 return False
 
@@ -582,8 +620,11 @@ class BenchmarkExecutionTask(QRunnable):
                         return False
 
                 # Warm-up
-                if self._app_settings.get_bool(SETTING_WARMUP_ENABLED):
-                    self._warm_up_model(provider, model_name)
+                if self._app_settings.get_bool(SETTING_WARMUP_ENABLED) and not self._warm_up_model(
+                    provider, model_name
+                ):
+                    self._fail_pending_tasks_for_model(model_results, "Warm-up failed; model unavailable")
+                    continue
 
                 total_for_model = len(model_results)
                 for task_number, result in enumerate(model_results, start=1):
@@ -596,6 +637,42 @@ class BenchmarkExecutionTask(QRunnable):
                     if task is None:
                         self._notify_warn(f"Task {result.task_id} not in loader cache — skipping")
                         self._mark_failed(result, RuntimeError("Task definition not found"))
+                        self._completed_tasks += 1
+                        self._emit_progress()
+                        continue
+
+                    if self._circuit_breaker is not None and not self._circuit_breaker.should_dispatch(provider_id):
+                        if provider_id not in self._tripped_notified:
+                            self._tripped_notified.add(provider_id)
+                            self._notify_warn(
+                                f"Provider '{provider_id}' appears unresponsive after consecutive failures. "
+                                "Skipping remaining tasks for this provider."
+                            )
+                        self._mark_failed(
+                            result,
+                            RuntimeError(f"Provider '{provider_id}' unresponsive — circuit tripped"),
+                        )
+                        self._completed_tasks += 1
+                        self._emit_progress()
+                        continue
+
+                    model_key = (result.provider_id, model_name)
+                    if self._adaptive_timeout.is_excluded(*model_key):
+                        if model_key not in self._excluded_notified:
+                            self._excluded_notified.add(model_key)
+                            self._notify_warn(
+                                f"Model {model_name} excluded after consecutive timeouts at max — "
+                                "increase 'benchmark.retry_timeout_max_s' or check the provider."
+                            )
+                        self._mark_failed(
+                            result,
+                            RuntimeError(
+                                f"Model excluded after {self._app_settings.get_int(SETTING_RETRY_MAX_FAILURES_TO_EXCLUDE)} "
+                                f"consecutive timeouts at {self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MAX_S)}s — "
+                                "increase 'benchmark.retry_timeout_max_s' or check the provider."
+                            ),
+                        )
+                        self._completed_tasks += 1
                         self._emit_progress()
                         continue
 
@@ -624,6 +701,8 @@ class BenchmarkExecutionTask(QRunnable):
                         )
                         updated = self._run_inference_with_retry(provider, model_name, result, task, status_after)
                         self._data_api.update_benchmark_result(updated)
+                        if self._circuit_breaker is not None:
+                            self._circuit_breaker.record_success(provider_id)
                         self._completed_tasks += 1
                         self._maybe_persist_progress()
                         duration_ms = (time.monotonic() - task_start) * 1000.0
@@ -649,10 +728,44 @@ class BenchmarkExecutionTask(QRunnable):
                     except Exception as exc:
                         self._notify_warn(f"Inference failed for task {result.task_id}: {exc}")
                         self._mark_failed(result, exc)
+                        self._completed_tasks += 1
+                        if self._circuit_breaker is not None and self._is_stuck_failure(exc):
+                            _reason = (
+                                "timeout"
+                                if isinstance(exc, TimeoutError)
+                                else self._classifier.classify(exc).classification_reason
+                            )
+                            self._circuit_breaker.record_failure(provider_id, model_name=model_name, reason=_reason)
 
                     self._emit_progress()
 
                 prev_model = model_name
+
+            # After processing all models for this provider, check if circuit tripped
+            # and no further providers remain — trigger pause so user can restart.
+            if (
+                self._circuit_breaker is not None
+                and not self._circuit_breaker.should_dispatch(provider_id)
+                and provider_idx == len(providers_list) - 1
+                and self._app_settings.get_bool(SETTING_PROVIDER_STOP_ON_TRIP)
+            ):
+                self._notify_warn(
+                    f"Provider '{provider_id}' is unresponsive and no further providers remain in this run. "
+                    "Restart the provider and click Resume."
+                )
+                self._event_bus.emit_benchmark_paused(
+                    BenchmarkPausedEvent(
+                        run_id=self._run_id,
+                        pause_reason=PauseReason.PROVIDER_ERROR,
+                        paused_at_stage=self._stage,
+                    )
+                )
+                if not self._check_pause_or_stop():
+                    return False
+                # Reset after resume so tasks are re-dispatched if the user restarts the provider
+                self._circuit_breaker.reset(provider_id)
+                self._tripped_notified.discard(provider_id)
+
             prev_provider_id = provider_id
 
         self._write_log_entry(LogEntryType.SYSTEM, "Benchmarking phase complete")
@@ -668,7 +781,7 @@ class BenchmarkExecutionTask(QRunnable):
         *,
         judge_override_keyword_fail: bool = False,
         judge_override_cosine_low: bool = False,
-    ) -> None:
+    ) -> bool:
         """Run the 4-layer evaluation pipeline for all WAITING_FOR_JUDGE results.
 
         Args:
@@ -677,6 +790,9 @@ class BenchmarkExecutionTask(QRunnable):
                 results where the keyword layer produced a terminal verdict.
             judge_override_cosine_low: When True, also invoke the LLM judge for
                 results where the cosine layer produced a terminal verdict.
+
+        Returns:
+            True if the stage completed normally; False if stopped by user request.
         """
         self._notify("=== JUDGING PHASE ===")
         self._write_log_entry(LogEntryType.SYSTEM, "Judging phase started")
@@ -687,14 +803,14 @@ class BenchmarkExecutionTask(QRunnable):
         if not to_judge:
             all_results = self._data_api.retrieve_benchmark_results_for_run(self._run_id)
             self._notify(f"Resume: all {len(all_results)} judge evaluations already complete — skipping judge phase.")
-            return
+            return True
 
         self._notify(f"Judging {len(to_judge)} results...")
         results_total = len(to_judge)
 
         for result_number, result in enumerate(to_judge, start=1):
             if not self._check_pause_or_stop():
-                return
+                return False
 
             self._current_task_id = result.task_id
             self._current_model = run.judge_model or ""
@@ -737,33 +853,15 @@ class BenchmarkExecutionTask(QRunnable):
             except Exception as exc:
                 self._notify_warn(f"Eval pipeline failed for {result.task_id}: {exc}")
                 self._mark_judge_failed(result, exc)
+                self._completed_tasks += 1
 
             self._emit_progress()
+
+        return True
 
     # ------------------------------------------------------------------
     # Inference helpers
     # ------------------------------------------------------------------
-
-    @staticmethod
-    def _calc_attempt_timeout(min_s: int, max_s: int, attempt: int, total_attempts: int) -> int:
-        """Return the timeout in seconds for a given retry attempt using exponential growth.
-
-        Args:
-            min_s: Timeout for the first attempt (attempt=0).
-            max_s: Timeout ceiling for the last attempt.
-            attempt: Zero-indexed attempt number.
-            total_attempts: Total number of attempts configured.
-
-        Returns:
-            Timeout in whole seconds, clamped between min_s and max_s.
-        """
-        if total_attempts <= 1:
-            return min_s
-        exponent = attempt / (total_attempts - 1)
-        ratio: float = max_s / min_s
-        scaled: float = min_s * ratio**exponent
-        clamped: int = max(min_s, min(max_s, round(scaled)))
-        return clamped
 
     def _run_inference_with_retry(
         self,
@@ -773,13 +871,12 @@ class BenchmarkExecutionTask(QRunnable):
         task: BenchmarkTask,
         status_after: BenchmarkResultStatus,
     ) -> BenchmarkResult:
-        """Run inference with exponential retry on timeout.
+        """Run inference with adaptive retry on timeout.
 
-        Wraps _run_inference in a retry loop.  On each attempt a threading.Timer
-        sets _attempt_timed_out; when the inference call returns the flag is
-        inspected.  If timed out and retries remain, the attempt is logged and
-        the next attempt starts with a larger timeout.  After all retries are
-        exhausted a TimeoutError is raised so the caller can mark the task FAILED.
+        Uses AdaptiveTimeoutService to start at the last known-good timeout for
+        this (provider, model) pair rather than always starting from min_s.
+        On success the service updates current_good_s. On full failure the
+        service increments consecutive_max_failures and may exclude the model.
 
         Args:
             provider: LLM provider to call.
@@ -794,10 +891,8 @@ class BenchmarkExecutionTask(QRunnable):
         Raises:
             TimeoutError: When every retry attempt times out.
         """
-        retry_count = self._app_settings.get_int(SETTING_RETRY_COUNT)
-        min_s = self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MIN_S)
-        max_s = self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MAX_S)
-        retry_count = max(1, retry_count)
+        retry_count = max(1, self._app_settings.get_int(SETTING_RETRY_COUNT))
+        timeout_s = self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MIN_S)
 
         for attempt in range(retry_count):
             if not self._check_pause_or_stop():
@@ -813,10 +908,15 @@ class BenchmarkExecutionTask(QRunnable):
                     )
                 )
 
-            timeout_s = self._calc_attempt_timeout(min_s, max_s, attempt, retry_count)
+            timeout_s = self._adaptive_timeout.next_timeout(result.provider_id, model_name, attempt)
             self.logger.info(
                 "inference_attempt",
-                extra={"task_id": result.task_id, "model": model_name, "attempt": attempt + 1, "timeout_s": timeout_s},
+                extra={
+                    "task_id": result.task_id,
+                    "model": model_name,
+                    "attempt": attempt + 1,
+                    "timeout_s": timeout_s,
+                },
             )
             self._attempt_timed_out = False
             timer = threading.Timer(timeout_s, self._on_task_timeout, args=[result.task_id, model_name])
@@ -827,17 +927,25 @@ class BenchmarkExecutionTask(QRunnable):
                 timer.cancel()
 
             if not self._attempt_timed_out:
+                self._adaptive_timeout.record_success(result.provider_id, model_name, successful_timeout_s=timeout_s)
                 return updated
 
             self.logger.warning(
                 "inference_attempt_timed_out",
-                extra={"task_id": result.task_id, "model": model_name, "attempt": attempt + 1, "timeout_s": timeout_s},
+                extra={
+                    "task_id": result.task_id,
+                    "model": model_name,
+                    "attempt": attempt + 1,
+                    "timeout_s": timeout_s,
+                },
             )
             self._notify_warn(
-                f"Task '{result.task_id}' attempt {attempt + 1}/{retry_count} timed out ({timeout_s}s) for {model_name}."
+                f"Task '{result.task_id}' attempt {attempt + 1}/{retry_count} "
+                f"timed out ({timeout_s}s) for {model_name}."
             )
 
-        raise TimeoutError(f"Task timed out after {retry_count} attempt(s) — last timeout was {max_s}s")
+        self._adaptive_timeout.record_full_failure(result.provider_id, model_name, final_timeout_s=timeout_s)
+        raise TimeoutError(f"Task timed out after {retry_count} attempt(s) — last timeout was {timeout_s}s")
 
     def _run_judge_with_retry(
         self,
@@ -846,7 +954,11 @@ class BenchmarkExecutionTask(QRunnable):
         result: BenchmarkResult,
         run: BenchmarkRun,
     ) -> EvaluationResult:
-        """Run the LLM judge call with exponential retry on timeout, mirroring _run_inference_with_retry.
+        """Run the LLM judge call with adaptive retry on timeout.
+
+        Uses AdaptiveTimeoutService keyed on (judge_provider_id, judge_model) so
+        the judge timeout carries over across tasks within a run, mirroring the
+        inference retry behaviour.
 
         Args:
             judge_evaluator: LLM judge evaluator to call.
@@ -855,15 +967,15 @@ class BenchmarkExecutionTask(QRunnable):
             run: Parent BenchmarkRun providing judge provider and model.
 
         Returns:
-            EvaluationResult from the judge, or a terminal UNKNOWN result after all retries.
+            EvaluationResult from the judge.
 
         Raises:
             TimeoutError: When every retry attempt times out.
         """
         retry_count = max(1, self._app_settings.get_int(SETTING_RETRY_COUNT))
-        min_s = self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MIN_S)
-        max_s = self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MAX_S)
         judge_model = run.judge_model or ""
+        judge_provider_id = run.judge_provider_id or ""
+        timeout_s = self._app_settings.get_int(SETTING_RETRY_TIMEOUT_MIN_S)
 
         for attempt in range(retry_count):
             if not self._check_pause_or_stop():
@@ -880,7 +992,7 @@ class BenchmarkExecutionTask(QRunnable):
                     )
                 )
 
-            timeout_s = self._calc_attempt_timeout(min_s, max_s, attempt, retry_count)
+            timeout_s = self._adaptive_timeout.next_timeout(judge_provider_id, judge_model, attempt)
             self._attempt_timed_out = False
             timer = threading.Timer(timeout_s, self._on_task_timeout, args=[result.task_id, judge_model])
             timer.start()
@@ -895,17 +1007,39 @@ class BenchmarkExecutionTask(QRunnable):
                 timer.cancel()
 
             if not self._attempt_timed_out:
+                if (
+                    not eval_result.is_terminal
+                    and eval_result.verdict == EvalVerdict.UNKNOWN
+                    and attempt + 1 < retry_count
+                ):
+                    self.logger.warning(
+                        "judge_retrying_on_unknown",
+                        extra={
+                            "task_id": result.task_id,
+                            "attempt": attempt + 1,
+                            "reason": eval_result.reasoning,
+                        },
+                    )
+                    continue
+                self._adaptive_timeout.record_success(judge_provider_id, judge_model, successful_timeout_s=timeout_s)
                 return eval_result
 
             self.logger.warning(
                 "judge_attempt_timed_out",
-                extra={"task_id": result.task_id, "model": judge_model, "attempt": attempt + 1, "timeout_s": timeout_s},
+                extra={
+                    "task_id": result.task_id,
+                    "model": judge_model,
+                    "attempt": attempt + 1,
+                    "timeout_s": timeout_s,
+                },
             )
             self._notify_warn(
-                f"Judge '{result.task_id}' attempt {attempt + 1}/{retry_count} timed out ({timeout_s}s) for {judge_model}."
+                f"Judge '{result.task_id}' attempt {attempt + 1}/{retry_count} "
+                f"timed out ({timeout_s}s) for {judge_model}."
             )
 
-        raise TimeoutError(f"Judge timed out after {retry_count} attempt(s) — last timeout was {max_s}s")
+        self._adaptive_timeout.record_full_failure(judge_provider_id, judge_model, final_timeout_s=timeout_s)
+        raise TimeoutError(f"Judge timed out after {retry_count} attempt(s) — last timeout was {timeout_s}s")
 
     def _run_inference(
         self,
@@ -942,7 +1076,13 @@ class BenchmarkExecutionTask(QRunnable):
         messages = self._build_messages(user_prompt, system_prompt or "")
 
         use_streaming = self._app_settings.get_bool(SETTING_STREAMING_ENABLED) and provider.supports_streaming()
-        reasoning_effort = self._app_settings.get(SETTING_REASONING_EFFORT_DEFAULT) or "medium"
+        default_effort = self._app_settings.get(SETTING_REASONING_EFFORT_DEFAULT) or "medium"
+        supports_thinking = (
+            self._capability_service.supports_thinking(provider.provider_id, model_name)
+            if self._capability_service is not None
+            else None
+        )
+        reasoning_effort = "default" if supports_thinking is False else default_effort
 
         if use_streaming:
             inference_resp = self._run_streaming_inference(provider, model_name, result, messages, reasoning_effort)
@@ -959,9 +1099,11 @@ class BenchmarkExecutionTask(QRunnable):
         if inference_resp.total_time_ms and inference_resp.completion_tokens:
             tps = inference_resp.completion_tokens / (inference_resp.total_time_ms / 1000.0)
 
+        effective_status = BenchmarkResultStatus.FAILED if inference_resp.has_error else status_after
         return dataclasses.replace(
             result,
-            status=status_after,
+            status=effective_status,
+            completed_at=datetime.now(UTC).isoformat() if effective_status == BenchmarkResultStatus.COMPLETED else None,
             user_prompt_sent=user_prompt,
             system_prompt_sent=system_prompt or None,
             raw_response=raw,
@@ -1135,7 +1277,12 @@ class BenchmarkExecutionTask(QRunnable):
 
                 break
 
-        return dataclasses.replace(result, status=BenchmarkResultStatus.COMPLETED, **accumulated)
+        return dataclasses.replace(
+            result,
+            status=BenchmarkResultStatus.COMPLETED,
+            completed_at=datetime.now(UTC).isoformat(),
+            **accumulated,
+        )
 
     @staticmethod
     def _accumulate_layer_result(
@@ -1177,6 +1324,14 @@ class BenchmarkExecutionTask(QRunnable):
     # Progress / legacy signal helpers
     # ------------------------------------------------------------------
 
+    def _query_status_counts(self) -> dict[str, int]:
+        """Query per-status row counts for the current run from the database."""
+        try:
+            return self._data_api.retrieve_status_counts_for_run(self._run_id)
+        except Exception:
+            logger.warning("Failed to query status counts for run %s", self._run_id)
+            return {}
+
     def _emit_progress(self) -> None:
         """Emit ProgressUpdateEvent and legacy ReporterStatusMsg."""
         now_ms = time.monotonic() * 1000.0
@@ -1193,6 +1348,7 @@ class BenchmarkExecutionTask(QRunnable):
                 current_time_ms=now_ms,
                 estimated_remaining_ms=self._compute_eta(),
                 task_start_ms=self._task_start_ms,
+                counts_by_status=self._query_status_counts(),
             )
         )
         self._emit_legacy_progress()
@@ -1300,6 +1456,22 @@ class BenchmarkExecutionTask(QRunnable):
                 )
             )
 
+    def _is_stuck_failure(self, exc: BaseException) -> bool:
+        """Return True when exc should count toward the provider circuit breaker.
+
+        TimeoutError (our adaptive-timeout sentinel) always counts.
+        Other exceptions are retryable, non-capability-signal errors with no
+        HTTP status or a 5xx status.
+        """
+        if isinstance(exc, TimeoutError):
+            return True
+        classification = self._classifier.classify(exc)
+        return (
+            classification.is_retryable
+            and not classification.is_capability_signal
+            and (classification.http_status is None or classification.http_status >= 500)
+        )
+
     def _check_pause_or_stop(self) -> bool:
         """Block while paused; return False if stopped, True to continue."""
         if self._stop_requested:
@@ -1339,13 +1511,55 @@ class BenchmarkExecutionTask(QRunnable):
             return False
         return True
 
-    def _warm_up_model(self, provider: LLMProviderApi, model_name: str) -> None:
-        """Attempt to warm up a model; log warning on failure but don't stop."""
+    def _warm_up_model(self, provider: LLMProviderApi, model_name: str) -> bool:
+        """Attempt to warm up a model; return False on failure.
+
+        Args:
+            provider: Provider to use for the warm-up request.
+            model_name: Model identifier to warm up.
+
+        Returns:
+            True when warm-up succeeds, False on any failure.
+        """
         try:
-            self.logger.debug(f"Warming up model: {model_name}")
-            provider.warm_up(model_name)
+            self.logger.debug("Warming up model: %s", model_name)
+            ok = provider.warm_up(model_name)
         except Exception as exc:
             self._notify_warn(f"Warm-up failed for {model_name}: {exc}")
+            return False
+        if not ok:
+            self._notify_warn(f"Warm-up did not succeed for {model_name}; marking tasks as failed.")
+        return ok
+
+    def _fail_pending_tasks_for_model(
+        self,
+        model_results: list[BenchmarkResult],
+        error_message: str,
+    ) -> None:
+        """Mark all pending results for a model as FAILED.
+
+        Args:
+            model_results: List of BenchmarkResult instances for this model.
+            error_message: Error message to store in inference_error_message.
+        """
+        for result in model_results:
+            if result.status not in (
+                BenchmarkResultStatus.COMPLETED,
+                BenchmarkResultStatus.FAILED,
+                BenchmarkResultStatus.WAITING_FOR_JUDGE,
+            ):
+                try:
+                    self._data_api.update_benchmark_result(
+                        dataclasses.replace(
+                            result,
+                            status=BenchmarkResultStatus.FAILED,
+                            has_inference_error=True,
+                            inference_error_message=error_message,
+                        )
+                    )
+                except Exception as exc:
+                    self.logger.warning("fail_pending_persist_error", extra={"error": str(exc)})
+                self._failed_tasks += 1
 
     @staticmethod
     def _build_messages(user_prompt: str, system_prompt: str) -> list[dict[str, str]]:
@@ -1459,77 +1673,6 @@ class BenchmarkExecutionTask(QRunnable):
             user_prompt_sent=rendered_prompt,
             system_prompt_sent=variant.system_prompt,
             status=BenchmarkResultStatus.NOT_COMPLETED,
-        )
-
-    # ------------------------------------------------------------------
-    # Performance analysis
-    # ------------------------------------------------------------------
-
-    def _stage_performance_analysis(self, run: BenchmarkRun) -> None:
-        """Build a throughput analysis prompt, call the judge LLM, store and emit the result."""
-        self._notify("=== PERFORMANCE ANALYSIS ===")
-        if not run.judge_provider_id or not run.judge_model:
-            self._notify_warn("Performance analysis skipped: no judge model configured.")
-            return
-
-        try:
-            results = self._data_api.retrieve_benchmark_results_for_run(run.run_id)
-            if not results:
-                self._notify_warn("Performance analysis skipped: no results found.")
-                return
-
-            prompt = self._build_perf_analysis_prompt(run, results)
-            provider = self._provider_registry.get_provider(run.judge_provider_id)
-            messages = self._build_messages(prompt, "")
-            response = provider.inference_sync(model=run.judge_model, messages=messages, temperature=0.3)
-            analysis_text = response.llm_response or "(no response)"
-
-            self._data_api.update_run_perf_analysis(run_id=run.run_id, analysis=analysis_text)
-            self._event_bus.emit_perf_analysis(PerfAnalysisEvent(run_id=run.run_id, analysis_text=analysis_text))
-            self._notify("Performance analysis complete.")
-        except Exception as exc:
-            self.logger.warning("perf_analysis_failed", extra={"error": str(exc)})
-            self._notify_warn(f"Performance analysis failed: {exc}")
-
-    @staticmethod
-    def _build_perf_analysis_prompt(run: BenchmarkRun, results: list[BenchmarkResult]) -> str:
-        """Aggregate benchmark results into a markdown table and wrap it in an analysis prompt."""
-        # Group by (input_size_prefix, output_size) extracted from task_id, then by model
-        # task_id format: perf_<input>_<output>_r<N>  OR  arbitrary for speed mode
-        cell_tps: dict[tuple[str, str], list[float]] = defaultdict(list)
-        cell_ttft: dict[tuple[str, str], list[float]] = defaultdict(list)
-
-        for r in results:
-            parts = r.task_id.split("_")
-            cell_key = (parts[1], parts[2]) if len(parts) >= 3 and parts[0] == "perf" else ("all", "all")
-            if r.tokens_per_second is not None:
-                cell_tps[cell_key].append(r.tokens_per_second)
-            if r.ttft_ms is not None:
-                cell_ttft[cell_key].append(r.ttft_ms)
-
-        model_names = sorted({r.model_name for r in results})
-        rows: list[str] = ["| Cell | Avg tok/s | Min tok/s | Max tok/s | Avg TTFT ms |", "|-|-|-|-|-|"]
-        for key in sorted(cell_tps.keys()):
-            tps_vals = cell_tps[key]
-            ttft_vals = cell_ttft.get(key, [])
-            label = f"{key[0]}x{key[1]}"
-            avg_tps = statistics.mean(tps_vals) if tps_vals else 0.0
-            min_tps = min(tps_vals) if tps_vals else 0.0
-            max_tps = max(tps_vals) if tps_vals else 0.0
-            avg_ttft = statistics.mean(ttft_vals) if ttft_vals else 0.0
-            rows.append(f"| {label} | {avg_tps:.1f} | {min_tps:.1f} | {max_tps:.1f} | {avg_ttft:.0f} |")
-
-        table = "\n".join(rows)
-        return (
-            f"You are analyzing LLM benchmark performance results.\n"
-            f"Run mode: {run.run_mode}. Models tested: {', '.join(model_names)}.\n\n"
-            f"Performance metrics per cell (input_size x output_size):\n{table}\n\n"
-            f"Provide a concise analysis covering:\n"
-            f"1. Overall throughput trends by input size\n"
-            f"2. Output size impact on tokens/sec\n"
-            f"3. TTFT trends\n"
-            f"4. Any anomalies or notable patterns\n"
-            f"5. Summary recommendation"
         )
 
     @staticmethod

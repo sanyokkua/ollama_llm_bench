@@ -34,6 +34,7 @@ _BASE_POLICY: dict[RunMode, frozenset[str]] = {
     RunMode.PROMPT_EVAL: frozenset(
         {
             "judge_section",
+            "test_models_section",
             "task_files_section",
             "advanced_section",
             "prompt_variants_section",

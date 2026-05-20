@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 from typing import override
 
-from ollama_llm_bench.backend.core.interfaces import ITableSerializer
+from ollama_llm_bench.backend.core.interfaces import TableSerializerApi
 from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, SummaryTableItem
 
 TABLE_SUMMARY_HEADER = ["MODEL", "AVG. TIME (s)", "AVG. TOKENS/s", "AVG. SCORE (%)", "PASS%", "AVG. TTFT (ms)"]
@@ -20,9 +20,9 @@ TABLE_DETAILED_HEADER = [
 ]
 
 
-class TableSerializer(ITableSerializer):
+class TableSerializer(TableSerializerApi):
     """
-    Concrete implementation of ITableSerializer for exporting benchmark results to CSV and Markdown formats.
+    Concrete implementation of TableSerializerApi for exporting benchmark results to CSV and Markdown formats.
     Saves files to a specified output directory.
     """
 

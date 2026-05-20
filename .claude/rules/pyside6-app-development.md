@@ -56,6 +56,16 @@ for i, btn in enumerate(buttons):
     btn.clicked.connect(lambda: self.handle_click(i))
 ```
 
+## EventBus Subscription Ownership
+
+- MUST pass `parent=self` on every `subscribe_to_*` call made from inside a `QWidget` subclass.
+  Omitting `parent` from a transient widget (e.g. a dialog tab) leaves a zombie subscription
+  that fires on a half-destroyed C++ object, causing `libshiboken` crashes.
+- Controller-internal subscriptions (non-QObject classes) MUST NOT pass `parent=` — they have
+  no `destroyed` signal.
+- When adding a new EventBus `subscribe_to_*` method, MUST add the corresponding `parent`
+  parameter to both the ABC in `interfaces.py` and the concrete `QtEventBus` implementation.
+
 ## Widgets
 
 - MUST use typed accessor methods (`.isChecked()`, `.value()`, `.text()`, `.currentText()`)

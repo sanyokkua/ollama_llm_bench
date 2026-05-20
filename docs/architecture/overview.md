@@ -53,10 +53,10 @@ flowchart TD
         QBET["BenchmarkExecutionTask\nQRunnable worker"]
     end
     subgraph SERVICES["services/"]
-        SVC["OllamaApi · SqLiteDataApi\nYamlBenchmarkTaskApi\nSimplePromptBuilderApi\nAppResultApi · TableSerializer"]
+        SVC["ProviderRegistry · SqLiteDataApi\nTaskFileLoader · JudgePromptService\nAppResultApi · TableSerializer"]
     end
     subgraph CORE["core/"]
-        CORE_INNER["interfaces.py · models.py\nsql_constants.py · prompt_constants.py\nstages_constants.py"]
+        CORE_INNER["interfaces.py · models.py\nsql_constants.py · prompt_constants.py\nPipelineStage enum"]
     end
 
     WIDGETS --> CONTROLLERS
@@ -82,12 +82,20 @@ flowchart TD
 
 | Component | File | Implements | Role |
 |:---|:---|:---|:---|
-| `OllamaApi` | `services/ollama_llm_api.py` | `LLMApi` | Wraps `ollama.Client`; 5-retry warm-up; strips `<think>` tags from every response |
+| `OpenAICompatibleProvider` | `services/providers/openai_compatible_provider.py` | `LLMProviderApi` | OpenAI, Ollama, LM Studio, Azure `/v1/` clients |
+| `AnthropicProvider` | `services/providers/anthropic_provider.py` | `LLMProviderApi` | Anthropic Claude models |
+| `GeminiProvider` | `services/providers/gemini_provider.py` | `LLMProviderApi` | Google Gemini models |
+| `ProviderRegistry` | `services/provider_registry.py` | `ProviderRegistryApi` | Loads `providers.yaml` and constructs all LLM and embedding providers |
 | `SqLiteDataApi` | `services/sq_lite_data_api.py` | `DataApi` | SQLite CRUD; fresh `connect()` per method call |
-| `YamlBenchmarkTaskApi` | `services/yaml_benchmark_task_api.py` | `BenchmarkTaskApi` | Loads `.yaml`/`.yml` files; in-memory cache after first load |
-| `SimplePromptBuilderApi` | `services/simple_prompt_builder_api.py` | `PromptBuilderApi` | Fills judge prompt template via `str.replace()` |
+| `TaskFileLoader` | `services/task_file_loader.py` | `TaskFileLoaderApi` | Loads `.yaml`/`.yml` files from directory; in-memory cache after first load |
+| `JudgePromptService` | `services/judge_prompt_service.py` | `JudgePromptServiceApi` | Builds inference and judge prompts via `str.replace()` |
+| `JudgeSummaryService` | `services/judge_summary_service.py` | `JudgeSummaryServiceApi` | Generates prose summary of run results using judge model |
 | `AppResultApi` | `services/app_result_api.py` | `ResultApi` | Groups `BenchmarkResult` records by model; computes average metrics |
-| `TableSerializer` | `services/table_serializer.py` | `ITableSerializer` | Exports summary and detailed tables to `.csv` and `.md` |
+| `TableSerializer` | `services/table_serializer.py` | `TableSerializerApi` | Exports summary and detailed tables to `.csv` and `.md` |
+| `RuleBasedEvaluator` | `services/evaluators/rule_based_evaluator.py` | `EvaluatorApi` | Layer 1 evaluation — simple keyword rules |
+| `KeywordEvaluator` | `services/evaluators/keyword_evaluator.py` | `EvaluatorApi` | Layer 2 evaluation — embeddings-based keyword matching |
+| `CosineSimilarityEvaluator` | `services/evaluators/cosine_evaluator.py` | `EvaluatorApi` | Layer 3 evaluation — cosine similarity of embeddings |
+| `LLMJudgeEvaluator` | `services/evaluators/llm_judge_evaluator.py` | `LLMJudgeEvaluatorApi` | Layer 4 evaluation — judge model scoring with retries |
 | `MetaQObjectABC` | `qt_classes/meta_class.py` | — | Metaclass resolving MRO conflict between `type(QObject)` and `ABCMeta` |
 | `QtEventBus` | `qt_classes/qt_event_bus.py` | `EventBus` | 11 `Signal` pub/sub signals; all cross-thread UI updates route through it |
 | `QtBenchmarkFlowApi` | `qt_classes/qt_benchmark_flow.py` | `BenchmarkFlowApi` | Creates `BenchmarkExecutionTask`; bridges worker signals to `EventBus` |
@@ -159,8 +167,8 @@ sequenceDiagram
     participant DA as SqLiteDataApi
     participant QBFA as QtBenchmarkFlowApi
     participant BET as BenchmarkExecutionTask
-    participant OA as OllamaApi
-    participant PB as SimplePromptBuilderApi
+    participant PR as LLMProviderApi
+    participant JS as JudgePromptService
     participant EB as QtEventBus
     participant RW as ResultWidget
 
@@ -176,22 +184,22 @@ sequenceDiagram
     BET->>DA: fetch NOT_COMPLETED tasks
 
     Note over BET: STAGE_BENCHMARKING
-    loop each model
-        BET->>OA: warm_up#40;model#41; — 5 retries, 30s backoff
+    loop each provider/model
+        BET->>PR: warm_up#40;model#41; — with retries
         loop each task
-            BET->>OA: inference#40;model, prompt#41;
-            OA-->>BET: InferenceResponse #40;sanitized#41;
+            BET->>PR: inference_sync#40;model, prompt#41;
+            PR-->>BET: InferenceResponse
             BET->>DA: update_benchmark_result#40;WAITING_FOR_JUDGE#41;
         end
     end
 
     Note over BET: STAGE_JUDGING
-    loop each model
-        BET->>OA: warm_up#40;judge_model#41;
+    loop each provider/model
+        BET->>PR: warm_up#40;judge_model#41;
         loop each WAITING_FOR_JUDGE result
-            BET->>PB: build_judge_prompt#40;task, response#41;
-            BET->>OA: inference#40;judge_model, judge_prompt#41;
-            OA-->>BET: InferenceResponse
+            BET->>JS: build_judge_prompt#40;task, response#41;
+            BET->>PR: inference_sync#40;judge_model, judge_prompt#41;
+            PR-->>BET: InferenceResponse
             BET->>DA: update_benchmark_result#40;score, reason, COMPLETED#41;
         end
     end
@@ -365,7 +373,7 @@ CREATE TABLE IF NOT EXISTS results (
 ## Dataset Structure
 
 50 YAML benchmark tasks live in `src/ollama_llm_bench/dataset/`.
-`YamlBenchmarkTaskApi` iterates all `.yaml` and `.yml` files in the configured folder
+`TaskFileLoader` iterates all `.yaml` and `.yml` files in the configured folder
 and caches them in memory after first load.
 
 **Category breakdown:**
@@ -407,6 +415,6 @@ A grade of `1.00` is an exact match; `≤0.29` is incorrect.
 | `@dataclass(frozen=True)` for all domain objects | Prevents accidental mutation as objects cross layer boundaries; enables safe sharing between background thread and main thread. |
 | Constructor injection + `ContextProvider` singleton | Eliminates hidden dependencies, makes units testable in isolation, and keeps the entire wiring visible in one place (`app_context.py`). |
 | `sanitize_text()` strips `<think>` tags | DeepSeek-R1 and similar reasoning models emit chain-of-thought inside `<think>...</think>` blocks. Judging the raw output would penalize good answers that happen to show their reasoning. |
-| `str.replace()` in `SimplePromptBuilderApi` | `.format()` raises `KeyError` when the template string contains literal curly braces, which is common in coding-task prompts that include code examples. |
+| `str.replace()` in `JudgePromptService` | `.format()` raises `KeyError` when the template string contains literal curly braces, which is common in coding-task prompts that include code examples. |
 | Resumable pipeline via `NOT_COMPLETED` / `WAITING_FOR_JUDGE` / `COMPLETED` | Allows recovery from interrupted runs without re-running completed tasks. Inference is expensive; discarding completed work on crash is unacceptable. |
 | `MetaQObjectABC` metaclass | Python's MRO requires a single metaclass per class. `type(QObject)` and `ABCMeta` conflict; `MetaQObjectABC` merges them so `QtEventBus` and `QtBenchmarkFlowApi` can be both `QObject` subclasses and ABC implementations. |

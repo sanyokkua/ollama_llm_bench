@@ -1,6 +1,6 @@
 /* ============================================================
    Theme QSS Template — do not hardcode colors here.
-   All {placeholders} are replaced at runtime by theme_loader.py
+   All placeholders are replaced at runtime by theme_loader.py
    ============================================================ */
 
 /* --- Base --- */
@@ -8,7 +8,7 @@ QMainWindow, QDialog {{
     background-color: {bg_primary};
     color: {text_primary};
     font-family: {font_sans};
-    font-size: 11px;
+    font-size: {font_xs};
 }}
 
 QWidget {{
@@ -28,19 +28,19 @@ QLabel {{
 }}
 QLabel[role="secondary"] {{
     color: {text_secondary};
-    font-size: 11px;
+    font-size: {font_sm};
 }}
 QLabel[role="heading"] {{
     color: {text_secondary};
-    font-size: 10px;
+    font-size: {font_xs};
     font-weight: 700;
 }}
 QLabel[role="title"] {{
-    font-size: 13px;
+    font-size: {font_lg};
     font-weight: 700;
 }}
 QLabel[role="badge"] {{
-    font-size: 10px;
+    font-size: {font_xs};
     font-weight: 700;
     border-radius: {radius_sm};
     padding: 2px 6px;
@@ -51,7 +51,7 @@ QLabel[role="badge"][variant="provider-type"] {{
     border: 1px solid {border};
     border-radius: 10px;
     padding: 1px 8px;
-    font-size: 10px;
+    font-size: {font_xs};
     font-weight: 700;
 }}
 
@@ -159,7 +159,7 @@ QPushButton[role="icon"]:hover {{
 
 /* --- Buttons: Small variant --- */
 QPushButton[size="small"] {{
-    font-size: 10px;
+    font-size: {font_xs};
     padding: 2px 6px;
     min-height: 16px;
 }}
@@ -196,8 +196,29 @@ QComboBox:disabled {{
     background-color: {bg_secondary};
 }}
 QComboBox::drop-down {{
-    border: none;
-    width: 16px;
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 22px;
+    border-left: 1px solid {border};
+    background: transparent;
+}}
+QComboBox::drop-down:hover {{
+    background-color: {bg_hover};
+}}
+QComboBox::down-arrow {{
+    image: none;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid {text_secondary};
+    margin-right: 8px;
+}}
+QComboBox::down-arrow:on {{
+    border-top-color: {primary};
+}}
+QComboBox:hover {{
+    border-color: {primary};
 }}
 QComboBox QAbstractItemView {{
     background-color: {bg_secondary};
@@ -237,7 +258,7 @@ QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled {{
     background-color: {bg_secondary};
 }}
 QLineEdit[role="filter"] {{
-    font-size: 10px;
+    font-size: {font_xs};
     min-height: 20px;
     padding: 2px 8px;
 }}
@@ -286,7 +307,7 @@ QTextEdit {{
     padding: 8px;
     color: {text_primary};
     font-family: {font_mono};
-    font-size: 11px;
+    font-size: {font_sm};
 }}
 
 /* --- Checkbox --- */
@@ -348,7 +369,7 @@ QProgressBar {{
     border-radius: {radius_pill};
     min-height: 16px;
     text-align: center;
-    font-size: 10px;
+    font-size: {font_xs};
     font-weight: 600;
     color: {text_primary};
 }}
@@ -386,16 +407,19 @@ QTableView {{
     selection-background-color: {selection};
     selection-color: {text_primary};
     color: {text_primary};
-    font-size: 11px;
+    font-size: {font_xs};
 }}
 QHeaderView::section {{
     background-color: {bg_secondary};
     color: {text_secondary};
     font-weight: 600;
-    font-size: 10px;
-    padding: 5px 8px;
+    font-size: {font_xs};
+    padding: 8px 10px;
     border: none;
     border-bottom: 1px solid {border};
+}}
+QHeaderView::section:hover {{
+    background-color: {hover};
 }}
 
 /* --- Group Box --- */
@@ -408,7 +432,7 @@ QGroupBox {{
 }}
 QGroupBox::title {{
     color: {text_secondary};
-    font-size: 11px;
+    font-size: {font_xs};
     font-weight: 700;
     subcontrol-origin: margin;
     subcontrol-position: top left;
@@ -457,6 +481,9 @@ QScrollBar::handle:horizontal {{
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
     width: 0px;
 }}
+QScrollBar::handle:horizontal:hover {{
+    background-color: {primary};
+}}
 
 /* --- Splitter --- */
 QSplitter::handle:horizontal {{
@@ -480,7 +507,7 @@ QToolTip {{
     border: 1px solid {border};
     border-radius: {radius_sm};
     padding: 4px 8px;
-    font-size: 11px;
+    font-size: {font_sm};
 }}
 
 /* --- Pipeline Stage Badges (via property) --- */
@@ -530,7 +557,7 @@ QLabel[verdict="pass"] {{
     color: {success};
     border-radius: {radius_pill};
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: {font_xs};
     font-weight: 700;
 }}
 QLabel[verdict="fail"] {{
@@ -538,7 +565,7 @@ QLabel[verdict="fail"] {{
     color: {failure};
     border-radius: {radius_pill};
     padding: 2px 6px;
-    font-size: 10px;
+    font-size: {font_xs};
     font-weight: 700;
 }}
 
@@ -567,6 +594,25 @@ QLabel[health="unknown"] {{
     min-height: 12px;
     max-height: 12px;
 }}
+QLabel[health="warning"] {{
+    background-color: {warning};
+    border-radius: 6px;
+    min-width: 12px;
+    max-width: 12px;
+    min-height: 12px;
+    max-height: 12px;
+}}
+
+/* --- Provider Card status text tones --- */
+QLabel[status_tone="success"] {{
+    color: {success_text};
+}}
+QLabel[status_tone="warning"] {{
+    color: {warning};
+}}
+QLabel[status_tone="error"] {{
+    color: {failure_text};
+}}
 
 /* --- Provider Card (QFrame) --- */
 QFrame[role="provider-card"] {{
@@ -578,6 +624,9 @@ QFrame[role="provider-card"] {{
 QFrame[role="provider-card"][health="down"] {{
     border-color: {failure};
 }}
+QFrame[role="provider-card"][health="warning"] {{
+    border-color: {warning};
+}}
 
 /* --- Drop Zone --- */
 QLabel[role="drop-zone"] {{
@@ -585,7 +634,7 @@ QLabel[role="drop-zone"] {{
     border-radius: {radius_lg};
     padding: 16px;
     color: {text_disabled};
-    font-size: 11px;
+    font-size: {font_base};
 }}
 QLabel[role="drop-zone"][active="true"] {{
     border-color: {primary};

@@ -3,7 +3,13 @@ from collections import defaultdict
 from typing import override
 
 from ollama_llm_bench.backend.core.interfaces import DataApi, ResultApi
-from ollama_llm_bench.backend.core.models import AvgSummaryTableItem, EvalLayer, EvalVerdict, SummaryTableItem
+from ollama_llm_bench.backend.core.models import (
+    AvgSummaryTableItem,
+    BenchmarkResultStatus,
+    EvalLayer,
+    EvalVerdict,
+    SummaryTableItem,
+)
 
 _LAYER_LABELS: dict[str, str] = {
     EvalLayer.RULE_BASED.value: "L1:rules",
@@ -78,6 +84,9 @@ class AppResultApi(ResultApi):
             pass_rate = pass_count / count
             ttft_values = [r.ttft_ms for r in model_results_list if r.ttft_ms is not None]
             avg_ttft_ms: float | None = sum(ttft_values) / len(ttft_values) if ttft_values else None
+            failed_count = sum(
+                1 for r in model_results_list if r.status == BenchmarkResultStatus.FAILED or r.has_inference_error
+            )
 
             item = AvgSummaryTableItem(
                 model_name=model_name,
@@ -86,6 +95,7 @@ class AppResultApi(ResultApi):
                 avg_score=avg_score,
                 avg_ttft_ms=avg_ttft_ms,
                 pass_rate=pass_rate,
+                failed_count=failed_count,
             )
             avg_results.append(item)
 
@@ -125,6 +135,7 @@ class AppResultApi(ResultApi):
 
             cosine_sim: float | None = result.cosine_similarity
             resolution = _LAYER_LABELS.get(result.resolution_layer, "") if result.resolution_layer else ""
+            error_message = result.inference_error_message or result.judge_error_message or ""
 
             if result.judge_score is not None:
                 effective_score = result.judge_score
@@ -145,6 +156,8 @@ class AppResultApi(ResultApi):
                 score_reason=score_reason,
                 cosine_similarity=cosine_sim,
                 resolution_layer=resolution,
+                error_message=error_message,
+                prompt_version=result.prompt_version,
             )
             detailed_results.append(item)
             valid_results_count += 1

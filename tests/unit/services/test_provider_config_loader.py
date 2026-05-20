@@ -367,12 +367,12 @@ def test_embedding_defaults_used_when_block_absent(
     loader: ProviderConfigLoader,
     tmp_path: Path,
 ) -> None:
-    """When 'embedding' block is absent the defaults provider_id='ollama_local', model='bge-m3' apply."""
+    """When 'embedding' block is absent the defaults provider_id='ollama_local', model='' apply."""
     data: dict[str, object] = {"providers": [_MINIMAL_YAML["providers"][0]]}  # type: ignore[index]
     cfg = loader.load(_write_yaml(tmp_path / "p.yaml", data))
 
     assert cfg.embedding.provider_id == "ollama_local"
-    assert cfg.embedding.model == "bge-m3"
+    assert cfg.embedding.model == ""
 
 
 # ---------------------------------------------------------------------------

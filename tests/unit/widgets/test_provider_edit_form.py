@@ -333,3 +333,127 @@ def test_form_changed_emitted_on_label_edit(qapp: QApplication) -> None:
     form._label_edit.setText("New label text")
 
     assert len(emitted) >= 1
+
+
+# ---------------------------------------------------------------------------
+# get_config — base-url isolation across type-combo round-trip
+# ---------------------------------------------------------------------------
+
+
+def test_get_config_base_url_preserved_after_type_combo_round_trip(qapp: QApplication) -> None:
+    """Changing type away from openai_compatible and back must not lose the base_url."""
+    # Arrange
+    original_url = "http://localhost:11434/v1"
+    form = _make_form()
+    form.populate(_openai_config(base_url=original_url))
+
+    # Change type to anthropic, then back to openai_compatible
+    anthropic_idx = form._type_combo.findText(ProviderType.ANTHROPIC.value)
+    openai_idx = form._type_combo.findText(ProviderType.OPENAI_COMPATIBLE.value)
+    form._type_combo.setCurrentIndex(anthropic_idx)
+    form._type_combo.setCurrentIndex(openai_idx)
+
+    # Act
+    config = form.get_config(original_provider_id="local")
+
+    # Assert
+    assert config.base_url == original_url
+
+
+# ---------------------------------------------------------------------------
+# populate — type combo text
+# ---------------------------------------------------------------------------
+
+
+def test_populate_sets_type_combo_to_openai_compatible(qapp: QApplication) -> None:
+    form = _make_form()
+    form.populate(_openai_config())
+    assert form._type_combo.currentText() == ProviderType.OPENAI_COMPATIBLE.value
+
+
+def test_populate_sets_type_combo_to_anthropic(qapp: QApplication) -> None:
+    form = _make_form()
+    form.populate(_anthropic_config())
+    assert form._type_combo.currentText() == ProviderType.ANTHROPIC.value
+
+
+def test_populate_sets_type_combo_to_gemini(qapp: QApplication) -> None:
+    form = _make_form()
+    form.populate(_gemini_config())
+    assert form._type_combo.currentText() == ProviderType.GEMINI.value
+
+
+# ---------------------------------------------------------------------------
+# populate — lock_type
+# ---------------------------------------------------------------------------
+
+
+def test_populate_with_lock_type_disables_combo(qapp: QApplication) -> None:
+    form = _make_form()
+    form.populate(_openai_config(), lock_type=True)
+    assert not form._type_combo.isEnabled()
+
+
+def test_populate_without_lock_type_combo_stays_enabled(qapp: QApplication) -> None:
+    form = _make_form()
+    form.populate(_openai_config(), lock_type=False)
+    assert form._type_combo.isEnabled()
+
+
+# ---------------------------------------------------------------------------
+# get_config — base URL preservation
+# ---------------------------------------------------------------------------
+
+
+def test_get_config_openai_returns_base_url_from_openai_field(qapp: QApplication) -> None:
+    form = _make_form()
+    form.populate(_openai_config(base_url="http://localhost:8080/v1"))
+    config = form.get_config(original_provider_id="local")
+    assert config.base_url == "http://localhost:8080/v1"
+
+
+def test_get_config_preserves_base_url_after_populate(qapp: QApplication) -> None:
+    form = _make_form()
+    form.populate(_openai_config(base_url="http://lmstudio.local/v1"))
+    config = form.get_config(original_provider_id="local")
+    assert config.base_url == "http://lmstudio.local/v1"
+
+
+# ---------------------------------------------------------------------------
+# populate — cross-type field isolation
+# ---------------------------------------------------------------------------
+
+
+def test_populate_clears_other_type_url_fields_for_openai(qapp: QApplication) -> None:
+    """After populating an openai_compatible config, anthropic and gemini URL fields must be empty."""
+    form = _make_form()
+    form.populate(_openai_config(base_url="http://localhost/v1"))
+    assert form._anthropic_base_url_edit.text() == ""
+    assert form._gemini_base_url_edit.text() == ""
+
+
+# ---------------------------------------------------------------------------
+# get_config — type-drift: permanently changing type loses the old base_url
+# ---------------------------------------------------------------------------
+
+
+def test_get_config_base_url_is_none_when_type_changed_and_not_reentered(qapp: QApplication) -> None:
+    """Switching type away from openai_compatible without switching back loses base_url.
+
+    This documents the known behavior: when the user permanently changes a provider's
+    type, the original URL is not migrated to the new type's URL field (which is correct,
+    since the URL format differs per provider type).  Existing providers are protected
+    from accidental type changes by lock_type=True in ProviderCardWidget.  Update this
+    test if the behavior is intentionally changed to preserve or migrate the URL.
+    """
+    # Arrange
+    form = _make_form()
+    form.populate(_openai_config(base_url="http://localhost:8080/v1"))
+
+    # Act — permanently change type to GEMINI (no round-trip back)
+    gemini_idx = form._type_combo.findText(ProviderType.GEMINI.value)
+    form._type_combo.setCurrentIndex(gemini_idx)
+    config = form.get_config(original_provider_id="local")
+
+    # Assert — base_url is None because the Gemini URL field was never populated
+    assert config.base_url is None

@@ -8,7 +8,7 @@ import google.genai
 from google.genai import types as genai_types
 from google.genai.types import HttpOptions
 
-from ollama_llm_bench.backend.core.models import InferenceResponse, ModelDescriptor, StreamChunk
+from ollama_llm_bench.backend.core.models import HealthProbeResult, InferenceResponse, ModelDescriptor, StreamChunk
 
 _DEFAULT_MAX_TOKENS: int = 8192
 
@@ -83,6 +83,7 @@ class GeminiProvider:
         temperature: float = 0.0,
         max_tokens: int | None = None,
         reasoning_effort: str = "medium",
+        response_format: dict[str, str] | None = None,
     ) -> InferenceResponse:
         """Run synchronous inference against the Gemini generate_content API.
 
@@ -111,7 +112,7 @@ class GeminiProvider:
                 config=config,
             )
         except Exception as e:
-            logger.error("gemini_inference_sync_error", exc_info=True)
+            logger.exception("gemini_inference_sync_error")
             return InferenceResponse(has_error=True, error_message=str(e))
         end_ns = time.monotonic_ns()
         text = response.text or ""
@@ -187,7 +188,7 @@ class GeminiProvider:
                 ttft_ms=ttft_ms,
             )
         except Exception as e:
-            logger.error("gemini_stream_error", exc_info=True)
+            logger.exception("gemini_stream_error")
             return InferenceResponse(has_error=True, error_message=str(e))
 
     def supports_structured_output(self) -> bool:
@@ -213,6 +214,26 @@ class GeminiProvider:
             max_tokens=1,
         )
         return not response.has_error
+
+    def probe_health(self) -> HealthProbeResult:
+        """Call client.models.list() to verify credentials and reachability.
+
+        Consumes only the first item from the pager to avoid iterating the full
+        public Gemini model catalog.
+
+        Returns:
+            HealthProbeResult with reachable=True on success, or reachable=False
+            with error_message on any failure.
+        """
+        try:
+            first = next(iter(self._client.models.list()), None)
+            return HealthProbeResult(
+                reachable=True,
+                model_count_observed=1 if first is not None else 0,
+            )
+        except Exception as exc:
+            logger.warning("gemini_probe_error", extra={"provider_id": self._provider_id, "error": str(exc)})
+            return HealthProbeResult(reachable=False, error_message=str(exc))
 
     @staticmethod
     def _extract_system_message(

@@ -9,7 +9,7 @@ When two terms sound similar, this glossary clarifies the distinction and points
 
 A single, self-contained question with tiered reference answers used to evaluate a model.
 Defined as the frozen dataclass `BenchmarkTask` in `src/ollama_llm_bench/core/models.py`.
-Loaded from a YAML file under `src/ollama_llm_bench/dataset/` by `YamlBenchmarkTaskApi`.
+Loaded from a YAML file under `src/ollama_llm_bench/dataset/` by `TaskFileLoader`.
 Contains a question, three tiers of expected answers (`most_expected`, `good_answer`, `pass_option`), and a negative anchor (`incorrect_direction`).
 See [dataset-format.md](dataset-format.md) for the schema.
 
@@ -40,7 +40,7 @@ A run with `m` test models and `n` tasks produces `m × n` results.
 ### Stage
 
 A discrete phase of the benchmark pipeline.
-Five string constants in `src/ollama_llm_bench/core/stages_constants.py`:
+Five enum values in `src/ollama_llm_bench/core/models.py` as the `PipelineStage(StrEnum)` class:
 
 - `STAGE_INITIALIZING` — task records are being created in SQLite.
 - `STAGE_BENCHMARKING` — inference loop: each task is sent to each test model.
@@ -52,8 +52,8 @@ Stages are reported to the UI via `ReporterStatusMsg.current_stage`.
 
 ### Warm-up
 
-A preparatory call issued to Ollama before real inference starts, forcing the model to load into memory.
-Implemented in `OllamaApi.warm_up` (`services/ollama_llm_api.py`): sends the prompt `"Say Hello"` and retries up to **5 times** with **30 s** between attempts.
+A preparatory call issued to the LLM provider before real inference starts, forcing the model to load into memory.
+Implemented in each `LLMProviderApi` implementation (e.g., `OpenAICompatibleProvider.warm_up`): sends a minimal inference request and retries with backoff on failure.
 Warm-up runs once per model at the start of the benchmarking stage, and once for the judge model at the start of the judging stage.
 Without warm-up, the first task's `time_taken_ms` would include the model load time and skew averages.
 

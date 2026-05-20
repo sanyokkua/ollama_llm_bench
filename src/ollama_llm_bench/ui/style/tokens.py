@@ -5,19 +5,23 @@ a ``get_tokens()`` factory that merges shared and theme-specific tokens.
 """
 
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 
 
-def _get_font_sans() -> str:
-    return '"SF Pro Text", "Segoe UI", "Cantarell", "Ubuntu", "Helvetica Neue", "Noto Sans", "DejaVu Sans", sans-serif'
-
-
 def _get_font_mono() -> str:
-    return (
-        '"SF Mono", "Cascadia Mono", "Menlo", "Consolas", '
-        '"Ubuntu Mono", "DejaVu Sans Mono", "Monaco", "Courier New", monospace'
-    )
+    if sys.platform == "darwin":
+        return '"Menlo", "Monaco", "Courier New"'
+    if sys.platform == "win32":
+        return '"Cascadia Mono", "Consolas", "Courier New"'
+    return '"Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New"'
+
+
+def _get_font_sans() -> str:
+    if sys.platform == "linux":
+        return '"Ubuntu", "Noto Sans", "DejaVu Sans", "Liberation Sans"'
+    return '"Helvetica Neue", "Segoe UI", "Arial"'
 
 
 DARK_TOKENS: dict[str, str] = {
@@ -98,6 +102,12 @@ SHARED_TOKENS: dict[str, str] = {
     "radius_pill": "10px",
     "font_sans": _get_font_sans(),
     "font_mono": _get_font_mono(),
+    "font_xs": "11px",
+    "font_sm": "12px",
+    "font_base": "13px",
+    "font_md": "14px",
+    "font_lg": "16px",
+    "font_xl": "20px",
 }
 
 

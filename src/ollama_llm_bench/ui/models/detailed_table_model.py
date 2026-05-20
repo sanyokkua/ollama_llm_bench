@@ -3,8 +3,11 @@
 from typing import Any, override
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QPersistentModelIndex, Qt
+from PySide6.QtGui import QColor
 
 from ollama_llm_bench.backend.core.models import SummaryTableItem
+
+_ERROR_COLOR = QColor("#e05252")
 
 _INVALID_INDEX: QModelIndex = QModelIndex()
 
@@ -19,6 +22,7 @@ _HEADERS: list[str] = [
     "COSINE",
     "LAYER",
     "REASON",
+    "ERROR",
 ]
 
 
@@ -121,6 +125,9 @@ class DetailedTableModel(QAbstractTableModel):
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             return Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
+        if role == Qt.ItemDataRole.ForegroundRole and item.error_message:
+            return _ERROR_COLOR
+
         return None
 
     def _display_value(self, item: SummaryTableItem, col: int) -> str | None:
@@ -156,6 +163,8 @@ class DetailedTableModel(QAbstractTableModel):
                 return item.resolution_layer
             case 9:
                 return item.score_reason
+            case 10:
+                return item.error_message or None
             case _:
                 return None
 
@@ -190,6 +199,8 @@ class DetailedTableModel(QAbstractTableModel):
                 return item.resolution_layer
             case 9:
                 return item.score_reason
+            case 10:
+                return item.error_message or None
             case _:
                 return None
 

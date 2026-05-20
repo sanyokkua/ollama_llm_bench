@@ -9,7 +9,9 @@ import httpx
 import openai
 from openai.types.chat import ChatCompletionMessageParam
 
-from ollama_llm_bench.backend.core.models import InferenceResponse, ModelDescriptor, StreamChunk
+from ollama_llm_bench.backend.core.interfaces import ModelCapabilityServiceApi
+from ollama_llm_bench.backend.core.models import HealthProbeResult, InferenceResponse, ModelDescriptor, StreamChunk
+from ollama_llm_bench.backend.services.llm_error_classifier import LlmErrorClassifier
 from ollama_llm_bench.backend.services.model_name_parser import ModelNameParser
 
 _WARM_UP_RETRIES: int = 3
@@ -40,6 +42,8 @@ class OpenAICompatibleProvider:
         base_url: str,
         api_key: str,
         name_parser: ModelNameParser,
+        capability_service: ModelCapabilityServiceApi | None = None,
+        classifier: LlmErrorClassifier | None = None,
     ) -> None:
         """Initialize the provider and construct the underlying openai client.
 
@@ -49,10 +53,16 @@ class OpenAICompatibleProvider:
             base_url: Base URL of the OpenAI-compatible endpoint (e.g. ``"http://localhost:11434/v1"``).
             api_key: API key; use any non-empty string for local servers that ignore it.
             name_parser: Parser used to extract family, size, and quantization from model names.
+            capability_service: Optional service for reading/writing per-model capability flags.
+                When provided, warm_up() skips ``reasoning_effort`` for models known not to
+                support it and persists new discoveries.
+            classifier: Optional error classifier; a default instance is created when omitted.
         """
         self._provider_id = provider_id
         self._provider_type = provider_type
         self._name_parser = name_parser
+        self._capability_service = capability_service
+        self._classifier = classifier if classifier is not None else LlmErrorClassifier()
         self._client = openai.OpenAI(
             api_key=api_key,
             base_url=base_url,
@@ -114,6 +124,7 @@ class OpenAICompatibleProvider:
         temperature: float = 0.0,
         max_tokens: int | None = None,
         reasoning_effort: str = "medium",
+        response_format: dict[str, str] | None = None,
     ) -> InferenceResponse:
         """Run synchronous (non-streaming) inference against the endpoint.
 
@@ -123,6 +134,8 @@ class OpenAICompatibleProvider:
             temperature: Sampling temperature; defaults to 0.0 for deterministic output.
             max_tokens: Maximum tokens to generate; None leaves the limit to the server.
             reasoning_effort: Reasoning effort level for o-series models; ignored by others.
+            response_format: Optional format hint passed to the API, e.g.
+                ``{"type": "json_object"}`` for providers that support structured output.
 
         Returns:
             Populated InferenceResponse on success, or an error response with
@@ -132,14 +145,16 @@ class OpenAICompatibleProvider:
         if reasoning_effort != "default":
             extra["reasoning_effort"] = reasoning_effort
         start_ns = time.monotonic_ns()
+        fmt: dict[str, object] = {"response_format": response_format} if response_format is not None else {}
         try:
-            response = self._client.chat.completions.create(
+            response = self._client.chat.completions.create(  # type: ignore[call-overload]
                 model=model,
                 messages=cast(list[ChatCompletionMessageParam], messages),
                 stream=False,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 extra_body=extra or None,
+                **fmt,
             )
         except openai.OpenAIError as exc:
             logger.error("openai_compatible_sync_error", exc_info=exc)
@@ -255,25 +270,87 @@ class OpenAICompatibleProvider:
     def warm_up(self, model: str) -> bool:
         """Send minimal requests to ensure the model is loaded and responsive.
 
-        Retries up to _WARM_UP_RETRIES times with a _WARM_UP_SLEEP_S delay between
-        attempts. Uses synchronous inference with a single-token limit to minimise
-        overhead.
+        Consults the capability service to skip ``reasoning_effort`` for models
+        known not to support extended thinking.  On a 400 "does not support
+        thinking" response, persists the discovery and immediately retries
+        without the parameter.  Other non-retryable errors abort without
+        sleeping; transient errors sleep and retry up to _WARM_UP_RETRIES times.
 
         Args:
             model: Model identifier to warm up.
 
         Returns:
-            True when any attempt succeeds, False when all retries are exhausted.
+            True when any attempt succeeds, False when all retries are exhausted
+            or a non-retryable non-capability error is received.
         """
+        use_reasoning: bool | None = (
+            self._capability_service.supports_thinking(self._provider_id, model)
+            if self._capability_service is not None
+            else None
+        )
+
         for attempt in range(_WARM_UP_RETRIES):
+            effort = "default" if use_reasoning is False else "medium"
             response = self.inference_sync(
                 model=model,
                 messages=[{"role": "user", "content": "hi"}],
                 max_tokens=1,
+                reasoning_effort=effort,
             )
             if not response.has_error:
                 return True
+
+            classification = self._classifier.classify_from_message(response.error_message or "")
+
+            if classification.is_capability_signal and classification.capability_unsupported == "thinking":
+                logger.debug(
+                    "warm_up_thinking_unsupported",
+                    extra={"model": model, "provider_id": self._provider_id},
+                )
+                if self._capability_service is not None:
+                    self._capability_service.remember(
+                        self._provider_id,
+                        model,
+                        "thinking",
+                        supported=False,
+                        observed_via="warm_up_400",
+                        detail=response.error_message,
+                    )
+                use_reasoning = False
+                continue  # immediate retry without sleep
+
+            if not classification.is_retryable:
+                logger.debug(
+                    "warm_up_non_retryable",
+                    extra={"model": model, "reason": classification.classification_reason},
+                )
+                return False
+
             logger.warning("warm_up_retry", extra={"attempt": attempt + 1, "model": model})
             if attempt < _WARM_UP_RETRIES - 1:
                 time.sleep(_WARM_UP_SLEEP_S)
+
         return False
+
+    def probe_health(self) -> HealthProbeResult:
+        """Call models.list() and return a probe result; re-raises no exception.
+
+        Returns:
+            HealthProbeResult with reachable=True and model_count_observed set
+            on success, or reachable=False with error_message on any failure.
+        """
+        try:
+            response = self._client.models.list()
+            return HealthProbeResult(
+                reachable=True,
+                model_count_observed=len(list(response.data)),
+            )
+        except openai.APIConnectionError as exc:
+            logger.warning("openai_compatible_probe_unreachable", extra={"provider_id": self._provider_id})
+            return HealthProbeResult(reachable=False, error_message=str(exc))
+        except openai.AuthenticationError:
+            logger.warning("openai_compatible_probe_auth_error", extra={"provider_id": self._provider_id})
+            return HealthProbeResult(reachable=False, error_message="Authentication failed — check API key.")
+        except openai.OpenAIError as exc:
+            logger.warning("openai_compatible_probe_error", extra={"provider_id": self._provider_id})
+            return HealthProbeResult(reachable=False, error_message=str(exc))

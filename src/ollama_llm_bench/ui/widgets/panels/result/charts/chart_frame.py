@@ -444,6 +444,8 @@ class ChartFrame(QWidget):
             cat_axis = QBarCategoryAxis()
             cat_axis.append(list(data.category_labels))
             cat_axis.setLabelsColor(axis_color)
+            cat_axis.setLabelsAngle(-45)
+            cat_axis.setTruncateLabels(False)
             self._chart.addAxis(cat_axis, Qt.AlignmentFlag.AlignBottom)
             series.attachAxis(cat_axis)
             val_axis = QValueAxis()
@@ -477,17 +479,32 @@ class ChartFrame(QWidget):
         axis_color = QColor(self._tokens.get("text_secondary", "#9CA3AF"))
         use_log: bool = bool(data.extra.get("log_scale", False))
 
+        all_x = [pt[0] for pt in data.scatter_points]
+        all_y = [pt[1] for pt in data.scatter_points]
+        x_min, x_max = min(all_x), max(all_x)
+        y_min, y_max = min(all_y), max(all_y)
+
         if use_log:
+            x_lo = x_min * 0.5
+            x_hi = x_max * 2.0
+            y_lo = y_min * 0.5
+            y_hi = y_max * 2.0
             x_axis: QValueAxis | QLogValueAxis = QLogValueAxis()
             y_axis: QValueAxis | QLogValueAxis = QLogValueAxis()
         else:
+            x_pad = (x_max - x_min) * 0.1 if x_max != x_min else max(x_max * 0.1, 1.0)
+            y_pad = (y_max - y_min) * 0.1 if y_max != y_min else max(y_max * 0.1, 0.1)
+            x_lo = max(0.0, x_min - x_pad)
+            x_hi = x_max + x_pad
+            y_lo = max(0.0, y_min - y_pad)
+            y_hi = y_max + y_pad
             x_axis = QValueAxis()
             y_axis = QValueAxis()
 
-        if isinstance(x_axis, QValueAxis):
-            x_axis.setLabelsColor(axis_color)
-        if isinstance(y_axis, QValueAxis):
-            y_axis.setLabelsColor(axis_color)
+        x_axis.setRange(x_lo, x_hi)
+        y_axis.setRange(y_lo, y_hi)
+        x_axis.setLabelsColor(axis_color)
+        y_axis.setLabelsColor(axis_color)
 
         self._chart.addAxis(x_axis, Qt.AlignmentFlag.AlignBottom)
         self._chart.addAxis(y_axis, Qt.AlignmentFlag.AlignLeft)
@@ -518,6 +535,8 @@ class ChartFrame(QWidget):
         cat_axis = QBarCategoryAxis()
         cat_axis.append(list(data.series_labels))
         cat_axis.setLabelsColor(axis_color)
+        cat_axis.setLabelsAngle(-45)
+        cat_axis.setTruncateLabels(False)
         self._chart.addAxis(cat_axis, Qt.AlignmentFlag.AlignBottom)
         bp_series.attachAxis(cat_axis)
 
@@ -557,32 +576,41 @@ class ChartFrame(QWidget):
             self._export_png(path)
 
     def _export_png(self, path: str) -> None:
-        """Render the QChart scene to a fixed-size QImage and save it as PNG.
+        """Render the QChart scene at native viewport size, scale to fill canvas exactly, and save as PNG.
 
         Args:
             path: Filesystem path to write the PNG to.
         """
-        chart_image = QImage(_EXPORT_CHART_W, _EXPORT_CHART_H, QImage.Format.Format_ARGB32)
-        chart_image.fill(QColor(self._tokens.get("bg_card", "#263044")))
+        viewport = self._chart_view.viewport()
+        native_w, native_h = viewport.width(), viewport.height()
 
-        painter = QPainter(chart_image)
+        native_img = QImage(native_w, native_h, QImage.Format.Format_ARGB32)
+        native_img.fill(QColor(self._tokens.get("bg_card", "#263044")))
+        painter = QPainter(native_img)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        target_rect = QRectF(0.0, 0.0, float(_EXPORT_CHART_W), float(_EXPORT_CHART_H))
         self._chart.scene().render(
             painter,
-            target_rect,
-            self._chart_view.viewport().rect(),
-            Qt.AspectRatioMode.IgnoreAspectRatio,
+            QRectF(0.0, 0.0, float(native_w), float(native_h)),
+            QRectF(viewport.rect()),
         )
         painter.end()
 
-        final = QPixmap(_EXPORT_CHART_W, _EXPORT_CHART_H + _EXPORT_CAPTION_H)
+        export_w = _EXPORT_CHART_W
+        export_h = int(export_w * native_h / native_w) if native_w > 0 else _EXPORT_CHART_H
+
+        chart_img = native_img.scaled(
+            export_w,
+            export_h,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        final = QPixmap(export_w, export_h + _EXPORT_CAPTION_H)
         final.fill(QColor(self._tokens.get("bg_card", "#263044")))
-
         composer = QPainter(final)
-        composer.drawImage(0, 0, chart_image)
+        composer.drawImage(0, 0, chart_img)
 
-        caption_rect = QRect(0, _EXPORT_CHART_H, _EXPORT_CHART_W, _EXPORT_CAPTION_H)
+        caption_rect = QRect(0, export_h, export_w, _EXPORT_CAPTION_H)
         composer.setPen(QColor(self._tokens.get("text_primary", "#F9FAFB")))
         caption_font = QFont()
         caption_font.setPointSize(14)

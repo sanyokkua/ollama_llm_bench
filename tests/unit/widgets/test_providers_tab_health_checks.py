@@ -100,7 +100,7 @@ class TestRunInitialHealthChecks:
             tab._run_initial_health_checks()
 
         mock_pool.start.assert_not_called()
-        assert tab._cards[0]._health_dot.property("health") == "unknown"
+        assert tab._model.get_health_state("p1") == "unknown"
 
     def test_sets_down_for_unset_env_var_without_network(
         self,
@@ -125,7 +125,7 @@ class TestRunInitialHealthChecks:
             tab._run_initial_health_checks()
 
         mock_pool.start.assert_not_called()
-        assert tab._cards[0]._health_dot.property("health") == "down"
+        assert tab._model.get_health_state("p1") == "down"
 
     def test_does_not_spawn_for_enabled_provider_when_env_var_is_set(
         self,
@@ -177,36 +177,36 @@ class TestRunHealthCheckForDedup:
         mock_pool.start.assert_not_called()
 
 
-class TestHandleTestConnection:
+class TestOnTestRequested:
     def test_delegates_to_run_health_check_for(
         self,
         qapp: QApplication,
         mocker: MockerFixture,
     ) -> None:
-        """_handle_test_connection must reset the card and call _run_health_check_for."""
+        """_on_test_requested must reset the card and call _run_health_check_for."""
         config = _provider_config(provider_id="p1")
         controller = _make_controller(mocker, (config,))
 
         tab = ProvidersTabWidget(controller=cast(SettingsWidgetControllerApi, controller))
         mock_run_check = mocker.patch.object(tab, "_run_health_check_for")
 
-        tab._handle_test_connection(config)
+        tab._on_test_requested(0)
 
         mock_run_check.assert_called_once_with("p1")
 
-    def test_resets_card_before_running_check(
+    def test_sets_testing_state_before_running_check(
         self,
         qapp: QApplication,
         mocker: MockerFixture,
     ) -> None:
-        """Card health must be reset to in-progress state before the runnable is spawned."""
+        """Model health must be set to 'testing' state before the runnable is spawned."""
         config = _provider_config(provider_id="p1")
         controller = _make_controller(mocker, (config,))
 
         tab = ProvidersTabWidget(controller=cast(SettingsWidgetControllerApi, controller))
+        mock_set_health = mocker.patch.object(tab._model, "set_health")
         mocker.patch.object(tab, "_run_health_check_for")
-        mock_reset = mocker.patch.object(tab._cards[0], "reset_health")
 
-        tab._handle_test_connection(config)
+        tab._on_test_requested(0)
 
-        mock_reset.assert_called_once()
+        mock_set_health.assert_called_once_with("p1", "testing", "Testing…")

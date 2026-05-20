@@ -77,7 +77,7 @@ On any validation failure the controller emits `_global_event_msg(...)` (which t
 1. Re-check `is_running()` (guard against double-click).
 2. Re-validate that the persisted run is still `NOT_COMPLETED` — otherwise raise `ValueError`.
 3. Disconnect any leftover signals from a previous task (`_disconnect_current_task`).
-4. Construct `BenchmarkExecutionTask(run_id, data_api, task_api, prompt_builder_api, llm_api)`.
+4. Construct `BenchmarkExecutionTask` with `run_id`, `data_api`, `provider_registry`, `task_loader`, `judge_prompt_service`, evaluators, and other V2 dependencies.
 5. Connect the task's nested `Signals` (`status_changed`, `log_message`, `progress`) to the flow's public signals (`benchmark_status_events`, `benchmark_output_events`, `benchmark_progress_events`).
 6. Store `self._current_task = task` and `self._current_run_id = run_id`.
 7. `self._thread_pool.start(task)` — Qt hands the `QRunnable` to the single pool thread.
@@ -114,7 +114,8 @@ The `finally` block guarantees that the UI is always told the run has ended, eve
 sequenceDiagram
     participant Task as BenchmarkExecutionTask
     participant DB as SqLiteDataApi
-    participant LLM as OllamaApi
+    participant Registry as ProviderRegistry
+    participant LLM as LLMProviderApi
     participant Sig as task.signals
 
     Task->>DB: retrieve_benchmark_results_for_run(run_id)
@@ -123,6 +124,8 @@ sequenceDiagram
     DB-->>Task: tasks_to_run
     Task->>Task: _group_tasks_by_model(tasks_to_run)
     loop per model group
+        Task->>Registry: get_provider(provider_id)
+        Registry-->>Task: LLMProviderApi instance
         Task->>LLM: warm_up(model_name)
         LLM-->>Task: True / False
         alt warmup failed
@@ -130,7 +133,7 @@ sequenceDiagram
         end
         loop per task
             Task->>Sig: progress(ReporterStatusMsg)
-            Task->>LLM: inference(user_prompt, ...)
+            Task->>LLM: inference_sync(model, prompt, ...)
             LLM-->>Task: InferenceResponse
             Task->>DB: update_benchmark_result(status=WAITING_FOR_JUDGE)
             Task->>Sig: progress(ReporterStatusMsg)
@@ -141,21 +144,21 @@ sequenceDiagram
 ### Key details
 
 - **Task grouping** (`_group_tasks_by_model`): uses `collections.defaultdict(list)` keyed by `model_name`. This means all of model A's tasks run before any of model B's — so model A is only ever loaded in GPU/RAM once.
+- **Provider routing**: each model name is looked up in `ProviderRegistry` to determine its provider (Ollama, OpenAI-compatible, Anthropic, Gemini), then the corresponding `LLMProviderApi` instance is used for inference.
 - **Resumability**: only `NOT_COMPLETED` rows are picked up. If the user stopped a previous run mid-benchmark, already-executed rows are in `WAITING_FOR_JUDGE` and will be skipped by the benchmarking stage (they'll be picked up by the judging stage).
 - **Per-task exception handling**: a `try/except Exception` around `_execute_benchmark_task` means a single task failure does not abort the stage. The failing row is flipped to `FAILED` via `_update_failed_task`, and the loop continues.
-- **Stop check**: `self._should_stop()` is polled before each model and before each task. It is **not** polled during `llm_api.inference` — the Ollama call blocks the worker thread until completion.
+- **Stop check**: `self._should_stop()` is polled before each model and before each task. It is **not** polled during `LLMProviderApi.inference_sync` — the inference call blocks the worker thread until completion.
 - **Progress update**: `_update_progress` is called after each task (success or failure) inside the `finally` block of the inner `try`.
 
 ### `_execute_benchmark_task`
 
 ```python
-user_prompt = self.prompt_builder_api.build_prompt(task.task_id)   # task.question verbatim
-response = self.llm_api.inference(
-    model_name=model_name,
-    user_prompt=user_prompt,
+user_prompt = self.task_loader.get_task(task.task_id).question  # task.question verbatim
+provider = self.provider_registry.get_provider(model_name)  # resolve provider for this model
+response = provider.inference_sync(
+    model=model_name,
+    prompt=user_prompt,
     system_prompt="",                       # no system prompt during benchmarking
-    on_llm_response=self._log_msg_to_global_logger,
-    on_is_stop_signal=self.is_stopped,
 )
 
 updated_task = BenchmarkResult(
@@ -164,7 +167,7 @@ updated_task = BenchmarkResult(
     task_id=task.task_id,
     model_name=task.model_name,
     status=BenchmarkResultStatus.WAITING_FOR_JUDGE,
-    llm_response=response.llm_response,
+    llm_response=response.text,
     time_taken_ms=response.time_taken_ms,
     tokens_generated=response.tokens_generated,
     ...
@@ -180,37 +183,36 @@ The judging stage is structurally similar to benchmarking, but:
 
 - It filters on `status == WAITING_FOR_JUDGE`.
 - It warms up exactly **one** model: `benchmark_run.judge_model`, read from the run row.
-- Each call uses `is_judge_mode=True`, which tells `OllamaApi.inference` to skip logging the (potentially huge) user prompt in the live log stream.
-- The judge response is parsed with `parse_judge_response` (see [Scoring](#scoring-system)).
+- It routes the judge model through `ProviderRegistry` to get the correct `LLMProviderApi`.
+- The judge response is parsed and evaluated through the 4-layer evaluation pipeline: `RuleBasedEvaluator`, `KeywordEvaluator`, `CosineSimilarityEvaluator`, `LLMJudgeEvaluator`.
 - On success the result transitions to `COMPLETED` with `evaluation_score` and `evaluation_reason` populated.
 - On parse failure or inference exception the result transitions to `FAILED` with `error_message` set.
 
 ```python
-user_prompt, system_prompt = self.prompt_builder_api.build_judge_prompt(task)
-response = self.llm_api.inference(
-    model_name=judge_model,
-    user_prompt=user_prompt,
+user_prompt, system_prompt = self.judge_prompt_service.build_judge_prompt(task, benchmark_result)
+provider = self.provider_registry.get_provider(judge_model)
+response = provider.inference_sync(
+    model=judge_model,
+    prompt=user_prompt,
     system_prompt=system_prompt,
-    on_llm_response=self._log_msg_to_global_logger,
-    on_is_stop_signal=self.is_stopped,
-    is_judge_mode=True,
 )
-has_error, grade, reason = parse_judge_response(response.llm_response)
+%% Run through evaluation pipeline
+score, reason = self.llm_judge_evaluator.evaluate(response.text)
 ```
 
 ## Prompt Construction
 
 ### Benchmark Prompt
 
-`SimplePromptBuilderApi.build_prompt(task_id)` returns `task.question` unchanged.
+`TaskFileLoader.get_task(task_id).question` returns the question unchanged.
 The test model sees the exact question from the YAML file — no preamble, no system prompt.
 Rationale: the benchmark measures how the model behaves out of the box, not how well it responds to an orchestrated prompt.
 
 ### Judge Prompt
 
-`SimplePromptBuilderApi.build_judge_prompt(benchmark_result)` returns a `(user_prompt, system_prompt)` tuple.
+`JudgePromptService.build_judge_prompt(task, benchmark_result)` returns a `(user_prompt, system_prompt)` tuple.
 
-- **System prompt** is `core/prompt_constants.py:SYSTEM_PROMPT` — the static scoring rubric (39 lines).
+- **System prompt** is `core/prompt_constants.py:SYSTEM_PROMPT` — the static scoring rubric.
 - **User prompt** is the `USER_PROMPT` template with 8 placeholders filled via `str.replace`:
 
 | Placeholder | Source |
@@ -280,15 +282,17 @@ Code only validates that a numeric grade and a string reason are returned.
 
 ## Warm-up
 
-`OllamaApi.warm_up(model_name)` issues `client.generate(model=..., prompt="Say Hello")` and retries up to **5** times with **30 s** `time.sleep` between failures.
+`LLMProviderApi.warm_up(model_name)` issues a minimal inference request and retries with exponential backoff.
+Concrete implementations vary: `OpenAICompatibleProvider` retries up to **5** times with **30 s** sleep between failures.
 It returns `True` on the first successful response, `False` on total failure.
 
 `BenchmarkExecutionTask._warmup_model` wraps this:
 
 ```python
 def _warmup_model(self, model_name: str) -> bool:
+    provider = self.provider_registry.get_provider(model_name)
     try:
-        if not self.llm_api.warm_up(model_name):
+        if not provider.warm_up(model_name):
             self._notify_warn(f"Failed to warm up model: {model_name}")
             self._log_stop_requested()
             return False
@@ -369,10 +373,10 @@ After `_execute_benchmark` returns (cleanly or via exception), the `finally` blo
 
 | Error location | Captured as | Visible where |
 |---|---|---|
-| `OllamaApi.inference` raises | `InferenceResponse(has_error=True, error_message=...)` returned; benchmarking `except` path flips row to `FAILED` | `results.error_message` column, Detailed table `STATUS` column |
+| `LLMProviderApi.inference_sync` raises | Exception caught, `BenchmarkResult.error_message` set, row transitions to `FAILED` | Detailed table `STATUS` column |
 | `_execute_benchmark_task` raises | `_update_failed_task` flips row to `FAILED` | same |
-| `_judge_task` raises | `_update_judge_failed` flips row to `FAILED` with `Evaluation failed: ...` | same |
-| `parse_judge_response` parse error | returns `(True, 0.0, error_string)` — row still transitions to `COMPLETED` with `score=0.0` | `evaluation_score = 0.0`, `evaluation_reason = <error>` |
+| `_judge_task` raises | `_update_judge_failed` flips row to `FAILED` with error message | same |
+| Evaluator raises or fails | `EvaluationResult.error_message` set, row transitions to `COMPLETED` with `score = 0.0` | `evaluation_score = 0.0`, `evaluation_reason = <error>` |
 | Warm-up fails all retries | stage returns `False`; `_log_stop_requested()` logs; run stops | Log panel message, stage transitions to `FAILED` |
 | `run()` catches anything else | `_stage = STAGE_FAILED`, traceback logged | Progress panel shows `STAGE_FAILED` |
 
@@ -382,5 +386,5 @@ The pipeline itself never raises to the caller.
 
 - [architecture.md](architecture.md) — threading model and EventBus
 - [data-model.md](data-model.md) — `BenchmarkResult` status lifecycle
-- [services-reference.md](services-reference.md) — `LLMApi`, `DataApi`, `PromptBuilderApi`
+- [services-reference.md](services-reference.md) — `LLMProviderApi`, `DataApi`, `JudgePromptServiceApi`
 - [technical-debt.md](technical-debt.md) — known pipeline issues (warm-up blocking, scoring scale)

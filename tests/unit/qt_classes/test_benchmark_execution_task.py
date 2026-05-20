@@ -147,6 +147,13 @@ def _non_terminal_unknown(layer: EvalLayer) -> EvaluationResult:
 
 def _make_exec_task(mocker: MockerFixture) -> BenchmarkExecutionTask:
     """Build a BenchmarkExecutionTask with all dependencies mocked."""
+    from ollama_llm_bench.backend.services.app_settings_service import _DEFAULTS
+
+    app_settings = mocker.Mock(spec=AppSettingsServiceApi)
+    # All feature flags disabled — ensures sync inference path is taken in _run_inference tests
+    app_settings.get_bool.return_value = False
+    # Return sensible defaults for integer settings keyed from _DEFAULTS
+    app_settings.get_int.side_effect = lambda key, default=0: int(_DEFAULTS.get(key, str(default)))
     task = BenchmarkExecutionTask(
         run_id=1,
         data_api=mocker.Mock(spec=DataApi),
@@ -155,7 +162,7 @@ def _make_exec_task(mocker: MockerFixture) -> BenchmarkExecutionTask:
         judge_summary_service=mocker.Mock(spec=JudgeSummaryServiceApi),
         provider_registry=mocker.Mock(spec=ProviderRegistryApi),
         event_bus=mocker.Mock(spec=EventBus),
-        app_settings=mocker.Mock(spec=AppSettingsServiceApi),
+        app_settings=app_settings,
         rule_evaluator=mocker.Mock(spec=EvaluatorApi),
         keyword_evaluator=mocker.Mock(spec=EvaluatorApi),
         cosine_evaluator=mocker.Mock(spec=EvaluatorApi),
@@ -164,14 +171,6 @@ def _make_exec_task(mocker: MockerFixture) -> BenchmarkExecutionTask:
     )
     # Replace Qt QObject-based Signals with a plain mock so no QApplication is needed
     task.signals = mocker.Mock()
-    # All feature flags disabled — ensures sync inference path is taken in _run_inference tests
-    task._app_settings.get_bool.return_value = False  # type: ignore[attr-defined]
-    # Return sensible defaults for integer settings keyed from _DEFAULTS
-    from ollama_llm_bench.backend.services.app_settings_service import _DEFAULTS
-
-    task._app_settings.get_int.side_effect = lambda key, default=0: int(  # type: ignore[attr-defined]
-        _DEFAULTS.get(key, str(default))
-    )
     # Wire evaluator layers
     task._rule_evaluator.layer = EvalLayer.RULE_BASED  # type: ignore[misc]
     task._keyword_evaluator.layer = EvalLayer.KEYWORD  # type: ignore[misc]
@@ -525,14 +524,17 @@ class TestRunPipelineOrchestration:
         # Arrange
         exec_task = _make_exec_task(mocker)
         run = _make_run(run_mode=RunMode.SPEED)
-        result = _make_result(status=BenchmarkResultStatus.NOT_COMPLETED)
+        pending_result = _make_result(status=BenchmarkResultStatus.NOT_COMPLETED)
+        completed_result = _make_result(status=BenchmarkResultStatus.COMPLETED)
         task = _make_task()
         provider = mocker.Mock(spec=LLMProviderApi)
 
         exec_task._data_api.retrieve_benchmark_run.return_value = run  # type: ignore[attr-defined]
         exec_task._task_loader.load_tasks.return_value = [task]  # type: ignore[attr-defined]
-        exec_task._data_api.retrieve_benchmark_results_for_run.return_value = [result]  # type: ignore[attr-defined]
-        exec_task._data_api.retrieve_benchmark_results_for_run_with_status.return_value = [result]  # type: ignore[attr-defined]
+        # General query returns COMPLETED so the final "all_clean" check passes.
+        exec_task._data_api.retrieve_benchmark_results_for_run.return_value = [completed_result]  # type: ignore[attr-defined]
+        # Status-filtered query returns the pending row so inference runs.
+        exec_task._data_api.retrieve_benchmark_results_for_run_with_status.return_value = [pending_result]  # type: ignore[attr-defined]
         exec_task._provider_registry.get_provider.return_value = provider  # type: ignore[attr-defined]
         provider.inference_sync.return_value = _make_inference_response()
         exec_task._judge_prompt_service.build_inference_prompt.return_value = ("q?", "")  # type: ignore[attr-defined]
@@ -632,3 +634,114 @@ class TestRunPipelineOrchestration:
         persisted_statuses = [c.args[0].status for c in update_run_calls if c.args]
         assert BenchmarkRunStatus.COMPLETED not in persisted_statuses
         assert BenchmarkRunStatus.FAILED not in persisted_statuses
+
+
+# ---------------------------------------------------------------------------
+# Tests — stop semantics (STOPPED status written on user stop)
+# ---------------------------------------------------------------------------
+
+
+class TestStopSemantics:
+    def test_stop_during_judging_writes_stopped_status(self, mocker: MockerFixture) -> None:
+        # Arrange — pipeline runs normally through benchmarking; stop is signalled in judging
+        exec_task = _make_exec_task(mocker)
+        run = _make_run()
+        result = _make_result(status=BenchmarkResultStatus.WAITING_FOR_JUDGE)
+
+        exec_task._data_api.retrieve_benchmark_run.return_value = run  # type: ignore[attr-defined]
+        exec_task._task_loader.load_tasks.return_value = []  # type: ignore[attr-defined]
+        exec_task._data_api.retrieve_benchmark_results_for_run.return_value = [result]  # type: ignore[attr-defined]
+        exec_task._data_api.retrieve_benchmark_results_for_run_with_status.return_value = [result]  # type: ignore[attr-defined]
+
+        # Patch _stage_judging so it sets _stop_requested and returns False (simulating stop mid-judge)
+        def _judging_sets_stop(*_args: object, **_kwargs: object) -> bool:
+            exec_task._stop_requested = True
+            return False
+
+        mocker.patch.object(exec_task, "_stage_judging", side_effect=_judging_sets_stop)
+        mocker.patch.object(exec_task, "_stage_benchmarking", return_value=True)
+        mocker.patch.object(exec_task, "_stage_initializing", return_value={})
+        mocker.patch.object(exec_task, "_check_embedding_provider_health")
+
+        # Act
+        exec_task.run()
+
+        # Assert — STOPPED persisted, not COMPLETED
+        update_run_calls = exec_task._data_api.update_benchmark_run.call_args_list  # type: ignore[attr-defined]
+        persisted_statuses = [c.args[0].status for c in update_run_calls if c.args]
+        assert BenchmarkRunStatus.STOPPED in persisted_statuses
+        assert BenchmarkRunStatus.COMPLETED not in persisted_statuses
+
+    def test_clean_completion_writes_completed_status(self, mocker: MockerFixture) -> None:
+        # Arrange — normal pipeline completes without interruption
+        exec_task = _make_exec_task(mocker)
+        run = _make_run()
+        clean_result = _make_result(status=BenchmarkResultStatus.COMPLETED)
+
+        exec_task._data_api.retrieve_benchmark_run.return_value = run  # type: ignore[attr-defined]
+        exec_task._data_api.retrieve_benchmark_results_for_run.return_value = [clean_result]  # type: ignore[attr-defined]
+        mocker.patch.object(exec_task, "_stage_initializing", return_value={})
+        mocker.patch.object(exec_task, "_stage_benchmarking", return_value=True)
+        mocker.patch.object(exec_task, "_stage_judging", return_value=True)
+        mocker.patch.object(exec_task, "_check_embedding_provider_health")
+        mocker.patch.object(exec_task, "_stage_run_analysis")
+
+        # Act
+        exec_task.run()
+
+        # Assert — COMPLETED persisted
+        update_run_calls = exec_task._data_api.update_benchmark_run.call_args_list  # type: ignore[attr-defined]
+        persisted_statuses = [c.args[0].status for c in update_run_calls if c.args]
+        assert BenchmarkRunStatus.COMPLETED in persisted_statuses
+        assert BenchmarkRunStatus.STOPPED not in persisted_statuses
+
+    def test_run_inference_with_error_response_sets_failed_status(self, mocker: MockerFixture) -> None:
+        # Arrange — inference returns has_error=True; result must be persisted as FAILED
+        exec_task = _make_exec_task(mocker)
+        run = _make_run(run_mode=RunMode.SPEED)
+        pending_result = _make_result(status=BenchmarkResultStatus.NOT_COMPLETED)
+        completed_result = _make_result(status=BenchmarkResultStatus.COMPLETED)
+        task = _make_task()
+        provider = mocker.Mock(spec=LLMProviderApi)
+
+        exec_task._data_api.retrieve_benchmark_run.return_value = run  # type: ignore[attr-defined]
+        exec_task._task_loader.load_tasks.return_value = [task]  # type: ignore[attr-defined]
+        exec_task._data_api.retrieve_benchmark_results_for_run.return_value = [completed_result]  # type: ignore[attr-defined]
+        exec_task._data_api.retrieve_benchmark_results_for_run_with_status.return_value = [pending_result]  # type: ignore[attr-defined]
+        exec_task._provider_registry.get_provider.return_value = provider  # type: ignore[attr-defined]
+        # Inference fails
+        provider.inference_sync.return_value = InferenceResponse(has_error=True, error_message="timeout")
+        exec_task._judge_prompt_service.build_inference_prompt.return_value = ("q?", "")  # type: ignore[attr-defined]
+
+        # Act
+        exec_task.run()
+
+        # Assert — update_benchmark_result called with FAILED, not WAITING_FOR_JUDGE
+        result_update_calls = exec_task._data_api.update_benchmark_result.call_args_list  # type: ignore[attr-defined]
+        saved_statuses = [c.args[0].status for c in result_update_calls if c.args]
+        assert BenchmarkResultStatus.FAILED in saved_statuses
+        assert BenchmarkResultStatus.WAITING_FOR_JUDGE not in saved_statuses
+
+    def test_pipeline_finish_with_failed_results_writes_stopped_not_completed(self, mocker: MockerFixture) -> None:
+        # Arrange — pipeline completes all stages but final result rows contain FAILED
+        exec_task = _make_exec_task(mocker)
+        run = _make_run()
+
+        failed_result = _make_result(status=BenchmarkResultStatus.FAILED)
+        exec_task._data_api.retrieve_benchmark_run.return_value = run  # type: ignore[attr-defined]
+        # Final check sees a FAILED result → all_clean is False → should write STOPPED
+        exec_task._data_api.retrieve_benchmark_results_for_run.return_value = [failed_result]  # type: ignore[attr-defined]
+        mocker.patch.object(exec_task, "_stage_initializing", return_value={})
+        mocker.patch.object(exec_task, "_stage_benchmarking", return_value=True)
+        mocker.patch.object(exec_task, "_stage_judging", return_value=True)
+        mocker.patch.object(exec_task, "_check_embedding_provider_health")
+        mocker.patch.object(exec_task, "_stage_run_analysis")
+
+        # Act
+        exec_task.run()
+
+        # Assert — STOPPED persisted because results are not all clean
+        update_run_calls = exec_task._data_api.update_benchmark_run.call_args_list  # type: ignore[attr-defined]
+        persisted_statuses = [c.args[0].status for c in update_run_calls if c.args]
+        assert BenchmarkRunStatus.STOPPED in persisted_statuses
+        assert BenchmarkRunStatus.COMPLETED not in persisted_statuses

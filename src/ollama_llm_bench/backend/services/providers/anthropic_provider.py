@@ -8,7 +8,7 @@ from typing import cast
 import anthropic
 from anthropic.types import MessageParam, ThinkingConfigParam
 
-from ollama_llm_bench.backend.core.models import InferenceResponse, ModelDescriptor, StreamChunk
+from ollama_llm_bench.backend.core.models import HealthProbeResult, InferenceResponse, ModelDescriptor, StreamChunk
 
 _DEFAULT_MAX_TOKENS: int = 4096
 _THINKING_BUDGET_MAP: dict[str, int] = {
@@ -87,6 +87,7 @@ class AnthropicProvider:
         temperature: float = 0.0,
         max_tokens: int | None = None,
         reasoning_effort: str = "medium",
+        response_format: dict[str, str] | None = None,
     ) -> InferenceResponse:
         """Run synchronous inference against the Anthropic Messages API.
 
@@ -96,6 +97,7 @@ class AnthropicProvider:
             temperature: Sampling temperature; defaults to 0.0 for deterministic output.
             max_tokens: Maximum tokens to generate; defaults to _DEFAULT_MAX_TOKENS.
             reasoning_effort: Maps to extended thinking budget_tokens ("low"/"medium"/"high").
+            response_format: Accepted for API compatibility; ignored by this provider.
 
         Returns:
             Populated InferenceResponse on success, or an error response with
@@ -228,6 +230,27 @@ class AnthropicProvider:
             max_tokens=1,
         )
         return not response.has_error
+
+    def probe_health(self) -> HealthProbeResult:
+        """Call client.models.list() to verify credentials and reachability.
+
+        Returns:
+            HealthProbeResult with reachable=True on success, or reachable=False
+            with error_message on authentication or connection failure.
+        """
+        try:
+            page = self._client.models.list(limit=1)
+            count = len(list(page.data))
+            return HealthProbeResult(reachable=True, model_count_observed=count)
+        except anthropic.AuthenticationError:
+            logger.warning("anthropic_probe_auth_error", extra={"provider_id": self._provider_id})
+            return HealthProbeResult(reachable=False, error_message="Authentication failed — check API key.")
+        except anthropic.APIConnectionError as exc:
+            logger.warning("anthropic_probe_unreachable", extra={"provider_id": self._provider_id})
+            return HealthProbeResult(reachable=False, error_message=str(exc))
+        except anthropic.APIError as exc:
+            logger.warning("anthropic_probe_error", extra={"provider_id": self._provider_id})
+            return HealthProbeResult(reachable=False, error_message=str(exc))
 
     @staticmethod
     def _build_thinking_param(reasoning_effort: str) -> ThinkingConfigParam | None:

@@ -97,7 +97,7 @@ class JudgeWidget(QWidget):
         self._build_layout()
         self._connect_signals()
         self._refresh_providers()
-        self._controller.subscribe_to_provider_registry_reloaded(self._refresh_providers)
+        self._controller.subscribe_to_provider_registry_reloaded(self._refresh_providers, parent=self)
 
     # ------------------------------------------------------------------
     # Widget creation

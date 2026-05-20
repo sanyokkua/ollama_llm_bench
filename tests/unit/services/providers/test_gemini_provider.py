@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 from pytest_mock import MockerFixture
 
-from ollama_llm_bench.backend.core.models import InferenceResponse, ModelDescriptor, StreamChunk
+from ollama_llm_bench.backend.core.models import HealthProbeResult, InferenceResponse, ModelDescriptor, StreamChunk
 from ollama_llm_bench.backend.services.providers.gemini_provider import GeminiProvider
 
 _PROVIDER_ID = "gemini_cloud"
@@ -599,3 +599,45 @@ def test_constructor_with_base_url_passes_http_options(mocker: MockerFixture) ->
     call_kwargs = mock_cls.call_args.kwargs
     assert "http_options" in call_kwargs
     assert call_kwargs["http_options"].base_url == proxy_url
+
+
+class TestGeminiProviderProbeHealth:
+    """Tests for probe_health."""
+
+    def test_probe_health_reachable_with_model_returns_count_one(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        model_item = mocker.Mock()
+        mock_client.models.list.return_value = iter([model_item])
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert isinstance(result, HealthProbeResult)
+        assert result.reachable is True
+        assert result.model_count_observed == 1
+
+    def test_probe_health_reachable_empty_catalog_returns_zero(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        mock_client.models.list.return_value = iter([])
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert result.reachable is True
+        assert result.model_count_observed == 0
+
+    def test_probe_health_raises_returns_not_reachable(self, mocker: MockerFixture) -> None:
+        # Arrange
+        provider, mock_client = _make_provider(mocker)
+        mock_client.models.list.side_effect = Exception("connection refused")
+
+        # Act
+        result = provider.probe_health()
+
+        # Assert
+        assert result.reachable is False
+        assert result.error_message == "connection refused"

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QApplication
@@ -77,56 +79,62 @@ def chart_frame(qapp: QApplication) -> ChartFrame:
 
 def test_export_pixmap_dimensions_match_configuration(
     chart_frame: ChartFrame,
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     # Arrange
     out = str(tmp_path / "out.png")
 
     # Act
-    chart_frame._export_png(out)  # type: ignore[attr-defined]
+    chart_frame._export_png(out)
 
-    # Assert
+    # Assert: width is always the configured export width; height is aspect-preserving
     image = QImage(out)
     assert not image.isNull()
     assert image.width() == _EXPORT_CHART_W
-    assert image.height() == _EXPORT_CHART_H + _EXPORT_CAPTION_H
+    # Height is at least the caption strip; exact value depends on viewport aspect ratio
+    assert image.height() >= _EXPORT_CAPTION_H
 
 
 def test_export_caption_strip_height_is_60px(
     chart_frame: ChartFrame,
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
-    # Arrange
+    # Arrange: resize viewport to a known aspect ratio
+    chart_frame.resize(400, 300)
     out = str(tmp_path / "out.png")
 
     # Act
-    chart_frame._export_png(out)  # type: ignore[attr-defined]
+    chart_frame._export_png(out)
 
-    # Assert
+    # Assert: last _EXPORT_CAPTION_H rows are the caption band
+    # Total height = aspect-preserving chart height + caption strip
     image = QImage(out)
-    assert image.height() - _EXPORT_CHART_H == _EXPORT_CAPTION_H
+    viewport = chart_frame._chart_view.viewport()
+    native_w, native_h = viewport.width(), viewport.height()
+    expected_chart_h = int(_EXPORT_CHART_W * native_h / native_w) if native_w > 0 else _EXPORT_CHART_H
+    assert image.height() == expected_chart_h + _EXPORT_CAPTION_H
 
 
 def test_export_does_not_change_canvas_size(
     chart_frame: ChartFrame,
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     # Arrange
     chart_frame.resize(400, 300)
-    before = chart_frame._chart_view.size()  # type: ignore[attr-defined]
+    before = chart_frame._chart_view.size()
     out = str(tmp_path / "out.png")
 
     # Act
-    chart_frame._export_png(out)  # type: ignore[attr-defined]
+    chart_frame._export_png(out)
 
     # Assert
-    assert chart_frame._chart_view.size() == before  # type: ignore[attr-defined]
+    assert chart_frame._chart_view.size() == before
 
 
 def test_export_emits_exported_signal_on_success(
     chart_frame: ChartFrame,
     mocker: MockerFixture,
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     # Arrange
     received: list[str] = []
@@ -134,7 +142,7 @@ def test_export_emits_exported_signal_on_success(
     out = str(tmp_path / "out.png")
 
     # Act
-    chart_frame._export_png(out)  # type: ignore[attr-defined]
+    chart_frame._export_png(out)
 
     # Assert
     assert received == [out]
@@ -143,7 +151,7 @@ def test_export_emits_exported_signal_on_success(
 def test_export_does_not_emit_exported_signal_on_save_failure(
     chart_frame: ChartFrame,
     mocker: MockerFixture,
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     # Arrange
     mocker.patch(
@@ -155,7 +163,7 @@ def test_export_does_not_emit_exported_signal_on_save_failure(
     out = str(tmp_path / "out.png")
 
     # Act
-    chart_frame._export_png(out)  # type: ignore[attr-defined]
+    chart_frame._export_png(out)
 
     # Assert
     assert received == []

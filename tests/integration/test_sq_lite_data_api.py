@@ -2,9 +2,13 @@
 
 import dataclasses
 import sqlite3
+from pathlib import Path
+
+import pytest
 
 from ollama_llm_bench.backend.core.models import (
     BenchmarkResult,
+    BenchmarkResultStatus,
     BenchmarkRun,
     BenchmarkRunStatus,
     PromptVariant,
@@ -160,3 +164,178 @@ def test_benchmark_results_table_has_v2_columns(data_api: SqLiteDataApi) -> None
     assert "ttft_ms" in cols
     assert "raw_response" in cols
     assert "sanitized_response" in cols
+
+
+def test_update_run_name_persists_and_retrieves(data_api: SqLiteDataApi) -> None:
+    run_id = data_api.create_benchmark_run(_make_run())
+
+    data_api.update_run_name(run_id=run_id, run_name="My Renamed Run")
+
+    retrieved = data_api.retrieve_benchmark_run(run_id)
+    assert retrieved.run_name == "My Renamed Run"
+
+
+def test_run_name_is_none_by_default(data_api: SqLiteDataApi) -> None:
+    run_id = data_api.create_benchmark_run(_make_run())
+
+    retrieved = data_api.retrieve_benchmark_run(run_id)
+
+    assert retrieved.run_name is None
+
+
+def test_update_run_name_raises_on_duplicate(data_api: SqLiteDataApi) -> None:
+    run_id_a = data_api.create_benchmark_run(_make_run())
+    run_id_b = data_api.create_benchmark_run(_make_run())
+    data_api.update_run_name(run_id=run_id_a, run_name="Same Name")
+
+    with pytest.raises(sqlite3.IntegrityError):
+        data_api.update_run_name(run_id=run_id_b, run_name="Same Name")
+
+
+def test_multiple_null_run_names_allowed(data_api: SqLiteDataApi) -> None:
+    data_api.create_benchmark_run(_make_run())
+    data_api.create_benchmark_run(_make_run())
+    data_api.create_benchmark_run(_make_run())
+
+    all_runs = data_api.retrieve_benchmark_runs()
+
+    assert all(r.run_name is None for r in all_runs)
+
+
+def test_migration_adds_run_name_column(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("CREATE TABLE benchmark_runs (run_id INTEGER PRIMARY KEY, timestamp TEXT, status TEXT)")
+    conn.commit()
+    conn.close()
+
+    SqLiteDataApi(db_path)
+
+    conn2 = sqlite3.connect(str(db_path))
+    cols = {row[1] for row in conn2.execute("PRAGMA table_info(benchmark_runs)").fetchall()}
+    conn2.close()
+
+    assert "run_name" in cols
+
+
+# ---------------------------------------------------------------------------
+# reset_results tests
+# ---------------------------------------------------------------------------
+
+
+def test_reset_results_clears_inferred_fields_and_preserves_identity(data_api: SqLiteDataApi) -> None:
+    # Arrange — create a completed result with inferred fields populated
+    run_id = data_api.create_benchmark_run(_make_run())
+    base = _make_result(run_id)
+    completed_result = dataclasses.replace(
+        base,
+        status=BenchmarkResultStatus.COMPLETED,
+        completed_at="2026-01-02T00:00:00",
+        raw_response="hello",
+        sanitized_response="hello",
+        response_char_length=5,
+        has_thinking_block=True,
+        total_time_ms=100,
+        ttft_ms=10,
+        prompt_tokens=5,
+        completion_tokens=3,
+        tokens_per_second=30.0,
+        rule_check_result="pass",
+        rule_check_resolved=True,
+        keyword_check_resolved=True,
+        cosine_similarity=0.9,
+        cosine_resolved=True,
+        judge_result="pass",
+        judge_score=1.0,
+        final_verdict="pass",
+        resolution_layer="llm_judge",
+        has_inference_error=False,
+        has_judge_error=False,
+    )
+    result_id = data_api.create_benchmark_result(completed_result)
+
+    # Act
+    data_api.reset_results([result_id])
+
+    # Assert — inferred fields are cleared; identity fields preserved
+    retrieved = data_api.retrieve_benchmark_result(result_id)
+    assert retrieved.status == BenchmarkResultStatus.NOT_COMPLETED
+    assert retrieved.completed_at is None
+    assert retrieved.raw_response is None
+    assert retrieved.sanitized_response is None
+    assert retrieved.response_char_length is None
+    assert retrieved.has_thinking_block is False
+    assert retrieved.total_time_ms is None
+    assert retrieved.final_verdict is None
+    assert retrieved.resolution_layer is None
+    assert retrieved.has_inference_error is False
+    # Identity fields are preserved
+    assert retrieved.result_id == result_id
+    assert retrieved.run_id == run_id
+    assert retrieved.task_id == "t1"
+    assert retrieved.model_name == "llama3.2:3b"
+
+
+def test_reset_results_with_empty_list_is_noop(data_api: SqLiteDataApi) -> None:
+    # Arrange
+    run_id = data_api.create_benchmark_run(_make_run())
+    result_id = data_api.create_benchmark_result(_make_result(run_id))
+
+    # Act — calling with empty list should not raise and should not change anything
+    data_api.reset_results([])
+
+    retrieved = data_api.retrieve_benchmark_result(result_id)
+    assert retrieved.status == BenchmarkResultStatus.NOT_COMPLETED
+
+
+# ---------------------------------------------------------------------------
+# Migration: fix COMPLETED runs with non-terminal results
+# ---------------------------------------------------------------------------
+
+
+def test_migration_corrects_completed_run_with_non_terminal_results(tmp_path: Path) -> None:
+    # Arrange — insert a COMPLETED run with a WAITING_FOR_JUDGE result via raw SQL
+    db_path = tmp_path / "migrate_test.db"
+    run_id = SqLiteDataApi(db_path).create_benchmark_run(_make_run())
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("UPDATE benchmark_runs SET status = 'COMPLETED' WHERE run_id = ?", (run_id,))
+    conn.execute(
+        "INSERT INTO benchmark_results (run_id, model_name, task_id, status) "
+        "VALUES (?, 'model_a', 'task_a', 'WAITING_FOR_JUDGE')",
+        (run_id,),
+    )
+    conn.commit()
+    conn.close()
+
+    # Act — re-init triggers migration
+    api = SqLiteDataApi(db_path)
+
+    # Assert — run should now be STOPPED
+    run = api.retrieve_benchmark_run(run_id)
+    assert run.status == BenchmarkRunStatus.STOPPED
+
+
+def test_migration_is_idempotent(tmp_path: Path) -> None:
+    # Arrange — create a DB then corrupt it
+    db_path = tmp_path / "migrate_idem.db"
+    api1 = SqLiteDataApi(db_path)
+    run_id = api1.create_benchmark_run(_make_run())
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("UPDATE benchmark_runs SET status = 'COMPLETED' WHERE run_id = ?", (run_id,))
+    conn.execute(
+        "INSERT INTO benchmark_results (run_id, model_name, task_id, status) "
+        "VALUES (?, 'model_b', 'task_b', 'WAITING_FOR_JUDGE')",
+        (run_id,),
+    )
+    conn.commit()
+    conn.close()
+
+    # Act — re-init twice
+    api2 = SqLiteDataApi(db_path)
+    api3 = SqLiteDataApi(db_path)
+
+    # Assert — no exception, still STOPPED after two migrations
+    run = api3.retrieve_benchmark_run(run_id)
+    assert run.status == BenchmarkRunStatus.STOPPED
+    # Suppress unused-variable warning for api2
+    _ = api2

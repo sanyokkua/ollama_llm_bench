@@ -37,8 +37,8 @@ _EXPORT_CAPTION_H: int = 60
 class HeatmapWidget(QWidget):
     """Custom QPainter widget rendering a score heatmap grid.
 
-    Each row is a model; each column is a task. Cells are colour-coded from
-    red (0.0 / fail) through yellow (0.5) to green (1.0 / pass).
+    Each row is a **task**; each column is a **model**. Cells are colour-coded
+    from red (0.0 / fail) through yellow (0.5) to green (1.0 / pass).
     """
 
     _CELL_W: int = 60
@@ -101,29 +101,29 @@ class HeatmapWidget(QWidget):
         painter.setFont(small_font)
         painter.setPen(text_color)
 
-        for row_idx, model in enumerate(self._data.row_labels):
+        for row_idx, task in enumerate(self._data.row_labels):
             y = self._MARGIN_TOP + row_idx * self._CELL_H + self._CELL_H // 2
             label_rect = QRect(0, y - self._CELL_H // 2, self._MARGIN_LEFT - 4, self._CELL_H)
-            painter.drawText(label_rect, (0x0001 | 0x0080), model)  # AlignLeft | AlignVCenter
+            painter.drawText(label_rect, (0x0001 | 0x0080), task)  # AlignLeft | AlignVCenter
 
-        for col_idx, task in enumerate(self._data.col_labels):
+        for col_idx, model in enumerate(self._data.col_labels):
             x = self._MARGIN_LEFT + col_idx * self._CELL_W + self._CELL_W // 2
             y = self._MARGIN_TOP + len(self._data.row_labels) * self._CELL_H + 4
             painter.save()
             painter.translate(x, y)
             painter.rotate(45.0)
-            painter.drawText(QRect(0, 0, self._MARGIN_BOTTOM - 8, 20), 0x0001, task)
+            painter.drawText(QRect(0, 0, self._MARGIN_BOTTOM - 8, 20), 0x0001, model)
             painter.restore()
 
-        for row_idx, model in enumerate(self._data.row_labels):
-            for col_idx, task in enumerate(self._data.col_labels):
+        for row_idx, task in enumerate(self._data.row_labels):
+            for col_idx, model in enumerate(self._data.col_labels):
                 rect = QRect(
                     self._MARGIN_LEFT + col_idx * self._CELL_W,
                     self._MARGIN_TOP + row_idx * self._CELL_H,
                     self._CELL_W,
                     self._CELL_H,
                 )
-                value: float | None = self._data.cells.get((model, task))
+                value: float | None = self._data.cells.get((task, model))
                 cell_color = self._color_for(value)
                 painter.fillRect(rect, cell_color)
 
@@ -134,21 +134,17 @@ class HeatmapWidget(QWidget):
                 cell_text = f"{value:.2f}" if value is not None else "—"
                 painter.drawText(rect, (0x0004 | 0x0080), cell_text)  # AlignHCenter | AlignVCenter
 
-    def render_to_image(self, *, width: int, height: int) -> QImage:
-        """Render the heatmap to a fixed-size QImage for export.
-
-        Args:
-            width: Target image width in pixels.
-            height: Target image height in pixels.
+    def render_to_image(self) -> QImage:
+        """Render the heatmap at its natural cell-based size and return a QImage.
 
         Returns:
-            A QImage of the specified dimensions filled with the heatmap content.
+            A QImage sized by sizeHint() filled with the heatmap content.
         """
-        image = QImage(width, height, QImage.Format.Format_ARGB32)
+        size = self.sizeHint()
+        image = QImage(size.width(), size.height(), QImage.Format.Format_ARGB32)
         image.fill(QColor(self._tokens.get("bg_card", "#263044")))
         painter = QPainter(image)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        self._draw_heatmap(painter, width, height)
+        self._draw_heatmap(painter, size.width(), size.height())
         painter.end()
         return image
 
@@ -387,15 +383,27 @@ class HeatmapFrame(QWidget):
             logger.warning("No heatmap widget to export")
             return
 
-        chart_image = scroll_widget.render_to_image(width=_EXPORT_CHART_W, height=_EXPORT_CHART_H)
+        natural_img = scroll_widget.render_to_image()
+        nat_w = natural_img.width()
+        nat_h = natural_img.height()
 
-        final = QPixmap(_EXPORT_CHART_W, _EXPORT_CHART_H + _EXPORT_CAPTION_H)
+        export_w = _EXPORT_CHART_W
+        export_h = int(export_w * nat_h / nat_w) if nat_w > 0 else _EXPORT_CHART_H
+
+        chart_image = natural_img.scaled(
+            export_w,
+            export_h,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+
+        final = QPixmap(export_w, export_h + _EXPORT_CAPTION_H)
         final.fill(QColor(self._tokens.get("bg_card", "#263044")))
 
         composer = QPainter(final)
         composer.drawImage(0, 0, chart_image)
 
-        caption_rect = QRect(0, _EXPORT_CHART_H, _EXPORT_CHART_W, _EXPORT_CAPTION_H)
+        caption_rect = QRect(0, export_h, export_w, _EXPORT_CAPTION_H)
         composer.setPen(QColor(self._tokens.get("text_primary", "#F9FAFB")))
         caption_font = QFont()
         caption_font.setPointSize(14)

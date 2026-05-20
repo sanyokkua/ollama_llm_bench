@@ -10,6 +10,8 @@ from PySide6.QtWidgets import QApplication
 from pytest_mock import MockerFixture
 
 from ollama_llm_bench.backend.core.interfaces import AppSettingsServiceApi, BenchmarkFlowApi, EventBus
+from ollama_llm_bench.backend.core.models import ReadinessVerdict, RunMode
+from ollama_llm_bench.backend.core.ui_controllers import RunConfigControllerApi
 from ollama_llm_bench.ui.controllers.run_config_controller import RunConfigController
 from ollama_llm_bench.ui.widgets.panels.center_panel import CenterPanel
 from ollama_llm_bench.ui.widgets.panels.run_config_panel import RunConfigPanel
@@ -43,6 +45,9 @@ def test_run_config_panel_inner_spacing(qapp: QApplication, mocker: MockerFixtur
     mock_ctrl.get_provider_names.return_value = []
     mock_ctrl.get_healthy_provider_ids.return_value = []
     mock_ctrl.get_recent_runs.return_value = []
+    mock_ctrl.readiness_verdict.return_value = ReadinessVerdict(
+        mode=RunMode.SPEED, is_ready=True, issues=(), severity="ok"
+    )
     panel = RunConfigPanel(controller=cast(RunConfigController, mock_ctrl))
 
     # Act
@@ -59,10 +64,12 @@ def test_center_panel_margins(qapp: QApplication, mocker: MockerFixture) -> None
     mock_flow = mocker.Mock(spec=BenchmarkFlowApi)
     mock_settings = mocker.Mock(spec=AppSettingsServiceApi)
     mock_settings.get_bool.return_value = True
+    mock_run_config_ctrl = mocker.Mock(spec=RunConfigControllerApi)
     panel = CenterPanel(
         event_bus=mock_bus,
         benchmark_flow_api=mock_flow,
         app_settings=mock_settings,
+        run_config_controller=mock_run_config_ctrl,
     )
 
     # Act

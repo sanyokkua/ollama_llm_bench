@@ -62,6 +62,8 @@ class TestModelsSummaryWidget(QWidget):
         self._scroll_area = QScrollArea()
         self._scroll_area.setWidgetResizable(True)
         self._scroll_area.setWidget(self._row_container)
+        self._scroll_area.setMinimumHeight(120)
+        self._scroll_area.setMaximumHeight(240)
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)

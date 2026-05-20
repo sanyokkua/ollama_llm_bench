@@ -637,19 +637,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ollama"
-version = "0.5.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "httpx" },
-    { name = "pydantic" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/72/62/a36be4555e4218d6c8b35e72e0dfe0823845400097275cd81c9aec4ddf39/ollama-0.5.4.tar.gz", hash = "sha256:75857505a5d42e5e58114a1b78cc8c24596d8866863359d8a2329946a9b6d6f3", size = 45233, upload-time = "2025-09-16T00:25:25.785Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/af/d0a23c8fdec4c8ddb771191d9b36a57fbce6741835a78f1b18ab6d15ae7d/ollama-0.5.4-py3-none-any.whl", hash = "sha256:6374c9bb4f2a371b3583c09786112ba85b006516745689c172a7e28af4d4d1a2", size = 13548, upload-time = "2025-09-16T00:25:24.186Z" },
-]
-
-[[package]]
 name = "ollama-llm-bench"
 version = "0.1.1"
 source = { editable = "." }
@@ -657,7 +644,6 @@ dependencies = [
     { name = "anthropic" },
     { name = "google-genai" },
     { name = "markdown" },
-    { name = "ollama" },
     { name = "openai" },
     { name = "pyside6" },
     { name = "pyyaml" },
@@ -684,7 +670,6 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.95.0" },
     { name = "google-genai", specifier = ">=1.73.1" },
     { name = "markdown", specifier = ">=3.10.2" },
-    { name = "ollama", specifier = ">=0.5.1,<0.6.0" },
     { name = "openai", specifier = ">=2.32.0" },
     { name = "pyside6", specifier = ">=6.8.0,<7.0.0" },
     { name = "pyyaml", specifier = ">=6.0.2,<7.0.0" },

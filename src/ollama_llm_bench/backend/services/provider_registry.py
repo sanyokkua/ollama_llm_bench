@@ -2,12 +2,20 @@
 
 import logging
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 from typing import cast
 
-from ollama_llm_bench.backend.core.interfaces import EmbeddingProviderApi, LLMProviderApi, ProviderConfigLoaderApi
-from ollama_llm_bench.backend.core.models import ProviderConfig, ProvidersConfig, ProviderType
+from ollama_llm_bench.backend.core.interfaces import (
+    EmbeddingProviderApi,
+    LLMProviderApi,
+    ModelCapabilityServiceApi,
+    ProviderConfigLoaderApi,
+    ProviderConfigRepositoryApi,
+)
+from ollama_llm_bench.backend.core.models import EmbeddingConfig, ProviderConfig, ProvidersConfig, ProviderType
 from ollama_llm_bench.backend.services.embedding_service import EmbeddingService
+from ollama_llm_bench.backend.services.llm_error_classifier import LlmErrorClassifier
 from ollama_llm_bench.backend.services.model_name_parser import ModelNameParser
 from ollama_llm_bench.backend.services.providers.anthropic_provider import AnthropicProvider
 from ollama_llm_bench.backend.services.providers.gemini_provider import GeminiProvider
@@ -21,7 +29,12 @@ class ProviderNotFoundError(KeyError):
     """Raised when a provider_id is not found in the registry."""
 
 
-def _build_openai_compatible(config: ProviderConfig, name_parser: ModelNameParser) -> LLMProviderApi:
+def _build_openai_compatible(
+    config: ProviderConfig,
+    name_parser: ModelNameParser,
+    capability_service: ModelCapabilityServiceApi | None = None,
+    classifier: LlmErrorClassifier | None = None,
+) -> LLMProviderApi:
     return cast(
         LLMProviderApi,
         OpenAICompatibleProvider(
@@ -30,6 +43,8 @@ def _build_openai_compatible(config: ProviderConfig, name_parser: ModelNameParse
             base_url=config.base_url or "",
             api_key=config.api_key,
             name_parser=name_parser,
+            capability_service=capability_service,
+            classifier=classifier,
         ),
     )
 
@@ -58,12 +73,34 @@ def _build_gemini(config: ProviderConfig, name_parser: ModelNameParser) -> LLMPr
     )
 
 
-type _ProviderFactory = Callable[[ProviderConfig, ModelNameParser], LLMProviderApi]
+type _ProviderFactory = Callable[
+    [ProviderConfig, ModelNameParser, ModelCapabilityServiceApi | None, LlmErrorClassifier | None],
+    LLMProviderApi,
+]
+
+
+def _build_anthropic_factory(
+    config: ProviderConfig,
+    name_parser: ModelNameParser,
+    capability_service: ModelCapabilityServiceApi | None = None,
+    classifier: LlmErrorClassifier | None = None,
+) -> LLMProviderApi:
+    return _build_anthropic(config, name_parser)
+
+
+def _build_gemini_factory(
+    config: ProviderConfig,
+    name_parser: ModelNameParser,
+    capability_service: ModelCapabilityServiceApi | None = None,
+    classifier: LlmErrorClassifier | None = None,
+) -> LLMProviderApi:
+    return _build_gemini(config, name_parser)
+
 
 _PROVIDER_FACTORIES: dict[ProviderType, _ProviderFactory] = {
     ProviderType.OPENAI_COMPATIBLE: _build_openai_compatible,
-    ProviderType.ANTHROPIC: _build_anthropic,
-    ProviderType.GEMINI: _build_gemini,
+    ProviderType.ANTHROPIC: _build_anthropic_factory,
+    ProviderType.GEMINI: _build_gemini_factory,
 }
 
 
@@ -80,24 +117,89 @@ class ProviderRegistry:
         *,
         config_loader: ProviderConfigLoaderApi,
         providers_yaml_path: Path,
+        capability_service: ModelCapabilityServiceApi | None = None,
+        classifier: LlmErrorClassifier | None = None,
+        config_repository: ProviderConfigRepositoryApi | None = None,
     ) -> None:
         """Initialize the registry with a config loader and path to providers.yaml.
 
         Args:
             config_loader: Loader used to parse and validate the providers.yaml file.
             providers_yaml_path: Path to the providers.yaml configuration file.
+            capability_service: Optional service for model capability discovery; forwarded
+                to OpenAI-compatible providers so warm_up() can persist 400-error discoveries.
+            classifier: Optional error classifier; forwarded to OpenAI-compatible providers.
+            config_repository: Optional SQLite-backed repository; when provided and non-empty,
+                providers are loaded from the database rather than from the YAML file.
         """
         self._config_loader = config_loader
         self._providers_yaml_path = providers_yaml_path
+        self._capability_service = capability_service
+        self._classifier = classifier
+        self._config_repository = config_repository
         self._providers: dict[str, LLMProviderApi] = {}
         self._config: ProvidersConfig | None = None
         self._embedding_service: EmbeddingService | None = None
         self._is_loaded: bool = False
         self._name_parser = ModelNameParser()
 
-    def load(self) -> None:
-        """Load providers.yaml and construct all provider clients.
+    def _load_config_from_db(self) -> ProvidersConfig | None:
+        """Attempt to load ProvidersConfig from the SQLite repository.
 
+        Returns the config if the repository is set and contains rows,
+        otherwise returns None so the caller falls back to YAML.
+
+        Returns:
+            ProvidersConfig from the database, or None if unavailable.
+        """
+        if self._config_repository is None:
+            return None
+        try:
+            if self._config_repository.count() == 0:
+                return None
+            raw_providers = self._config_repository.load_all()
+            resolved = self._config_loader.resolve_env_vars(raw_providers)
+            embedding_cfg = self._config_repository.load_embedding_config()
+            if embedding_cfg is None:
+                embedding_cfg = EmbeddingConfig(provider_id="ollama_local", model="")
+            return ProvidersConfig(providers=tuple(resolved), embedding=embedding_cfg)
+        except Exception:
+            logger.exception("provider_registry_db_load_failed")
+            return None
+
+    def _seed_db_from_yaml(self, config: ProvidersConfig) -> None:
+        """Seed the SQLite repository from a freshly loaded YAML config.
+
+        Called when the database is empty and YAML is the authoritative source.
+        Archives providers.yaml after a successful seed so subsequent launches
+        load from the database instead. Errors are logged and swallowed.
+
+        Args:
+            config: Freshly loaded ProvidersConfig from providers.yaml.
+        """
+        if self._config_repository is None:
+            return
+        try:
+            for provider in config.providers:
+                self._config_repository.save(provider)
+            self._config_repository.save_embedding_config(config.embedding)
+            logger.info("provider_registry_db_seeded_from_yaml")
+        except Exception:
+            logger.exception("provider_registry_db_seed_failed")
+            return
+        suffix = date.today().strftime("%Y%m%d")
+        migrated_path = self._providers_yaml_path.with_suffix(f".yaml.migrated-{suffix}")
+        try:
+            self._providers_yaml_path.rename(migrated_path)
+            logger.info("providers_yaml_archived", extra={"path": str(migrated_path)})
+        except OSError:
+            logger.warning("providers_yaml_rename_failed", extra={"path": str(self._providers_yaml_path)})
+
+    def load(self) -> None:
+        """Load provider configuration and construct all provider clients.
+
+        Prefers the SQLite repository when it contains rows (dual-write migration
+        path).  Falls back to providers.yaml and seeds the database on first use.
         Iterates over every ProviderConfig entry, dispatches to the appropriate
         factory function, and stores successfully built providers. If a provider
         fails to build, a warning is logged and that provider is skipped.
@@ -105,7 +207,10 @@ class ProviderRegistry:
         Errors during the full load are caught; the registry is left empty on failure.
         """
         try:
-            config = self._config_loader.load(self._providers_yaml_path)
+            config = self._load_config_from_db()
+            if config is None:
+                config = self._config_loader.load(self._providers_yaml_path)
+                self._seed_db_from_yaml(config)
             providers: dict[str, LLMProviderApi] = {}
             for provider_config in config.providers:
                 factory = _PROVIDER_FACTORIES.get(provider_config.provider_type)
@@ -113,7 +218,12 @@ class ProviderRegistry:
                     logger.warning("Unknown provider type: %s", provider_config.provider_type)
                     continue
                 try:
-                    providers[provider_config.provider_id] = factory(provider_config, self._name_parser)
+                    providers[provider_config.provider_id] = factory(
+                        provider_config,
+                        self._name_parser,
+                        self._capability_service,
+                        self._classifier,
+                    )
                 except Exception:
                     logger.exception(
                         "provider_build_failed",

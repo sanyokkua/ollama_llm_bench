@@ -32,8 +32,14 @@ def default_flags() -> VisibilityFeatureFlags:
         ),
         (
             RunMode.PROMPT_EVAL,
-            {"judge_section", "task_files_section", "advanced_section", "prompt_variants_section"},
-            {"test_models_section", "performance_matrix"},
+            {
+                "judge_section",
+                "test_models_section",
+                "task_files_section",
+                "advanced_section",
+                "prompt_variants_section",
+            },
+            {"performance_matrix"},
         ),
         (
             RunMode.FULL_GRADING,
@@ -111,12 +117,12 @@ def test_visibility_for_prompt_eval_includes_task_files(
         (RunMode.FULL_GRADING, "advanced_section", True),
         (RunMode.FULL_GRADING, "performance_matrix", False),
         (RunMode.FULL_GRADING, "prompt_variants_section", False),
-        # PROMPT_EVAL: task_files + judge + advanced + prompt_variants visible
+        # PROMPT_EVAL: task_files + judge + test_models + advanced + prompt_variants visible
         (RunMode.PROMPT_EVAL, "task_files_section", True),
         (RunMode.PROMPT_EVAL, "judge_section", True),
         (RunMode.PROMPT_EVAL, "advanced_section", True),
         (RunMode.PROMPT_EVAL, "prompt_variants_section", True),
-        (RunMode.PROMPT_EVAL, "test_models_section", False),
+        (RunMode.PROMPT_EVAL, "test_models_section", True),
         (RunMode.PROMPT_EVAL, "performance_matrix", False),
     ],
     ids=[
@@ -142,7 +148,7 @@ def test_visibility_for_prompt_eval_includes_task_files(
         "prompt_eval_judge_visible",
         "prompt_eval_advanced_visible",
         "prompt_eval_prompt_variants_visible",
-        "prompt_eval_test_models_hidden",
+        "prompt_eval_test_models_visible",
         "prompt_eval_perf_matrix_hidden",
     ],
 )

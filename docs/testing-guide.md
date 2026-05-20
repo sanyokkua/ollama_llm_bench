@@ -151,11 +151,14 @@ mock_data = mocker.Mock()
 
 | Dependency | How |
 |---|---|
-| `OllamaApi` (external HTTP) | `mocker.Mock(spec=LLMApi)` |
+| LLM provider (external HTTP) | `mocker.Mock(spec=LLMProviderApi)` |
+| Embedding provider | `mocker.Mock(spec=EmbeddingProviderApi)` |
+| `ProviderRegistry` | `mocker.Mock(spec=ProviderRegistryApi)` |
 | `SqLiteDataApi` (in unit tests) | `mocker.Mock(spec=DataApi)` |
 | `EventBus` | `mocker.Mock(spec=EventBus)` |
 | `BenchmarkFlowApi` | `mocker.Mock(spec=BenchmarkFlowApi)` |
-| `BenchmarkTaskApi` | `mocker.Mock(spec=BenchmarkTaskApi)` |
+| `TaskFileLoader` | `mocker.Mock(spec=TaskFileLoaderApi)` |
+| `JudgePromptService` | `mocker.Mock(spec=JudgePromptServiceApi)` |
 | File system (in unit tests) | `tmp_path` fixture |
 
 ### What NOT to Mock
@@ -171,10 +174,10 @@ mock_data = mocker.Mock()
 
 ```python
 # GOOD — patch where imported
-mocker.patch("ollama_llm_bench.services.ollama_llm_api.Client")
+mocker.patch("ollama_llm_bench.backend.services.providers.openai_compatible_provider.OpenAI")
 
 # BAD — patch at source
-mocker.patch("ollama.Client")
+mocker.patch("openai.OpenAI")
 ```
 
 ## Fixture Patterns
@@ -185,7 +188,7 @@ mocker.patch("ollama.Client")
 import pytest
 from pytest_mock import MockerFixture
 
-from ollama_llm_bench.core.interfaces import DataApi, EventBus, LLMApi
+from ollama_llm_bench.backend.core.interfaces import DataApi, EventBus, LLMProviderApi
 
 
 @pytest.fixture
@@ -194,8 +197,8 @@ def mock_data_api(mocker: MockerFixture) -> DataApi:
 
 
 @pytest.fixture
-def mock_llm_api(mocker: MockerFixture) -> LLMApi:
-    return mocker.Mock(spec=LLMApi)
+def mock_llm_provider(mocker: MockerFixture) -> LLMProviderApi:
+    return mocker.Mock(spec=LLMProviderApi)
 
 
 @pytest.fixture
@@ -230,7 +233,7 @@ from typing import Callable
 
 import pytest
 
-from ollama_llm_bench.core.models import BenchmarkResult, BenchmarkResultStatus
+from ollama_llm_bench.backend.core.models import BenchmarkResult, BenchmarkResultStatus
 
 
 @pytest.fixture
@@ -336,50 +339,39 @@ def test_avg_results_averages_time_per_model(mocker: MockerFixture) -> None:
 
 ### Controller Unit Test
 
-Controllers are plain Python — no Qt, no `QApplication` required.
+Controllers are plain Python — no Qt, no `QApplication` required. Mock dependencies through their Protocol or ABC.
 
 ```python
-from datetime import datetime
 from pytest_mock import MockerFixture
 
-from ollama_llm_bench.core.interfaces import (
-    BenchmarkFlowApi, BenchmarkTaskApi, DataApi, EventBus, LLMApi,
+from ollama_llm_bench.backend.core.interfaces import (
+    AppSettingsServiceApi,
+    DataApi,
+    EventBus,
+    TableSerializerApi,
 )
-from ollama_llm_bench.core.models import NewRunWidgetStartEvent
-from ollama_llm_bench.ui.controllers.new_run_widget_controller import (
-    NewRunWidgetController,
-)
+from ollama_llm_bench.ui.controllers.result_widget_controller import ResultWidgetController
 
 
-def test_handle_start_click_rejects_when_no_test_models(
-    mocker: MockerFixture,
-) -> None:
+def test_handle_summary_export_csv_emits_success_message(mocker: MockerFixture) -> None:
     # Arrange
     data_api = mocker.Mock(spec=DataApi)
-    llm_api = mocker.Mock(spec=LLMApi)
-    task_api = mocker.Mock(spec=BenchmarkTaskApi)
-    flow_api = mocker.Mock(spec=BenchmarkFlowApi)
-    flow_api.is_running.return_value = False
     event_bus = mocker.Mock(spec=EventBus)
-    llm_api.get_models_list.return_value = ["judge_m"]
-
-    controller = NewRunWidgetController(
+    table_serializer = mocker.Mock(spec=TableSerializerApi)
+    settings = mocker.Mock(spec=AppSettingsServiceApi)
+    controller = ResultWidgetController(
         data_api=data_api,
-        llm_api=llm_api,
-        task_api=task_api,
-        benchmark_flow_api=flow_api,
         event_bus=event_bus,
+        table_serializer=table_serializer,
+        app_settings_service=settings,
     )
 
     # Act
-    controller.handle_start_click(
-        NewRunWidgetStartEvent(judge_model="judge_m", models=()),
-    )
+    controller.handle_summary_export_csv_click(None)
 
     # Assert
-    event_bus.emit_global_event_msg.assert_called_once_with("No models selected")
-    data_api.create_benchmark_run.assert_not_called()
-    flow_api.start_execution.assert_not_called()
+    table_serializer.save_summary_as_csv.assert_called_once()
+    event_bus.emit_global_event_msg.assert_called_once_with("Summary exported as CSV")
 ```
 
 ### Integration Test — `SqLiteDataApi`
@@ -387,10 +379,10 @@ def test_handle_start_click_rejects_when_no_test_models(
 ```python
 from pathlib import Path
 
-from ollama_llm_bench.core.models import (
+from ollama_llm_bench.backend.core.models import (
     BenchmarkRun, BenchmarkRunStatus,
 )
-from ollama_llm_bench.services.sq_lite_data_api import SqLiteDataApi
+from ollama_llm_bench.backend.services.sq_lite_data_api import SqLiteDataApi
 
 
 def test_create_and_retrieve_run_round_trip(tmp_path: Path) -> None:

@@ -7,16 +7,15 @@ from PySide6.QtCore import QObject, QThreadPool, Signal
 from ollama_llm_bench.backend.core.interfaces import (
     AppSettingsServiceApi,
     BenchmarkFlowApi,
-    BenchmarkTaskApi,
     DataApi,
     EvaluatorApi,
     EventBus,
     JudgePromptServiceApi,
     JudgeSummaryServiceApi,
-    LLMApi,
     LLMJudgeEvaluatorApi,
     LogFileWriterApi,
-    PromptBuilderApi,
+    ModelCapabilityServiceApi,
+    ProviderCircuitBreakerApi,
     ProviderRegistryApi,
     TaskFileLoaderApi,
 )
@@ -42,9 +41,6 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         self,
         *,
         data_api: DataApi,
-        task_api: BenchmarkTaskApi,
-        prompt_builder_api: PromptBuilderApi,
-        llm_api: LLMApi,
         thread_pool: QThreadPool,
         event_bus: EventBus,
         provider_registry: ProviderRegistryApi,
@@ -58,33 +54,33 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         llm_judge_evaluator: LLMJudgeEvaluatorApi,
         log_file_writer: LogFileWriterApi,
         perf_task_generator: PerformanceTaskGenerator | None = None,
+        capability_service: ModelCapabilityServiceApi | None = None,
+        circuit_breaker: ProviderCircuitBreakerApi | None = None,
     ):
         """
         Initialize the benchmark flow controller.
 
         Args:
             data_api: Interface for data persistence operations.
-            task_api: Interface for accessing benchmark tasks (V1 compat, passed to ABC).
-            prompt_builder_api: Interface for constructing prompts (V1 compat, passed to ABC).
-            llm_api: Interface for LLM inference (V1 compat, passed to ABC).
             thread_pool: Thread pool for executing benchmark tasks asynchronously.
             event_bus: Event bus for V2 pipeline event emission.
             provider_registry: Registry providing access to all LLM and embedding providers.
             task_loader: V2 benchmark task file loader.
             judge_prompt_service: Prompt builder for inference and judge calls.
+            judge_summary_service: Service that produces a prose summary of a finished run.
             app_settings: Application settings KV-store.
             rule_evaluator: Layer 1 rule-based evaluator.
             keyword_evaluator: Layer 2 keyword evaluator.
             cosine_evaluator: Layer 3 cosine similarity evaluator.
             llm_judge_evaluator: Layer 4 LLM judge evaluator.
             log_file_writer: Log file writer service for writing structured benchmark entries to disk.
+            perf_task_generator: Optional generator for synthetic performance tasks.
+            capability_service: Optional service for model capability discovery; forwarded to
+                BenchmarkExecutionTask so inference skips ``reasoning_effort`` for known models.
+            circuit_breaker: Optional per-provider stuck-detection circuit breaker; forwarded to
+                BenchmarkExecutionTask to skip remaining tasks when a provider becomes unresponsive.
         """
-        super().__init__(
-            data_api=data_api,
-            task_api=task_api,
-            prompt_builder_api=prompt_builder_api,
-            llm_api=llm_api,
-        )
+        super().__init__(data_api=data_api)
         self._thread_pool = thread_pool
         self._event_bus = event_bus
         self._provider_registry = provider_registry
@@ -98,6 +94,8 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         self._llm_judge_evaluator = llm_judge_evaluator
         self._log_file_writer = log_file_writer
         self._perf_task_generator = perf_task_generator
+        self._capability_service = capability_service
+        self._circuit_breaker = circuit_breaker
         self._current_task: BenchmarkExecutionTask | None = None
         self._current_run_id: int | None = None
         logger.debug("QtBenchmarkFlowApi initialized")
@@ -113,7 +111,7 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         Raises:
             ValueError: If the run ID is invalid or the run is not in NOT_COMPLETED state.
         """
-        logger.info(f"Request to start benchmark execution for run_id={run_id}")
+        logger.info("Request to start benchmark execution for run_id=%s", run_id)
 
         # Prevent starting if already running
         if self.is_running():
@@ -123,13 +121,13 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         # Validate run
         try:
             run = self._data_api.retrieve_benchmark_run(run_id)
-            logger.debug(f"Retrieved benchmark run: {run}")
+            logger.debug("Retrieved benchmark run: %s", run)
             if run.status != BenchmarkRunStatus.NOT_COMPLETED:
                 raise ValueError(
                     f"Benchmark run #{run_id} is not in NOT_COMPLETED state (current: {run.status})",
                 )
         except Exception as e:
-            logger.error(f"Invalid run_id={run_id}: {e}")
+            logger.error("Invalid run_id=%s: %s", run_id, e)
             raise ValueError(f"Invalid run_id: {run_id}") from e
 
         # Disconnect old signals (if any)
@@ -151,8 +149,10 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
             llm_judge_evaluator=self._llm_judge_evaluator,
             log_file_writer=self._log_file_writer,
             perf_task_generator=self._perf_task_generator,
+            capability_service=self._capability_service,
+            circuit_breaker=self._circuit_breaker,
         )
-        logger.debug(f"Created BenchmarkExecutionTask for run_id={run_id}")
+        logger.debug("Created BenchmarkExecutionTask for run_id=%s", run_id)
 
         # Connect signals
         self._connect_task_signals(task)
@@ -161,7 +161,7 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         self._current_task = task
         self._current_run_id = run_id
         self._thread_pool.start(task)
-        logger.info(f"Benchmark execution task for run_id={run_id} started in thread pool")
+        logger.info("Benchmark execution task for run_id=%s started in thread pool", run_id)
 
         # Notify listeners
         self.benchmark_status_events.emit(self.is_running())
@@ -188,12 +188,12 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
             logger.warning("No benchmark is currently running; stop request ignored")
             return
         self._current_task.stop()
-        logger.debug(f"Stop signal sent to run_id={self._current_run_id}")
+        logger.debug("Stop signal sent to run_id=%s", self._current_run_id)
 
     @override
     def shutdown(self, *, timeout_ms: int = 5000) -> None:
         """Stop any running benchmark and wait for the worker thread to finish."""
-        logger.info(f"Benchmark shutdown requested (timeout={timeout_ms}ms)")
+        logger.info("Benchmark shutdown requested (timeout=%dms)", timeout_ms)
         if self._current_task is not None:
             self._current_task.stop()
 
@@ -213,7 +213,7 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         self._thread_pool.clear()
         finished = self._thread_pool.waitForDone(timeout_ms)
         if not finished:
-            logger.warning(f"Thread pool did not finish within {timeout_ms}ms — proceeding with close")
+            logger.warning("Thread pool did not finish within %dms — proceeding with close", timeout_ms)
         logger.info("Benchmark shutdown complete")
 
     @override
@@ -247,7 +247,7 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         self.benchmark_status_events.connect(callback)
         logger.debug("Subscribed to benchmark_status_events")
         callback(self.is_running())  # immediate notification
-        logger.debug(f"Immediate status callback sent: running={self.is_running()}")
+        logger.debug("Immediate status callback sent: running=%s", self.is_running())
 
     @override
     def subscribe_to_benchmark_output_events(self, callback: Callable[[str], None]) -> None:
@@ -291,7 +291,7 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
             logger.debug("No current task to disconnect")
             return
 
-        logger.debug(f"Disconnecting signals for run_id={self._current_run_id}")
+        logger.debug("Disconnecting signals for run_id=%s", self._current_run_id)
         try:
             self._current_task.signals.status_changed.disconnect(self.benchmark_status_events)
             self._current_task.signals.log_message.disconnect(self.benchmark_output_events)
@@ -299,6 +299,6 @@ class QtBenchmarkFlowApi(BenchmarkFlowApi, QObject, metaclass=MetaQObjectABC):
         except TypeError:
             logger.debug("Some task signals may have already been disconnected")
         finally:
-            logger.debug(f"Clearing current task state for run_id={self._current_run_id}")
+            logger.debug("Clearing current task state for run_id=%s", self._current_run_id)
             self._current_task = None
             self._current_run_id = None

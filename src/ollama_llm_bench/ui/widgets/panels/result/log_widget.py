@@ -37,6 +37,7 @@ from ollama_llm_bench.backend.services.app_settings_service import (
     SETTING_LOG_MAX_LINES,
     SETTING_LOG_VERBOSITY,
     SETTING_STREAMING_ENABLED,
+    SETTING_THEME,
 )
 from ollama_llm_bench.backend.utils.time_utils import format_compact_duration
 from ollama_llm_bench.ui.style.chart_colors import JUDGE_LOG_COLOR
@@ -64,7 +65,9 @@ class LogWidget(QWidget):
             app_settings: Service for reading typed application settings.
         """
         super().__init__()
-        _theme = "dark"
+        self._app_settings = app_settings
+        _stored_theme = self._app_settings.get(SETTING_THEME) or "dark"
+        _theme: str = _stored_theme if _stored_theme in ("dark", "light") else "dark"
         self._color_stream_chunk: str = get_color(_theme, "text_muted")
         self._color_inference_complete: str = get_color(_theme, "primary")
         self._color_judge_pass: str = get_color(_theme, "success_text")
@@ -73,7 +76,6 @@ class LogWidget(QWidget):
         self._color_border: str = get_color(_theme, "border")
         self._color_accent: str = get_color(_theme, "primary")
         self._event_bus = event_bus
-        self._app_settings = app_settings
         self._chunk_buffer: list[str] = []
         self._had_streaming_output: bool = False
         self._response_label_pending: bool = False
@@ -147,17 +149,17 @@ class LogWidget(QWidget):
 
     def _subscribe_events(self) -> None:
         """Connect all EventBus subscriptions and widget signals."""
-        self._event_bus.subscribe_to_inference_started(self._on_inference_started)
-        self._event_bus.subscribe_to_streaming_chunk(self._on_streaming_chunk)
-        self._event_bus.subscribe_to_task_completed(self._on_task_completed)
-        self._event_bus.subscribe_to_judge_completed(self._on_judge_completed)
-        self._event_bus.subscribe_to_judge_eval_started(self._on_judge_eval_started)
-        self._event_bus.subscribe_to_mode_switch(self._on_mode_switch)
-        self._event_bus.subscribe_to_benchmark_started(self._on_benchmark_started)
-        self._event_bus.subscribe_to_benchmark_finished(self._on_benchmark_finished)
-        self._event_bus.subscribe_to_benchmark_stopped(self._on_benchmark_stopped)
-        self._event_bus.subscribe_to_log_clean(self._clear_log_display)
-        self._event_bus.subscribe_to_log_append(self._append_plain)
+        self._event_bus.subscribe_to_inference_started(self._on_inference_started, parent=self)
+        self._event_bus.subscribe_to_streaming_chunk(self._on_streaming_chunk, parent=self)
+        self._event_bus.subscribe_to_task_completed(self._on_task_completed, parent=self)
+        self._event_bus.subscribe_to_judge_completed(self._on_judge_completed, parent=self)
+        self._event_bus.subscribe_to_judge_eval_started(self._on_judge_eval_started, parent=self)
+        self._event_bus.subscribe_to_mode_switch(self._on_mode_switch, parent=self)
+        self._event_bus.subscribe_to_benchmark_started(self._on_benchmark_started, parent=self)
+        self._event_bus.subscribe_to_benchmark_finished(self._on_benchmark_finished, parent=self)
+        self._event_bus.subscribe_to_benchmark_stopped(self._on_benchmark_stopped, parent=self)
+        self._event_bus.subscribe_to_log_clean(self._clear_log_display, parent=self)
+        self._event_bus.subscribe_to_log_append(self._append_plain, parent=self)
         self._clean_button.clicked.connect(self._clear_log_display)
         self._jump_button.clicked.connect(self._jump_to_bottom)
         scrollbar: QScrollBar | None = self._text_edit.verticalScrollBar()
@@ -217,13 +219,13 @@ class LogWidget(QWidget):
         self._append_html(header, min_verbosity=1, search_key=search_key)
         self._inference_wall_time = time.time()
         start_str = time.strftime("%H:%M:%S", time.localtime(self._inference_wall_time))
-        meta_html = f"<span style='color:{self._color_secondary};font-size:10px;'>Start: {start_str}</span>"
+        meta_html = f"<span style='color:{self._color_secondary};'>Start: {start_str}</span>"
         self._append_html(meta_html, min_verbosity=1, search_key=search_key)
         self._response_label_pending = True
         prompt = event.user_prompt[:800].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         prompt_html = (
-            f"<b style='color:{self._color_secondary};font-size:10px;'>PROMPT</b><br>"
-            f"<span style='color:{self._color_secondary};font-size:11px;'>{prompt}</span>"
+            f"<b style='color:{self._color_secondary};'>PROMPT</b><br>"
+            f"<span style='color:{self._color_secondary};'>{prompt}</span>"
         )
         self._append_html(prompt_html, min_verbosity=2, search_key=search_key)
 
@@ -256,7 +258,7 @@ class LogWidget(QWidget):
             self._accumulated_stream = ""
         if self._response_label_pending:
             self._append_html(
-                f"<b style='color:{self._color_accent};font-size:10px;'>RESPONSE</b>",
+                f"<b style='color:{self._color_accent};'>RESPONSE</b>",
                 min_verbosity=2,
             )
             self._response_label_pending = False
@@ -314,7 +316,7 @@ class LogWidget(QWidget):
             f" ({event.result_number}/{event.results_total})</span>"
         )
         meta = (
-            f"<span style='color:{self._color_secondary};font-size:10px;'>"
+            f"<span style='color:{self._color_secondary};'>"
             f"Judge: {event.judge_provider_id}/{event.judge_model} | Start: {start_str}</span>"
         )
         self._append_html(header, min_verbosity=1, search_key=search_key)
@@ -358,8 +360,7 @@ class LogWidget(QWidget):
         # Resolution layer (verbosity >= 1, only when resolved)
         if event.resolved and event.resolution_layer:
             resolution_html = (
-                f"<span style='color:{self._color_secondary};font-size:10px;'>"
-                f"Resolution: {event.resolution_layer}</span>"
+                f"<span style='color:{self._color_secondary};'>Resolution: {event.resolution_layer}</span>"
             )
             self._append_html(resolution_html, min_verbosity=1, search_key=search_key)
 
@@ -368,8 +369,7 @@ class LogWidget(QWidget):
             truncated = event.reasoning[:200]
             escaped = truncated.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
             reasoning_html = (
-                f"<span style='color:{self._color_secondary};font-size:10px;"
-                f"font-family:{_MONO_FONT_CSS};'>{escaped}</span>"
+                f"<span style='color:{self._color_secondary};font-family:{_MONO_FONT_CSS};'>{escaped}</span>"
             )
             self._append_html(reasoning_html, min_verbosity=2, search_key=search_key)
 
@@ -422,7 +422,7 @@ class LogWidget(QWidget):
         self._accumulated_stream += text
         if self._response_label_pending and not self._had_streaming_output:
             self._append_html(
-                f"<b style='color:{self._color_accent};font-size:10px;'>RESPONSE</b>",
+                f"<b style='color:{self._color_accent};'>RESPONSE</b>",
                 min_verbosity=2,
             )
             self._response_label_pending = False

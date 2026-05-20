@@ -134,21 +134,20 @@ def main() -> None:
 
         # Only log paths if logging is enabled
         if log_level <= logging.INFO:
-            logger.info(f"Application root: {app_root}")
+            logger.info("Application root: %s", app_root)
 
         # Get dataset path (bundled or custom)
         dataset_path = get_dataset_path(args.dataset)
 
         # Only log dataset path if logging is enabled
         if log_level <= logging.INFO:
-            logger.info(f"Dataset path: {dataset_path}")
+            logger.info("Dataset path: %s", dataset_path)
 
         QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
         app = QApplication(sys.argv)
         fusion = QStyleFactory.create("Fusion")
         if fusion:
             app.setStyle(fusion)
-        apply_theme(app, detect_system_theme())
 
         # Initialize context after QApplication — Qt objects (QMutex, QThreadPool,
         # QtEventBus) must not be created before QApplication exists.
@@ -164,12 +163,13 @@ def main() -> None:
 
         main_window = MainWindow(ctx)
         main_window.show()
+        QTimer.singleShot(0, ctx.get_run_config_controller().trigger_readiness_probe)
 
         # Route SIGINT/SIGTERM through closeEvent for clean shutdown.
         # The QTimer forces Python to process signals every 200ms while Qt's
         # C++ event loop is running (otherwise signal delivery is delayed indefinitely).
         def _handle_signal(signum: int, frame: types.FrameType | None) -> None:
-            logger.info(f"Received signal {signum} — closing main window")
+            logger.info("Received signal %s — closing main window", signum)
             main_window.close()
 
         signal.signal(signal.SIGINT, _handle_signal)

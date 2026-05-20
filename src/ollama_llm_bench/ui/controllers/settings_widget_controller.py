@@ -1,6 +1,7 @@
 """SettingsWidgetController — mediates between settings dialog widgets and backend services."""
 
 import contextlib
+import importlib.resources
 import logging
 import re
 from collections.abc import Callable
@@ -14,16 +15,22 @@ from ollama_llm_bench.backend.core.interfaces import (
     EventBus,
     LLMProviderApi,
     ProviderConfigLoaderApi,
+    ProviderConfigRepositoryApi,
     ProviderRegistryApi,
 )
 from ollama_llm_bench.backend.core.models import (
+    AppReadinessChangedEvent,
     AppSettingsChangedEvent,
+    EmbeddingConfig,
+    ProviderConfig,
     ProviderRegistryReloadedEvent,
     ProvidersConfig,
     ProviderType,
 )
+from ollama_llm_bench.backend.services.embedding_model_classifier import EmbeddingModelClassifier
 from ollama_llm_bench.backend.services.embedding_service import EmbeddingService
 from ollama_llm_bench.backend.services.provider_registry import ProviderNotFoundError
+from ollama_llm_bench.backend.services.providers.openai_embedding_provider import OpenAIEmbeddingProvider
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +76,8 @@ class SettingsWidgetController:
         providers_yaml_path: Path,
         embedding_service: EmbeddingService,
         event_bus: EventBus,
+        embedding_classifier: EmbeddingModelClassifier,
+        config_repository: ProviderConfigRepositoryApi | None = None,
     ) -> None:
         self._provider_registry = provider_registry
         self._provider_config_loader = provider_config_loader
@@ -76,6 +85,8 @@ class SettingsWidgetController:
         self._providers_yaml_path = providers_yaml_path
         self._embedding_service = embedding_service
         self._event_bus = event_bus
+        self._embedding_classifier = embedding_classifier
+        self._config_repository = config_repository
         self._pending_signals: list[QObject] = []
 
     def get_providers_config(self) -> ProvidersConfig | None:
@@ -148,6 +159,8 @@ class SettingsWidgetController:
         provider_id: str,
         model: str,
         on_result: Callable[[bool, int, str], None],
+        *,
+        parent: QObject | None = None,
     ) -> None:
         """Test the embedding configuration by encoding a short test string off the main thread.
 
@@ -155,8 +168,31 @@ class SettingsWidgetController:
             provider_id: ID of the provider to use for embedding.
             model: Embedding model name to test.
             on_result: Callback invoked on the main thread with (is_working, vector_dim, message).
+            parent: Optional QObject parent to own the internal signal object, preventing
+                premature garbage collection when the calling widget is still alive.
         """
-        embedding_service = self._embedding_service
+        config = self._provider_registry.get_config()
+        if config is None:
+            on_result(False, 0, "No providers loaded")
+            return
+        matching = next((p for p in config.providers if p.provider_id == provider_id), None)
+        if matching is None:
+            on_result(False, 0, "Provider not found in config")
+            return
+        if matching.provider_type != ProviderType.OPENAI_COMPATIBLE:
+            on_result(False, 0, "Embedding provider must be openai_compatible type")
+            return
+        try:
+            embedding_client = OpenAIEmbeddingProvider(
+                base_url=matching.base_url or "",
+                api_key=matching.api_key,
+                model=model,
+            )
+            embedding_service = EmbeddingService(provider=embedding_client)
+        except Exception as exc:
+            logger.warning("embedding_test_service_build_failed", exc_info=True)
+            on_result(False, 0, f"Failed to build embedding client: {exc.__class__.__name__}")
+            return
 
         class _EmbedSignals(QObject):
             done: Signal = Signal(bool, int, str)
@@ -180,7 +216,7 @@ class SettingsWidgetController:
                     logger.exception("embedding_connection_test_failed")
                     self._signals.done.emit(False, 0, f"Embedding failed: {exc.__class__.__name__}")
 
-        signals = _EmbedSignals()
+        signals = _EmbedSignals(parent)
         self._pending_signals.append(signals)
 
         def _cleanup(ok: bool, dim: int, _msg: str) -> None:
@@ -190,13 +226,14 @@ class SettingsWidgetController:
         signals.done.connect(on_result)
         signals.done.connect(_cleanup)
 
-        worker = _EmbedWorker(signals=signals)
-        QThreadPool.globalInstance().start(worker)
+        QThreadPool.globalInstance().start(_EmbedWorker(signals=signals))
 
     def get_models_for_provider(
         self,
         provider_id: str,
         on_result: Callable[[list[str]], None],
+        *,
+        parent: QObject | None = None,
     ) -> None:
         """Fetch available model names for a provider off the main thread.
 
@@ -204,6 +241,8 @@ class SettingsWidgetController:
             provider_id: ID of the provider to query.
             on_result: Callback invoked on the main thread with a list of model name strings.
                        Called with an empty list if the provider is unknown or unavailable.
+            parent: Optional QObject parent to own the internal signal object, preventing
+                premature garbage collection when the calling widget is still alive.
         """
         try:
             provider = self._provider_registry.get_provider(provider_id)
@@ -231,7 +270,7 @@ class SettingsWidgetController:
                     logger.warning("fetch_models_for_provider_failed", extra={"provider_id": provider_id})
                     self._signals.done.emit([])
 
-        signals = _Signals()
+        signals = _Signals(parent)
         self._pending_signals.append(signals)
 
         def _cleanup(names: list[str]) -> None:
@@ -249,14 +288,47 @@ class SettingsWidgetController:
         self._app_settings.reset_to_defaults()
 
     def reload_providers(self) -> None:
-        """Reload the providers registry from the current YAML path."""
+        """Reload the providers registry from the database."""
         try:
             self._provider_registry.reload()
         except Exception:
             logger.warning("provider_registry_reload_failed")
 
+    def get_bundled_providers_config(self) -> ProvidersConfig | None:
+        """Load and return the bundled default providers.yaml without modifying storage.
+
+        Returns:
+            ProvidersConfig from the bundled YAML, or None if loading fails.
+        """
+        try:
+            bundled = importlib.resources.files("ollama_llm_bench").joinpath("providers.yaml")
+            with importlib.resources.as_file(bundled) as bundled_path:
+                return self._provider_config_loader.load(bundled_path)
+        except Exception:
+            logger.warning("load_bundled_providers_yaml_failed")
+            return None
+
+    def reset_providers_to_defaults(self) -> None:
+        """Reset all providers and embedding config to factory defaults.
+
+        Loads the bundled providers.yaml, replaces all DB rows with the bundled
+        content, reloads the registry, and emits a registry-reloaded event.
+        """
+        if self._config_repository is None:
+            return
+        config = self.get_bundled_providers_config()
+        if config is None:
+            return
+        self._config_repository.replace_all(list(config.providers))
+        self._config_repository.save_embedding_config(config.embedding)
+        try:
+            self._provider_registry.reload()
+        except Exception:
+            logger.warning("provider_registry_reload_after_reset_failed")
+        self._event_bus.emit_provider_registry_reloaded(ProviderRegistryReloadedEvent())
+
     def load_providers_yaml(self, path: Path) -> bool:
-        """Load providers config from a YAML file and reload the registry.
+        """Load providers config from a YAML file, sync it to the DB, and reload the registry.
 
         Args:
             path: Path to the providers.yaml file to load.
@@ -265,11 +337,17 @@ class SettingsWidgetController:
             True on success; False if the file could not be loaded or parsed.
         """
         try:
-            self._provider_config_loader.load(path)
+            config = self._provider_config_loader.load(path)
         except (ValueError, OSError):
             logger.warning("load_providers_yaml_failed", extra={"path": str(path)})
             return False
         self._providers_yaml_path = path
+        if self._config_repository is not None:
+            try:
+                self._config_repository.replace_all(list(config.providers))
+                self._config_repository.save_embedding_config(config.embedding)
+            except Exception:
+                logger.exception("load_providers_yaml_db_sync_failed")
         self._provider_registry.reload()
         return True
 
@@ -283,26 +361,7 @@ class SettingsWidgetController:
         Returns:
             True on success; False if the file could not be written.
         """
-        raw: dict[str, object] = {
-            "providers": [
-                {
-                    "id": p.provider_id,
-                    "label": p.label,
-                    "type": p.provider_type.value,
-                    "api_key": p.api_key_raw,
-                    "enabled": p.enabled,
-                    **({"base_url": p.base_url} if p.base_url is not None else {}),
-                    **({"default_models": list(p.default_models)} if p.default_models else {}),
-                    **({"azure_deployment": p.azure_deployment} if p.azure_deployment is not None else {}),
-                    **({"azure_api_version": p.azure_api_version} if p.azure_api_version is not None else {}),
-                }
-                for p in config.providers
-            ],
-            "embedding": {
-                "provider_id": config.embedding.provider_id,
-                "model": config.embedding.model,
-            },
-        }
+        raw = self._provider_config_loader.serialize_config(config)
         try:
             path.write_text(yaml.dump(raw, default_flow_style=False, allow_unicode=True), encoding="utf-8")
         except OSError:
@@ -334,23 +393,59 @@ class SettingsWidgetController:
         """Emit AppSettingsChangedEvent for the given changed setting keys."""
         self._event_bus.emit_app_settings_changed(AppSettingsChangedEvent(changed_keys=tuple(changed_keys)))
 
+    def _save_config_to_db(self, config: ProvidersConfig) -> bool:
+        """Write all providers and embedding config to the SQLite repository.
+
+        Deletes any rows not present in config before upserting, so removed
+        providers do not linger as orphans.
+
+        Args:
+            config: ProvidersConfig to persist in the database.
+
+        Returns:
+            True on success; False if the repository is absent or a DB error occurs.
+        """
+        if self._config_repository is None:
+            return False
+        try:
+            new_ids = {p.provider_id for p in config.providers}
+            existing_ids = {p.provider_id for p in self._config_repository.load_all()}
+            for pid in existing_ids - new_ids:
+                self._config_repository.delete(pid)
+            for provider in config.providers:
+                self._config_repository.save(provider)
+            self._config_repository.save_embedding_config(
+                EmbeddingConfig(
+                    provider_id=config.embedding.provider_id,
+                    model=config.embedding.model,
+                )
+            )
+        except Exception:
+            logger.exception("settings_controller_db_save_failed")
+            return False
+        return True
+
     def save_providers_config_to_standard_path(self, config: ProvidersConfig) -> bool:
-        """Save providers config to the standard providers.yaml location and reload the registry.
+        """Save providers config to DB (primary) then to YAML (backup), then reload registry.
+
+        DB is the authoritative write target; YAML write failure is non-fatal.
 
         Args:
             config: The ProvidersConfig to serialize and save.
 
         Returns:
-            True on success; False if the file could not be written.
+            True if the DB write succeeded; False if the DB write failed.
         """
+        db_ok = self._save_config_to_db(config)
         ok = self.save_providers_yaml(self._providers_yaml_path, config)
-        if ok:
-            try:
-                self._provider_registry.reload()
-            except Exception:
-                logger.warning("provider_registry_reload_after_save_failed")
-            self._event_bus.emit_provider_registry_reloaded(ProviderRegistryReloadedEvent())
-        return ok
+        if not ok:
+            logger.warning("providers_yaml_backup_failed", extra={"path": str(self._providers_yaml_path)})
+        try:
+            self._provider_registry.reload()
+        except Exception:
+            logger.warning("provider_registry_reload_after_save_failed")
+        self._event_bus.emit_provider_registry_reloaded(ProviderRegistryReloadedEvent())
+        return db_ok
 
     def get_provider_instance(self, provider_id: str) -> LLMProviderApi | None:
         """Return the live provider instance for provider_id, or None if not found.
@@ -363,5 +458,79 @@ class SettingsWidgetController:
         """
         try:
             return self._provider_registry.get_provider(provider_id)
-        except KeyError:
+        except ProviderNotFoundError:
+            return None
+
+    def is_embedding_model(self, model_name: str) -> bool:
+        """Return True if model_name matches a known embedding-model pattern.
+
+        Args:
+            model_name: The model name string to classify.
+
+        Returns:
+            True if the name matches a known embedding pattern.
+        """
+        return self._embedding_classifier.is_embedding_model(model_name)
+
+    def set_last_test_status(self, provider_id: str, status: str, tested_at: str, message: str) -> None:
+        """Persist the last health-check result for a provider.
+
+        Args:
+            provider_id: Provider to update.
+            status: Health status string (e.g. "healthy" or "down").
+            tested_at: ISO-8601 UTC timestamp of the test.
+            message: Human-readable result message.
+        """
+        if self._config_repository is None:
+            return
+        try:
+            self._config_repository.set_last_test_status(provider_id, status, tested_at, message)
+        except Exception:
+            logger.warning("set_last_test_status_failed", extra={"provider_id": provider_id})
+
+    def subscribe_to_provider_registry_reloaded(
+        self,
+        callback: Callable[[], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
+        """Subscribe callback to provider-registry reload events.
+
+        Args:
+            callback: Function to invoke when the registry is reloaded.
+        """
+        self._event_bus.subscribe_to_provider_registry_reloaded(lambda _event: callback(), parent=parent)
+
+    def subscribe_to_app_readiness_changed(
+        self,
+        callback: Callable[[AppReadinessChangedEvent], None],
+        *,
+        parent: QObject | None = None,
+    ) -> None:
+        """Subscribe to app readiness changed events.
+
+        Args:
+            callback: Function to invoke with the new readiness snapshot.
+        """
+        self._event_bus.subscribe_to_app_readiness_changed(callback, parent=parent)
+
+    def get_default_provider_config(self, provider_id: str) -> ProviderConfig | None:
+        """Return the YAML default config for provider_id, or None if not found.
+
+        Reads from providers_yaml_path if it exists. Returns None if the file is
+        absent (e.g. after first-run migration rename) or provider_id is not found.
+
+        Args:
+            provider_id: ID of the provider to look up in the YAML defaults.
+
+        Returns:
+            ProviderConfig from YAML defaults, or None if absent.
+        """
+        if not self._providers_yaml_path.exists():
+            return None
+        try:
+            defaults = self._provider_config_loader.load(self._providers_yaml_path)
+            return next((p for p in defaults.providers if p.provider_id == provider_id), None)
+        except Exception:
+            logger.warning("get_default_provider_config_failed", extra={"provider_id": provider_id})
             return None

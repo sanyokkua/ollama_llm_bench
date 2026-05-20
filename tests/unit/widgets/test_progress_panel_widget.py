@@ -18,6 +18,7 @@ from ollama_llm_bench.backend.core.models import (
     RunMode,
     StopReason,
 )
+from ollama_llm_bench.backend.core.ui_controllers import RunConfigControllerApi
 from ollama_llm_bench.ui.widgets.panels.progress_panel_widget import ProgressPanelWidget
 
 # ---------------------------------------------------------------------------
@@ -45,7 +46,13 @@ def widget(qapp: QApplication, mocker: MockerFixture) -> ProgressPanelWidget:
     mock_bus = mocker.Mock(spec=EventBus)
     mock_flow = mocker.Mock(spec=BenchmarkFlowApi)
     mock_settings = mocker.Mock(spec=AppSettingsServiceApi)
-    return ProgressPanelWidget(event_bus=mock_bus, benchmark_flow_api=mock_flow, app_settings=mock_settings)
+    mock_run_config_ctrl = mocker.Mock(spec=RunConfigControllerApi)
+    return ProgressPanelWidget(
+        event_bus=mock_bus,
+        benchmark_flow_api=mock_flow,
+        app_settings=mock_settings,
+        run_config_controller=mock_run_config_ctrl,
+    )
 
 
 # ---------------------------------------------------------------------------

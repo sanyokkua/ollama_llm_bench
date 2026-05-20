@@ -1,6 +1,6 @@
 # Ollama LLM Benchmarker
 
-**Cross-Platform Benchmarking Tool for Local Ollama Models**
+**Cross-Platform Benchmarking Tool for Local LLMs (Ollama, LM Studio, llama.cpp) and Cloud Providers (OpenAI, Anthropic, Gemini, Azure)**
 
 ![App Screenshot](docs/running.png)
 *Main interface showing an active benchmark run in progress*
@@ -8,9 +8,10 @@
 ## Overview
 
 The **Ollama LLM Benchmarker** is a desktop application for developers, researchers, and AI enthusiasts to
-**systematically evaluate local LLMs served by [Ollama](https://ollama.com/)**.
+**systematically evaluate LLMs across multiple providers**: [Ollama](https://ollama.com/), LM Studio, llama.cpp,
+and OpenAI-compatible / Anthropic / Gemini / Azure cloud APIs.
 It automates the full benchmarking lifecycle: running tasks, collecting performance metrics, and performing automated
-quality judgments via a user-selected model.
+quality judgments through a four-layer evaluation pipeline (rule-based, keyword, cosine similarity, and LLM-judge).
 
 Results are stored locally and can be compared across runs, providing actionable insights for model selection.
 
@@ -50,16 +51,14 @@ Results are stored locally and can be compared across runs, providing actionable
 
 Before using the application, ensure:
 
-* [Ollama](https://ollama.com/) is installed with default settings
-* Models you want to benchmark are **already pulled** into Ollama
-* Ollama server is running
-
-```bash
-  ollama pull llama3:8b
-  ollama pull gemma3:27b
-  ollama pull mistral:instruct
-```
-
+* At least one LLM provider is reachable. Common options:
+  * **Local**: [Ollama](https://ollama.com/), LM Studio, or llama.cpp running with desired models pulled.
+    ```bash
+    ollama pull llama3:8b
+    ollama pull gemma3:27b
+    ollama pull mistral:instruct
+    ```
+  * **Cloud**: API key for OpenAI / Anthropic / Gemini / Azure configured via the in-app **Settings** dialog or `providers.yaml`.
 * Python **3.13+** installed
 * [uv](https://docs.astral.sh/uv/) installed
 
@@ -116,13 +115,13 @@ uv run ollama_llm_bench -d /path/to/dataset_folder
 
 ## Technical Stack
 
-* **Core Language:** Python 3.13
-* **UI Framework:** PyQt6
-* **LLM Client:** [ollama-python](https://pypi.org/project/ollama)
-* **Database:** SQLite
+* **Core Language:** Python 3.13+
+* **UI Framework:** PySide6
+* **LLM Clients:** [openai](https://pypi.org/project/openai) (Ollama, LM Studio, llama.cpp, OpenAI, Azure via `/v1/`), [anthropic](https://pypi.org/project/anthropic), [google-genai](https://pypi.org/project/google-genai)
+* **Database:** SQLite (stdlib `sqlite3`)
 * **Task Definitions:** YAML
 * **Dependency Management:** uv + hatchling
-* **Threading:** Qt `QThread` (signals/slots for UI safety)
+* **Threading:** Qt `QThreadPool` + `QRunnable` (signals/slots for UI safety)
 
 ## Directory Structure
 
@@ -130,18 +129,22 @@ uv run ollama_llm_bench -d /path/to/dataset_folder
 .
 ├── LICENSE
 ├── README.md
-├── docs/                  # Project documentation
-├── dist/                  # Build artifacts (if build was run)
-├── pyproject.toml         # Project configuration (uv + hatchling)
+├── docs/                       # Project documentation (architecture/, reference/)
+├── pyproject.toml              # Project configuration (uv + hatchling)
 └── src/
     └── ollama_llm_bench
-        ├── main.py        # Application entry point
-        ├── app_context.py # Context and DI setup
-        ├── core/          # Models, interfaces, controller
-        ├── services/      # Data, Ollama, dataset services
-        ├── ui/            # PyQt6 UI components
-        ├── utils/         # Helpers, service provider
-        └── dataset/       # YAML benchmark tasks
+        ├── main.py             # Application entry point
+        ├── app_context.py      # Dependency-injection composition root
+        ├── backend/
+        │   ├── core/           # Frozen dataclasses, interfaces, constants
+        │   ├── services/       # Provider registry, evaluators, persistence
+        │   └── utils/          # Pure utility functions
+        ├── ui/
+        │   ├── qt_classes/     # QtEventBus, QRunnable workers, metaclass
+        │   ├── controllers/    # UI ↔ services mediators
+        │   ├── widgets/        # PySide6 widgets, panels, dialogs
+        │   └── style/          # Themes, QSS, design tokens
+        └── dataset/            # YAML benchmark tasks
 ```
 
 ## Example Dataset Format
@@ -172,9 +175,8 @@ Each benchmark task is defined in YAML:
 
 ## Additional Notes
 
-* Results are stored locally in `db.sqlite`. (Will be created in the same folder where the app was run)
+* Results are stored locally in `db.sqlite` under the OS-specific user data directory (`~/Library/Application Support/OllamaLLMBench/` on macOS, `%APPDATA%\OllamaLLMBench\` on Windows, `$XDG_DATA_HOME/OllamaLLMBench/` on Linux).
 * Judge reasoning is included for transparency in model evaluation.
-* The project is designed for **research and evaluation** purposes—verify results for production use cases.
-* This is the first version of the app (PoC); bugs or mistakes are expected.
+* The project is designed for **research and evaluation** purposes — verify results for production use cases.
 
 ---

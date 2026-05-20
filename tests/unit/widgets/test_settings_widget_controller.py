@@ -23,6 +23,7 @@ from ollama_llm_bench.backend.core.models import (
     ProvidersConfig,
     ProviderType,
 )
+from ollama_llm_bench.backend.services.embedding_model_classifier import EmbeddingModelClassifier
 from ollama_llm_bench.backend.services.embedding_service import EmbeddingService
 from ollama_llm_bench.backend.services.provider_registry import ProviderNotFoundError
 from ollama_llm_bench.ui.controllers.settings_widget_controller import SettingsWidgetController
@@ -58,7 +59,12 @@ def mock_registry(mocker: MockerFixture) -> MagicMock:
 
 @pytest.fixture()
 def mock_loader(mocker: MockerFixture) -> MagicMock:
-    return cast(MagicMock, mocker.Mock(spec=ProviderConfigLoaderApi))
+    mock = cast(MagicMock, mocker.Mock(spec=ProviderConfigLoaderApi))
+    mock.serialize_config.return_value = {
+        "providers": [],
+        "embedding": {"provider_id": "", "model": ""},
+    }
+    return mock
 
 
 @pytest.fixture()
@@ -92,6 +98,7 @@ def controller(
         providers_yaml_path=tmp_path / "providers.yaml",
         embedding_service=mock_embedding_service,
         event_bus=mock_event_bus,
+        embedding_classifier=EmbeddingModelClassifier(),
     )
 
 
@@ -363,3 +370,41 @@ class TestProviderConnectionTest:
         QCoreApplication.processEvents()
 
         assert controller._pending_signals == []
+
+
+# ---------------------------------------------------------------------------
+# TestIsEmbeddingModel
+# ---------------------------------------------------------------------------
+
+
+class TestIsEmbeddingModel:
+    def test_is_embedding_model_delegates_to_classifier(
+        self,
+        controller: SettingsWidgetController,
+    ) -> None:
+        """is_embedding_model must return True for embedding names and False for others."""
+        assert controller.is_embedding_model("bge-m3") is True
+        assert controller.is_embedding_model("nomic-embed-text") is True
+        assert controller.is_embedding_model("llama3") is False
+
+
+# ---------------------------------------------------------------------------
+# TestSubscribeToProviderRegistryReloaded
+# ---------------------------------------------------------------------------
+
+
+class TestSubscribeToProviderRegistryReloaded:
+    def test_subscribe_wires_event_bus(
+        self,
+        controller: SettingsWidgetController,
+        mock_event_bus: MagicMock,
+    ) -> None:
+        """subscribe_to_provider_registry_reloaded must call the event bus subscribe method."""
+        callback_called: list[bool] = []
+
+        def callback() -> None:
+            callback_called.append(True)
+
+        controller.subscribe_to_provider_registry_reloaded(callback)
+
+        mock_event_bus.subscribe_to_provider_registry_reloaded.assert_called_once()

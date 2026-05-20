@@ -30,6 +30,8 @@ def _make_result(
     judge_score: float | None = 8.0,
     judge_reasoning: str | None = "Good answer",
     status: BenchmarkResultStatus = BenchmarkResultStatus.COMPLETED,
+    inference_error_message: str | None = None,
+    judge_error_message: str | None = None,
 ) -> BenchmarkResult:
     return BenchmarkResult(
         model_name=model_name,
@@ -39,6 +41,8 @@ def _make_result(
         judge_score=judge_score,
         judge_reasoning=judge_reasoning,
         status=status,
+        inference_error_message=inference_error_message,
+        judge_error_message=judge_error_message,
     )
 
 
@@ -245,3 +249,51 @@ class TestRetrieveDetailedBenchmarkResultsForRun:
 
         # Assert
         assert len(items) == 3
+
+    def test_retrieve_detailed_results_populates_error_message_from_inference_error(
+        self,
+        service: AppResultApi,
+        mock_data_api: MagicMock,
+    ) -> None:
+        # Arrange
+        mock_data_api.retrieve_benchmark_results_for_run.return_value = [
+            _make_result(inference_error_message="timeout", judge_error_message=None)
+        ]
+
+        # Act
+        items = service.retrieve_detailed_benchmark_results_for_run(1)
+
+        # Assert
+        assert items[0].error_message == "timeout"
+
+    def test_retrieve_detailed_results_populates_error_message_from_judge_error(
+        self,
+        service: AppResultApi,
+        mock_data_api: MagicMock,
+    ) -> None:
+        # Arrange
+        mock_data_api.retrieve_benchmark_results_for_run.return_value = [
+            _make_result(inference_error_message=None, judge_error_message="bad json")
+        ]
+
+        # Act
+        items = service.retrieve_detailed_benchmark_results_for_run(1)
+
+        # Assert
+        assert items[0].error_message == "bad json"
+
+    def test_retrieve_detailed_results_prefers_inference_error_over_judge_error(
+        self,
+        service: AppResultApi,
+        mock_data_api: MagicMock,
+    ) -> None:
+        # Arrange
+        mock_data_api.retrieve_benchmark_results_for_run.return_value = [
+            _make_result(inference_error_message="inference fail", judge_error_message="judge fail")
+        ]
+
+        # Act
+        items = service.retrieve_detailed_benchmark_results_for_run(1)
+
+        # Assert
+        assert items[0].error_message == "inference fail"

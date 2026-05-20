@@ -16,6 +16,10 @@ from PySide6.QtWidgets import (
 )
 
 from ollama_llm_bench.backend.core.models import PromptInputSize, PromptOutputSize
+from ollama_llm_bench.backend.core.performance_prompts import (
+    INPUT_SIZE_DESCRIPTIONS,
+    OUTPUT_SIZE_DESCRIPTIONS,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -23,21 +27,8 @@ _DEFAULT_REPEAT_COUNT = 3
 _MIN_REPEAT_COUNT = 1
 _MAX_REPEAT_COUNT = 20
 
-_INPUT_SIZE_LABELS: dict[PromptInputSize, str] = {
-    PromptInputSize.TINY: "XS",
-    PromptInputSize.SMALL: "SM",
-    PromptInputSize.MEDIUM: "MD",
-    PromptInputSize.LARGE: "LG",
-    PromptInputSize.HUGE: "XL",
-}
-
-_OUTPUT_SIZE_LABELS: dict[PromptOutputSize, str] = {
-    PromptOutputSize.XS: "XS",
-    PromptOutputSize.SM: "SM",
-    PromptOutputSize.MD: "MD",
-    PromptOutputSize.LG: "LG",
-    PromptOutputSize.XL: "XL",
-}
+_INPUT_SIZE_LABELS: dict[PromptInputSize, str] = INPUT_SIZE_DESCRIPTIONS
+_OUTPUT_SIZE_LABELS: dict[PromptOutputSize, str] = OUTPUT_SIZE_DESCRIPTIONS
 
 
 class PerformanceMatrixWidget(QWidget):

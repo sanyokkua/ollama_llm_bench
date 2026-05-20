@@ -78,6 +78,10 @@ _STATUS_LABEL_AND_TOOLTIP: Final[dict[BenchmarkRunStatus, tuple[str, str]]] = {
         "Failed",
         "The run hit an unrecoverable error. Open the log for details.",
     ),
+    BenchmarkRunStatus.STOPPED: (
+        "Stopped",
+        "The run was stopped by the user. Resume to continue.",
+    ),
 }
 
 
@@ -222,9 +226,12 @@ class RunConfigPanel(QWidget):
         self._start_btn.clicked.connect(self._on_start_clicked)
         self._refresh_runs_btn.clicked.connect(self._populate_runs_table)
         self._resume_btn.clicked.connect(self._on_resume_clicked)
-        self._controller.subscribe_to_benchmark_status_change(self._on_benchmark_status_changed)
-        self._controller.subscribe_to_runs_change(self._on_runs_changed)
+        self._controller.subscribe_to_benchmark_status_change(self._on_benchmark_status_changed, parent=self)
+        self._controller.subscribe_to_runs_change(self._on_runs_changed, parent=self)
+        self._controller.subscribe_to_app_readiness_changed(lambda _evt: self._update_start_btn(), parent=self)
         self._task_files_widget.tasks_changed.connect(self._update_start_btn)
+        self._task_files_widget.tasks_changed.connect(self._on_task_files_changed)
+        self._prompt_variants.variants_changed.connect(self._update_start_btn)
 
     def _restore_state(self) -> None:
         svc = self._controller._app_settings_service
@@ -261,12 +268,21 @@ class RunConfigPanel(QWidget):
         mode = self._run_mode_widget.current_mode()
         tasks_required = mode != RunMode.PERFORMANCE
         has_tasks = bool(self._task_files_widget.get_task_paths())
-        can_start = not self._is_running and (not tasks_required or has_tasks)
+        verdict = self._controller.readiness_verdict(mode)
+        has_variants = mode != RunMode.PROMPT_EVAL or bool(self._prompt_variants.get_variants())
+        can_start = not self._is_running and verdict.is_ready and (not tasks_required or has_tasks) and has_variants
         self._start_btn.setEnabled(can_start)
+        if verdict.issues:
+            self._start_btn.setToolTip("\n".join(verdict.issues))
+        else:
+            self._start_btn.setToolTip("Start benchmark")
 
     def _on_mode_changed(self, mode: RunMode) -> None:
         self._apply_mode_visibility(mode)
         self._update_start_btn()
+
+    def _on_task_files_changed(self) -> None:
+        self._prompt_variants.set_task_preview_source(self._task_files_widget.get_task_paths())
 
     def _on_tab_changed(self, index: int) -> None:
         self._start_btn.setVisible(index == _TAB_NEW_BENCHMARK)
@@ -279,7 +295,6 @@ class RunConfigPanel(QWidget):
     def _on_benchmark_status_changed(self, is_running: bool) -> None:
         self._is_running = is_running
         self._update_start_btn()
-        self._tab_widget.setEnabled(not is_running)
 
     def _on_runs_changed(self, _runs: list[tuple[int, str]]) -> None:
         self._populate_runs_table()
@@ -302,21 +317,14 @@ class RunConfigPanel(QWidget):
             self._resume_btn.setEnabled(False)
             return
 
-        status_value = item.data(_RUN_STATUS_ROLE)
-        try:
-            status = BenchmarkRunStatus(status_value)
-        except ValueError:
-            status = BenchmarkRunStatus.NOT_COMPLETED
+        run_id = item.data(_RUN_ID_ROLE)
+        if run_id is None:
+            self._resume_btn.setEnabled(False)
+            return
 
-        if status == BenchmarkRunStatus.NOT_COMPLETED:
-            self._resume_btn.setEnabled(True)
-            self._resume_btn.setToolTip("Resume the selected benchmark run.")
-        elif status == BenchmarkRunStatus.COMPLETED:
-            self._resume_btn.setEnabled(False)
-            self._resume_btn.setToolTip("Run already finished — no tasks to resume.")
-        else:  # FAILED
-            self._resume_btn.setEnabled(False)
-            self._resume_btn.setToolTip("Run failed and is not resumable.")
+        resumable = self._controller.is_run_resumable(run_id)
+        self._resume_btn.setEnabled(resumable)
+        self._resume_btn.setToolTip("Resume this run." if resumable else "Run is fully completed — no tasks to resume.")
 
     def _on_start_clicked(self) -> None:
         event = self._build_run_start_event()
@@ -335,7 +343,8 @@ class RunConfigPanel(QWidget):
         dlg = ResumeSummaryDialog(run_id=run_id, controller=self._controller, parent=self)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
-        self._controller.handle_resume_run_click(run_id)
+        target_id = dlg.cloned_run_id if dlg.cloned_run_id is not None else run_id
+        self._controller.handle_resume_run_click(target_id)
 
     # ------------------------------------------------------------------
     # Run-start event assembly
@@ -352,10 +361,13 @@ class RunConfigPanel(QWidget):
             _logger.warning("No test models selected — cannot start run")
             return None
 
-        # Multi-provider: use first provider for the legacy single-provider field.
-        # Full multi-provider RunStartEvent support is a future task.
-        first_provider = all_descriptors[0].provider_id if all_descriptors else ""
-        test_models = tuple(d.model_name for d in all_descriptors if d.provider_id == first_provider)
+        if mode == RunMode.PROMPT_EVAL:
+            variants = self._prompt_variants.get_variants()
+            if not variants:
+                _logger.warning("No prompt variants defined — cannot start PROMPT_EVAL run")
+                return None
+        else:
+            variants = []
 
         task_paths = tuple(self._task_files_widget.get_task_paths())
         opts = self._advanced_widget.get_effective_options()
@@ -372,13 +384,13 @@ class RunConfigPanel(QWidget):
             run_mode=mode,
             judge_provider=judge_provider,
             judge_model=judge_model,
-            test_provider=first_provider,
-            test_models=test_models,
+            test_models=tuple(all_descriptors),
             task_paths=task_paths,
             streaming_enabled=opts.streaming_enabled,
             warmup_enabled=opts.warmup_enabled,
             reasoning_effort=opts.reasoning_effort,
             performance_config=perf_config,
+            prompt_variants=tuple(variants),
         )
 
     def _build_run_summary(self) -> RunSummary:
@@ -425,7 +437,8 @@ class RunConfigPanel(QWidget):
         model = QStandardItemModel(len(runs), len(_RUNS_TABLE_COLUMNS))
         model.setHorizontalHeaderLabels(_RUNS_TABLE_COLUMNS)
         for row, run in enumerate(runs):
-            name_item = QStandardItem(f"Run {run.run_id}")
+            display_name = run.run_name if run.run_name else f"Run {run.run_id}"
+            name_item = QStandardItem(display_name)
             name_item.setData(run.run_id, _RUN_ID_ROLE)
             name_item.setData(run.status.value, _RUN_STATUS_ROLE)
             model.setItem(row, 0, name_item)

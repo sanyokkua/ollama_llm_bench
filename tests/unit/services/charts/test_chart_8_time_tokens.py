@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
+from ollama_llm_bench.backend.core.models import BenchmarkResult
 from ollama_llm_bench.backend.services.charts.aggregations import Chart8TimeTokensAggregator
 from ollama_llm_bench.backend.services.charts.base_chart import ChartFilters
 
 
-def test_chart8_basic_scatter(make_result, all_filters) -> None:
+def test_chart8_basic_scatter(
+    make_result: Callable[..., BenchmarkResult],
+    all_filters: Callable[[list[BenchmarkResult]], ChartFilters],
+) -> None:
     # Arrange
     results = [make_result(model_name="a", completion_tokens=50, total_time_ms=2000)]
 
@@ -21,7 +27,7 @@ def test_chart8_basic_scatter(make_result, all_filters) -> None:
     assert label == "a"
 
 
-def test_chart8_log_scale_flag_propagated(make_result) -> None:
+def test_chart8_log_scale_flag_propagated(make_result: Callable[..., BenchmarkResult]) -> None:
     # Arrange
     results = [make_result(model_name="a", completion_tokens=100, total_time_ms=1000)]
     filters = ChartFilters(
@@ -38,7 +44,10 @@ def test_chart8_log_scale_flag_propagated(make_result) -> None:
     assert data.extra.get("log_scale") is True
 
 
-def test_chart8_log_scale_false_by_default(make_result, all_filters) -> None:
+def test_chart8_log_scale_false_by_default(
+    make_result: Callable[..., BenchmarkResult],
+    all_filters: Callable[[list[BenchmarkResult]], ChartFilters],
+) -> None:
     # Arrange
     results = [make_result(model_name="a", completion_tokens=100, total_time_ms=500)]
 
@@ -49,7 +58,10 @@ def test_chart8_log_scale_false_by_default(make_result, all_filters) -> None:
     assert data.extra.get("log_scale") is False
 
 
-def test_chart8_multiple_rows_averaged_per_model(make_result, all_filters) -> None:
+def test_chart8_multiple_rows_averaged_per_model(
+    make_result: Callable[..., BenchmarkResult],
+    all_filters: Callable[[list[BenchmarkResult]], ChartFilters],
+) -> None:
     # Arrange: two rows for model "a" — should produce one averaged scatter point
     results = [
         make_result(model_name="a", completion_tokens=100, total_time_ms=1000),
@@ -66,7 +78,10 @@ def test_chart8_multiple_rows_averaged_per_model(make_result, all_filters) -> No
     assert abs(y - 2.0) < 0.01  # avg time_s: (1+3)/2 = 2.0
 
 
-def test_chart8_inference_error_rows_excluded(make_result, all_filters) -> None:
+def test_chart8_inference_error_rows_excluded(
+    make_result: Callable[..., BenchmarkResult],
+    all_filters: Callable[[list[BenchmarkResult]], ChartFilters],
+) -> None:
     # Arrange: one error row with huge time — should not distort the result
     results = [
         make_result(model_name="a", completion_tokens=50, total_time_ms=100, has_inference_error=True),
@@ -81,7 +96,10 @@ def test_chart8_inference_error_rows_excluded(make_result, all_filters) -> None:
     assert abs(y - 0.5) < 0.01
 
 
-def test_chart8_null_tokens_excluded(make_result, all_filters) -> None:
+def test_chart8_null_tokens_excluded(
+    make_result: Callable[..., BenchmarkResult],
+    all_filters: Callable[[list[BenchmarkResult]], ChartFilters],
+) -> None:
     # Arrange: one row with null completion_tokens
     results = [
         make_result(model_name="a", completion_tokens=None, total_time_ms=100),
@@ -96,9 +114,11 @@ def test_chart8_null_tokens_excluded(make_result, all_filters) -> None:
     assert x == 80.0
 
 
-def test_chart8_empty_results_returns_empty_state(all_filters) -> None:
+def test_chart8_empty_results_returns_empty_state(
+    all_filters: Callable[[list[BenchmarkResult]], ChartFilters],
+) -> None:
     # Arrange
-    results = []
+    results: list[BenchmarkResult] = []
 
     # Act
     data = Chart8TimeTokensAggregator().compute_data(run=None, results=results, filters=all_filters(results))
@@ -107,7 +127,10 @@ def test_chart8_empty_results_returns_empty_state(all_filters) -> None:
     assert data.empty_state_message != ""
 
 
-def test_chart8_two_models_produce_two_scatter_points(make_result, all_filters) -> None:
+def test_chart8_two_models_produce_two_scatter_points(
+    make_result: Callable[..., BenchmarkResult],
+    all_filters: Callable[[list[BenchmarkResult]], ChartFilters],
+) -> None:
     # Arrange
     results = [
         make_result(model_name="a", completion_tokens=100, total_time_ms=1000),
@@ -121,3 +144,23 @@ def test_chart8_two_models_produce_two_scatter_points(make_result, all_filters) 
     assert len(data.scatter_points) == 2
     labels = {pt[2] for pt in data.scatter_points}
     assert labels == {"a", "b"}
+
+
+def test_chart8_log_scale_filters_out_zero_token_points(make_result: Callable[..., BenchmarkResult]) -> None:
+    # Arrange: one result with avg_tokens=0 — should be excluded under log scale
+    results = [
+        make_result(model_name="a", completion_tokens=0, total_time_ms=1000),
+    ]
+    filters = ChartFilters(
+        included_models=frozenset(["a"]),
+        included_categories=frozenset(),
+        included_layers=frozenset(),
+        extra={"log_scale": True},
+    )
+
+    # Act
+    data = Chart8TimeTokensAggregator().compute_data(run=None, results=results, filters=filters)
+
+    # Assert: zero-token point excluded → empty state
+    assert data.empty_state_message != ""
+    assert len(data.scatter_points) == 0

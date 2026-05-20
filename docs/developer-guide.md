@@ -179,7 +179,7 @@ Conventions:
 - Keyword-only constructor (`*,`).
 - Module-level `logger = logging.getLogger(__name__)`.
 - `@override` on every implementation of an abstract method.
-- Never throw to the caller in getter methods — log and return empty/`None` (see `YamlBenchmarkTaskApi` for the pattern).
+- Never throw to the caller in getter methods — log and return empty/`None` (see `TaskFileLoader.load_tasks` for the pattern).
 - No Qt imports anywhere in this file.
 
 ## Recipe 4 — Wire It Into `ApplicationContext`
@@ -460,22 +460,24 @@ When adding them, follow the skeleton in [testing-guide.md](testing-guide.md):
 ### Constructor Injection
 
 ```python
-class NewRunWidgetController(NewRunWidgetControllerApi):
+class RunConfigController(RunConfigControllerApi):
     def __init__(
         self,
         *,
         data_api: DataApi,
-        llm_api: LLMApi,
-        task_api: BenchmarkTaskApi,
+        provider_registry: ProviderRegistryApi,
         benchmark_flow_api: BenchmarkFlowApi,
         event_bus: EventBus,
+        task_file_loader: TaskFileLoaderApi,
+        app_settings_service: AppSettingsServiceApi,
+        embedding_classifier: EmbeddingModelClassifier,
     ):
-        self.data_api = data_api
-        self.llm_api = llm_api
+        self._data_api = data_api
+        self._provider_registry = provider_registry
         ...
 ```
 
-Source: `src/ollama_llm_bench/ui/controllers/new_run_widget_controller.py`.
+Source: `src/ollama_llm_bench/ui/controllers/run_config_controller.py`.
 
 ### EventBus Subscribe + Emit
 

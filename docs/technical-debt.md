@@ -1,135 +1,66 @@
 # Technical Debt & Migration Status
 
-This document catalogues known technical debt, discrepancies between `CLAUDE.md` / rules and the actual code, and missing infrastructure.
-It is maintained alongside the code and should be updated whenever debt is added or paid down.
+This document catalogues known technical debt, discrepancies between guidance docs and the actual code, and missing infrastructure. It is maintained alongside the code and should be updated whenever debt is added or paid down.
+
+Last reviewed: 2026-05-10 (V2 cleanup pass).
 
 ## Summary
 
 | Category | Status |
 |---|---|
 | Qt framework migration (PyQt6 → PySide6) | **Complete** — 100% PySide6 |
-| Interface style migration (ABC → Protocol) | Not started — 100% ABC |
-| Logging migration (stdlib → structlog) | Not started — 100% stdlib `logging` |
-| Test suite | **Absent** — `tests/` directory does not exist |
+| Multi-provider abstraction (`OllamaApi` → `ProviderRegistry`) | **Complete** — V1 `OllamaApi`/`LLMApi` ABC removed in cleanup pass |
+| Build backend (Poetry → UV + hatchling) | **Complete** |
+| Interface style (ABC → Protocol) | **Partial** — V2 services use `Protocol`; legacy `BenchmarkFlowApi`, `DataApi`, `EventBus`, `ResultApi`, `AppContext`, `TableSerializerApi` remain `ABC` |
+| Logging facade (stdlib → structlog) | Not started — 100% stdlib `logging`. Lazy `%` formatting now enforced via Ruff `G` rule. |
+| Test suite | **Live** — 1207 tests pass under `pytest` (~66s). Branch coverage target 80% in `pyproject.toml`. |
+| CI configuration | Absent — only the local `scripts/ai-check.sh` |
+| Pre-commit hooks | Absent |
 | CHANGELOG | Absent |
 | CODEOWNERS | Absent |
-| CI configuration | Absent |
-| Pre-commit hooks | Absent |
 | ADR directory | Absent |
-| `# TODO` / `# FIXME` / `# HACK` comments in source | **Zero** — code is clean from in-line debt markers |
+| `# TODO` / `# FIXME` / `# HACK` comments in source | **Zero** — clean |
 
-## 1. Documentation vs Reality Discrepancies
+## 1. Open Items
 
-The authoritative `CLAUDE.md` (project instructions at the repository root) describes several things as the target state or as "in progress" that are not reflected in the current codebase.
-New contributors should treat the code as ground truth and update these discrepancies as migrations land.
-
-| CLAUDE.md / rules claim | Actual state in code | Evidence |
+| Item | Why it matters | Where |
 |---|---|---|
-| "PySide6 desktop application" | ✅ All 18 Qt-using files use `PySide6` | `pyproject.toml`: `"pyside6>=6.8.0,<7.0.0"`. All `from PyQt6.*` imports replaced. |
-| "Prefer `Protocol` for new interfaces" | All 9 interfaces in `core/interfaces.py` use `ABC` | `src/ollama_llm_bench/core/interfaces.py` — search for `class .*ABC` vs `class .*Protocol` |
-| "structlog wrapping standard `logging`" (logging rule) | Every module uses stdlib `logging.getLogger(__name__)` only | No `import structlog` anywhere |
-| "Type Checker: Mypy (migrating from pyright)" | Both `mypy` and `pyright` are configured as dev dependencies; mypy has `strict = true` | `pyproject.toml` `[tool.mypy]` and `[dependency-groups].dev` |
-| "Testing: pytest + pytest-mock + pytest-cov" | No tests exist; `tests/` directory is absent | `pyproject.toml` sets `testpaths = ["tests"]` but directory is missing |
-| ".claude/architecture.md" references "migrate opportunistically to PySide6 when touching files" | The migration has never been started | Git log + grep |
-| "`raise NewError(...) from original`" (coding rule) | `new_run_widget_controller.py` and `qt_benchmark_flow.py` use `raise ValueError(...) from e` correctly | Consistent — no debt here |
-| "`@override` on all overridden methods" (coding rule) | Most Qt classes and services use `@override`; `SqLiteDataApi` methods all use it | Consistent |
-| Line in `ollama_llm_api.py` signature: `def get_models_list(self) -> List[dict]` | Body actually returns a sorted `list[str]`; annotation is wrong | `src/ollama_llm_bench/services/ollama_llm_api.py:30` |
+| ABC → Protocol migration | New code must `prefer Protocol`. Several large legacy ABCs (`DataApi`, `EventBus`, `BenchmarkFlowApi`, `ResultApi`, `AppContext`) are pure contract surfaces and could be `Protocol`. Refactoring them is non-trivial because some store constructor state. | `src/ollama_llm_bench/backend/core/interfaces.py` |
+| `structlog` migration | Logging rule prescribes structlog; current code is stdlib `logging`. No active migration plan. Stay disciplined with lazy `%` formatting until then. | All `logger.getLogger(__name__)` sites |
+| Foreign-key enforcement | SQLite schema declares `REFERENCES` but no `PRAGMA foreign_keys = ON` is issued on connection — cascades rely on application-level cleanup. | `backend/services/sq_lite_data_api.py` |
+| `None`-as-`-1` event payload | `QtEventBus.emit_run_id_changed` emits `value or -1` because `Signal(int)` cannot transport `None`. Subscribers must treat `-1` as "no run selected". | `ui/qt_classes/qt_event_bus.py` |
+| CHANGELOG.md | Project is versioned (`0.1.1`) but has no Keep-a-Changelog entries. | repo root |
+| GitHub Actions workflow | `scripts/ai-check.sh` is the only quality gate; nothing enforces it on pull requests. | `.github/workflows/` (missing) |
+| ADR directory | No `docs/adr/` to capture load-bearing decisions: serial QThreadPool, ContextProvider singleton, three-state `BenchmarkResultStatus` resumability. | `docs/adr/` (missing) |
 
-## 2. Qt Framework Audit
+## 2. Recently Resolved
 
-**Migration complete.** All 18 Qt-using source files have been migrated from PyQt6 to PySide6.
-Dependency: `pyside6>=6.8.0,<7.0.0` (resolved to 6.11.0). Zero `PyQt6` references remain in `src/`.
-
-### PySide6 Files (18 total)
-
-| File | PySide6 modules used |
-|---|---|
-| `src/ollama_llm_bench/main.py` | `QtWidgets.QApplication` |
-| `src/ollama_llm_bench/app_context.py` | `QtCore.QMutex`, `QMutexLocker`, `QThreadPool` |
-| `src/ollama_llm_bench/qt_classes/meta_class.py` | `QtCore.QObject` |
-| `src/ollama_llm_bench/qt_classes/qt_event_bus.py` | `QtCore.QObject`, `Signal` |
-| `src/ollama_llm_bench/qt_classes/qt_benchmark_execution_task.py` | `QtCore.QObject`, `QRunnable`, `Signal` |
-| `src/ollama_llm_bench/qt_classes/qt_benchmark_flow.py` | `QtCore.QObject`, `QThreadPool`, `Signal` |
-| `src/ollama_llm_bench/ui/main_window.py` | `QtCore.Qt`, `QtWidgets.QMainWindow`, `QApplication`, `QMessageBox` |
-| `src/ollama_llm_bench/ui/widgets/central_widget.py` | `QtCore.Qt`, `QtWidgets.QSplitter`, `QVBoxLayout`, `QWidget` |
-| `src/ollama_llm_bench/ui/widgets/panels/control_panel.py` | `QtWidgets.*` |
-| `src/ollama_llm_bench/ui/widgets/panels/control/control_tab_widget.py` | `QtWidgets.QTabWidget` |
-| `src/ollama_llm_bench/ui/widgets/panels/control/new_run_widget.py` | `QtWidgets.*` |
-| `src/ollama_llm_bench/ui/widgets/panels/control/previous_run_widget.py` | `QtWidgets.*` |
-| `src/ollama_llm_bench/ui/widgets/panels/results_panel.py` | `QtWidgets.*` |
-| `src/ollama_llm_bench/ui/widgets/panels/result/result_tab_widget.py` | `QtWidgets.QTabWidget` |
-| `src/ollama_llm_bench/ui/widgets/panels/result/log_widget.py` | `QtWidgets.*` |
-| `src/ollama_llm_bench/ui/widgets/panels/result/result_widget.py` | `QtWidgets.QTableWidget`, `QTableWidgetItem`, etc. |
-| `src/ollama_llm_bench/utils/widget_utils.py` | `QtWidgets.QComboBox` |
-
-**Init pattern:** `QtBenchmarkFlowApi` uses cooperative multiple inheritance with base order `(BenchmarkFlowApi, QObject)`. `BenchmarkFlowApi.__init__` accepts `**kwargs` and calls `super().__init__(**kwargs)`, allowing domain args to be consumed before the chain reaches `QObject.__init__()` with no extra kwargs. This is required because PySide6's `QObject` rejects unknown keyword arguments.
-
-## 3. Missing Project Infrastructure
-
-### Tests
-
-The `tests/` directory **does not exist**.
-`pyproject.toml` is configured as though tests were present:
-
-- `testpaths = ["tests"]`
-- `pythonpath = ["src"]`
-- `markers = ["unit", "integration", "slow"]`
-- Coverage `fail_under = 80`
-
-Running `uv run pytest` currently collects zero tests.
-See [testing-guide.md](testing-guide.md) for the target layout and fixture patterns to adopt when tests are added.
-
-### CI / CD
-
-- No `.github/workflows/` directory.
-- No pre-commit config (`.pre-commit-config.yaml`).
-- No GitLab CI, CircleCI, or any other CI configuration file.
-
-The only quality-gate automation available is the local shell script `scripts/ai-check.sh` (ruff → ruff format → pyright → mypy → pytest).
-Nothing enforces the pipeline on pull requests.
-
-### Governance Files
-
-- No `CHANGELOG.md` at the repository root.
-- No `CODEOWNERS` file.
-- No `CONTRIBUTING.md`.
-- No `docs/adr/` or `docs/architecture/adrs/` directory for Architecture Decision Records.
-
-## 4. Code-Level Observations
-
-The source tree is clean of `TODO`, `FIXME`, `HACK`, and `XXX` comments, so there are no in-line debt markers to track.
-
-A few implementation details worth noting when touching the relevant files:
-
-| Area | Observation | File |
+| Item | Resolution | Date |
 |---|---|---|
-| Type annotation bug | `OllamaApi.get_models_list` is annotated `-> List[dict]` but returns a sorted `list[str]` | `src/ollama_llm_bench/services/ollama_llm_api.py:30` |
-| Scoring range mismatch | `parse_judge_response` docstring says `0.0-100.0` and validates `0 <= grade <= 100`, while the judge prompt (`SYSTEM_PROMPT`) instructs the model to emit a float `0.00–1.00`. In practice scores land on the 0.0–1.0 scale and are multiplied by 100 only in `TableSerializer` for display | `src/ollama_llm_bench/utils/text_utils.py:95`, `src/ollama_llm_bench/core/prompt_constants.py:6`, `src/ollama_llm_bench/services/table_serializer.py:43` |
-| Foreign key not enforced | SQLite foreign keys are declared (`run_id INTEGER NOT NULL REFERENCES benchmark_runs(run_id)`) but no `PRAGMA foreign_keys = ON` is issued on connection, so cascading deletes are not enforced by the DB engine. Run deletion relies on application-level cleanup | `src/ollama_llm_bench/core/sql_constants.py:11`, `src/ollama_llm_bench/services/sq_lite_data_api.py:63` |
-| `None` encoded as `-1` | `QtEventBus.emit_run_id_changed` emits `value or -1` because `Signal(int)` cannot transport `None`. Subscribers must treat `-1` as "no run selected" | `src/ollama_llm_bench/qt_classes/qt_event_bus.py:170` |
-| Unused judge signal | `_models_judge_changed` is emitted during initialization but no widget subscribes to it | `src/ollama_llm_bench/qt_classes/qt_event_bus.py:26` |
-| Warm-up sleep | `OllamaApi.warm_up` blocks the background thread for up to `5 × 30 s = 150 s` of `time.sleep` on full failure. Cancellation is not checked during sleep | `src/ollama_llm_bench/services/ollama_llm_api.py:60` |
-| `print()` fallback in `main.py` | `main.py` uses `print(..., file=sys.stderr)` for fatal boot errors. This is the only `print()` in the codebase and is deliberate: logging may not be configured yet at the point of failure | `src/ollama_llm_bench/main.py:70` |
-| `db.sqlite` committed to repo | A 53 KB `db.sqlite` file sits at the repo root. This is the default application database path (`Path.cwd() / db.sqlite`) and was likely committed accidentally | `git ls-files db.sqlite` |
-| `.DS_Store` committed to repo | macOS metadata file is in the working tree | — |
+| `OllamaApi` / `LLMApi` ABC dead code | Deleted; benchmark execution uses `ProviderRegistry` exclusively. `ollama` runtime dependency dropped. | 2026-05-10 |
+| `BenchmarkTaskApi` / `YamlBenchmarkTaskApi` V1 stack | Deleted; V2 `TaskFileLoader` is the only path. | 2026-05-10 |
+| `PromptBuilderApi` / `SimplePromptBuilderApi` V1 stack | Deleted; `JudgePromptService` is canonical. | 2026-05-10 |
+| `ITableSerializer` rename | Renamed to `TableSerializerApi` (no Hungarian `I`-prefix). | 2026-05-10 |
+| Embedded fonts in `ui/style/fonts/` | Deleted (~2.3 MB) — never registered with `QFontDatabase.addApplicationFont`. | 2026-05-10 |
+| Pylance unreachable warning in `app_paths.py` | Refactored platform dispatch to break literal narrowing. | 2026-05-10 |
+| Magic stage strings | Converted to `StageName(StrEnum)` in `backend/core/stages_constants.py`. | 2026-05-10 |
+| Undocumented Protocol/ABC members in `interfaces.py` and `ui_controllers.py` | Google-style docstrings added. | 2026-05-10 |
+| f-string log calls (~70) | Converted to lazy `%` formatting; Ruff `G004` enforced. | 2026-05-10 |
+| Stale plans (`PLAN.md`, `VALIDATION_REPORT.md`, `docs/v2_plans/`, `docs/v2_validation/`) | Archived to `.AdditionalDocs/archive/2026-05-10/`, removed from git. | 2026-05-10 |
 
-## 5. Prioritized Improvements
+## 3. Prioritized Next Steps
 
-Ranked by impact-over-effort for a new maintainer:
+Ranked by impact-over-effort for a maintainer:
 
-1. **Stand up a test suite.** Zero coverage is the single largest risk. Start with `utils/text_utils.py:parse_judge_response` and `services/app_result_api.py` — both are pure Python, no Qt, high value. See [testing-guide.md](testing-guide.md).
-2. **Add a GitHub Actions workflow** that runs `scripts/ai-check.sh` on every PR. Mirror the script's `ruff → mypy → pytest` sequence.
-3. **Fix `OllamaApi.get_models_list` annotation** to match the runtime return type (`list[str]`). One-line fix, catches a potential mypy strict failure.
-4. **Decide and document the scoring scale.** Either rename `parse_judge_response` return to `score_0_to_1` and update the validator, or scale the judge prompt to emit 0–100. Discrepancy between prompt and parser is a trap waiting to spring.
-5. **Remove `db.sqlite` and `.DS_Store`** from git and add them to `.gitignore`.
-6. **Add `CHANGELOG.md`** per the Keep a Changelog format. The project is versioned (`0.1.1`) but no release notes exist.
-7. ~~**Start the PySide6 migration**~~ — **Complete.** All 18 files migrated. See §2 for details.
-8. **Migrate `core/interfaces.py` to `Protocol`** where the ABC provides no shared state — `LLMApi`, `DataApi`, `EventBus`, `BenchmarkTaskApi` are pure contract surfaces. `ResultApi`, `PromptBuilderApi`, `BenchmarkFlowApi` currently store constructor state and must stay as ABCs (or be restructured).
-9. **Enable `PRAGMA foreign_keys = ON`** in `SqLiteDataApi._init_db` so delete cascades are enforced by SQLite rather than by convention.
-10. **Write ADRs** for the three load-bearing decisions already locked in: (a) `QThreadPool(maxThreadCount=1)` — serial execution; (b) `ContextProvider` singleton via `QMutex`; (c) resumability via three-state `BenchmarkResultStatus`.
+1. **GitHub Actions workflow** that runs `ruff check` + `ruff format --check` + `mypy` + `pytest` on every PR.
+2. **Enable `PRAGMA foreign_keys = ON`** in `SqLiteDataApi._init_db` so delete cascades are enforced by the DB engine.
+3. **Write ADRs** for: (a) serial `QThreadPool(maxThreadCount=1)`; (b) `ContextProvider` singleton via `QMutex`; (c) `BenchmarkResultStatus` three-state resumability; (d) provider plugin layout (OpenAI-compatible / Anthropic / Gemini).
+4. **Add `CHANGELOG.md`** per Keep a Changelog. Cover at minimum: 0.1.1 release with multi-provider V2.
+5. **ABC → Protocol** for `DataApi`, `EventBus`, and `AppContext` — these are pure contracts. `BenchmarkFlowApi` and `ResultApi` store DI state and need restructuring before migration.
+6. **`structlog` migration** — stdlib `logging` works but the rule docs target structlog. Plan a single-PR sweep with QueueHandler + processors.
 
 ## Related Documents
 
-- [architecture.md](architecture.md) — target architecture these gaps relate to
-- [testing-guide.md](testing-guide.md) — the test layout this repo does not yet have
+- [architecture.md](architecture.md) — current architecture
+- [testing-guide.md](testing-guide.md) — fixture patterns for the existing test suite
 - [configuration.md](configuration.md) — authoritative config references

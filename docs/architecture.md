@@ -53,7 +53,7 @@ flowchart TD
 ### Invariants
 
 1. **`core/` never imports any Qt module.** It holds only `@dataclass(frozen=True)`, `StrEnum`, `ABC` definitions, SQL strings, prompt templates, and stage constants.
-2. **`services/` never imports Qt.** Concrete implementations (`OllamaApi`, `SqLiteDataApi`, etc.) live in `services/` and must be unit-testable without a `QApplication`.
+2. **`services/` never imports Qt.** Concrete implementations (`SqLiteDataApi`, `ProviderRegistry`, the `LLMProviderApi` providers, evaluators, etc.) live in `services/` and must be unit-testable without a `QApplication`.
 3. **All threaded work lives in `qt_classes/`.** Nothing outside that package creates a `QRunnable` or a `QThreadPool`.
 4. **Widgets talk to the backend only through controllers.** No widget directly instantiates a service or touches SQLite.
 5. **All background-to-UI communication flows through `QtEventBus`.** No `QMetaObject.invokeMethod`, no direct widget mutation from worker threads.
@@ -66,30 +66,35 @@ Pure Python. No Qt, no third-party deps beyond stdlib.
 
 | File | Responsibility |
 |---|---|
-| `core/interfaces.py` | 9 `ABC` classes: `LLMApi`, `DataApi`, `ResultApi`, `BenchmarkTaskApi`, `PromptBuilderApi`, `BenchmarkFlowApi`, `EventBus`, `AppContext`, `ITableSerializer` |
-| `core/models.py` | 9 frozen dataclasses and 2 `StrEnum`s — see [data-model.md](data-model.md) |
-| `core/sql_constants.py` | `DB_SCHEMA` DDL + 13 query string constants |
-| `core/prompt_constants.py` | `SYSTEM_PROMPT` + `USER_PROMPT` template for the judge |
-| `core/stages_constants.py` | 5 stage string constants |
-| `core/ui_controllers.py` | 4 controller ABCs (`NewRunWidgetControllerApi`, `PreviousRunWidgetControllerApi`, `LogWidgetControllerApi`, `ResultWidgetControllerApi`) |
+| `core/interfaces.py` | ABCs for services (`DataApi`, `ResultApi`, `BenchmarkFlowApi`, `EventBus`, `AppContext`) and Protocols for V2 multi-provider layer (`LLMProviderApi`, `EmbeddingProviderApi`, `ProviderRegistryApi`, `EvaluatorApi`, `LLMJudgeEvaluatorApi`, `JudgePromptServiceApi`, `JudgeSummaryServiceApi`, `AppSettingsServiceApi`, `LogFileWriterApi`, `TaskFileLoaderApi`, `ProviderConfigLoaderApi`, `ModelNameParserApi`, `TableSerializerApi`) |
+| `core/models.py` | Frozen dataclasses, `StrEnum`s, and events — see [data-model.md](data-model.md) |
+| `core/sql_constants.py` | `DB_SCHEMA` DDL and query string constants |
+| `core/prompt_constants.py` | Judge `SYSTEM_PROMPT` + `USER_PROMPT` template |
+| `core/ui_controllers.py` | Controller ABCs for `LogWidget`, `ResultWidget`, `RunConfig`, `SettingsWidget` |
 
 **Allowed imports**: stdlib only.
-**Forbidden imports**: `PySide6`, `ollama`, `yaml`.
+**Forbidden imports**: `PySide6`, third-party LLM libraries.
 
 ### `services/`
 
 Concrete service implementations. Pure Python — no Qt.
 
-| File | Class | Implements |
+| File | Class | Responsibility |
 |---|---|---|
-| `services/ollama_llm_api.py` | `OllamaApi` | `LLMApi` — wraps `ollama.Client(timeout=300)` |
-| `services/sq_lite_data_api.py` | `SqLiteDataApi` | `DataApi` — opens a fresh `sqlite3.connect` per call |
-| `services/app_result_api.py` | `AppResultApi` | `ResultApi` — aggregation and projection |
-| `services/yaml_benchmark_task_api.py` | `YamlBenchmarkTaskApi` | `BenchmarkTaskApi` — caches YAML tasks after first load |
-| `services/simple_prompt_builder_api.py` | `SimplePromptBuilderApi` | `PromptBuilderApi` — template substitution |
-| `services/table_serializer.py` | `TableSerializer` | `ITableSerializer` — CSV + Markdown export |
+| `services/provider_registry.py` | `ProviderRegistry` | Multi-provider composition: loads `providers.yaml`, routes to `OpenAICompatibleProvider`, `AnthropicProvider`, `GeminiProvider`, manages embedding provider |
+| `services/providers/` | `OpenAICompatibleProvider`, `AnthropicProvider`, `GeminiProvider` | Implement `LLMProviderApi` — inference, warm-up, model listing |
+| `services/sq_lite_data_api.py` | `SqLiteDataApi` | Implements `DataApi` — opens fresh `sqlite3.connect` per call |
+| `services/app_result_api.py` | `AppResultApi` | Implements `ResultApi` — aggregation and summary computation |
+| `services/task_file_loader.py` | `TaskFileLoader` | Loads and caches YAML benchmark tasks (V2 replacement for `YamlBenchmarkTaskApi`) |
+| `services/judge_prompt_service.py` | `JudgePromptService` | Builds inference and judge prompts (V2 replacement for `SimplePromptBuilderApi`) |
+| `services/judge_summary_service.py` | `JudgeSummaryService` | Aggregates judge scores per model |
+| `services/evaluators/` | `RuleBasedEvaluator`, `KeywordEvaluator`, `CosineSimilarityEvaluator`, `LLMJudgeEvaluator` | Implement `EvaluatorApi` and `LLMJudgeEvaluatorApi` for 4-layer eval pipeline |
+| `services/embedding_service.py` | `EmbeddingService` | Vector encoding for keyword/similarity evaluators |
+| `services/table_serializer.py` | `TableSerializer` | Implements `TableSerializerApi` — CSV + Markdown export |
+| `services/app_settings_service.py` | `AppSettingsService` | KV-store for app state (persisted to SQLite) |
+| `services/log_file_writer.py` | `LogFileWriter` | Writes benchmark logs to disk |
 
-**Allowed imports**: stdlib, `ollama`, `yaml`, `core/`.
+**Allowed imports**: stdlib, openai-compatible libs (for provider clients), core/.
 **Forbidden imports**: any Qt module.
 
 ### `qt_classes/`
@@ -162,62 +167,64 @@ The factory function `_create_app_context(app_root, dataset_path)` constructs ev
 flowchart LR
     subgraph roots["Infrastructure roots"]
         bus["QtEventBus"]
-        client["ollama.Client"]
+        registry["ProviderRegistry<br/>loads providers.yaml"]
         pool["QThreadPool(max=1)"]
+    end
+
+    subgraph svc["V2 Services"]
+        providers["OpenAICompatibleProvider<br/>AnthropicProvider<br/>GeminiProvider"]
+        data["SqLiteDataApi(db_path)"]
+        result["AppResultApi(data)"]
+        task["TaskFileLoader"]
+        prompt["JudgePromptService"]
+        evals["RuleBasedEvaluator<br/>KeywordEvaluator<br/>CosineSimilarityEvaluator<br/>LLMJudgeEvaluator"]
+        judge_summary["JudgeSummaryService"]
+        log_writer["LogFileWriter"]
         serializer["TableSerializer(app_root)"]
     end
 
-    subgraph svc["Services"]
-        llm["OllamaApi(client)"]
-        task["YamlBenchmarkTaskApi(dataset_path)"]
-        prompt["SimplePromptBuilderApi(task)"]
-        data["SqLiteDataApi(db_path)"]
-        result["AppResultApi(data)"]
-    end
-
-    flow["QtBenchmarkFlowApi(data, task, prompt, llm, pool)"]
+    flow["QtBenchmarkFlowApi<br/>data, registry, task,<br/>judge_prompt, evals,<br/>judge_summary, pool"]
 
     subgraph ctrls["Controllers"]
-        newctrl["NewRunWidgetController"]
-        prevctrl["PreviousRunWidgetController"]
+        runconfig["RunConfigController"]
         logctrl["LogWidgetController"]
         resctrl["ResultWidgetController"]
+        settingsctrl["SettingsWidgetController"]
         listener["StatusListener"]
     end
 
     ctx["ApplicationContext"]
 
-    client --> llm
-    llm --> flow
-    task --> prompt
-    task --> flow
-    prompt --> flow
+    registry --> providers
+    registry --> evals
+    providers --> flow
     data --> result
     data --> flow
-    pool --> flow
+    task --> flow
+    prompt --> flow
+    evals --> flow
+    judge_summary --> flow
+    log_writer --> flow
 
-    bus --> newctrl
-    bus --> prevctrl
+    bus --> runconfig
     bus --> logctrl
     bus --> resctrl
+    bus --> settingsctrl
     bus --> listener
-    flow --> newctrl
-    flow --> prevctrl
+    flow --> runconfig
     flow --> listener
-    data --> newctrl
-    data --> prevctrl
+    data --> runconfig
     data --> resctrl
     data --> listener
-    llm --> newctrl
-    task --> newctrl
-    task --> prevctrl
+    registry --> runconfig
+    registry --> settingsctrl
     result --> listener
     serializer --> resctrl
 
     svc --> ctx
+    providers --> ctx
     flow --> ctx
     bus --> ctx
-    serializer --> ctx
     ctrls --> ctx
 ```
 
@@ -353,7 +360,7 @@ thread_pool.setMaxThreadCount(1)
 | Thread | Runs |
 |---|---|
 | Main (Qt event loop) | All widgets, all controller methods, all slot handlers, `SqLiteDataApi` calls from controllers |
-| Thread pool worker | `BenchmarkExecutionTask.run` and everything it calls synchronously (including `OllamaApi.inference`, `OllamaApi.warm_up`, and `SqLiteDataApi` updates from the task) |
+| Thread pool worker | `BenchmarkExecutionTask.run` and everything it calls synchronously (including `LLMProviderApi.inference_sync`, `inference_stream`, `warm_up`, and `SqLiteDataApi` updates) |
 
 Because `SqLiteDataApi` opens a fresh connection per call, both threads can touch it without coordination.
 Because `BenchmarkExecutionTask` never reaches into a widget, there is no cross-thread widget mutation.

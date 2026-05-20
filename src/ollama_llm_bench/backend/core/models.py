@@ -59,6 +59,7 @@ class BenchmarkRunStatus(StrEnum):
     NOT_COMPLETED = "NOT_COMPLETED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    STOPPED = "STOPPED"
 
 
 class BenchmarkResultStatus(StrEnum):
@@ -287,10 +288,22 @@ class BenchmarkResult:
     resolution_layer: str | None = None
 
     # Group 12 — Error Tracking
+    # True only when the inference call failed outright.
+    # WAITING_FOR_JUDGE results have this as False — they produced valid inference data.
     has_inference_error: bool = False
     inference_error_message: str | None = None
     has_judge_error: bool = False
     judge_error_message: str | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class PromptVariantSpec:
+    """UI-side DTO for a prompt variant before it is persisted to the database."""
+
+    variant_id: str
+    variant_label: str
+    user_prompt_template: str
+    system_prompt: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -328,6 +341,9 @@ class ProviderConfig:
     enabled: bool = True
     base_url: str | None = None
     default_models: tuple[str, ...] = ()
+    last_test_status: str | None = None
+    last_test_at: str | None = None
+    last_test_message: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -388,6 +404,7 @@ class AvgSummaryTableItem:
     avg_score: float = 0.0
     avg_ttft_ms: float | None = None
     pass_rate: float = 0.0
+    failed_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -405,6 +422,8 @@ class SummaryTableItem:
     score_reason: str = ""
     cosine_similarity: float | None = None
     resolution_layer: str = ""
+    error_message: str = ""
+    prompt_version: str = "v1"
 
 
 @dataclass(frozen=True)
@@ -451,14 +470,14 @@ class RunStartEvent:
     run_mode: RunMode
     judge_provider: str
     judge_model: str
-    test_provider: str
-    test_models: tuple[str, ...]
+    test_models: tuple[ModelDescriptor, ...]
     task_paths: tuple[Path, ...]
     streaming_enabled: bool = True
     warmup_enabled: bool = True
     reasoning_effort: str = "default"
     performance_config: PerformanceConfig | None = None
     performance_analysis_enabled: bool = False
+    prompt_variants: tuple[PromptVariantSpec, ...] = ()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -498,6 +517,14 @@ class BenchmarkStartedEvent:
     models: tuple[ModelDescriptor, ...]
     run_mode: RunMode
     run_name: str | None = None
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class RunRenamedEvent:
+    """Emitted when a benchmark run is renamed by the user."""
+
+    run_id: int
+    new_name: str
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -766,6 +793,15 @@ class AdvancedRunOptions:
     reasoning_is_override: bool
 
 
+@dataclass(slots=True, frozen=True, kw_only=True)
+class HealthProbeResult:
+    """Outcome of a single provider reachability probe."""
+
+    reachable: bool
+    model_count_observed: int = 0
+    error_message: str | None = None
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class RunSummary:
     """Immutable snapshot of all Left Panel inputs gathered at Start time."""
@@ -780,3 +816,23 @@ class RunSummary:
     performance_output_sizes: list[str]
     performance_repeats: int
     judge_run_analysis_enabled: bool
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
+class ReadinessVerdict:
+    """Computed readiness verdict for a specific run mode."""
+
+    mode: RunMode
+    is_ready: bool
+    issues: tuple[str, ...]
+    severity: str  # "ok" | "warning" | "error"
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
+class AppReadinessChangedEvent:
+    """Snapshot of overall app readiness emitted after a background probe."""
+
+    has_any_models: bool
+    embedding_ok: bool
+    embedding_error: str
+    unhealthy_providers: tuple[str, ...]

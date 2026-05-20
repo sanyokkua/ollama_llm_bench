@@ -325,7 +325,7 @@ class TestEvaluateSuccess:
         call_kwargs = mock_provider.inference_sync.call_args.kwargs
         assert call_kwargs["model"] == "llama3"
         assert call_kwargs["temperature"] == 0.0
-        assert call_kwargs["max_tokens"] == 256
+        assert call_kwargs["max_tokens"] == 512
         assert isinstance(call_kwargs["messages"], list)
         assert len(call_kwargs["messages"]) == 2
 
@@ -497,3 +497,30 @@ class TestStructuredOutputFlag:
         )
         mock_provider.inference_sync.assert_called_once()
         assert result.verdict is EvalVerdict.PASS
+
+    def test_response_format_passed_when_supports_json(self, mocker: MockerFixture) -> None:
+        evaluator, _, _, mock_provider = _make_evaluator(mocker)
+        mock_provider.supports_structured_output.return_value = True
+        mock_provider.inference_sync.return_value = _make_inference_response(
+            '{"verdict":"pass","score":0.9,"reasoning":"ok"}'
+        )
+        evaluator.evaluate(_make_task(), _make_result(), judge_provider_id="ollama", judge_model="m")
+        call_kwargs = mock_provider.inference_sync.call_args.kwargs
+        assert call_kwargs.get("response_format") == {"type": "json_object"}
+
+    def test_response_format_none_when_no_structured_output_support(self, mocker: MockerFixture) -> None:
+        evaluator, _, _, mock_provider = _make_evaluator(mocker)
+        mock_provider.supports_structured_output.return_value = False
+        mock_provider.inference_sync.return_value = _make_inference_response(
+            '{"verdict":"pass","score":0.9,"reasoning":"ok"}'
+        )
+        evaluator.evaluate(_make_task(), _make_result(), judge_provider_id="ollama", judge_model="m")
+        call_kwargs = mock_provider.inference_sync.call_args.kwargs
+        assert call_kwargs.get("response_format") is None
+
+    def test_empty_response_returns_non_terminal_unknown(self, mocker: MockerFixture) -> None:
+        evaluator, _, _, mock_provider = _make_evaluator(mocker)
+        mock_provider.inference_sync.return_value = _make_inference_response("")
+        result = evaluator.evaluate(_make_task(), _make_result(), judge_provider_id="ollama", judge_model="m")
+        assert result.is_terminal is False
+        assert result.verdict is EvalVerdict.UNKNOWN

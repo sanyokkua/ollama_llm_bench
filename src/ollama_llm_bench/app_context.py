@@ -1,28 +1,25 @@
 import importlib.resources
 import logging
+import shutil
 from pathlib import Path
 from typing import Final, override
 
-import ollama
 from PySide6.QtCore import QMutex, QMutexLocker, QThreadPool
 
 from ollama_llm_bench.backend.core.interfaces import (
     AppContext,
     AppSettingsServiceApi,
     BenchmarkFlowApi,
-    BenchmarkTaskApi,
     DataApi,
     EmbeddingProviderApi,
     EvaluatorApi,
     EventBus,
-    ITableSerializer,
     JudgePromptServiceApi,
-    LLMApi,
     LLMJudgeEvaluatorApi,
     LogFileWriterApi,
-    PromptBuilderApi,
     ProviderRegistryApi,
     ResultApi,
+    TableSerializerApi,
     TaskFileLoaderApi,
 )
 from ollama_llm_bench.backend.core.ui_controllers import (
@@ -31,9 +28,13 @@ from ollama_llm_bench.backend.core.ui_controllers import (
     RunConfigControllerApi,
     SettingsWidgetControllerApi,
 )
+from ollama_llm_bench.backend.services.app_readiness_service import AppReadinessService
 from ollama_llm_bench.backend.services.app_result_api import AppResultApi
 from ollama_llm_bench.backend.services.app_settings_service import (
     SETTING_EMBEDDING_CUSTOM_PATTERNS,
+    SETTING_PROVIDER_TRIP_PROBE_INTERVAL_S,
+    SETTING_PROVIDER_TRIP_THRESHOLD,
+    SETTING_PROVIDER_TRIP_WINDOW_S,
     AppSettingsService,
 )
 from ollama_llm_bench.backend.services.embedding_model_classifier import EmbeddingModelClassifier
@@ -44,16 +45,19 @@ from ollama_llm_bench.backend.services.evaluators.llm_judge_evaluator import LLM
 from ollama_llm_bench.backend.services.evaluators.rule_based_evaluator import RuleBasedEvaluator
 from ollama_llm_bench.backend.services.judge_prompt_service import JudgePromptService
 from ollama_llm_bench.backend.services.judge_summary_service import JudgeSummaryService
+from ollama_llm_bench.backend.services.llm_error_classifier import LlmErrorClassifier
 from ollama_llm_bench.backend.services.log_file_writer import LogFileWriter
-from ollama_llm_bench.backend.services.ollama_llm_api import OllamaApi
+from ollama_llm_bench.backend.services.model_capability_service import ModelCapabilityService
+from ollama_llm_bench.backend.services.model_name_parser import ModelNameParser
 from ollama_llm_bench.backend.services.performance_task_generator import PerformanceTaskGenerator
+from ollama_llm_bench.backend.services.provider_circuit_breaker import ProviderCircuitBreaker
 from ollama_llm_bench.backend.services.provider_config_loader import ProviderConfigLoader
+from ollama_llm_bench.backend.services.provider_health_checker import ProviderHealthChecker
 from ollama_llm_bench.backend.services.provider_registry import ProviderRegistry
-from ollama_llm_bench.backend.services.simple_prompt_builder_api import SimplePromptBuilderApi
 from ollama_llm_bench.backend.services.sq_lite_data_api import SqLiteDataApi
+from ollama_llm_bench.backend.services.sqlite_provider_config_repository import SqliteProviderConfigRepository
 from ollama_llm_bench.backend.services.table_serializer import TableSerializer
 from ollama_llm_bench.backend.services.task_file_loader import TaskFileLoader
-from ollama_llm_bench.backend.services.yaml_benchmark_task_api import YamlBenchmarkTaskApi
 from ollama_llm_bench.backend.utils.run_utils import get_benchmark_runs
 from ollama_llm_bench.ui.controllers.log_widget_controller import LogWidgetController
 from ollama_llm_bench.ui.controllers.result_widget_controller import ResultWidgetController
@@ -90,8 +94,6 @@ class ApplicationContext(AppContext):
         "_judge_prompt_service",
         "_log_file_writer",
         "_log_widget_controller_api",
-        "_ollama_llm_api",
-        "_prompt_builder_api",
         "_provider_registry",
         "_result_api",
         "_result_widget_controller_api",
@@ -99,23 +101,19 @@ class ApplicationContext(AppContext):
         "_settings_widget_controller",
         "_status_listener",
         "_table_serializer",
-        "_task_api",
         "_task_file_loader",
     )
 
     def __init__(
         self,
         *,
-        ollama_llm_api: LLMApi,
-        task_api: BenchmarkTaskApi,
-        prompt_builder_api: PromptBuilderApi,
         data_api: DataApi,
         result_api: ResultApi,
         benchmark_flow_api: BenchmarkFlowApi,
         event_bus: EventBus,
         log_widget_controller_api: LogWidgetControllerApi,
         result_widget_controller_api: ResultWidgetControllerApi,
-        table_serializer: ITableSerializer,
+        table_serializer: TableSerializerApi,
         status_listener: StatusListener,
         provider_registry: ProviderRegistryApi,
         app_settings_service: AppSettingsServiceApi,
@@ -125,9 +123,6 @@ class ApplicationContext(AppContext):
         settings_widget_controller: SettingsWidgetControllerApi,
         run_config_controller: RunConfigControllerApi,
     ):
-        self._ollama_llm_api = ollama_llm_api
-        self._task_api = task_api
-        self._prompt_builder_api = prompt_builder_api
         self._data_api = data_api
         self._result_api = result_api
         self._benchmark_flow_api = benchmark_flow_api
@@ -185,16 +180,6 @@ class ApplicationContext(AppContext):
         return self._data_api
 
     @override
-    def get_llm_api(self) -> LLMApi:
-        """
-        Retrieve the LLM inference interface.
-
-        Returns:
-            LLMApi instance for model interaction.
-        """
-        return self._ollama_llm_api
-
-    @override
     def get_result_api(self) -> ResultApi:
         """
         Retrieve the result computation interface.
@@ -212,7 +197,6 @@ class ApplicationContext(AppContext):
         """
         logger.debug("send_initial_state")
         data_api = self.get_data_api()
-        llm_api = self.get_llm_api()
         event_bus = self.get_event_bus()
 
         try:
@@ -220,7 +204,7 @@ class ApplicationContext(AppContext):
             if runs and len(runs) > 0:
                 latest_run_id = runs[0].run_id
                 runs_list = get_benchmark_runs(self._data_api)
-                logger.debug(f"received runs {runs}")
+                logger.debug("received runs %s", runs)
 
                 event_bus.emit_run_id_changed(latest_run_id)
                 event_bus.emit_run_ids_changed(runs_list)
@@ -229,21 +213,9 @@ class ApplicationContext(AppContext):
                 event_bus.emit_run_id_changed(None)
                 event_bus.emit_run_ids_changed([])
         except Exception as e:
-            logger.warning(f"exception {e}")
+            logger.warning("exception %s", e)
             event_bus.emit_run_id_changed(None)
             event_bus.emit_run_ids_changed([])
-
-        try:
-            models = llm_api.get_models_list()
-            event_bus.emit_models_test_changed(models)
-            if models and len(models) > 0:
-                event_bus.emit_models_judge_changed(models[0])
-            else:
-                event_bus.emit_models_judge_changed("")
-        except Exception as e:
-            logger.warning(f"exception {e}")
-            event_bus.emit_models_test_changed([])
-            event_bus.emit_models_judge_changed("")
 
     @override
     def get_provider_registry(self) -> ProviderRegistryApi:
@@ -401,31 +373,36 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
 
     # Verify dataset path exists
     if not dataset_path.exists():
-        logger.error(f"Dataset path does not exist: {dataset_path}")
+        logger.error("Dataset path does not exist: %s", dataset_path)
         raise FileNotFoundError(f"Dataset path does not exist: {dataset_path}")
     if not dataset_path.is_dir():
-        logger.error(f"Dataset path is not a directory: {dataset_path}")
+        logger.error("Dataset path is not a directory: %s", dataset_path)
         raise NotADirectoryError(f"Dataset path is not a directory: {dataset_path}")
 
     table_serializer = TableSerializer(app_root)
-    # Ollama client should be created in main thread per Ollama's requirements
-    ollama_client = ollama.Client(timeout=300)
-    ollama_llm_api = OllamaApi(ollama_client)
-
-    task_api = YamlBenchmarkTaskApi(task_folder_path=dataset_path)
-    prompt_builder_api = SimplePromptBuilderApi(task_api=task_api)
 
     data_api = SqLiteDataApi(db_path)
     result_api = AppResultApi(data_api=data_api)
 
-    # Resolve providers.yaml — prefer app_root copy, fall back to package resource
+    classifier = LlmErrorClassifier()
+    capability_service = ModelCapabilityService(data_api=data_api)
+
     providers_yaml_path = app_root / "providers.yaml"
+
     if not providers_yaml_path.exists():
-        ref = importlib.resources.files("ollama_llm_bench").joinpath("providers.yaml")
-        providers_yaml_path = Path(str(ref))
+        bundled = importlib.resources.files("ollama_llm_bench").joinpath("providers.yaml")
+        with importlib.resources.as_file(bundled) as bundled_path:
+            shutil.copy(bundled_path, providers_yaml_path)
 
     config_loader = ProviderConfigLoader()
-    registry = ProviderRegistry(config_loader=config_loader, providers_yaml_path=providers_yaml_path)
+    config_repository = SqliteProviderConfigRepository(data_api=data_api)
+    registry = ProviderRegistry(
+        config_loader=config_loader,
+        providers_yaml_path=providers_yaml_path,
+        capability_service=capability_service,
+        classifier=classifier,
+        config_repository=config_repository,
+    )
     try:
         registry.load()
     except Exception:
@@ -448,6 +425,14 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
 
     embedding_service = EmbeddingService(provider=embedding_provider)
 
+    health_checker = ProviderHealthChecker()
+    readiness_service = AppReadinessService(
+        provider_registry=registry,
+        embedding_provider=embedding_provider,
+        app_settings=app_settings,
+        health_checker=health_checker,
+    )
+
     rule_evaluator: EvaluatorApi = RuleBasedEvaluator()
     keyword_evaluator: EvaluatorApi = KeywordEvaluator(embedding_service=embedding_provider)
     cosine_evaluator: EvaluatorApi = CosineSimilarityEvaluator(embedding_service=embedding_provider)
@@ -460,11 +445,14 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
     thread_pool = QThreadPool()
     thread_pool.setMaxThreadCount(1)  # Serial execution for simplicity
 
+    circuit_breaker = ProviderCircuitBreaker(
+        failure_threshold=app_settings.get_int(SETTING_PROVIDER_TRIP_THRESHOLD, default=3),
+        window_s=float(app_settings.get_int(SETTING_PROVIDER_TRIP_WINDOW_S, default=600)),
+        probe_interval_s=float(app_settings.get_int(SETTING_PROVIDER_TRIP_PROBE_INTERVAL_S, default=60)),
+    )
+
     benchmark_flow_api = QtBenchmarkFlowApi(
         data_api=data_api,
-        task_api=task_api,
-        prompt_builder_api=prompt_builder_api,
-        llm_api=ollama_llm_api,
         thread_pool=thread_pool,
         event_bus=event_bus,
         provider_registry=registry,
@@ -478,6 +466,8 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         llm_judge_evaluator=llm_judge_evaluator,
         log_file_writer=log_file_writer,
         perf_task_generator=perf_task_generator,
+        capability_service=capability_service,
+        circuit_breaker=circuit_breaker,
     )
     benchmark_flow_api.subscribe_to_benchmark_status_events(
         lambda is_running: event_bus.emit_background_thread_is_running(
@@ -506,6 +496,10 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         result_api=result_api,
     )
 
+    custom_patterns_raw = app_settings.get(SETTING_EMBEDDING_CUSTOM_PATTERNS) or ""
+    custom_patterns = tuple(p.strip() for p in custom_patterns_raw.split(",") if p.strip())
+    embedding_classifier = EmbeddingModelClassifier(extra_patterns=custom_patterns)
+
     settings_widget_controller = SettingsWidgetController(
         provider_registry=registry,
         provider_config_loader=config_loader,
@@ -513,11 +507,9 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         providers_yaml_path=providers_yaml_path,
         embedding_service=embedding_service,
         event_bus=event_bus,
+        embedding_classifier=embedding_classifier,
+        config_repository=config_repository,
     )
-
-    custom_patterns_raw = app_settings.get(SETTING_EMBEDDING_CUSTOM_PATTERNS) or ""
-    custom_patterns = tuple(p.strip() for p in custom_patterns_raw.split(",") if p.strip())
-    embedding_classifier = EmbeddingModelClassifier(extra_patterns=custom_patterns)
 
     run_config_controller = RunConfigController(
         data_api=data_api,
@@ -527,12 +519,11 @@ def _create_app_context(app_root: Path, dataset_path: Path) -> ApplicationContex
         task_file_loader=task_loader,
         app_settings_service=app_settings,
         embedding_classifier=embedding_classifier,
+        app_readiness_service=readiness_service,
+        name_parser=ModelNameParser(),
     )
 
     return ApplicationContext(
-        ollama_llm_api=ollama_llm_api,
-        task_api=task_api,
-        prompt_builder_api=prompt_builder_api,
         data_api=data_api,
         result_api=result_api,
         benchmark_flow_api=benchmark_flow_api,
