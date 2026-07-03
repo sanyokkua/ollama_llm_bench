@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings Dialog — Mockup</title>
+<style>
+  :root{
+    --bg:#111827; --bg2:#1f2937; --bg3:#263044; --bginput:#1f2937; --border:#374151;
+    --text:#f9fafb; --mute:#9ca3af;
+    --primary:#14b8a6; --primaryh:#0fa898;
+    --success:#34d399; --warn:#fbbf24; --error:#f87171; --info:#60a5fa;
+    --radius:5px;
+    --font:"Segoe UI","Helvetica Neue","Cantarell","Ubuntu","Noto Sans","DejaVu Sans","Arial",sans-serif;
+    --mono:"Consolas","Menlo","Cascadia Mono","DejaVu Sans Mono","Ubuntu Mono","Monaco","Courier New",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:20px;background:#0a0f1a;color:var(--text);font-family:var(--font);font-size:12px;line-height:1.45}
+  h1{font-size:18px;margin:0 0 4px}
+  h2{font-size:12px;margin:26px 0 8px;color:var(--mute);text-transform:uppercase;letter-spacing:.07em}
+  .context{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);
+    padding:7px 12px;margin:6px 0 16px;font-size:11px;color:var(--mute);font-style:italic;max-width:820px}
+  .context strong{font-style:normal;color:var(--text)}
+  .note{font-size:11px;color:var(--mute);max-width:780px;margin:8px 0 14px}
+  .gallery{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+
+  /* dialog shell */
+  .dlg{width:760px;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    box-shadow:0 14px 50px rgba(0,0,0,.65);overflow:hidden;display:flex;flex-direction:column}
+  .dlg-head{background:var(--bg2);padding:8px 14px;border-bottom:1px solid var(--border);
+    display:flex;justify-content:space-between;align-items:center}
+  .dlg-title{font-weight:600;font-size:13px}
+  .dlg-close{color:var(--mute);font-size:14px}
+  .tabs{display:flex;padding:0 12px;border-bottom:1px solid var(--border);background:var(--bg2)}
+  .tab{padding:8px 16px;border-bottom:2px solid transparent;color:var(--mute);font-size:12px}
+  .tab.active{border-color:var(--primary);color:var(--text);background:var(--bg)}
+  .tab .star{color:var(--warn);font-weight:700}
+  .dlg-body{padding:14px;max-height:560px;overflow-y:auto}
+  .dlg-foot{padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2);
+    display:flex;justify-content:space-between;align-items:center;gap:6px}
+  .foot-actions{display:flex;gap:6px}
+  .save-state{font-size:11px;color:var(--mute);font-style:italic}
+
+  /* buttons */
+  .btn{padding:5px 12px;border:1px solid var(--border);background:var(--bg);color:var(--text);
+    border-radius:var(--radius);font-size:12px;font-family:var(--font);cursor:default}
+  .btn:hover{border-color:var(--primary)}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#04221e;font-weight:600}
+  .btn.primary:hover{background:var(--primaryh)}
+  .btn.muted{color:var(--mute)}
+  .btn.sm{padding:3px 9px;font-size:11px}
+  .btn.disabled{color:var(--mute);border-color:var(--border);background:var(--bg);opacity:.5}
+  .btn .star{color:#04221e;font-weight:800}
+
+  /* provider table */
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .toolbar .ttl{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;background:var(--bg2);padding:6px 10px;
+    border-radius:var(--radius);font-size:10px;color:var(--mute);margin-bottom:8px}
+  .legend .swatch{display:inline-flex;align-items:center;gap:4px}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+  .dot.green{background:var(--success)} .dot.amber{background:var(--warn)}
+  .dot.red{background:var(--error)} .dot.grey{background:var(--mute)}
+  .dot.spin{background:var(--info)}
+  table.providers{width:100%;border-collapse:collapse;font-size:11px}
+  table.providers th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);
+    color:var(--mute);font-weight:500;text-transform:uppercase;font-size:10px;letter-spacing:.04em}
+  table.providers td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tr.row-edited{background:rgba(251,191,36,.07)}
+  tr.row-new{background:rgba(20,184,166,.10)}
+  .center{text-align:center}
+  .marker{font-size:10px;color:var(--primary);font-family:var(--mono)}
+  .toolrow{display:inline-flex;gap:2px}
+  .tool{width:24px;height:21px;display:inline-flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid transparent;border-radius:3px;color:var(--mute);font-size:12px}
+  .tool:hover{background:var(--bg3);border-color:var(--border);color:var(--text)}
+  .tool.danger:hover{color:var(--error);border-color:var(--error)}
+  .tool.off{opacity:.35}
+  .toggle{width:30px;height:16px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);
+    display:inline-block;position:relative}
+  .toggle.on{background:var(--primary);border-color:var(--primary)}
+  .toggle::after{content:'';position:absolute;top:1px;left:1px;width:12px;height:12px;border-radius:50%;background:var(--mute)}
+  .toggle.on::after{left:auto;right:1px;background:#04221e}
+  .badge{padding:1px 7px;border-radius:9px;font-size:10px;font-family:var(--mono)}
+  .badge.env-ok{background:rgba(52,211,153,.15);color:var(--success)}
+  .badge.env-bad{background:rgba(248,113,113,.15);color:var(--error)}
+  .badge.none{background:var(--bg2);color:var(--mute)}
+
+  /* sections */
+  .section{border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;margin:12px 0;background:var(--bg)}
+  .section-title{font-size:11px;font-weight:600;text-transform:uppercase;color:var(--mute);
+    letter-spacing:.06em;margin-bottom:7px}
+  .section-help{font-size:11px;color:var(--mute);margin-bottom:9px}
+  .frow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:5px 0;
+    border-bottom:1px dashed rgba(55,65,81,.55)}
+  .frow:last-child{border-bottom:none}
+  .frow .lbl{font-size:11px;color:var(--text)}
+  .frow .key{font-family:var(--mono);font-size:10px;color:var(--mute)}
+  .input{background:var(--bginput);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);
+    padding:4px 8px;font-size:11px;font-family:var(--font)}
+  .input.num{width:74px;text-align:right}
+  .input.err{border-color:var(--error)}
+  .errline{font-size:10px;color:var(--error);margin-top:2px;text-align:right}
+  .combo{position:relative;display:inline-block}
+  .combo select.input{appearance:none;padding-right:22px}
+  .combo::after{content:'';position:absolute;right:8px;top:50%;width:0;height:0;
+    border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--mute);
+    transform:translateY(-30%);pointer-events:none}
+  .embed-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+  .embed-grid .lbl{font-size:11px;margin-bottom:3px;color:var(--text)}
+  .diag{font-size:11px;font-family:var(--mono);color:var(--success);margin-top:6px}
+  .check{width:13px;height:13px;border:1px solid var(--border);border-radius:3px;display:inline-block;
+    background:var(--bg);vertical-align:middle;position:relative}
+  .check.on{background:var(--primary);border-color:var(--primary)}
+  .check.on::after{content:'✓';color:#04221e;font-size:9px;position:absolute;left:2px;top:-3px}
+  .pathbox{font-family:var(--mono);font-size:10px;color:var(--mute);background:var(--bg2);
+    border:1px solid var(--border);border-radius:var(--radius);padding:4px 8px}
+</style>
+</head>
+<body>
+
+<h1>Settings Dialog — Mockup</h1>
+<div class="context">
+  Visual reference for <strong>06_Settings_Dialog</strong>. The dialog is a fixed-structure modal
+  (~760&nbsp;px wide) with two tabs — <strong>Providers</strong> and <strong>General</strong> — and a
+  single footer that commits both tabs atomically. The left rendering shows the Providers tab in a
+  <strong>dirty</strong> state; the right rendering shows the General tab. Static HTML; no scripting.
+</div>
+
+<div class="gallery">
+
+  <!-- ============ PROVIDERS TAB (dirty) ============ -->
+  <div>
+    <h2>Providers tab — dirty state</h2>
+    <div class="dlg">
+      <div class="dlg-head">
+        <span class="dlg-title">Settings</span>
+        <span class="dlg-close" title="Close">&#10005;</span>
+      </div>
+      <div class="tabs">
+        <div class="tab active">Providers <span class="star">*</span></div>
+        <div class="tab">General</div>
+      </div>
+      <div class="dlg-body">
+
+        <div class="toolbar">
+          <span class="ttl">Provider catalog</span>
+          <span class="btn primary sm">+ Add Provider</span>
+        </div>
+
+        <div class="legend">
+          <span class="swatch"><span class="dot green"></span> Ready</span>
+          <span class="swatch"><span class="dot amber"></span> Zero models</span>
+          <span class="swatch"><span class="dot red"></span> Unreachable / Missing env</span>
+          <span class="swatch"><span class="dot grey"></span> Untested</span>
+          <span class="swatch"><span class="dot spin"></span> Testing&hellip;</span>
+        </div>
+
+        <table class="providers">
+          <thead>
+            <tr>
+              <th>Health</th><th>Name</th><th>Type</th><th>Base URL</th>
+              <th>Auth</th><th class="center">Enabled</th><th class="center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="dot green"></span></td>
+              <td>Ollama (local)</td>
+              <td>openai_compatible</td>
+              <td>http://localhost:11434/v1</td>
+              <td><span class="badge none">none</span></td>
+              <td class="center"><span class="toggle on"></span></td>
+              <td class="center"><span class="toolrow">
+                <span class="tool">&#9211;</span><span class="tool">&#9998;</span>
+                <span class="tool off">&#8634;</span><span class="tool danger">&#128465;</span>
+              </span></td>
+            </tr>
+            <tr>
+              <td><span class="dot grey"></span></td>
+              <td>LM Studio</td>
+              <td>openai_compatible</td>
+              <td>http://localhost:1234/v1</td>
+              <td><span class="badge none">none</span></td>
+              <td class="center"><span class="toggle"></span></td>
+              <td class="center"><span class="toolrow">
+                <span class="tool">&#9211;</span><span class="tool">&#9998;</span>
+                <span class="tool off">&#8634;</span><span class="tool danger">&#128465;</span>
+              </span></td>
+            </tr>
+            <tr>
+              <td><span class="dot grey"></span></td>
+              <td>llama.cpp</td>
+              <td>openai_compatible</td>
+              <td>http://localhost:8080/v1</td>
+              <td><span class="badge none">none</span></td>
+              <td class="center"><span class="toggle"></span></td>
+              <td class="center"><span class="toolrow">
+                <span class="tool">&#9211;</span><span class="tool">&#9998;</span>
+                <span class="tool off">&#8634;</span><span class="tool danger">&#128465;</span>
+              </span></td>
+            </tr>
+            <tr class="row-edited">
+              <td><span class="dot green"></span></td>
+              <td>Anthropic</td>
+              <td>anthropic</td>
+              <td>(default)</td>
+              <td><span class="badge env-ok">env &#10003;</span></td>
+              <td class="center"><span class="toggle on"></span></td>
+              <td class="center"><span class="toolrow">
+                <span class="tool">&#9211;</span><span class="tool">&#9998;</span>
+                <span class="tool">&#8634;</span><span class="tool danger">&#128465;</span>
+              </span></td>
+            </tr>
+            <tr class="row-edited">
+              <td><span class="dot red"></span></td>
+              <td>OpenAI</td>
+              <td>openai_compatible</td>
+              <td>https://api.openai.com/v1</td>
+              <td><span class="badge env-bad">env &#10007;</span></td>
+              <td class="center"><span class="toggle on"></span></td>
+              <td class="center"><span class="toolrow">
+                <span class="tool">&#9211;</span><span class="tool">&#9998;</span>
+                <span class="tool">&#8634;</span><span class="tool danger">&#128465;</span>
+              </span></td>
+            </tr>
+            <tr class="row-new">
+              <td><span class="dot grey"></span></td>
+              <td>Gemini <span class="marker">(new)</span></td>
+              <td>gemini</td>
+              <td>(default)</td>
+              <td><span class="badge env-bad">env &#10007;</span></td>
+              <td class="center"><span class="toggle on"></span></td>
+              <td class="center"><span class="toolrow">
+                <span class="tool">&#9211;</span><span class="tool">&#9998;</span>
+                <span class="tool">&#8634;</span><span class="tool danger">&#128465;</span>
+              </span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:6px">
+          Actions, left to right: Test connection &middot; Edit &middot; Reset this provider &middot; Delete.
+          Reset is dimmed for a row with no unsaved edits. The Gemini row is session-added and tinted primary.
+        </div>
+
+        <div class="section">
+          <div class="section-title">Embedding model</div>
+          <div class="section-help">
+            One embedding pair, required for GRADED runs. Not per-run-overridable.
+          </div>
+          <div class="embed-grid">
+            <div>
+              <div class="lbl">Provider</div>
+              <div class="combo"><select class="input"><option>Ollama (local)</option></select></div>
+            </div>
+            <div>
+              <div class="lbl">Model</div>
+              <div class="combo"><select class="input"><option>bge-m3:567m</option></select></div>
+            </div>
+            <div><span class="btn sm">Test Embedding</span></div>
+          </div>
+          <div class="diag">&#10003; reachable &middot; 1024-dim vector &middot; 38&nbsp;ms</div>
+          <div style="margin-top:8px">
+            <span class="check on"></span>
+            <span style="font-size:11px;margin-left:5px">Show all models</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="dlg-foot">
+        <span class="btn muted sm">Reset to Defaults</span>
+        <span class="save-state">Unsaved changes</span>
+        <span class="foot-actions">
+          <span class="btn sm">Import&hellip;</span>
+          <span class="btn sm">Export&hellip;</span>
+          <span class="btn">Close</span>
+          <span class="btn primary">Save Changes <span class="star">*</span></span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ GENERAL TAB ============ -->
+  <div>
+    <h2>General tab — clean state</h2>
+    <div class="dlg">
+      <div class="dlg-head">
+        <span class="dlg-title">Settings</span>
+        <span class="dlg-close" title="Close">&#10005;</span>
+      </div>
+      <div class="tabs">
+        <div class="tab">Providers</div>
+        <div class="tab active">General</div>
+      </div>
+      <div class="dlg-body">
+
+        <div class="section">
+          <div class="section-title">Inference</div>
+          <div class="frow"><span class="lbl">Stream tokens to Log panel
+            <span class="key">ui.stream_tokens_to_log</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Default reasoning effort
+            <span class="key">feature.reasoning_effort_default</span></span>
+            <span class="combo"><select class="input"><option>default</option></select></span></div>
+          <div class="frow"><span class="lbl">Sampling temperature (model under test)
+            <span class="key">benchmark.temperature</span></span>
+            <input class="input num" placeholder="(provider default)"></div>
+          <div class="frow"><span class="lbl">Enable model warmup
+            <span class="key">benchmark.warmup_enabled</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Retry count (recoverable failures) &mdash; inference
+            <span class="key">benchmark.retry_count</span></span>
+            <input class="input num" value="3"></div>
+          <div class="frow"><span class="lbl">Inference timeout &mdash; minimum (seconds)
+            <span class="key">benchmark.min_timeout_seconds</span></span>
+            <input class="input num" value="300"></div>
+          <div class="frow"><span class="lbl">Inference timeout &mdash; maximum (seconds)
+            <span class="key">benchmark.max_timeout_seconds</span></span>
+            <input class="input num" value="900"></div>
+          <div class="frow"><span class="lbl">Inference timeout &mdash; max max-timeout failures before exclusion
+            <span class="key">benchmark.consecutive_max_timeouts_to_exclude</span></span>
+            <input class="input num" value="3"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Judge timeouts and embedding timeout</div>
+          <div class="frow"><span class="lbl">Judge timeout &mdash; minimum (seconds)
+            <span class="key">eval.judge_timeout_min_seconds</span></span>
+            <input class="input num" value="20"></div>
+          <div class="frow"><span class="lbl">Judge timeout &mdash; maximum (seconds)
+            <span class="key">eval.judge_timeout_max_seconds</span></span>
+            <input class="input num" value="120"></div>
+          <div class="frow"><span class="lbl">Judge timeout &mdash; escalation steps
+            <span class="key">eval.judge_timeout_escalation_steps</span></span>
+            <input class="input num" value="2"></div>
+          <div class="frow"><span class="lbl">Judge timeout &mdash; max max-timeout failures before exclusion
+            <span class="key">eval.judge_timeout_consecutive_threshold</span></span>
+            <input class="input num" value="3"></div>
+          <div class="frow"><span class="lbl">Embedding timeout (fixed, seconds)
+            <span class="key">eval.embedding_timeout_seconds</span></span>
+            <input class="input num" value="30"></div>
+          <div class="frow"><span class="lbl" style="font-style:italic;font-size:11px;color:var(--text-secondary)">
+            Per-role scope: the four judge fields apply only to judge calls (per-task judge and run-analysis); they do NOT affect inference (§4.1 above). The embedding timeout is a strictly fixed budget &mdash; no escalation, no exclusion. Test Inference and readiness probes have their own fixed deadlines and are not affected by this section. See DD-34.</span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Benchmark Events</div>
+          <div class="frow"><span class="lbl">Pause when moving to the next provider
+            <span class="key">benchmark.pause_on_provider_switch</span></span><span class="toggle"></span></div>
+          <div class="frow"><span class="lbl">Pause when moving to the next model
+            <span class="key">benchmark.pause_on_model_switch</span></span><span class="toggle"></span></div>
+          <div class="frow"><span class="lbl">Pause between pipeline stages
+            <span class="key">benchmark.pause_on_phase_switch</span></span><span class="toggle"></span></div>
+          <div class="frow"><span class="lbl">Stop the run if a provider's health check fails
+            <span class="key">benchmark.stop_on_provider_health_failure</span></span><span class="toggle"></span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Evaluation</div>
+          <div class="frow"><span class="lbl">Enable keyword validation
+            <span class="key">eval.phase_keyword_enabled</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Enable cosine similarity validation
+            <span class="key">eval.phase_cosine_enabled</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Enable judge validation
+            <span class="key">eval.phase_judge_enabled</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Run the judge even after an earlier phase failed
+            <span class="key">eval.force_judge_on_prior_failure</span></span><span class="toggle"></span></div>
+          <div class="frow"><span class="lbl">Cosine threshold
+            <span class="key">eval.cosine_threshold</span></span>
+            <input class="input num" value="0.85"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Run-level analysis</div>
+          <div class="frow"><span class="lbl">Generate run-level analysis with the judge model
+            <span class="key">feature.judge_run_analysis_enabled</span></span><span class="toggle"></span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Embedding Models</div>
+          <div class="frow"><span class="lbl">Hide embedding-like models from selection lists
+            <span class="key">embedding.hide_from_test_models</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Additional patterns (comma-separated)
+            <span class="key">embedding.additional_patterns</span></span>
+            <input class="input" style="width:160px" value="" placeholder="e.g. -embed, nomic"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Display</div>
+          <div class="frow"><span class="lbl">Theme <span class="key">ui.theme</span></span>
+            <span class="combo"><select class="input"><option>system</option></select></span></div>
+          <div class="frow"><span class="lbl">Score display format
+            <span class="key">ui.score_display_format</span></span>
+            <span class="combo"><select class="input"><option>decimal</option></select></span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Logging &mdash; Run Logs</div>
+          <div class="frow"><span class="lbl">Write run log to file
+            <span class="key">logging.write_run_log_to_file</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Default run-log verbosity
+            <span class="key">ui.run_log_verbosity</span></span>
+            <span class="combo"><select class="input"><option>normal</option></select></span></div>
+          <div class="frow"><span class="lbl">Auto-scroll log panel
+            <span class="key">ui.auto_scroll_run_log</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Run-log buffer (lines)
+            <span class="key">ui.run_log_max_lines</span></span>
+            <input class="input num" value="100000"></div>
+          <div class="frow"><span class="lbl">Open Run Logs folder</span>
+            <span class="btn sm">Open&hellip;</span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Logging &mdash; App Logs</div>
+          <div class="frow"><span class="lbl">Write app log to file
+            <span class="key">logging.write_app_log_to_file</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">App-log level
+            <span class="key">logging.app_log_level</span></span>
+            <span class="combo"><select class="input"><option>info</option></select></span></div>
+          <div class="frow"><span class="lbl">Rotation &mdash; max file size (MB)
+            <span class="key">logging.app_log_max_file_mb</span></span>
+            <input class="input num" value="10"></div>
+          <div class="frow"><span class="lbl">Rotation &mdash; total log budget (MB)
+            <span class="key">logging.app_log_max_total_mb</span></span>
+            <input class="input num" value="60"></div>
+          <div class="frow"><span class="lbl">Open App Logs folder</span>
+            <span class="btn sm">Open&hellip;</span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Storage</div>
+          <div class="frow"><span class="lbl">App folder path</span>
+            <span class="btn sm muted">Copy</span></div>
+          <div class="pathbox">~/Library/Application Support/OllamaLLMBench/</div>
+          <div class="frow" style="margin-top:6px"><span class="lbl">Open App folder</span>
+            <span class="btn sm">Open&hellip;</span></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Task Editor</div>
+          <div class="frow"><span class="lbl">Default Task Editor folder
+            <span class="key">ui.task_editor_last_folder</span></span>
+            <span class="btn sm">Choose&hellip;</span></div>
+          <div class="frow"><span class="lbl">Auto-format YAML on save
+            <span class="key">task_editor.auto_format_on_save</span></span><span class="toggle on"></span></div>
+          <div class="frow"><span class="lbl">Warn on empty grading criteria
+            <span class="key">task_editor.warn_on_empty_grading_criteria</span></span><span class="toggle on"></span></div>
+        </div>
+
+      </div>
+      <div class="dlg-foot">
+        <span class="btn muted sm">Reset to Defaults</span>
+        <span class="save-state">All changes saved</span>
+        <span class="foot-actions">
+          <span class="btn sm">Import&hellip;</span>
+          <span class="btn sm">Export&hellip;</span>
+          <span class="btn">Close</span>
+          <span class="btn disabled">Save Changes</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="note">
+  Each General-tab control writes exactly one user-saved setting key from the registry in
+  <code>08_Cross_Cutting/08-G_feature_flags.md</code>; the dotted key is shown beneath each label for
+  reference and is not part of the shipped UI. When dirty, the dirty tab's label and the Save Changes
+  button each carry an asterisk and the footer save-state indicator reads <em>Unsaved changes</em>.
+</div>
+
+<!-- ============ PROVIDER EDIT — Test connection footer ============ -->
+<h2 style="margin-top:36px">Provider Edit sub-dialog &mdash; Test reachability + Test inference panel</h2>
+<div class="context">
+  Visual reference for <strong>06_Settings_Dialog/sub_dialogs/provider_edit.md</strong> &sect;8. The footer
+  exposes <strong>two distinct actions</strong> &mdash; <strong>Test reachability</strong>
+  (<code>LLMClient.probe_health()</code>; never billable; never an inference) and
+  <strong>Test inference</strong> (<code>LLMClient.test_inference(model_name)</code>; one short canned
+  chat call against the named model; potentially billable on paid providers). The user MUST select or
+  enter a model name before the Run inference test button enables.
+</div>
+
+<div class="gallery">
+
+  <div>
+    <h2>Provider Edit &mdash; footer with inference-test panel open</h2>
+    <div class="dlg" style="width:620px">
+      <div class="dlg-head">
+        <span class="dlg-title">Edit Provider &mdash; Anthropic</span>
+        <span class="dlg-close" title="Close">&#10005;</span>
+      </div>
+      <div class="dlg-body" style="max-height:none">
+        <div class="note" style="margin-top:0">
+          (identity / endpoint / default models shown above &mdash; omitted in this mockup row).
+          Identity section carries the <strong>Name</strong> field (the sole unique-identifier input; uniqueness validated live via <code>ProvidersStore.get_by_name</code>), the Type dropdown, and the Enabled toggle. There is <strong>no</strong> Provider ID input &mdash; <code>provider_id</code> is an internal auto-generated UUID4 (DD-33), never shown to the user.
+        </div>
+
+        <div class="section">
+          <div class="section-title">Authentication</div>
+          <div class="frow">
+            <span class="lbl">API key <span class="key">required</span></span>
+            <input class="input" placeholder="OPENAI_API_KEY" value="ANTHROPIC_API_KEY" style="width:260px">
+          </div>
+          <div class="diag" style="color:var(--success);margin-top:4px">&#10003; resolved &middot; &lt;redacted&gt; &middot; 51 chars</div>
+          <div class="section-help" style="margin-top:6px">
+            Enter the <strong>name of an environment variable</strong> that holds the secret &mdash; not the key itself
+            (e.g. <code>OPENAI_API_KEY</code>). Set the variable in the environment the application is launched from.
+            The application reads environment variables once at startup, so <strong>restart the application</strong> after
+            you add or change a variable. A variable you <code>export</code> in a single terminal is only visible if you
+            launch the app from that same terminal session &mdash; to have it picked up generally, set it system-wide or in
+            your shell profile / login environment.
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Last test</div>
+          <div class="diag" style="color:var(--success)">Last reachability: &#10003; reachable &middot; discovery not supported by this provider &middot; 41 ms &middot; 2026-05-30 14:12</div>
+          <div class="diag" style="color:var(--success)">Last inference test: &#10003; claude-3-5-sonnet-20241022 &middot; 612 ms &middot; 2026-05-30 14:13</div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Test reachability</div>
+          <div class="frow">
+            <span class="lbl">Confirm endpoint + (when supported) discover models. Never billable.</span>
+            <span class="btn sm">Test reachability</span>
+          </div>
+          <div class="diag" style="color:var(--success);margin-top:4px">
+            &#10003; reachable &middot; discovery not supported by this provider &middot; 43 ms &middot; just now
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Test inference</div>
+          <div class="section-help">
+            Issues one short canned chat call to the selected model. <strong>This call is billable on
+            this provider</strong> &mdash; one short request will be sent to the selected model.
+          </div>
+          <div class="frow">
+            <span class="lbl">Model
+              <span class="key">ui/shared/model_dropdown</span></span>
+            <span class="combo">
+              <select class="input"><option>&mdash; pick a model &mdash;</option></select>
+            </span>
+          </div>
+          <div class="frow">
+            <span class="lbl">
+              <span class="check on"></span>
+              <span style="margin-left:5px">Enter model name manually</span>
+            </span>
+            <input class="input" placeholder="e.g. claude-3-5-sonnet-20241022" style="width:260px" value="claude-3-5-sonnet-20241022">
+          </div>
+          <div class="frow">
+            <span class="lbl">&nbsp;</span>
+            <span class="btn primary sm">Run inference test</span>
+          </div>
+          <div class="diag" style="color:var(--success);margin-top:4px">
+            &#10003; SUCCESS &middot; claude-3-5-sonnet-20241022 &middot; 612 ms &middot; response: &ldquo;ok&rdquo; &middot; just now
+          </div>
+        </div>
+
+      </div>
+      <div class="dlg-foot">
+        <span class="save-state"><em>For an OpenAI-compatible / Gemini provider, the dropdown is pre-filled from the last reachability probe.</em></span>
+        <span class="foot-actions">
+          <span class="btn">Cancel</span>
+          <span class="btn primary">Save</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h2>Provider Edit &mdash; inference-test panel disabled while another activity holds the gate</h2>
+    <div class="dlg" style="width:620px">
+      <div class="dlg-head">
+        <span class="dlg-title">Edit Provider &mdash; OpenAI</span>
+        <span class="dlg-close" title="Close">&#10005;</span>
+      </div>
+      <div class="dlg-body" style="max-height:none">
+        <div class="section">
+          <div class="section-title">Test inference</div>
+          <div class="section-help" style="color:var(--warn)">
+            &#9888; A benchmark run is in progress &mdash; the inference test will be available once the
+            inference gate is free.
+          </div>
+          <div class="frow">
+            <span class="lbl">Model
+              <span class="key">ui/shared/model_dropdown</span></span>
+            <span class="combo">
+              <select class="input"><option>gpt-4o-mini</option></select>
+            </span>
+          </div>
+          <div class="frow">
+            <span class="lbl">&nbsp;</span>
+            <span class="btn disabled sm" title="An inference is in flight; please wait.">Run inference test</span>
+          </div>
+          <div class="diag" style="color:var(--mute);margin-top:4px">
+            GATE_BUSY &middot; gpt-4o-mini &middot; &mdash; ms &middot; An inference activity is already in flight.
+          </div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <span class="save-state"><em>The Run button re-enables when <code>_inference_activity_changed</code> reports the gate IDLE.</em></span>
+        <span class="foot-actions">
+          <span class="btn">Cancel</span>
+          <span class="btn primary">Save</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px">
+    <h2>Import preview modal (opens on Import&hellip; before anything is written)</h2>
+    <p class="note">After the user picks a YAML file, this modal previews exactly what the import will do and requires confirmation before any write (`10_Domain_and_Data/06_IMPORT_FORMATS.md` §8). It lists each provider as Add / Update / Skip, summarises recognised vs ignored setting keys, and surfaces any hard errors. Apply is disabled while a hard error is present.</p>
+    <div class="dlg" style="width:680px">
+      <div class="dlg-head"><span class="dlg-title">Import preview &mdash; my-config.yaml</span><span class="dlg-close" title="Close">&#10005;</span></div>
+      <div class="dlg-body">
+        <div class="section">
+          <div class="section-title">Providers</div>
+          <table class="providers">
+            <tr><td><span class="badge env-ok">+ Add</span></td><td>OpenAI</td><td style="color:var(--mute)">openai_compatible &middot; api key <code>OPENAI_API_KEY</code></td></tr>
+            <tr><td><span class="badge" style="background:rgba(96,165,250,.15);color:var(--info)">&#8635; Update</span></td><td>Ollama (local)</td><td style="color:var(--mute)">base URL and model list change</td></tr>
+            <tr><td><span class="badge none">&#8856; Skip</span></td><td>LM Studio</td><td style="color:var(--mute)">duplicate name already in catalog</td></tr>
+          </table>
+        </div>
+        <div class="section">
+          <div class="section-title">Settings</div>
+          <div class="section-help"><strong style="color:var(--success)">12 recognised</strong> &middot; <strong style="color:var(--warn)">2 ignored</strong> (unknown keys, kept out): <code>benchmark.legacy_flag</code>, <code>ui.old_theme</code></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Errors</div>
+          <div style="border:1px solid var(--error);border-radius:6px;background:rgba(248,113,113,.08);padding:9px 11px">
+            <div style="color:var(--error);font-weight:600;font-size:11px;margin-bottom:4px">&#10006; Import blocked &mdash; resolve before applying:</div>
+            <ul style="margin:0;padding-left:16px;color:var(--error);font-size:11px">
+              <li>Provider &ldquo;Azure GPT&rdquo;: <code>api_key</code> holds a literal value &mdash; enter the <em>name</em> of an environment variable (e.g. <code>AZURE_OPENAI_KEY</code>) and re-import.</li>
+            </ul>
+            <div class="note" style="margin-top:4px">A literal secret value or a duplicate provider name <em>within the file</em> is a hard error that aborts the whole import. When the file is clean this block reads &ldquo;Errors: none&rdquo; and Apply is enabled.</div>
+          </div>
+        </div>
+      </div>
+      <div class="dlg-foot">
+        <span class="save-state"><em>Apply is disabled while a hard error is present.</em></span>
+        <span class="foot-actions">
+          <span class="btn">Cancel</span>
+          <span class="btn primary disabled" style="opacity:.5">Apply import</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

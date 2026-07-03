@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New Benchmark Widget — Mockup</title>
+<style>
+:root{
+  --bg:#111827;--bg2:#1f2937;--bg3:#263044;--bginput:#1f2937;--border:#374151;
+  --text:#f9fafb;--mute:#9ca3af;--primary:#14b8a6;--primaryh:#0fa898;
+  --success:#34d399;--warn:#fbbf24;--error:#f87171;
+  --font:"Segoe UI","Helvetica Neue","Cantarell","Ubuntu","Noto Sans","DejaVu Sans","Arial",sans-serif;--mono:"Consolas","Menlo","Cascadia Mono","DejaVu Sans Mono","Ubuntu Mono","Monaco","Courier New",monospace;
+  --radius:5px;
+}
+body{margin:0;padding:16px;background:#0a0f1a;color:var(--text);font-family:var(--font);font-size:12px;line-height:1.4}
+h1{font-size:18px;margin:0 0 6px}
+h2{font-size:13px;margin:18px 0 4px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+p{color:var(--mute);max-width:1140px}
+.gallery{display:grid;grid-template-columns:repeat(3,360px);gap:16px}
+.panel{background:var(--bg);border:1px solid var(--border);border-radius:8px;height:880px;display:flex;flex-direction:column;overflow:hidden}
+.panel-head{padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.body{padding:12px;overflow-y:auto;flex:1}
+.label{color:var(--text);font-size:12px;margin:4px 0 2px}
+.help{color:var(--mute);font-size:11px;margin-bottom:2px}
+.note{color:var(--mute);font-size:10px;margin:2px 0 4px}
+.input{background:var(--bginput);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:5px 8px;width:100%;box-sizing:border-box;font-size:12px;font-family:var(--font)}
+.combo{position:relative}
+.combo::after{content:'';position:absolute;right:8px;top:50%;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--mute);transform:translateY(-30%)}
+.row{display:flex;gap:6px;align-items:center;margin:4px 0}
+.btn{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:5px 10px;cursor:pointer;font-size:12px}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.sm{padding:3px 6px;font-size:11px}
+.section{border:1px solid var(--border);border-radius:var(--radius);padding:8px;margin:8px 0;background:var(--bg2)}
+.section-title{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.mode-list{display:flex;flex-direction:column;gap:2px}
+.mode-row{padding:8px 10px;border-radius:var(--radius);cursor:pointer;border:1px solid transparent}
+.mode-row.active{border-color:var(--primary);background:rgba(20,184,166,.12)}
+.mode-name{font-weight:600;color:var(--text)}
+.mode-desc{font-size:11px;color:var(--mute);margin-top:2px}
+.check{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.checkbox{width:14px;height:14px;border:1px solid var(--border);border-radius:3px;display:inline-block;background:var(--bg);vertical-align:middle;position:relative}
+.checkbox.checked{background:var(--primary);border-color:var(--primary)}
+.checkbox.checked::after{content:'\2713';color:#fff;font-size:10px;position:absolute;left:2px;top:-3px}
+.size-grid{display:grid;grid-template-columns:1fr;gap:3px}
+.size-row{padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);display:flex;align-items:center;gap:8px}
+.size-row.active{border-color:var(--primary);background:rgba(20,184,166,.08)}
+.size-tag{font-weight:600;color:var(--text);min-width:24px}
+.size-desc{font-size:11px;color:var(--mute)}
+.model-list{border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);max-height:130px;overflow-y:auto}
+.model-row{padding:4px 8px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);font-size:11px}
+.model-row:last-child{border-bottom:none}
+.dropzone{border:2px dashed var(--border);border-radius:var(--radius);background:var(--bg);min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--mute);font-size:11px;gap:4px;text-align:center;padding:8px}
+.dropzone.full{align-items:stretch;justify-content:flex-start;padding:0;border-style:solid;background:var(--bg)}
+.task-row{padding:5px 8px;border-bottom:1px solid var(--border);font-size:11px;display:flex;justify-content:space-between;align-items:center}
+.task-row:last-child{border-bottom:none}
+.task-name{font-family:var(--mono);color:var(--text)}
+.badge{font-size:10px;color:var(--mute);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1px 6px}
+.badge.dirty{color:var(--warn);border-color:var(--warn)}
+.selsum{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:6px;font-size:11px;color:var(--mute);min-height:60px;max-height:120px;overflow-y:auto}
+.sticky{position:sticky;bottom:0;background:var(--bg);padding-top:8px;margin-top:auto}
+.spinner input{width:60px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;background:var(--bg2);padding:8px;border-radius:var(--radius);font-size:11px;color:var(--mute);margin:10px 0}
+.legend strong{color:var(--text)}
+.warn{color:var(--warn);font-size:11px;margin:6px 0}
+.ok{color:var(--success);font-size:11px;margin:6px 0}
+.estim{background:var(--bg);padding:6px 8px;border-radius:var(--radius);font-size:11px;color:var(--primary);border:1px solid rgba(20,184,166,.3)}
+table{border-collapse:collapse;font-size:12px}
+th,td{padding:4px 10px}
+th{text-align:left;background:var(--bg2)}
+td{border-top:1px solid var(--border)}
+code{font-family:var(--mono);background:var(--bg2);padding:1px 4px;border-radius:3px}
+</style>
+</head>
+<body>
+
+<h1>New Benchmark Widget — three run modes</h1>
+<p>The same left-panel widget rendered for each run mode. Section visibility is driven by the Mode Visibility Policy. Drawn at 360 x 880 (default left-panel width with scrollable height).</p>
+<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:6px 12px;margin:6px 0 12px;font-size:11px;color:var(--mute);font-style:italic">
+Workspace context &mdash; <strong style="font-style:normal;color:var(--text)">Benchmark workspace</strong> &#9656; <strong style="font-style:normal;color:var(--text)">Left panel</strong> &#9656; <strong style="font-style:normal;color:var(--text)">New Benchmark tab</strong>. The Main Window menu bar sits above; the status bar sits below.
+</div>
+
+<div class="gallery">
+
+<!-- ================= MODE 1: Synthetic Benchmark ================= -->
+<div class="panel">
+  <div class="panel-head">New Benchmark &mdash; Synthetic Benchmark</div>
+  <div class="body">
+
+    <div class="section">
+      <div class="section-title">Mode</div>
+      <div class="mode-list">
+        <div class="mode-row active">
+          <div class="mode-name">Synthetic Benchmark</div>
+          <div class="mode-desc">Synthetic prompt sizes; measures throughput</div>
+        </div>
+        <div class="mode-row">
+          <div class="mode-name">Task Benchmark</div>
+          <div class="mode-desc">Your task files; throughput only; no grading</div>
+        </div>
+        <div class="mode-row">
+          <div class="mode-name">Graded Benchmark</div>
+          <div class="mode-desc">Your task files; full grading pipeline</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Input Sizes</div>
+      <div class="size-grid">
+        <div class="size-row active"><span class="checkbox checked"></span><span class="size-tag">XS</span><span class="size-desc">~5 tok &middot; 1 sentence &middot; 7 words</span></div>
+        <div class="size-row active"><span class="checkbox checked"></span><span class="size-tag">SM</span><span class="size-desc">~50 tok &middot; 1 paragraph &middot; 70 words</span></div>
+        <div class="size-row"><span class="checkbox"></span><span class="size-tag">MD</span><span class="size-desc">~250 tok &middot; 1 page &middot; 380 words</span></div>
+        <div class="size-row"><span class="checkbox"></span><span class="size-tag">LG</span><span class="size-desc">~1500 tok &middot; long doc &middot; 2300 words</span></div>
+        <div class="size-row"><span class="checkbox"></span><span class="size-tag">XL</span><span class="size-desc">~3500 tok &middot; very long &middot; 5300 words</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Output Sizes</div>
+      <div class="size-grid">
+        <div class="size-row active"><span class="checkbox checked"></span><span class="size-tag">XS</span><span class="size-desc">~1 sentence &middot; ~15 words &middot; ~25 tok</span></div>
+        <div class="size-row active"><span class="checkbox checked"></span><span class="size-tag">SM</span><span class="size-desc">~5 sentences &middot; ~75 words &middot; ~125 tok</span></div>
+        <div class="size-row"><span class="checkbox"></span><span class="size-tag">MD</span><span class="size-desc">~20 sentences &middot; ~300 words &middot; ~500 tok</span></div>
+        <div class="size-row"><span class="checkbox"></span><span class="size-tag">LG</span><span class="size-desc">~100 sentences &middot; ~1500 words &middot; ~2500 tok</span></div>
+        <div class="size-row"><span class="checkbox"></span><span class="size-tag">XL</span><span class="size-desc">~500 sentences &middot; ~7500 words &middot; ~12500 tok</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Repeats</div>
+      <div class="help">Times each (input x output x prompt) combination is repeated.</div>
+      <div class="spinner"><input class="input" type="number" value="3" min="1" max="20"></div>
+      <div class="estim" style="margin-top:6px">Estimated tasks: <strong>12</strong> &nbsp;(2 inputs &times; 2 outputs &times; 3 repeats &times; 1 model)</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Judge <button class="btn sm" title="Refresh the judge provider's model list">Refresh</button></div>
+      <label class="check"><span class="checkbox"></span> Generate run analysis for this run</label>
+      <div class="note">Default off in Synthetic Benchmark. Turn on to add a post-run analysis.</div>
+      <div class="label">Judge Provider</div>
+      <div class="combo input" style="opacity:.5">Ollama (local)</div>
+      <div class="label">Judge Model</div>
+      <div class="combo input" style="opacity:.5">gemma3:27b-it-q4_K_M</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Test Models <button class="btn sm">Refresh</button></div>
+      <label class="check"><span class="checkbox checked"></span> Filter embedding models</label>
+      <div class="label" style="margin-top:6px">Browse provider</div>
+      <div class="combo input">Ollama (local)</div>
+      <div class="model-list" style="margin-top:6px">
+        <div class="model-row"><span class="checkbox checked"></span>gemma3:27b-it-q4_K_M</div>
+        <div class="model-row"><span class="checkbox"></span>lfm2:1.2b</div>
+        <div class="model-row"><span class="checkbox checked"></span>qwen3:1.7b-q4_K_M</div>
+      </div>
+      <div class="row"><button class="btn sm">Select all</button><button class="btn sm">Clear all</button></div>
+      <div class="label" style="margin-top:6px">Selected models (2 across 1 provider)</div>
+      <div class="selsum">
+        Ollama (local) &middot; gemma3:27b-it-q4_K_M<br>
+        Ollama (local) &middot; qwen3:1.7b-q4_K_M
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Advanced Options</div>
+      <label class="check"><span class="checkbox checked"></span> <strong style="font-style:normal;color:var(--text)">Override advanced options for this run</strong></label>
+      <div class="note">Expanded because the override checkbox is ON. Overrides global Settings for this run only; captured into the run snapshot at start. Unchecking collapses this section and the run uses the global defaults.</div>
+      <label class="check"><span class="checkbox checked"></span> Stream tokens to Log (UI-only)</label><br>
+      <label class="check"><span class="checkbox checked"></span> Enable warmup</label>
+      <div class="label" style="margin-top:6px">Reasoning effort</div>
+      <div class="combo input">Default</div>
+      <div class="label" style="margin-top:6px">Temperature</div>
+      <div class="input" style="font-family:var(--mono)">(provider default)</div>
+      <div class="label" style="margin-top:10px;font-weight:600">Adaptive timeout &amp; retry</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:4px">
+        <div><div class="label">Minimum timeout (s)</div><div class="input" style="font-family:var(--mono)">300</div></div>
+        <div><div class="label">Maximum timeout (s)</div><div class="input" style="font-family:var(--mono)">900</div></div>
+        <div><div class="label">Retry count</div><div class="input" style="font-family:var(--mono)">3</div></div>
+        <div><div class="label">Max-timeout fails to exclude</div><div class="input" style="font-family:var(--mono)">3</div></div>
+      </div>
+            <div class="label" style="margin-top:10px;font-weight:600">Run boundaries</div>
+      <label class="check"><span class="checkbox"></span> Pause at phase switch</label><br>
+      <label class="check"><span class="checkbox"></span> Pause at provider switch</label><br>
+      <label class="check"><span class="checkbox"></span> Pause at model switch</label><br>
+      <label class="check"><span class="checkbox"></span> Stop on provider health failure</label>
+      <div class="note">Each retry uses a longer timeout from the [min, max] range. A model failing this many times at the maximum is excluded; its remaining tasks are marked failed.</div>
+    </div>
+
+    <div class="sticky">
+      <button class="btn primary" style="width:100%;padding:9px">Start Benchmark</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODE 2: Task Benchmark ================= -->
+<div class="panel">
+  <div class="panel-head">New Benchmark &mdash; Task Benchmark</div>
+  <div class="body">
+
+    <div class="section">
+      <div class="section-title">Mode</div>
+      <div class="mode-list">
+        <div class="mode-row"><div class="mode-name">Synthetic Benchmark</div></div>
+        <div class="mode-row active"><div class="mode-name">Task Benchmark</div><div class="mode-desc">Your task files; throughput only; no grading</div></div>
+        <div class="mode-row"><div class="mode-name">Graded Benchmark</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Judge</div>
+      <label class="check"><span class="checkbox"></span> Generate run analysis for this run</label>
+      <div class="note">Default off in Task Benchmark. Turn on to add a post-run analysis.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Test Models <button class="btn sm">Refresh</button></div>
+      <label class="check"><span class="checkbox checked"></span> Filter embedding models</label>
+      <div class="label" style="margin-top:6px">Browse provider</div>
+      <div class="combo input">LM Studio (local)</div>
+      <div class="model-list" style="margin-top:6px">
+        <div class="model-row"><span class="checkbox checked"></span>gpt-oss:20b</div>
+      </div>
+      <div class="row"><button class="btn sm">Select all</button><button class="btn sm">Clear all</button></div>
+      <div class="label" style="margin-top:6px">Selected models (2 across 2 providers)</div>
+      <div class="selsum">
+        Ollama (local) &middot; gemma3:27b-it-q4_K_M<br>
+        LM Studio (local) &middot; gpt-oss:20b
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Task Files <button class="btn sm">Open in Task Editor</button></div>
+      <div class="dropzone">
+        <span style="font-size:22px">&#8615;</span>
+        Drop YAML task files or folders here
+        <div style="font-size:10px;opacity:.7">&mdash; or use the buttons below &mdash;</div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn sm">Add File</button>
+        <button class="btn sm">Add Folder</button>
+        <button class="btn sm">Remove</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Advanced Options</div>
+      <label class="check"><span class="checkbox"></span> <strong style="font-style:normal;color:var(--text)">Override advanced options for this run</strong></label>
+      <div class="note">Collapsed (default) &mdash; the override checkbox is OFF, so the controls are hidden and this run uses the current global Settings values. Check the box to expand and edit warmup, reasoning effort, temperature, and the adaptive-timeout/retry controls for this run only (see the Synthetic Benchmark and Graded Benchmark panels for the expanded state).</div>
+    </div>
+
+    <div class="sticky">
+      <button class="btn primary" style="width:100%;padding:9px">Start Benchmark</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODE 3: Graded Benchmark ================= -->
+<div class="panel">
+  <div class="panel-head">New Benchmark &mdash; Graded Benchmark</div>
+  <div class="body">
+
+    <div class="section">
+      <div class="section-title">Mode</div>
+      <div class="mode-list">
+        <div class="mode-row"><div class="mode-name">Synthetic Benchmark</div></div>
+        <div class="mode-row"><div class="mode-name">Task Benchmark</div></div>
+        <div class="mode-row active"><div class="mode-name">Graded Benchmark</div><div class="mode-desc">Your task files; full grading pipeline</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Judge <button class="btn sm" title="Refresh the judge provider's model list">Refresh</button></div>
+      <label class="check"><span class="checkbox checked"></span> Generate run analysis for this run</label>
+      <div class="note">Default ON in Graded Benchmark; turn off to skip the extra inference cost when you only want per-task verdicts.</div>
+      <div class="label">Judge Provider</div>
+      <div class="combo input">Ollama (local)</div>
+      <div class="label">Judge Model</div>
+      <div class="combo input">gemma3:27b-it-q4_K_M</div>
+      <div class="ok">Embedding: Ollama (local) &middot; nomic-embed-text &mdash; ready for keyword-semantic and cosine validation.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Test Models <button class="btn sm">Refresh</button></div>
+      <label class="check"><span class="checkbox checked"></span> Filter embedding models</label>
+      <div class="label" style="margin-top:6px">Browse provider</div>
+      <div class="combo input">Ollama (local)</div>
+      <div class="model-list" style="margin-top:6px">
+        <div class="model-row"><span class="checkbox checked"></span>gemma3:27b-it-q4_K_M</div>
+        <div class="model-row"><span class="checkbox checked"></span>qwen3:1.7b-q4_K_M</div>
+      </div>
+      <div class="row"><button class="btn sm">Select all</button><button class="btn sm">Clear all</button></div>
+      <div class="label" style="margin-top:6px">Selected models (2 across 1 provider)</div>
+      <div class="selsum">
+        Ollama (local) &middot; gemma3:27b-it-q4_K_M<br>
+        Ollama (local) &middot; qwen3:1.7b-q4_K_M
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Task Files <button class="btn sm">Open in Task Editor</button></div>
+      <div class="dropzone full">
+        <div class="task-row"><span class="task-name">01_proofreading_basic.yaml</span><span class="badge">8 tasks</span></div>
+        <div class="task-row"><span class="task-name">02_summarisation.yaml</span><span class="badge dirty">12 tasks &middot; unsaved *</span></div>
+        <div class="task-row"><span class="task-name">03_translation_en-de.yaml</span><span class="badge">6 tasks</span></div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn sm">Add File</button>
+        <button class="btn sm">Add Folder</button>
+        <button class="btn sm">Remove</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Advanced Options</div>
+      <label class="check"><span class="checkbox checked"></span> <strong style="font-style:normal;color:var(--text)">Override advanced options for this run</strong></label>
+      <div class="note">Expanded because the override checkbox is ON. Overrides global Settings for this run only; uncheck to collapse and use the global defaults.</div>
+      <label class="check"><span class="checkbox checked"></span> Stream tokens to Log (UI-only)</label><br>
+      <label class="check"><span class="checkbox checked"></span> Enable warmup</label>
+      <div class="label" style="margin-top:6px">Reasoning effort</div>
+      <div class="combo input">Default</div>
+      <div class="label" style="margin-top:6px">Temperature</div>
+      <div class="input" style="font-family:var(--mono)">(provider default)</div>
+      <div class="label" style="margin-top:10px;font-weight:600">Adaptive timeout &amp; retry</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:4px">
+        <div><div class="label">Minimum timeout (s)</div><div class="input" style="font-family:var(--mono)">300</div></div>
+        <div><div class="label">Maximum timeout (s)</div><div class="input" style="font-family:var(--mono)">900</div></div>
+        <div><div class="label">Retry count</div><div class="input" style="font-family:var(--mono)">3</div></div>
+        <div><div class="label">Max-timeout fails to exclude</div><div class="input" style="font-family:var(--mono)">3</div></div>
+      </div>
+            <div class="label" style="margin-top:10px;font-weight:600">Run boundaries</div>
+      <label class="check"><span class="checkbox"></span> Pause at phase switch</label><br>
+      <label class="check"><span class="checkbox"></span> Pause at provider switch</label><br>
+      <label class="check"><span class="checkbox"></span> Pause at model switch</label><br>
+      <label class="check"><span class="checkbox"></span> Stop on provider health failure</label>
+      <div class="label" style="margin-top:10px;font-weight:600">Evaluation (GRADED)</div>
+      <label class="check"><span class="checkbox checked"></span> Keyword phase</label><br>
+      <label class="check"><span class="checkbox checked"></span> Cosine phase</label><br>
+      <label class="check"><span class="checkbox checked"></span> Judge phase</label><br>
+      <label class="check"><span class="checkbox checked"></span> Force judge after prior failure</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:4px">
+        <div><div class="label">Cosine threshold</div><div class="input" style="font-family:var(--mono)">0.85</div></div>
+        <div><div class="label">Min sample size</div><div class="input" style="font-family:var(--mono)">5</div></div>
+        <div><div class="label">Judge timeout min (s)</div><div class="input" style="font-family:var(--mono)">30</div></div>
+        <div><div class="label">Judge timeout max (s)</div><div class="input" style="font-family:var(--mono)">120</div></div>
+        <div><div class="label">Judge escalation steps</div><div class="input" style="font-family:var(--mono)">2</div></div>
+        <div><div class="label">Embedding timeout (s)</div><div class="input" style="font-family:var(--mono)">30</div></div>
+      </div>
+      <div class="note">Each retry uses a longer timeout from the [min, max] range; a model failing this many times at the maximum is excluded from the run.</div>
+    </div>
+
+    <div class="sticky">
+      <button class="btn primary" style="width:100%;padding:9px">Start Benchmark</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<h2>Start button — validation states</h2>
+<p class="note">The sticky Start button reflects the Run Validator (description.md §6). It is <strong>disabled</strong> while any <em>hard</em> error is present and <strong>enabled</strong> otherwise; <em>soft</em> warnings never disable it. The validation messages appear in the button's hover tooltip; they are drawn here as visible callouts because a mockup cannot show hover.</p>
+<div class="gallery">
+
+  <!-- A) Hard errors -> Start disabled -->
+  <div class="panel" style="height:auto">
+    <div class="panel-head">Start — disabled (hard errors)</div>
+    <div class="panel-body" style="padding:14px">
+      <div style="border:1px solid var(--error);border-radius:6px;background:rgba(248,113,113,.08);padding:9px 11px;margin-bottom:10px">
+        <div style="color:var(--error);font-weight:600;font-size:11px;margin-bottom:4px">⚠ Fix the following to start this run:</div>
+        <ul style="margin:0;padding-left:16px;color:var(--error);font-size:11px">
+          <li>Select at least one test model</li>
+          <li>Add at least one task file</li>
+          <li>A judge model is required when the judge phase is on</li>
+        </ul>
+      </div>
+      <button class="btn disabled" style="width:100%;padding:9px" disabled>Start Benchmark</button>
+      <div class="note" style="margin-top:6px">Disabled because the configuration has hard errors. The same list is the button's hover tooltip (08-L §10).</div>
+    </div>
+  </div>
+
+  <!-- B) Soft warnings -> Start enabled -->
+  <div class="panel" style="height:auto">
+    <div class="panel-head">Start — enabled (soft warnings only)</div>
+    <div class="panel-body" style="padding:14px">
+      <div style="border:1px solid var(--warn);border-radius:6px;background:rgba(251,191,36,.08);padding:9px 11px;margin-bottom:10px">
+        <div style="color:var(--warn);font-weight:600;font-size:11px;margin-bottom:4px">Review before starting:</div>
+        <ul style="margin:0;padding-left:16px;color:var(--warn);font-size:11px">
+          <li>One selected model has unconfirmed streaming (TTFT may be missing)</li>
+          <li>A task file contains 0 parsed tasks and will be skipped</li>
+        </ul>
+      </div>
+      <button class="btn primary" style="width:100%;padding:9px">Start Benchmark</button>
+      <div class="note" style="margin-top:6px">Enabled — soft warnings do not block Start; the warnings are shown in the tooltip so the user can proceed informed.</div>
+    </div>
+  </div>
+
+</div>
+
+<h2>Legend</h2>
+<div class="legend">
+  <span><strong>Visible</strong> = section rendered for this mode</span>
+  <span><strong>Greyed</strong> = visible but interactive children disabled</span>
+  <span><strong>Hidden</strong> = section removed from the layout</span>
+</div>
+
+<h2>Section visibility matrix</h2>
+<table>
+  <tr><th>Section</th><th>Synthetic Benchmark</th><th>Task Benchmark</th><th>Graded Benchmark</th></tr>
+  <tr><td>Mode selector</td><td>Visible</td><td>Visible</td><td>Visible</td></tr>
+  <tr><td>Performance Matrix (Input/Output Sizes, Repeats)</td><td>Visible</td><td>Hidden</td><td>Hidden</td></tr>
+  <tr><td>Task Files</td><td>Hidden</td><td>Visible</td><td>Visible</td></tr>
+  <tr><td>Judge</td><td>Visible (analysis toggle default OFF; judge optional)</td><td>Visible (analysis toggle default OFF; judge optional)</td><td>Visible (analysis toggle default ON; judge required by default - optional when both the per-task judge phase and the analysis toggle are off)</td></tr>
+  <tr><td>Embedding status row</td><td>Hidden</td><td>Hidden</td><td>Visible</td></tr>
+  <tr><td>Test Models</td><td>Visible</td><td>Visible</td><td>Visible</td></tr>
+  <tr><td>Advanced Options</td><td>Visible</td><td>Visible</td><td>Visible</td></tr>
+  <tr><td>Start button</td><td>Visible</td><td>Visible</td><td>Visible</td></tr>
+</table>
+
+<p>Run mode enum values: <code>SYNTHETIC</code>, <code>TASKS</code>, <code>GRADED</code>. UI display order is fixed: Synthetic Benchmark, Task Benchmark, Graded Benchmark. The last-used mode persists to <code>benchmark.last_mode</code> (default <code>SYNTHETIC</code>).</p>
+
+</body>
+</html>

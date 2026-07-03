@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Progress Widget — Ollama LLM Bench</title>
+<style>
+:root{
+  --bg:#0a0f1a;--bg2:#111827;--bg3:#1f2937;--bg4:#263044;
+  --border:#374151;--border-strong:#4b5563;
+  --text:#f9fafb;--text-secondary:#9ca3af;
+  --primary:#14b8a6;--success:#34d399;--warn:#fbbf24;--error:#f87171;--info:#60a5fa;--mute:#9ca3af;
+  --success-bg:rgba(52,211,153,.18);--warn-bg:rgba(251,191,36,.18);
+  --error-bg:rgba(248,113,113,.18);--info-bg:rgba(96,165,250,.18);--mute-bg:rgba(156,163,175,.18);
+  --radius-sm:3px;--radius-md:5px;--radius-lg:8px;
+  --font:"Segoe UI","Helvetica Neue","Cantarell","Ubuntu","Noto Sans","DejaVu Sans","Arial",sans-serif;
+  --mono:"Consolas","Menlo","Cascadia Mono","DejaVu Sans Mono","Ubuntu Mono","Monaco","Courier New",monospace;
+}
+body{margin:0;padding:20px;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.4}
+h1{font-size:20px;margin:0 0 4px}
+h2{font-size:14px;margin:26px 0 8px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em}
+.ctx{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-md);padding:7px 12px;margin:8px 0 16px;font-size:11px;color:var(--text-secondary);font-style:italic}
+.ctx strong{font-style:normal;color:var(--text)}
+.note{font-size:11px;color:var(--text-secondary);max-width:640px;margin:8px 0 0}
+.gallery{display:flex;flex-direction:column;gap:22px;align-items:flex-start}
+
+/* widget panel */
+.panel{width:640px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;display:flex;flex-direction:column}
+.head{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.badge{padding:4px 11px;border-radius:14px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.init{background:var(--info-bg);color:var(--info)}
+.badge.inference{background:rgba(20,184,166,.18);color:var(--primary)}
+.badge.check{background:var(--warn-bg);color:var(--warn)}
+.badge.done{background:var(--success-bg);color:var(--success)}
+.badge.fail{background:var(--error-bg);color:var(--error)}
+.badge.stop{background:var(--mute-bg);color:var(--mute)}
+.badge.paused{background:var(--mute-bg);color:var(--mute)}
+.run-name{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iconbtn{width:28px;height:28px;border-radius:4px;background:transparent;border:1px solid transparent;color:var(--text-secondary);cursor:pointer;font-size:14px}
+.iconbtn:hover{background:var(--bg4);border-color:var(--border);color:var(--text)}
+.btn{padding:6px 12px;border:1px solid var(--border);background:var(--bg2);border-radius:var(--radius-md);color:var(--text);cursor:pointer;font-size:12px;position:relative}
+.btn.warn{color:var(--warn);border-color:var(--warn)}
+.btn.danger{color:var(--error);border-color:var(--error)}
+.btn:disabled{color:var(--text-secondary);border-color:var(--border);opacity:.55;cursor:default}
+.btn:hover:not(:disabled) .tip{display:block}
+.tip{display:none;position:absolute;top:34px;right:0;background:var(--bg4);border:1px solid var(--primary);
+  padding:7px 10px;border-radius:4px;font-size:11px;font-weight:400;color:var(--text);width:250px;
+  text-align:left;z-index:9;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.6)}
+
+.row2{display:grid;grid-template-columns:1fr 1fr}
+.section{padding:12px 14px;border-bottom:1px solid var(--border)}
+.section:last-child{border-bottom:none}
+.row2 .section{border-right:1px solid var(--border)}
+.row2 .section:last-child{border-right:none}
+.section h3{font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin:0 0 8px;letter-spacing:.06em}
+.grid{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:12px}
+.grid .k{color:var(--text-secondary)}
+.grid .v{color:var(--text)}
+.grid .v.retry{color:var(--error);font-weight:600}
+
+.bar{height:7px;background:var(--bg3);border-radius:var(--radius-sm);overflow:hidden;margin-top:10px;display:flex}
+.bar>div{height:100%}
+.bar>div.bench{background:var(--primary)}
+.bar>div.judge{background:var(--warn)}
+.bar>div.fail{background:var(--error)}
+.bar>div.pending{background:var(--bg4)}
+.tags{display:flex;gap:6px;font-size:10px;font-family:var(--mono);margin-top:6px;flex-wrap:wrap}
+.tags .tag{padding:2px 7px;border-radius:8px;background:var(--bg3);color:var(--text-secondary)}
+.tags .tag.bench{background:rgba(20,184,166,.15);color:var(--primary)}
+.tags .tag.judge{background:var(--warn-bg);color:var(--warn)}
+.tags .tag.done{background:var(--success-bg);color:var(--success)}
+.tags .tag.fail{background:var(--error-bg);color:var(--error)}
+
+.stability{padding:7px 9px;border-radius:var(--radius-md);font-size:11px;display:flex;gap:7px;align-items:flex-start;margin-top:8px}
+.stability.ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
+.stability.warn{background:var(--warn-bg);border:1px solid var(--warn);color:var(--warn)}
+.stability.bad{background:var(--error-bg);border:1px solid var(--error);color:var(--error)}
+.dot{width:8px;height:8px;border-radius:50%;margin-top:3px;flex:none}
+.dot.green{background:var(--success)}
+.dot.amber{background:var(--warn)}
+.dot.red{background:var(--error)}
+.lnk{color:var(--info);text-decoration:underline;cursor:pointer}
+
+.logbar{display:flex;gap:8px;padding:10px 14px 8px;align-items:center}
+.logbar label{font-size:11px;color:var(--text-secondary)}
+.logbar select{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:3px 8px;border-radius:var(--radius-sm);font-size:11px}
+.logbar input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-md);padding:4px 9px;color:var(--text);font-size:11px}
+.logbox{margin:0 14px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-md);
+  padding:9px;font-family:var(--mono);font-size:11px;height:230px;overflow-y:auto}
+.warnflag{margin:0 14px 6px;font-size:10px;color:var(--warn)}
+.logline{margin:3px 0;display:flex;gap:9px;flex-wrap:wrap}
+.ts{color:var(--text-secondary);min-width:60px;font-size:10px}
+.kind{font-weight:600;min-width:96px}
+.kind.system{color:var(--info)}
+.kind.stage{color:var(--info)}
+.kind.taskstart{color:var(--primary)}
+.kind.done{color:var(--success)}
+.kind.judge{color:var(--warn)}
+.kind.retry{color:var(--error)}
+.kind.finish{color:var(--success)}
+.kind.stop{color:var(--mute)}
+.msg{flex:1 1 auto;color:var(--text);min-width:0}
+.detail{flex:1 1 100%;color:var(--text-secondary);font-size:10px;padding-left:8px;
+  border-left:2px solid var(--border);margin-left:160px;padding-top:2px}
+.empty{color:var(--text-secondary);font-style:italic}
+
+/* verbosity reference boxes */
+.verbref{display:flex;flex-direction:column;gap:14px}
+.verbtitle{padding:6px 9px;font-size:10px;background:var(--bg3);color:var(--text-secondary);
+  border:1px solid var(--border);border-bottom:none;border-radius:var(--radius-md) var(--radius-md) 0 0;display:inline-block}
+.verbbox{background:var(--bg);border:1px solid var(--border);border-radius:0 var(--radius-md) var(--radius-md);
+  padding:9px;font-family:var(--mono);font-size:11px;width:880px}
+.legend{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-md);padding:11px;font-size:11px;max-width:700px}
+.legend div{margin:6px 0}
+table.t{width:100%;border-collapse:collapse;font-size:12px;max-width:700px}
+table.t th{text-align:left;padding:5px 9px;background:var(--bg3);color:var(--text-secondary);font-size:11px}
+table.t td{padding:5px 9px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<h1>Progress Widget</h1>
+<div class="ctx">Workspace context — <strong>Benchmark workspace</strong> &raquo; <strong>centre panel</strong>. During an active run the left configuration panel hides and this panel expands. The Main Window menu bar and status bar frame it; see <code>01_Main_Window/mockup.html</code>.</div>
+
+<div class="gallery">
+
+<!-- ============ 1. RUNNING — Verbose ============ -->
+<div class="panel">
+  <div class="head">
+    <span class="badge inference">INFERENCE</span>
+    <span class="run-name">Run 3 — Graded Benchmark — 2026-05-16 14:53</span>
+    <button class="iconbtn" title="Rename run">&#9998;</button>
+    <button class="btn warn">Pause<span class="tip"><strong>Pause</strong> — Finish the in-flight task, then freeze the pipeline. The run stays open; click Resume to continue. Settings cannot be changed while paused.</span></button>
+    <button class="btn danger">Stop<span class="tip"><strong>Stop</strong> — Finish the in-flight task, then end this run. Status becomes <code>STOPPED</code> and can be resumed later from the Resume tab. A confirmation dialog is shown first.</span></button>
+  </div>
+  <div class="row2">
+    <div class="section">
+      <h3>Run Progress</h3>
+      <div class="grid">
+        <span class="k">Tasks</span><span class="v">40 / 80 (50%)</span>
+        <span class="k">ETA</span><span class="v">~18s</span>
+        <span class="k">Total Time</span><span class="v">1m 07s</span>
+        <span class="k">Judge-wait</span><span class="v">5</span>
+        <span class="k">Completed</span><span class="v">35</span>
+        <span class="k">Failed</span><span class="v">0</span>
+      </div>
+      <div class="bar">
+        <div class="bench" style="flex:35"></div>
+        <div class="judge" style="flex:5"></div>
+        <div class="fail" style="flex:0"></div>
+        <div class="pending" style="flex:40"></div>
+      </div>
+      <div class="tags">
+        <span class="tag bench">bench 35</span>
+        <span class="tag judge">judge-wait 5</span>
+        <span class="tag pending">pending 40</span>
+        <span class="tag done">done 35</span>
+        <span class="tag fail">failed 0</span>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Model</h3>
+      <div class="grid">
+        <span class="k">Provider</span><span class="v">LM Studio (local)</span>
+        <span class="k">Model</span><span class="v">gpt-oss:20b</span>
+      </div>
+      <div class="stability warn">
+        <span class="dot amber"></span>
+        <span><strong>Model stability</strong> &mdash; 2 of 3 maximum-timeouts used &middot; 1 more maximum-timeout and this model is excluded</span>
+      </div>
+      <div class="stability ok">
+        <span class="dot green"></span>
+        <span><strong>Provider responsive</strong> &mdash; <code>LM Studio (local)</code> &middot; last probe 4s ago</span>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <h3>Current Task</h3>
+    <div class="grid">
+      <span class="k">Task</span><span class="v">text_ops_proofread_email</span>
+      <span class="k">Stage</span><span class="v">inference</span>
+      <span class="k">Task Time</span><span class="v">5s</span>
+      <span class="k">Timeouts</span><span class="v">0</span>
+      <span class="k">Retry</span><span class="v retry">2/3 &middot; Connection refused (ECONNREFUSED)</span>
+      <span class="k">Inference progress</span><span class="v">Generating &mdash; 184 tokens &middot; 4.6 s elapsed</span>
+      <span class="k">Judge progress</span><span class="v" style="color:var(--text-secondary);font-style:italic">(hidden &mdash; rendered only during a judge call in GRADED)</span>
+    </div>
+  </div>
+  <div class="logbar">
+    <label>Verbosity</label>
+    <select><option>Verbose</option><option>Normal</option><option>Short</option></select>
+    <input placeholder="Search the run log...">
+    <button class="btn" style="padding:3px 10px;font-size:11px">Clear</button>
+  </div>
+  <div class="logbox">
+    <div class="logline"><span class="ts">12:54:20</span><span class="kind stage">[stage]</span><span class="msg">INITIALIZING &rarr; INFERENCE (run #3)</span></div>
+    <div class="logline"><span class="ts">12:54:23</span><span class="kind system">[system]</span><span class="msg">Provider switch: Ollama (local) &rarr; LM Studio (local) &middot; model gpt-oss:20b</span></div>
+    <div class="logline"><span class="ts">12:54:25</span><span class="kind taskstart">[task_start]</span><span class="msg">text_ops_proofread_email &middot; stage=inference &middot; provider=LM Studio (local)</span></div>
+    <div class="logline detail">system prompt (full, 312 chars &middot; ~78 tokens): "You are a careful proofreader. Return only the corrected version of the user's email, preserving the salutation and sign-off. Do not add commentary."</div>
+    <div class="logline detail">user prompt / task (full, 1245 chars &middot; ~310 tokens): "Proofread the following draft email and return only the corrected version. Subject: Project status update. Hi team, I wanted to send a quick update on where things stand with the Q3 rollout. Engineering has finished the migration scripts and QA is running through the regression suite. We expect to wrap by Friday. Marketing copy is in review, pending one round of legal sign-off. Thanks, Alex"</div>
+    <div class="logline"><span class="ts">12:54:30</span><span class="kind retry">[retry]</span><span class="msg">Attempt 2/3 &mdash; Connection refused (ECONNREFUSED)</span></div>
+    <div class="logline"><span class="ts">12:54:38</span><span class="kind done">[done]</span><span class="msg">text_ops_proofread_email &middot; time=12800ms &middot; ttft=320ms &middot; tokens=150 &middot; tps=11.7</span></div>
+    <div class="logline detail">model response (full, 612 chars &middot; ~150 tokens): "Subject: Project status update. Hi team, I wanted to send a quick update on where things stand with the Q3 rollout. Engineering has finished the migration scripts, and QA is running through the regression suite. We expect to wrap by Friday. Marketing copy is in review, pending one round of legal sign-off. Thanks, Alex"</div>
+    <div class="logline"><span class="ts">12:54:39</span><span class="kind judge">[judge]</span><span class="msg">text_ops_proofread_email &middot; verdict=PASS &middot; "Concise and accurate"</span></div>
+    <div class="logline"><span class="ts">12:54:41</span><span class="kind taskstart">[task_start]</span><span class="msg">summarise_news &middot; stage=inference &middot; provider=LM Studio (local)</span></div>
+  </div>
+</div>
+<p class="note"><strong>Running — Verbose verbosity.</strong> Pause, Stop, and the rename pencil are visible because the displayed run is in a non-terminal stage. The model-stability callout warns one maximum-timeout before exclusion.</p>
+
+<!-- ============ 2. PROVIDER CIRCUIT BREAKER OPEN ============ -->
+<div class="panel">
+  <div class="head">
+    <span class="badge inference">INFERENCE</span>
+    <span class="run-name">Run 3 — Graded Benchmark — 2026-05-16 14:53</span>
+    <button class="iconbtn" title="Rename run">&#9998;</button>
+    <button class="btn warn">Pause</button>
+    <button class="btn danger">Stop</button>
+  </div>
+  <div class="row2">
+    <div class="section">
+      <h3>Run Progress</h3>
+      <div class="grid">
+        <span class="k">Tasks</span><span class="v">42 / 80 (52%)</span>
+        <span class="k">ETA</span><span class="v">&mdash;</span>
+        <span class="k">Total Time</span><span class="v">8m 42s</span>
+        <span class="k">Completed</span><span class="v">35</span>
+        <span class="k">Failed</span><span class="v">2</span>
+      </div>
+      <div class="bar">
+        <div class="bench" style="flex:35"></div>
+        <div class="judge" style="flex:5"></div>
+        <div class="fail" style="flex:2"></div>
+        <div class="pending" style="flex:38"></div>
+      </div>
+      <div class="tags">
+        <span class="tag bench">bench 35</span>
+        <span class="tag judge">judge-wait 5</span>
+        <span class="tag fail">failed 2</span>
+        <span class="tag pending">pending 38</span>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Model</h3>
+      <div class="grid">
+        <span class="k">Provider</span><span class="v">Ollama (local)</span>
+        <span class="k">Model</span><span class="v">gemma3:27b-it-q4</span>
+      </div>
+      <div class="stability bad">
+        <span class="dot red"></span>
+        <span><strong>Model excluded</strong> &mdash; 3 maximum-timeouts in a row &middot; remaining tasks for this model are marked FAILED</span>
+      </div>
+      <div class="stability bad">
+        <span class="dot red"></span>
+        <span><strong>Provider unresponsive</strong> &mdash; circuit breaker open &middot; 4 consecutive failures across 2 models &middot; last probe failed 12s ago &nbsp;<span class="lnk">retry probe</span> &middot; <span class="lnk">switch provider in Settings</span></span>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <h3>Current Task</h3>
+    <div class="grid">
+      <span class="k">Task</span><span class="v">summarise_long_doc</span>
+      <span class="k">Stage</span><span class="v retry">waiting for circuit-breaker probe</span>
+      <span class="k">Timeouts</span><span class="v">3</span>
+      <span class="k">Inference progress</span><span class="v">Waiting for first token &mdash; 18.2 s</span>
+    </div>
+  </div>
+  <div class="logbar">
+    <label>Verbosity</label>
+    <select><option>Verbose</option><option>Normal</option><option>Short</option></select>
+    <input placeholder="Search the run log...">
+    <button class="btn" style="padding:3px 10px;font-size:11px">Clear</button>
+  </div>
+  <div class="logbox" style="height:130px">
+    <div class="logline"><span class="ts">12:58:14</span><span class="kind retry">[retry]</span><span class="msg">Attempt 3/3 &mdash; Connection timed out (read 900s)</span></div>
+    <div class="logline"><span class="ts">12:58:14</span><span class="kind system">[system]</span><span class="msg">Model gemma3:27b: 3 consecutive maximum-timeouts &rarr; excluded for the rest of the run</span></div>
+    <div class="logline"><span class="ts">12:58:15</span><span class="kind system" style="color:var(--error)">[system]</span><span class="msg">Provider Ollama (local): circuit breaker open &middot; 4 failures across [gemma3:27b, qwen3:1.7b]</span></div>
+    <div class="logline"><span class="ts">12:58:15</span><span class="kind stage">[stage]</span><span class="msg">next health probe at 12:59:03</span></div>
+  </div>
+</div>
+<p class="note"><strong>Stability alerts.</strong> Per-model adaptive-timeout exclusion and the provider-level circuit-breaker trip are both surfaced. The provider callout offers two inline actions.</p>
+
+<!-- ============ 2b. JUDGE PHASE — JUDGE PROGRESS VISIBLE ============ -->
+<div class="panel">
+  <div class="head">
+    <span class="badge check">JUDGE_CHECK</span>
+    <span class="run-name">Run 5 — Graded Benchmark — 2026-06-01 10:12</span>
+    <button class="iconbtn" title="Rename run">&#9998;</button>
+    <button class="btn warn">Pause</button>
+    <button class="btn danger">Stop</button>
+  </div>
+  <div class="row2">
+    <div class="section">
+      <h3>Run Progress</h3>
+      <div class="grid">
+        <span class="k">Tasks</span><span class="v">28 / 40 (70%)</span>
+        <span class="k">ETA</span><span class="v">~24s</span>
+        <span class="k">Total Time</span><span class="v">3m 18s</span>
+        <span class="k">Judge-wait</span><span class="v">3</span>
+        <span class="k">Completed</span><span class="v">25</span>
+        <span class="k">Failed</span><span class="v">0</span>
+      </div>
+      <div class="bar">
+        <div class="bench" style="flex:25"></div>
+        <div class="judge" style="flex:3"></div>
+        <div class="pending" style="flex:12"></div>
+      </div>
+      <div class="tags">
+        <span class="tag bench">bench 25</span>
+        <span class="tag judge">judge-wait 3</span>
+        <span class="tag pending">pending 12</span>
+        <span class="tag done">done 25</span>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Model</h3>
+      <div class="grid">
+        <span class="k">Provider</span><span class="v">Ollama (local)</span>
+        <span class="k">Model</span><span class="v">qwen3:1.7b (judging)</span>
+      </div>
+      <div class="stability ok"><span class="dot green"></span><span><strong>Model stability</strong> &mdash; OK</span></div>
+      <div class="stability ok"><span class="dot green"></span><span><strong>Provider responsive</strong> &mdash; last probe 6s ago</span></div>
+    </div>
+  </div>
+  <div class="section">
+    <h3>Current Task</h3>
+    <div class="grid">
+      <span class="k">Task</span><span class="v">factual_qa_capital_of_france</span>
+      <span class="k">Stage</span><span class="v">judge</span>
+      <span class="k">Task Time</span><span class="v">9s</span>
+      <span class="k">Inference progress</span><span class="v" style="color:var(--text-secondary);font-style:italic">(complete &mdash; main inference finished)</span>
+      <span class="k">Judge progress</span><span class="v">Judge: receiving &mdash; 96 tokens &middot; 3.1 s elapsed</span>
+    </div>
+  </div>
+  <div class="logbar">
+    <label>Verbosity</label>
+    <select><option>Normal</option></select>
+    <input placeholder="Search the run log...">
+    <button class="btn" style="padding:3px 10px;font-size:11px">Clear</button>
+  </div>
+  <div class="logbox" style="height:110px">
+    <div class="logline"><span class="ts">10:15:18</span><span class="kind done">[done]</span><span class="msg">factual_qa_capital_of_france &middot; time=4.6s</span></div>
+    <div class="logline"><span class="ts">10:15:18</span><span class="kind judge">[judge_started]</span><span class="msg">factual_qa_capital_of_france &middot; judge=qwen3:1.7b</span></div>
+  </div>
+</div>
+<p class="note"><strong>Judge progress visible.</strong> While the per-task judge call is in flight, the Current-task section shows the Judge progress sub-row in sub-state B (receiving). The Inference progress sub-row is shown as complete because the main inference for this result has already finished and the judge call is the next phase. The same `result_id` produced first a `BENCHMARK_TASK` progress stream, then this `BENCHMARK_JUDGE` progress stream, sequentially.</p>
+
+<!-- ============ 2c. JUDGE MODEL EXCLUDED ============ -->
+<div class="panel">
+  <div class="head">
+    <span class="badge check">JUDGE_CHECK</span>
+    <span class="run-name">Run 6 — Graded Benchmark — 2026-06-03 14:22</span>
+    <button class="iconbtn" title="Rename run">&#9998;</button>
+    <button class="btn warn">Pause</button>
+    <button class="btn danger">Stop</button>
+  </div>
+  <div class="row2">
+    <div class="section">
+      <h3>Run Progress</h3>
+      <div class="grid">
+        <span class="k">Tasks</span><span class="v">22 / 40 (55%)</span>
+        <span class="k">ETA</span><span class="v">~31s</span>
+        <span class="k">Total Time</span><span class="v">5m 47s</span>
+        <span class="k">Completed</span><span class="v">15</span>
+        <span class="k">Failed</span><span class="v">7</span>
+      </div>
+      <div class="bar">
+        <div class="bench" style="flex:15"></div>
+        <div class="judge" style="flex:0"></div>
+        <div class="pending" style="flex:18"></div>
+      </div>
+      <div class="tags">
+        <span class="tag done">done 15</span>
+        <span class="tag" style="background:var(--error-bg);color:var(--error)">failed_judge_timeout 7</span>
+        <span class="tag pending">pending 18</span>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Model</h3>
+      <div class="grid">
+        <span class="k">Provider</span><span class="v">Ollama (local)</span>
+        <span class="k">Model</span><span class="v">qwen3:1.7b (judge)</span>
+      </div>
+      <div class="stability ok"><span class="dot green"></span><span><strong>Model stability (test)</strong> &mdash; OK</span></div>
+      <div class="stability bad">
+        <span class="dot" style="background:var(--error)"></span>
+        <span><strong>Judge model excluded</strong> &mdash; 3 consecutive max-budget timeouts &middot; remaining tasks' judge phase will be skipped</span>
+      </div>
+    </div>
+  </div>
+  <div class="logbar">
+    <label>Verbosity</label>
+    <select><option>Verbose</option><option>Normal</option><option>Short</option></select>
+    <input placeholder="Search the run log...">
+    <button class="btn" style="padding:3px 10px;font-size:11px">Clear</button>
+  </div>
+  <div class="logbox" style="height:140px">
+    <div class="logline"><span class="ts">14:27:31</span><span class="kind judge">[judge_started]</span><span class="msg">reasoning_chain_of_thought_5 &middot; judge=qwen3:1.7b &middot; budget=120s (attempt 3/3)</span></div>
+    <div class="logline"><span class="ts">14:29:31</span><span class="kind retry">[retry]</span><span class="msg">judge call timed out at 120s (at max)</span></div>
+    <div class="logline"><span class="ts">14:29:31</span><span class="kind" style="color:var(--error)">[task_judge_timeout]</span><span class="msg">reasoning_chain_of_thought_5 &middot; FAILED_JUDGE_TIMEOUT &middot; judge call exhausted adaptive budget for this task</span></div>
+    <div class="logline"><span class="ts">14:29:31</span><span class="kind" style="color:var(--error);font-weight:600">[judge_excluded]</span><span class="msg">Judge model 'qwen3:1.7b' excluded: 3 consecutive max-budget timeouts. Remaining tasks' judge phase will be skipped.</span></div>
+    <div class="logline"><span class="ts">14:29:33</span><span class="kind" style="color:var(--error)">[task_judge_timeout]</span><span class="msg">reasoning_chain_of_thought_6 &middot; skipped judge: judge model excluded</span></div>
+    <div class="logline"><span class="ts">14:29:34</span><span class="kind" style="color:var(--error)">[task_judge_timeout]</span><span class="msg">reasoning_chain_of_thought_7 &middot; skipped judge: judge model excluded</span></div>
+  </div>
+</div>
+<p class="note"><strong>Judge-model exclusion.</strong> The role=JUDGE adaptive-timeout bucket crossed `eval.judge_timeout_consecutive_threshold` (default 3) consecutive max-budget timeouts. The pipeline emitted `_judge_model_excluded` exactly once; the Event Log appended one `judge_excluded` entry. Every remaining task that would have entered the judge phase settles to `FAILED_JUDGE_TIMEOUT` directly without the judge call being attempted — the concise "skipped judge" form is rendered for those tasks. Phase 2 (inference) and Phase 3 (cosine) continue normally for the remaining tasks; the run does NOT abort. The test-model stability callout is unaffected because role=JUDGE and role=INFERENCE are independent buckets (DD-34).</p>
+
+<!-- ============ 3. PAUSED ============ -->
+<div class="panel">
+  <div class="head">
+    <span class="badge paused">PAUSED</span>
+    <span class="run-name">Run 4 — Task Benchmark — 2026-05-16 15:40</span>
+    <button class="iconbtn" title="Rename run">&#9998;</button>
+    <button class="btn">Resume</button>
+    <button class="btn danger">Stop</button>
+  </div>
+  <div class="row2">
+    <div class="section">
+      <h3>Run Progress</h3>
+      <div class="grid">
+        <span class="k">Tasks</span><span class="v">18 / 60 (30%)</span>
+        <span class="k">ETA</span><span class="v">frozen</span>
+        <span class="k">Total Time</span><span class="v">3m 02s</span>
+        <span class="k">Completed</span><span class="v">18</span>
+        <span class="k">Failed</span><span class="v">0</span>
+      </div>
+      <div class="bar"><div class="bench" style="flex:18"></div><div class="pending" style="flex:42"></div></div>
+      <div class="tags"><span class="tag done">done 18</span><span class="tag pending">pending 42</span></div>
+    </div>
+    <div class="section">
+      <h3>Model</h3>
+      <div class="grid">
+        <span class="k">Provider</span><span class="v">LM Studio (local)</span>
+        <span class="k">Model</span><span class="v">gpt-oss:20b</span>
+      </div>
+      <div class="stability ok"><span class="dot green"></span><span><strong>Model stability</strong> &mdash; OK</span></div>
+      <div class="stability ok"><span class="dot green"></span><span><strong>Provider responsive</strong> &mdash; last probe 9s ago</span></div>
+    </div>
+  </div>
+  <div class="section">
+    <h3>Current Task</h3>
+    <div class="grid"><span class="empty">(paused — in-flight task finished and saved)</span></div>
+  </div>
+  <div class="logbar">
+    <label>Verbosity</label>
+    <select><option>Normal</option></select>
+  </div>
+  <div class="logbox" style="height:90px">
+    <div class="logline"><span class="ts">15:43:02</span><span class="kind done">[done]</span><span class="msg">classify_sentiment_03 &middot; time=2.1s</span></div>
+    <div class="logline"><span class="ts">15:43:02</span><span class="kind stop">[system]</span><span class="msg">Run paused by user &middot; pipeline parked, no stale threads</span></div>
+  </div>
+</div>
+<p class="note"><strong>Paused.</strong> Counters are frozen, the layout is unchanged (left panel stays hidden), and Resume continues from the frozen stage.</p>
+
+<!-- ============ 3b. PAUSING (DRAINING) ============ -->
+<div class="panel" style="width:640px">
+  <div class="head">
+    <span class="badge paused">Pausing — finishing the current call…</span>
+    <span class="run-name">Run 4 — Task Benchmark — 2026-05-16 15:40</span>
+    <button class="iconbtn" title="Rename run">&#9998;</button>
+    <button class="btn warn" disabled>Pause</button>
+    <button class="btn danger">Stop</button>
+  </div>
+  <div class="section">
+    <h3>Current Task</h3>
+    <div class="grid">
+      <span class="k">Task</span><span class="v">classify_sentiment_03</span>
+      <span class="k">Stage</span><span class="v">inference</span>
+      <span class="k">Inference progress</span><span class="v">Generating &mdash; 142 tokens &middot; 2.0 s elapsed</span>
+    </div>
+  </div>
+</div>
+<p class="note"><strong>Pausing (draining).</strong> Transient state between the user's Pause click and the <code>_run_paused</code> event. The stage badge / status line reads <code>Pausing — finishing the current call…</code> so the user knows the click was accepted and the pipeline is finishing the single in-flight call before parking. Because execution is strictly serial (D-R-16) there is at most one in-flight call to drain. <strong>Stop stays available</strong> during this window: clicking Stop while pausing upgrades the outcome to a terminal STOPPED (SPEC-026). See <code>description.md §3.4</code> and <code>11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md §6.8</code>.</p>
+
+<!-- ============ 3c. STOPPING (DRAINING) ============ -->
+<div class="panel" style="width:640px">
+  <div class="head">
+    <span class="badge stop">Stopping — finishing the current inference…</span>
+    <span class="run-name">Run 4 — Task Benchmark — 2026-05-16 15:40</span>
+    <button class="iconbtn" title="Rename run" disabled>&#9998;</button>
+    <button class="btn warn" disabled>Pause</button>
+    <button class="btn danger" disabled>Stop</button>
+  </div>
+  <div style="margin:0 0 4px;padding:8px 10px;border-radius:6px;background:var(--mute-bg);color:var(--text);font-size:12px">
+    &#9209; Stop accepted. Finishing the single in-flight inference, then the run ends as <code>STOPPED</code>. No new task is started; counters are frozen.
+  </div>
+  <div class="section">
+    <h3>Current Task</h3>
+    <div class="grid">
+      <span class="k">Task</span><span class="v">classify_sentiment_03</span>
+      <span class="k">Stage</span><span class="v">inference (draining)</span>
+      <span class="k">Inference progress</span><span class="v">Generating &mdash; 142 tokens &middot; 2.0 s elapsed</span>
+    </div>
+  </div>
+</div>
+<p class="note"><strong>Stopping (draining).</strong> Transient state between the user's confirmed Stop and the <code>_run_stopped</code> event. Both Pause and Stop are now disabled (the decision is made and irreversible); the rename pencil is also disabled. Because execution is strictly serial (D-R-16) there is at most one in-flight inference to drain. On the next event the widget lands in the terminal <code>STOPPED</code> badge with frozen final counts and Resume offered from the Resume tab. See <code>state_machine.md</code> and <code>11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md §6.8</code>.</p>
+
+<!-- ============ 3d. FAILED (TERMINAL) ============ -->
+<div class="panel">
+  <div class="head">
+    <span class="badge fail">FAILED</span>
+    <span class="run-name">Run 5 — Graded Benchmark — 2026-05-16 16:02</span>
+    <!-- rename pencil hidden in terminal states -->
+  </div>
+  <div style="margin:0 0 8px;padding:8px 10px;border-radius:6px;background:var(--error-bg);color:var(--error);font-size:12px">
+    &#10005; <strong>Run failed.</strong> Provider <code>ollama_local</code> failed its health check after 3 consecutive errors; the stop-on-provider-health-fail rule ended the run. 18 of 120 tasks completed before the failure.
+  </div>
+  <div class="row2">
+    <div class="section">
+      <h3>Run Progress</h3>
+      <div class="grid">
+        <span class="k">Tasks</span><span class="v">18 / 120 (15%)</span>
+        <span class="k">Total Time</span><span class="v">4m 51s</span>
+        <span class="k">Completed</span><span class="v">17</span>
+        <span class="k">Failed</span><span class="v">1</span>
+      </div>
+      <div class="bar"><div class="bench" style="flex:17;background:var(--success)"></div><div class="fail" style="flex:1"></div><div class="pending" style="flex:102"></div></div>
+      <div class="tags"><span class="tag done">done 17</span><span class="tag fail">failed 1</span></div>
+    </div>
+    <div class="section">
+      <h3>Model</h3>
+      <div class="grid">
+        <span class="k">Models tested</span><span class="v">4</span>
+        <span class="k">Providers used</span><span class="v">2</span>
+        <span class="k">Excluded mid-run</span><span class="v">1</span>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <h3>Current Task</h3>
+    <div class="grid"><span class="empty">(run ended)</span></div>
+  </div>
+  <div class="logbox" style="height:80px;margin-top:10px">
+    <div class="logline"><span class="ts">16:06:48</span><span class="kind retry">[retry]</span><span class="msg">ollama_local &middot; gemma3:27b &middot; connection refused (3/3)</span></div>
+    <div class="logline"><span class="ts">16:06:49</span><span class="kind stop">[system]</span><span class="msg">Provider health check failed &middot; stop-on-health-fail triggered</span></div>
+    <div class="logline"><span class="ts">16:06:49</span><span class="kind retry">[failed]</span><span class="msg">Run ended &middot; status=FAILED &middot; 17 completed, 1 failed, 102 not run</span></div>
+  </div>
+</div>
+<p class="note"><strong>Failed (terminal).</strong> The run ended in <code>FAILED</code> &mdash; either a <code>_run_start_failed</code> at launch or, as shown, an unrecoverable provider error that tripped the stop-on-provider-health-fail rule mid-run. Pause, Stop, and the rename pencil are hidden (terminal state). A terminal error banner names the cause; partial counts and the partial bar are preserved. <strong>The widget offers no terminal actions</strong>: FAILED is final, so the left configuration panel returns to the layout, and the user continues from there &mdash; the 17 completed rows are viewable on the Result tab, and re-running the 102 not-run plus the 1 failed task happens from the Resume tab (drift check + task selection). The in-widget Resume button exists only as the Pause/Resume toggle of a <code>PAUSED</code> run (<code>description.md</code> §3.4). See <code>state_machine.md</code> and <code>11_Services_and_Algorithms/17_ERROR_TAXONOMY.md</code>.</p>
+
+<!-- ============ 4. VIEWING PAST RUN ============ -->
+<div class="panel">
+  <div class="head">
+    <span class="badge done">COMPLETED</span>
+    <span class="run-name">Run 2 — Synthetic Benchmark — 2026-05-15 19:12</span>
+    <!-- rename pencil hidden in terminal states -->
+  </div>
+  <div class="row2">
+    <div class="section">
+      <h3>Run Progress</h3>
+      <div class="grid">
+        <span class="k">Tasks</span><span class="v">120 / 120 (100%)</span>
+        <span class="k">Total Time</span><span class="v">28m 13s</span>
+        <span class="k">Completed</span><span class="v">120</span>
+        <span class="k">Failed</span><span class="v">0</span>
+      </div>
+      <div class="bar"><div class="bench" style="flex:120;background:var(--success)"></div></div>
+      <div class="tags"><span class="tag done">done 120</span></div>
+    </div>
+    <div class="section">
+      <h3>Model</h3>
+      <div class="grid">
+        <span class="k">Models tested</span><span class="v">10</span>
+        <span class="k">Providers used</span><span class="v">2</span>
+        <span class="k">Excluded mid-run</span><span class="v">0</span>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <h3>Current Task</h3>
+    <div class="grid"><span class="empty">(complete)</span></div>
+  </div>
+  <div class="logbox" style="height:80px;margin-top:10px">
+    <div class="logline"><span class="ts">19:13:01</span><span class="kind system">[system]</span><span class="msg">Loaded run from logs/run/benchmark_2_1778614963.log</span></div>
+    <div class="logline"><span class="ts">19:13:01</span><span class="kind finish">[finished]</span><span class="msg">120/120 completed &middot; 0 failed</span></div>
+  </div>
+</div>
+<p class="note"><strong>Viewing a past run.</strong> Read-only: terminal badge, frozen final counters, post-run model summary, log replayed from the per-run file. Pause, Stop, and the rename pencil are hidden.</p>
+
+<!-- ============ 5. VERBOSITY EXAMPLES ============ -->
+<h2>Run log verbosity — the same two tasks at three levels</h2>
+<div class="verbref">
+  <div>
+    <span class="verbtitle">VERBOSE — timestamp, kind, provider, model, task, stage, FULL system prompt / user prompt (task) / model response (untruncated) with sizes, TTFT, total time, TPS, tokens, retries, verdict + reasoning</span>
+    <div class="verbbox">
+      <div class="logline"><span class="ts">12:54:25</span><span class="kind taskstart">[task_start]</span><span class="msg">text_ops_proofread_email &middot; stage=inference &middot; provider=LM Studio (local) &middot; model=gpt-oss:20b</span></div>
+      <div class="logline detail" style="margin-left:0;border-left:none;padding-left:8px">system prompt (full, 312 chars &middot; ~78 tokens): "You are a careful proofreader. Return only the corrected version of the user's email, preserving the salutation and sign-off. Do not add commentary."</div>
+      <div class="logline detail" style="margin-left:0;border-left:none;padding-left:8px">user prompt / task (full, 1245 chars &middot; ~310 tokens): "Proofread the following draft email and return only the corrected version. Subject: Project status update. Hi team, I wanted to send a quick update on where things stand with the Q3 rollout. Engineering has finished the migration scripts and QA is running through the regression suite. We expect to wrap by Friday. Marketing copy is in review, pending one round of legal sign-off. Thanks, Alex"</div>
+      <div class="logline"><span class="ts">12:54:30</span><span class="kind retry">[retry]</span><span class="msg">Attempt 2/3 &mdash; Connection refused (ECONNREFUSED) &middot; backoff 600s</span></div>
+      <div class="logline"><span class="ts">12:54:38</span><span class="kind done">[done]</span><span class="msg">text_ops_proofread_email &middot; time=12800ms &middot; ttft=320ms &middot; tps=11.7 &middot; prompt_tokens=310 &middot; completion_tokens=150</span></div>
+      <div class="logline detail" style="margin-left:0;border-left:none;padding-left:8px">model response (full, 612 chars &middot; ~150 tokens): "Subject: Project status update. Hi team, I wanted to send a quick update on where things stand with the Q3 rollout. Engineering has finished the migration scripts, and QA is running through the regression suite. We expect to wrap by Friday. Marketing copy is in review, pending one round of legal sign-off. Thanks, Alex"</div>
+      <div class="logline"><span class="ts">12:54:39</span><span class="kind judge">[judge]</span><span class="msg">text_ops_proofread_email &middot; verdict=PASS &middot; time=820ms &middot; "Concise and accurate; no errors left"</span></div>
+      <div class="logline"><span class="ts">12:55:02</span><span class="kind done">[done]</span><span class="msg">summarise_news &middot; time=21200ms &middot; ttft=480ms &middot; tps=14.1 &middot; prompt_tokens=580 &middot; completion_tokens=300</span></div>
+      <div class="logline"><span class="ts">12:55:04</span><span class="kind judge">[judge]</span><span class="msg">summarise_news &middot; verdict=PASS &middot; time=1130ms &middot; "Captures the three key points"</span></div>
+    </div>
+  </div>
+  <div>
+    <span class="verbtitle">NORMAL (default) — timestamp, kind, provider, model, task, stage, total time, system prompt / user prompt (task) / model response as TRUNCATED excerpts plus sizes, errors, verdict + reasoning</span>
+    <div class="verbbox">
+      <div class="logline"><span class="ts">12:54:25</span><span class="kind taskstart">[task_start]</span><span class="msg">text_ops_proofread_email &middot; inference</span></div>
+      <div class="logline detail" style="margin-left:0;border-left:none;padding-left:8px">system prompt (excerpt, 312 chars &middot; ~78 tokens): "You are a careful proofreader. Return only the corrected version of the user's email, preserving the salutation and sign-off..."</div>
+      <div class="logline detail" style="margin-left:0;border-left:none;padding-left:8px">user prompt / task (excerpt, 1245 chars &middot; ~310 tokens): "Proofread the following draft email and return only the corrected version. Subject: Project status update. Hi team, I wanted to send a quick update..."</div>
+      <div class="logline"><span class="ts">12:54:30</span><span class="kind retry">[retry]</span><span class="msg">Attempt 2/3 &mdash; Connection refused</span></div>
+      <div class="logline"><span class="ts">12:54:38</span><span class="kind done">[done]</span><span class="msg">text_ops_proofread_email &middot; time=12.8s</span></div>
+      <div class="logline detail" style="margin-left:0;border-left:none;padding-left:8px">model response (excerpt, 612 chars &middot; ~150 tokens): "Subject: Project status update. Hi team, I wanted to send a quick update on where things stand with the Q3 rollout..."</div>
+      <div class="logline"><span class="ts">12:54:39</span><span class="kind judge">[judge]</span><span class="msg">text_ops_proofread_email &middot; PASS &middot; "Concise and accurate; no errors left"</span></div>
+      <div class="logline"><span class="ts">12:55:02</span><span class="kind done">[done]</span><span class="msg">summarise_news &middot; time=21.2s</span></div>
+      <div class="logline"><span class="ts">12:55:04</span><span class="kind judge">[judge]</span><span class="msg">summarise_news &middot; PASS &middot; "Captures the three key points"</span></div>
+    </div>
+  </div>
+  <div>
+    <span class="verbtitle">SHORT — timestamp, kind, provider, model, task, stage, system prompt / user prompt (task) / model response SIZES ONLY (no text), errors, verdict only</span>
+    <div class="verbbox">
+      <div class="logline"><span class="ts">12:54:25</span><span class="kind taskstart">[task_start]</span><span class="msg">text_ops_proofread_email &middot; system=312c/78t &middot; user=1245c/310t</span></div>
+      <div class="logline"><span class="ts">12:54:30</span><span class="kind retry">[retry]</span><span class="msg">2/3 &mdash; Connection refused</span></div>
+      <div class="logline"><span class="ts">12:54:38</span><span class="kind done">[done]</span><span class="msg">text_ops_proofread_email &middot; response=612c/150t</span></div>
+      <div class="logline"><span class="ts">12:54:39</span><span class="kind judge">[judge]</span><span class="msg">text_ops_proofread_email &middot; PASS</span></div>
+      <div class="logline"><span class="ts">12:55:02</span><span class="kind done">[done]</span><span class="msg">summarise_news &middot; response=2800c/300t</span></div>
+      <div class="logline"><span class="ts">12:55:04</span><span class="kind judge">[judge]</span><span class="msg">summarise_news &middot; PASS</span></div>
+    </div>
+  </div>
+</div>
+<p class="note">The verbosity dropdown switches between these views live. Filtering is applied client-side from cached raw events; the per-run log file always records the full Verbose stream.</p>
+
+<!-- ============ 6. STABILITY LEGEND ============ -->
+<h2>Stability indicator legend</h2>
+<div class="legend">
+  <div><span class="dot green" style="display:inline-block;margin-right:6px"></span><strong>OK</strong> — the model has no consecutive maximum-timeouts; the provider circuit breaker is closed and responsive.</div>
+  <div><span class="dot amber" style="display:inline-block;margin-right:6px"></span><strong>Warning</strong> — the model has 1 to (threshold − 1) maximum-timeouts, or the provider has 1–2 recent failures, or the breaker is half-open (probing).</div>
+  <div><span class="dot red" style="display:inline-block;margin-right:6px"></span><strong>Critical</strong> — the model reached the exclusion threshold, or the provider circuit breaker is open.</div>
+  <div style="color:var(--text-secondary)">Source — Adaptive Timeout Service and Provider Circuit Breaker; live via the <code>_model_stability_changed</code> event.</div>
+</div>
+
+<!-- ============ 7. PAUSE vs STOP ============ -->
+<h2>Pause versus Stop — same mechanism, different policy</h2>
+<table class="t">
+  <tr><th>Aspect</th><th>Pause</th><th>Stop</th></tr>
+  <tr><td>In-flight task</td><td>finishes and is persisted</td><td>finishes and is persisted</td></tr>
+  <tr><td>Pipeline worker</td><td>parked, awaiting Resume</td><td>parked, then terminated</td></tr>
+  <tr><td>Persisted run status</td><td>INCOMPLETE if never resumed</td><td>STOPPED</td></tr>
+  <tr><td>Window layout</td><td>unchanged — left panel stays hidden</td><td>idle layout restored</td></tr>
+  <tr><td>Confirmation</td><td>none</td><td>yes — confirmation modal dialog</td></tr>
+  <tr><td>Settings reachable</td><td>no (still locked)</td><td>yes (run no longer active)</td></tr>
+  <tr><td>User next action</td><td>click Resume here</td><td>switch to Resume tab, then Resume Run</td></tr>
+  <tr><td>Emitted event</td><td>_run_paused</td><td>_run_stopped</td></tr>
+</table>
+
+</div>
+</body>
+</html>

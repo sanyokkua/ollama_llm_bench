@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Charts Gallery — Result Widget — Ollama LLM Bench</title>
+<style>
+:root{
+  --bg:#0a0f1a;--bg2:#111827;--bg3:#1f2937;--bg4:#263044;
+  --border:#374151;
+  --text:#f9fafb;--text-secondary:#9ca3af;
+  --primary:#14b8a6;--success:#34d399;--warn:#fbbf24;--error:#f87171;--info:#60a5fa;--mute:#9ca3af;
+  --series-a:#14b8a6;--series-b:#60a5fa;--series-c:#fbbf24;--series-d:#a78bfa;
+  --primary-bg:rgba(20,184,166,.12);
+  --radius-sm:3px;--radius-md:5px;--radius-lg:8px;
+  --font:"Segoe UI","Helvetica Neue","Cantarell","Ubuntu","Noto Sans","DejaVu Sans","Arial",sans-serif;
+  --mono:"Consolas","Menlo","Cascadia Mono","DejaVu Sans Mono","Ubuntu Mono","Monaco","Courier New",monospace;
+}
+body{margin:0;padding:22px;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.4}
+h1{font-size:21px;margin:0 0 4px}
+.ctx{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px 12px;margin:8px 0 18px;font-size:11px;color:var(--text-secondary);font-style:italic;max-width:1080px}
+.ctx strong{font-style:normal;color:var(--text)}
+.ctx code{background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:10px}
+h2{font-size:13px;margin:24px 0 10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em}
+.grid{display:grid;grid-template-columns:repeat(2,520px);gap:20px}
+
+.card{width:520px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.cardhead{padding:9px 13px;background:var(--bg3);border-bottom:1px solid var(--border)}
+.cardhead .knum{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;background:var(--primary-bg);color:var(--primary);border-radius:4px;font-size:10px;font-weight:600;margin-right:7px}
+.cardhead .kname{font-weight:600;font-size:12px}
+.cardhead .kq{font-size:10px;color:var(--text-secondary);margin-top:3px}
+.modetag{float:right;font-size:9px;padding:2px 7px;border-radius:9px;background:var(--bg4);color:var(--text-secondary)}
+.modetag.full{background:var(--primary-bg);color:var(--primary)}
+
+.filterbar{padding:6px 13px;background:var(--bg2);border-bottom:1px dashed var(--border);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.chip{padding:2px 8px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text-secondary);font-size:9px;display:inline-flex;align-items:center;gap:3px}
+.chip::after{content:'\25BE';font-size:7px;opacity:.7}
+.chip.active{border-color:var(--primary);background:var(--primary-bg);color:var(--primary)}
+.opt{padding:2px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg3);color:var(--text);font-size:9px}
+.opt b{color:var(--primary)}
+
+.plot{position:relative;height:230px;margin:12px 13px}
+.yaxis{position:absolute;top:6px;bottom:26px;left:0;width:40px;display:flex;flex-direction:column;justify-content:space-between;font-size:8px;color:var(--text-secondary);text-align:right;padding-right:5px}
+.plotarea{position:absolute;left:44px;right:10px;top:6px;bottom:26px;border-left:1px solid var(--border);border-bottom:1px solid var(--border)}
+.bars{position:absolute;inset:0;display:flex;align-items:flex-end;gap:14px;padding:0 8px}
+.bar{flex:1;border-radius:3px 3px 0 0;min-height:10px;position:relative;background:var(--series-a)}
+.bar::before{content:attr(data-v);position:absolute;top:-15px;left:-8px;right:-8px;text-align:center;font-size:8px;color:var(--text)}
+.bar::after{content:attr(data-l);position:absolute;bottom:-22px;left:-10px;right:-10px;text-align:center;font-size:8px;color:var(--text-secondary)}
+.bar.low{background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,.28) 3px,rgba(255,255,255,.28) 5px)}
+.bar .nlabel{position:absolute;top:-27px;left:-10px;right:-10px;text-align:center;font-size:7px;color:var(--mute);font-family:var(--mono)}
+.stack{flex:1;display:flex;flex-direction:column-reverse;min-height:10px;position:relative;border-radius:3px 3px 0 0;overflow:hidden}
+.stack::after{content:attr(data-l);position:absolute;bottom:-22px;left:-10px;right:-10px;text-align:center;font-size:8px;color:var(--text-secondary)}
+.seg{width:100%}
+.grp{flex:1;display:flex;gap:3px;align-items:flex-end;position:relative}
+.grp::after{content:attr(data-l);position:absolute;bottom:-22px;left:-10px;right:-10px;text-align:center;font-size:8px;color:var(--text-secondary)}
+.grp .gb{flex:1;border-radius:2px 2px 0 0;min-height:8px}
+.dot{position:absolute;width:9px;height:9px;border-radius:50%;transform:translate(-50%,50%)}
+.frontier{position:absolute;height:0;border-top:1px dashed var(--warn)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;padding:0 13px 10px;font-size:9px;color:var(--text-secondary)}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.sw{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+.heat{display:grid;gap:2px;padding:12px 13px}
+.heat .hcell{height:26px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:var(--mono)}
+.heat .hlabel{font-size:8px;color:var(--text-secondary);display:flex;align-items:center}
+
+.box{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.box .whisk{width:1px;background:var(--text-secondary)}
+.box .rect{width:60%;border:1px solid var(--series-a);background:var(--primary-bg);position:relative}
+.box .med{position:absolute;left:0;right:0;height:2px;background:var(--series-a)}
+.box .outl{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--error);left:50%;transform:translateX(-50%)}
+.box::after{content:attr(data-l);position:absolute;bottom:-22px;left:-10px;right:-10px;text-align:center;font-size:8px;color:var(--text-secondary)}
+
+.empty{height:230px;margin:12px 13px;border:1px dashed var(--border);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;text-align:center;color:var(--mute);font-size:11px;padding:0 24px}
+
+.note{font-size:10px;color:var(--text-secondary);padding:0 13px 11px}
+.foot{font-size:11px;color:var(--text-secondary);max-width:1060px;margin-top:22px;padding:12px 14px;background:var(--primary-bg);border-left:3px solid var(--primary);border-radius:0 var(--radius-md) var(--radius-md) 0;line-height:1.6}
+.foot strong{color:var(--text)}
+.foot code{background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:10px}
+</style>
+</head>
+<body>
+
+<h1>Charts Gallery — all 12 chart kinds</h1>
+<div class="ctx">Canonical rendering of every <code>ChartKind</code> the Charts tab can show, each with an example filter bar. Charts 1–4, 8, and 12 are offered in <strong>every</strong> run mode; charts 5, 6, 7, 9, 10, and 11 are offered <strong>only for <code>GRADED</code></strong>. Each chart is computed by one aggregator in <code>11_Services_and_Algorithms/13_CHART_AGGREGATORS.md</code>; the Charts tab only paints the prepared structure. See <code>tabs/charts_tab.md</code>.</div>
+
+<h2>Performance charts — offered in every mode</h2>
+<div class="grid">
+
+<!-- 1 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag">All modes &middot; bar</span><span class="knum">1</span><span class="kname">Avg time-to-first-token per model</span><div class="kq">How responsive is each model — time until the first token?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="chip">Category all</span><span class="opt">Unit: <b>seconds</b></span><span class="opt">Outliers: <b>excluded</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>1.5</span><span>1.1</span><span>0.8</span><span>0.4</span><span>0</span></div>
+    <div class="plotarea"><div class="bars">
+      <div class="bar" data-l="gemma3:27b" data-v="1.23" style="height:82%"></div>
+      <div class="bar low" data-l="gpt-oss:20b" data-v="0.78" style="height:52%"><span class="nlabel">n=3</span></div>
+      <div class="bar" data-l="lfm2:1.2b" data-v="0.41" style="height:27%"></div>
+      <div class="bar" data-l="qwen3:1.7b" data-v="0.62" style="height:41%"></div>
+    </div></div>
+  </div>
+  <div class="note">Mean <code>ttft_ms</code> over completed rows. <strong>Low-sample marking:</strong> the <code>gpt-oss:20b</code> bar is hatched and annotated <code>n=3</code> because its sample size is below <code>eval.min_sample_size</code> (default 5) — the group is still drawn but flagged low-confidence (<code>13_CHART_AGGREGATORS.md</code> §6.5a, <code>tabs/charts_tab.md</code> §6.1). Empty state: "No time-to-first-token data — provider streaming is required for this metric."</div>
+</div>
+
+<!-- 2 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag">All modes &middot; bar</span><span class="knum">2</span><span class="kname">Avg tokens-per-second per model</span><div class="kq">Which model emits tokens fastest once generation starts?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="opt">Aggregation: <b>mean</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>130</span><span>97</span><span>65</span><span>32</span><span>0</span></div>
+    <div class="plotarea"><div class="bars">
+      <div class="bar" data-l="gemma3:27b" data-v="31.95" style="height:25%"></div>
+      <div class="bar low" data-l="gpt-oss:20b" data-v="34.08" style="height:27%"><span class="nlabel">n=3</span></div>
+      <div class="bar" data-l="lfm2:1.2b" data-v="120.45" style="height:93%"></div>
+      <div class="bar" data-l="qwen3:1.7b" data-v="82.62" style="height:64%"></div>
+    </div></div>
+  </div>
+  <div class="note">Mean or median <code>tokens_per_second</code> over completed rows. The aggregation switch lets the median resist a single outlier. <code>gpt-oss:20b</code> is hatched (<code>n=3</code> &lt; <code>eval.min_sample_size</code>). Empty state: "No throughput data — no completed rows for the current filter."</div>
+</div>
+
+<!-- 3 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag">All modes &middot; bar</span><span class="knum">3</span><span class="kname">Avg time per model</span><div class="kq">End to end, how long does each model take per task?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="opt">Outliers: <b>excluded</b></span><span class="opt">Y-axis: <b>log</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>100s</span><span>32s</span><span>10s</span><span>3s</span><span>1s</span></div>
+    <div class="plotarea"><div class="bars">
+      <div class="bar" data-l="gemma3:27b" data-v="67.0s" style="height:91%"></div>
+      <div class="bar low" data-l="gpt-oss:20b" data-v="11.7s" style="height:54%"><span class="nlabel">n=3</span></div>
+      <div class="bar" data-l="lfm2:1.2b" data-v="3.2s" style="height:25%"></div>
+      <div class="bar" data-l="qwen3:1.7b" data-v="4.1s" style="height:30%"></div>
+    </div></div>
+  </div>
+  <div class="note">Mean <code>total_time_ms / 1000</code> over completed rows. The log Y-axis helps when one model is an order of magnitude slower. <code>gpt-oss:20b</code> is hatched (<code>n=3</code> &lt; <code>eval.min_sample_size</code>). Empty state: "No timing data — no completed rows for the current filter."</div>
+</div>
+
+<!-- 4 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag">All modes &middot; stacked bar</span><span class="knum">4</span><span class="kname">Success / failed / incomplete per model</span><div class="kq">How many tasks did each model succeed, fail, or leave incomplete?</div></div>
+  <div class="filterbar"><span class="chip">Models all</span><span class="chip active">Status 9/10</span><span class="opt">Legend: click a swatch to hide a series</span></div>
+  <div class="plot">
+    <div class="yaxis"><span>40</span><span>30</span><span>20</span><span>10</span><span>0</span></div>
+    <div class="plotarea"><div class="bars">
+      <div class="stack" data-l="gemma3:27b" style="height:100%"><div class="seg" style="background:var(--series-a);height:100%"></div></div>
+      <div class="stack" data-l="gpt-oss:20b" style="height:100%"><div class="seg" style="background:var(--series-a);height:95%"></div><div class="seg" style="background:var(--series-c);height:5%"></div></div>
+      <div class="stack" data-l="lfm2:1.2b" style="height:100%"><div class="seg" style="background:var(--series-a);height:80%"></div><div class="seg" style="background:var(--error);height:12%"></div><div class="seg" style="background:var(--series-c);height:8%"></div></div>
+      <div class="stack" data-l="qwen3:1.7b" style="height:100%"><div class="seg" style="background:var(--series-a);height:100%"></div></div>
+    </div></div>
+  </div>
+  <div class="legend"><span><i class="sw" style="background:var(--series-a)"></i>Succeeded</span><span><i class="sw" style="background:var(--error)"></i>Failed</span><span><i class="sw" style="background:var(--series-c)"></i>Incomplete</span></div>
+  <div class="note">Per-model counts of completed, terminal-failure, and pipeline-position statuses. Hidden series persist per chart kind. Counts are not sample-rate aggregates, so no low-sample hatch applies. Empty state: "No rows for the current filter."</div>
+</div>
+
+<!-- 8 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag">All modes &middot; scatter</span><span class="knum">8</span><span class="kname">Time vs tokens</span><div class="kq">Does duration grow with output size?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="opt">X-axis: <b>linear</b></span><span class="opt">Y-axis: <b>linear</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>80s</span><span>60s</span><span>40s</span><span>20s</span><span>0</span></div>
+    <div class="plotarea">
+      <div class="dot" style="background:var(--series-a);left:78%;bottom:85%"></div>
+      <div class="dot" style="background:var(--series-a);left:62%;bottom:70%"></div>
+      <div class="dot" style="background:var(--series-b);left:30%;bottom:22%"></div>
+      <div class="dot" style="background:var(--series-b);left:24%;bottom:15%"></div>
+      <div class="dot" style="background:var(--series-c);left:18%;bottom:8%"></div>
+      <div class="dot" style="background:var(--series-d);left:20%;bottom:10%"></div>
+      <div class="dot" style="background:var(--series-d);left:34%;bottom:14%"></div>
+    </div>
+  </div>
+  <div class="legend"><span><i class="sw" style="background:var(--series-a)"></i>gemma3:27b</span><span><i class="sw" style="background:var(--series-b)"></i>gpt-oss:20b</span><span><i class="sw" style="background:var(--series-c)"></i>lfm2:1.2b</span><span><i class="sw" style="background:var(--series-d)"></i>qwen3:1.7b</span></div>
+  <div class="note">One point per completed row — X = <code>completion_tokens</code>, Y = <code>total_time_ms/1000</code>. Each point carries a <code>result_id</code> for drill-down. Per-row scatter has no per-group aggregate, so no low-sample hatch applies. Empty state: "No completed rows to plot for the current filter."</div>
+</div>
+
+<!-- 12 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag">All modes &middot; box plot</span><span class="knum">12</span><span class="kname">Tokens per task (distribution)</span><div class="kq">How variable is each model's output length?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="opt">Show outliers: <b>on</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>3000</span><span>2250</span><span>1500</span><span>750</span><span>0</span></div>
+    <div class="plotarea"><div class="bars" style="align-items:stretch;gap:18px">
+      <div class="box" data-l="gemma3:27b"><div class="whisk" style="height:14%"></div><div class="rect" style="height:30%"><div class="med" style="bottom:55%"></div></div><div class="whisk" style="height:10%"></div></div>
+      <div class="box" data-l="gpt-oss:20b"><div class="outl" style="bottom:72%"></div><div class="whisk" style="height:8%"></div><div class="rect" style="height:14%"><div class="med" style="bottom:45%"></div></div><div class="whisk" style="height:6%"></div></div>
+      <div class="box" data-l="lfm2:1.2b"><div class="whisk" style="height:7%"></div><div class="rect" style="height:11%"><div class="med" style="bottom:50%"></div></div><div class="whisk" style="height:5%"></div></div>
+      <div class="box" data-l="qwen3:1.7b"><div class="whisk" style="height:9%"></div><div class="rect" style="height:12%"><div class="med" style="bottom:48%"></div></div><div class="whisk" style="height:6%"></div></div>
+    </div></div>
+  </div>
+  <div class="note">Five-number summary of <code>completion_tokens</code> per model. Outliers beyond IQR x 1.5 are drawn as separate markers, each carrying a <code>result_id</code>. A box built from fewer than <code>eval.min_sample_size</code> rows is hatched and annotated with its <code>n</code>. Empty state: "Not enough completed rows to summarise a distribution."</div>
+</div>
+
+</div>
+
+<h2>Grading charts — offered only for GRADED</h2>
+<div class="grid">
+
+<!-- 5 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag full">GRADED &middot; bar</span><span class="knum">5</span><span class="kname">Pass rate by model</span><div class="kq">Which model produces a passing answer most often?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="chip">Verdict all</span><span class="opt">Count ungraded as not-pass: <b>on</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>1.0</span><span>0.75</span><span>0.5</span><span>0.25</span><span>0</span></div>
+    <div class="plotarea"><div class="bars">
+      <div class="bar" data-l="gemma3:27b" data-v="0.875" style="height:88%;background:var(--success)"></div>
+      <div class="bar low" data-l="gpt-oss:20b" data-v="0.725" style="height:73%;background:var(--success)"><span class="nlabel">n=3</span></div>
+      <div class="bar" data-l="lfm2:1.2b" data-v="0.400" style="height:40%;background:var(--warn)"></div>
+      <div class="bar" data-l="qwen3:1.7b" data-v="0.625" style="height:63%;background:var(--success)"></div>
+    </div></div>
+  </div>
+  <div class="note"><code>count(verdict==PASS) / count(completed)</code>. The toggle decides whether completed-but-ungraded rows count against the denominator. <code>gpt-oss:20b</code> is hatched (<code>n=3</code> &lt; <code>eval.min_sample_size</code>). Empty state: "No graded rows — pass rate needs a judge verdict."</div>
+</div>
+
+<!-- 6 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag full">GRADED &middot; bar</span><span class="knum">6</span><span class="kname">Avg grade (Cosine Score) by model</span><div class="kq">What is each model's average quality, by the numeric Cosine Score?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="opt">Fold ungraded in as 0.0: <b>off</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>1.0</span><span>0.75</span><span>0.5</span><span>0.25</span><span>0</span></div>
+    <div class="plotarea"><div class="bars">
+      <div class="bar" data-l="gemma3:27b" data-v="0.74" style="height:74%"></div>
+      <div class="bar low" data-l="gpt-oss:20b" data-v="0.68" style="height:68%"><span class="nlabel">n=3</span></div>
+      <div class="bar" data-l="lfm2:1.2b" data-v="0.52" style="height:52%"></div>
+      <div class="bar" data-l="qwen3:1.7b" data-v="0.66" style="height:66%"></div>
+    </div></div>
+  </div>
+  <div class="note">Mean <code>cosine_similarity</code> over completed rows. The Cosine Score is the only numeric quality metric — the judge produces no number, so there is no judge-score chart. <code>gpt-oss:20b</code> is hatched (<code>n=3</code> &lt; <code>eval.min_sample_size</code>). Empty state: "No Cosine Scores — the cosine phase was disabled or produced no rows."</div>
+</div>
+
+<!-- 7 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag full">GRADED &middot; stacked bar</span><span class="knum">7</span><span class="kname">Verdict counts per model</span><div class="kq">How many of each verdict outcome did each model produce?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="opt">Legend: click a swatch to hide a series</span></div>
+  <div class="plot">
+    <div class="yaxis"><span>40</span><span>30</span><span>20</span><span>10</span><span>0</span></div>
+    <div class="plotarea"><div class="bars">
+      <div class="stack" data-l="gemma3:27b" style="height:100%"><div class="seg" style="background:var(--success);height:88%"></div><div class="seg" style="background:var(--error);height:12%"></div></div>
+      <div class="stack" data-l="gpt-oss:20b" style="height:100%"><div class="seg" style="background:var(--success);height:72%"></div><div class="seg" style="background:var(--error);height:25%"></div><div class="seg" style="background:var(--mute);height:3%"></div></div>
+      <div class="stack" data-l="lfm2:1.2b" style="height:90%"><div class="seg" style="background:var(--success);height:44%"></div><div class="seg" style="background:var(--error);height:48%"></div><div class="seg" style="background:var(--mute);height:8%"></div></div>
+      <div class="stack" data-l="qwen3:1.7b" style="height:100%"><div class="seg" style="background:var(--success);height:62%"></div><div class="seg" style="background:var(--error);height:38%"></div></div>
+    </div></div>
+  </div>
+  <div class="legend"><span><i class="sw" style="background:var(--success)"></i>Pass</span><span><i class="sw" style="background:var(--error)"></i>Fail</span><span><i class="sw" style="background:var(--mute)"></i>Ungraded</span></div>
+  <div class="note">Per-model counts of <code>verdict</code> = PASS / FAIL / None. The Ungraded segment surfaces completed rows that never received a verdict. Counts are not sample-rate aggregates, so no low-sample hatch applies. Empty state: "No graded rows for the current filter."</div>
+</div>
+
+<!-- 9 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag full">GRADED &middot; grid</span><span class="knum">9</span><span class="kname">Heatmap (task by model)</span><div class="kq">Which specific tasks does each model fail on?</div></div>
+  <div class="filterbar"><span class="chip active">Tasks 4/40</span><span class="opt">Cell value: <b>cosine</b></span><span class="opt">Group by category: <b>off</b></span></div>
+  <div class="heat" style="grid-template-columns:90px repeat(4,1fr)">
+    <div class="hlabel"></div><div class="hlabel">gemma3</div><div class="hlabel">gpt-oss</div><div class="hlabel">lfm2</div><div class="hlabel">qwen3</div>
+    <div class="hlabel">coding_two_sum</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.91</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.92</div><div class="hcell" style="background:var(--warn);color:#0a0f1a">0.58</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.84</div>
+    <div class="hlabel">text_summary</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.77</div><div class="hcell" style="background:var(--warn);color:#0a0f1a">0.61</div><div class="hcell" style="background:var(--bg4);color:var(--mute)">no data</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.72</div>
+    <div class="hlabel">uk_to_en</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.80</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.74</div><div class="hcell" style="background:var(--error);color:#0a0f1a">0.41</div><div class="hcell" style="background:var(--warn);color:#0a0f1a">0.66</div>
+    <div class="hlabel">data_extract</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.89</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.83</div><div class="hcell" style="background:var(--warn);color:#0a0f1a">0.55</div><div class="hcell" style="background:var(--success);color:#0a0f1a">0.78</div>
+  </div>
+  <div class="note">Rows = <code>task_id</code>, columns = <code>(provider, model)</code>. Cell value switches between the categorical verdict and the numeric Cosine Score; a pair with no completed result is a "no data" cell (the heatmap's per-cell equivalent of the low-sample / empty treatment). Empty state (whole chart): "No task-by-model results for the current filter."</div>
+</div>
+
+<!-- 10 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag full">GRADED &middot; grouped bar</span><span class="knum">10</span><span class="kname">Per-category bar</span><div class="kq">Which task categories does each model excel at or struggle with?</div></div>
+  <div class="filterbar"><span class="chip active">Categories 3/3</span><span class="opt">Metric: <b>Pass rate</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>1.0</span><span>0.75</span><span>0.5</span><span>0.25</span><span>0</span></div>
+    <div class="plotarea"><div class="bars">
+      <div class="grp" data-l="Code"><div class="gb" style="background:var(--series-a);height:90%"></div><div class="gb" style="background:var(--series-b);height:78%"></div><div class="gb" style="background:var(--series-c);height:50%"></div><div class="gb" style="background:var(--series-d);height:70%"></div></div>
+      <div class="grp" data-l="Text"><div class="gb" style="background:var(--series-a);height:84%"></div><div class="gb" style="background:var(--series-b);height:66%"></div><div class="gb" style="background:var(--series-c);height:33%"></div><div class="gb" style="background:var(--series-d);height:55%"></div></div>
+      <div class="grp" data-l="Data"><div class="gb" style="background:var(--series-a);height:92%"></div><div class="gb" style="background:var(--series-b);height:80%"></div><div class="gb" style="background:var(--series-c);height:40%"></div><div class="gb" style="background:var(--series-d);height:62%"></div></div>
+    </div></div>
+  </div>
+  <div class="legend"><span><i class="sw" style="background:var(--series-a)"></i>gemma3:27b</span><span><i class="sw" style="background:var(--series-b)"></i>gpt-oss:20b</span><span><i class="sw" style="background:var(--series-c)"></i>lfm2:1.2b</span><span><i class="sw" style="background:var(--series-d)"></i>qwen3:1.7b</span></div>
+  <div class="note">One category-group per <code>BenchmarkTask.category</code>, one bar per model. The metric switch chooses pass rate, Avg Cosine Score, Avg time, or Avg TPS. A model/category cell built from fewer than <code>eval.min_sample_size</code> rows is hatched and annotated with its <code>n</code>. Empty state: "No results in the selected categories for the current filter."</div>
+</div>
+
+<!-- 11 -->
+<div class="card">
+  <div class="cardhead"><span class="modetag full">GRADED &middot; scatter</span><span class="knum">11</span><span class="kname">Task Benchmark vs quality</span><div class="kq">Which models sit on the speed/quality Pareto frontier?</div></div>
+  <div class="filterbar"><span class="chip active">Models 4/4</span><span class="opt">Y-axis metric: <b>Pass rate</b></span></div>
+  <div class="plot">
+    <div class="yaxis"><span>1.0</span><span>0.75</span><span>0.5</span><span>0.25</span><span>0</span></div>
+    <div class="plotarea">
+      <div class="frontier" style="left:6%;right:6%;bottom:64%;transform:rotate(-14deg)"></div>
+      <div class="dot" style="background:var(--series-a);left:24%;bottom:88%"></div>
+      <div class="dot" style="background:var(--series-b);left:28%;bottom:73%"></div>
+      <div class="dot" style="background:var(--series-c);left:92%;bottom:40%"></div>
+      <div class="dot" style="background:var(--series-d);left:66%;bottom:63%"></div>
+    </div>
+  </div>
+  <div class="legend"><span><i class="sw" style="background:var(--series-a)"></i>gemma3:27b</span><span><i class="sw" style="background:var(--series-b)"></i>gpt-oss:20b</span><span><i class="sw" style="background:var(--series-c)"></i>lfm2:1.2b</span><span><i class="sw" style="background:var(--series-d)"></i>qwen3:1.7b</span><span><i class="sw" style="background:var(--warn)"></i>Pareto frontier</span></div>
+  <div class="note">One point per model — X = mean <code>tokens_per_second</code>, Y = pass rate or Avg Cosine Score. The dashed line is the auto-computed Pareto frontier. A model whose aggregate rests on fewer than <code>eval.min_sample_size</code> rows is drawn as a hollow point and labelled with its <code>n</code>. Empty state: "Not enough graded models to plot a frontier."</div>
+</div>
+
+<!-- empty-state example -->
+<div class="card">
+  <div class="cardhead"><span class="modetag">Empty state</span><span class="knum">!</span><span class="kname">Per-chart empty state</span><div class="kq">Every chart renders an explicit message when no usable data exists.</div></div>
+  <div class="filterbar"><span class="chip active">Models 1/4</span><span class="chip active">Status 1/10</span></div>
+  <div class="empty">No time-to-first-token data — provider streaming is required for this metric.</div>
+  <div class="note">A chart shows its kind-specific <code>empty_state_message</code>, never blank axes. Prev/next stays enabled so the user can move to a populated chart.</div>
+</div>
+
+</div>
+
+<div class="foot">
+<strong>Filter bar — shared by every chart.</strong> Five global multi-select chips —
+<code>Models</code>, <code>Status</code>, <code>Verdict</code>, <code>Category</code>, <code>Difficulty</code> —
+narrow the working result set; the active chart's aggregator re-computes on the narrowed set. Each chart
+adds its own per-chart options after the chips (unit, aggregation, outlier toggle, axis scale,
+ungraded-handling toggles, metric switches, heatmap cell-value switch).<br><br>
+<strong>Mode availability.</strong> Charts 1–4, 8, and 12 are offered in every run mode; charts 5, 6, 7, 9,
+10, and 11 are offered only for <code>GRADED</code> because they need a verdict or a Cosine Score.
+A hidden chart never appears in the chart-kind dropdown nor in prev/next navigation.<br><br>
+<strong>Drill-down and export.</strong> Clicking a chart element switches to the Details tab with a matching
+filter applied. The footer exports the current chart as PNG or SVG at 2400 x 1600, with the active theme's
+palette. The per-run, per-chart-kind filter and option state persists with the run.<br><br>
+<strong>Two gallery-wide conventions.</strong> <em>Low-sample marking</em> — any aggregate computed from
+fewer than <code>eval.min_sample_size</code> (default 5) completed rows is drawn with a 45&deg; hatch fill and
+annotated with its <code>n</code> (e.g. <code>n=3</code>); the group is still shown but flagged low-confidence
+(<code>13_CHART_AGGREGATORS.md</code> §6.5a). Because <code>n</code> is a property of a model's completed-row
+count, the same model is hatched consistently across every per-model aggregate chart. Count-only charts
+(success/failed, verdict counts) and per-row charts (scatter) carry no hatch because they are not rate
+aggregates; the heatmap expresses the same idea per cell as a <code>no data</code> cell. <em>Empty state</em> —
+when a chart has no usable data it renders its kind-specific <code>empty_state_message</code> inside a dashed
+placeholder (never blank axes), and prev/next navigation stays enabled. Each chart note above lists its exact
+empty-state message.
+</div>
+
+</body>
+</html>

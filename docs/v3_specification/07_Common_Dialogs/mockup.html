@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Common Dialogs — Ollama LLM Bench</title>
+<style>
+:root{
+  --bg:#111827;--bg2:#1f2937;--bg3:#263044;--bginput:#1f2937;
+  --border:#374151;--text:#f9fafb;--mute:#9ca3af;
+  --primary:#14b8a6;--primaryh:#0fa898;
+  --success:#34d399;--warn:#fbbf24;--error:#f87171;--info:#60a5fa;
+  --radius:5px;
+  --font:"Segoe UI","Helvetica Neue","Cantarell","Ubuntu","Noto Sans","DejaVu Sans","Arial",sans-serif;
+  --mono:"Consolas","Menlo","Cascadia Mono","DejaVu Sans Mono","Ubuntu Mono","Monaco","Courier New",monospace;
+}
+body{margin:0;padding:20px;background:#0a0f1a;color:var(--text);
+  font-family:var(--font);font-size:12px;line-height:1.45}
+h1{font-size:19px;margin:0 0 4px}
+h2{font-size:14px;margin:26px 0 6px;border-bottom:1px solid var(--border);padding-bottom:4px}
+h3{font-size:11px;margin:14px 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.note{font-size:11px;color:var(--mute);max-width:640px;margin:4px 0 14px}
+
+/* dialog shell */
+.dlg{background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 16px 52px rgba(0,0,0,.65);overflow:hidden;
+  display:flex;flex-direction:column;margin-bottom:22px}
+.dlg-head{background:var(--bg2);padding:10px 14px;border-bottom:1px solid var(--border);
+  font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.dlg-head .glyph{margin-right:6px}
+.dlg-close{color:var(--mute);cursor:default}
+.dlg-body{padding:14px;font-size:12px}
+.dlg-foot{padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2);
+  display:flex;justify-content:flex-end;align-items:center;gap:6px}
+.dlg-foot.split{justify-content:space-between}
+.cluster{display:flex;gap:6px;align-items:center}
+
+/* buttons */
+.btn{padding:5px 12px;border:1px solid var(--border);background:var(--bg);
+  color:var(--mute);border-radius:var(--radius);cursor:default;font-size:12px;font-family:var(--font)}
+.btn.secondary{color:var(--text)}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#06241f;font-weight:600}
+.btn.danger{background:var(--error);border-color:var(--error);color:#3a0d0d;font-weight:600}
+.btn[disabled]{opacity:.4}
+.btn.sm{padding:3px 8px;font-size:11px}
+.btn.icon{width:28px;height:28px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+
+/* inputs */
+.input{background:var(--bginput);color:var(--text);border:1px solid var(--border);
+  border-radius:var(--radius);padding:5px 8px;font-size:12px;width:100%;box-sizing:border-box;font-family:var(--font)}
+.input.err{border-color:var(--error)}
+.combo{position:relative;display:inline-block}
+.combo .input{padding-right:22px;width:200px}
+.combo::after{content:'';position:absolute;right:8px;top:13px;width:0;height:0;
+  border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--mute)}
+
+/* field-row anatomy */
+.label{font-size:12px;color:var(--text);margin-bottom:2px}
+.hint{font-size:10px;color:var(--mute);margin-bottom:4px}
+.field{margin:10px 0}
+.strip{font-size:11px;margin-top:4px;min-height:15px}
+.strip.ok{color:var(--success)}
+.strip.err{color:var(--error)}
+.strip.muted{color:var(--mute)}
+
+/* key-value */
+.kv{display:grid;grid-template-columns:200px 1fr;gap:5px 12px;font-size:12px;margin:6px 0}
+.kv .k{color:var(--mute)}
+.kv .v{color:var(--text)}
+.kv .v.mono{font-family:var(--mono);font-size:11px}
+
+/* sections */
+.section{margin:10px 0;padding-top:8px;border-top:1px dashed var(--border)}
+.section:first-child{border-top:none;padding-top:0}
+.section-title{font-size:10px;color:var(--mute);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:5px}
+
+/* callouts */
+.callout{padding:8px 10px;border-radius:var(--radius);font-size:11px;margin:8px 0}
+.callout.warn{background:rgba(251,191,36,.10);border:1px solid var(--warn)}
+.callout.err{background:rgba(248,113,113,.10);border:1px solid var(--error)}
+.callout.info{background:rgba(96,165,250,.10);border:1px solid var(--info)}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{padding:5px 8px;text-align:left;background:var(--bg2);border-bottom:1px solid var(--border);
+  color:var(--mute);font-weight:500;text-transform:uppercase;letter-spacing:.04em;font-size:10px}
+td{padding:5px 8px;border-bottom:1px solid var(--border)}
+.checkbox{width:14px;height:14px;border:1px solid var(--border);border-radius:3px;
+  display:inline-block;background:var(--bg);vertical-align:middle;position:relative}
+.checkbox.checked{background:var(--primary);border-color:var(--primary)}
+.checkbox.checked::after{content:'\2713';color:#06241f;font-size:10px;
+  position:absolute;left:2px;top:-2px;font-weight:700}
+.checkbox.mixed{background:var(--primary);border-color:var(--primary)}
+.checkbox.mixed::after{content:'';position:absolute;left:3px;top:6px;width:8px;height:2px;background:#06241f}
+
+/* status pills */
+.pill{padding:1px 6px;border-radius:8px;font-size:10px;white-space:nowrap}
+.pill.completed{background:rgba(52,211,153,.16);color:var(--success)}
+.pill.failed{background:rgba(248,113,113,.16);color:var(--error)}
+.pill.pending{background:rgba(156,163,175,.16);color:var(--mute)}
+.pill.inpipe{background:rgba(96,165,250,.16);color:var(--info)}
+
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:2px}
+.dot.ok{background:var(--success)}
+.dot.warn{background:var(--warn)}
+.dot.err{background:var(--error)}
+
+.mono{font-family:var(--mono);font-size:11px}
+.detail{font-family:var(--mono);font-size:11px;color:var(--mute);
+  background:var(--bg2);padding:6px 8px;border-radius:var(--radius);margin-top:6px;
+  white-space:pre-wrap;border:1px solid var(--border)}
+.scroll{max-height:560px;overflow-y:auto}
+
+.gallery{display:grid;grid-template-columns:1fr;gap:6px;max-width:760px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:flex-start}
+.summary-line{font-size:11px;color:var(--mute);margin-top:8px}
+.modetab{display:inline-block;padding:3px 9px;border:1px solid var(--border);
+  border-radius:9px;font-size:10px;color:var(--mute);margin-right:4px}
+.modetab.active{background:var(--primary);border-color:var(--primary);color:#06241f;font-weight:600}
+.idblock{text-align:center;padding:8px 0 14px}
+.idblock .name{font-size:17px;font-weight:600}
+.idblock .ver{font-size:11px;color:var(--mute);margin-top:2px}
+.idblock .desc{font-size:11px;color:var(--mute);margin-top:8px}
+.reftbl{font-size:11px;border-collapse:collapse;max-width:760px;margin-top:8px}
+.reftbl th,.reftbl td{border:1px solid var(--border);padding:4px 9px}
+</style>
+</head>
+<body>
+
+<h1>Common Dialogs — visual mockup gallery</h1>
+<p class="note">All seven modal dialogs of Ollama LLM Bench, reachable from anywhere in the
+application. Each is shown in its primary state; the validating, mode-aware, and
+gate-aware dialogs include key variant states. Button order follows 08-L &sect;5: side
+actions on the left, the back-out action and then the right-most primary on the right.
+Colours, glyphs, and status names are the canonical ones from 08-L and
+10_Domain_and_Data/02_DTOS_AND_ENUMS.md.</p>
+
+<div class="gallery">
+
+<!-- ============================================================= -->
+<!-- 1) RENAME RUN -->
+<!-- ============================================================= -->
+<h2>1 &middot; Rename Run dialog</h2>
+<div class="row2">
+
+<div>
+<h3>State A &mdash; valid custom name</h3>
+<div class="dlg" style="width:420px">
+  <div class="dlg-head"><span>Rename Run</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+    <div class="kv">
+      <span class="k">Current name</span>
+      <span class="v mono">Run 3 — Graded Benchmark — 2026-05-16 14:53</span>
+    </div>
+    <div class="field">
+      <div class="label">New name</div>
+      <div class="hint">1&ndash;80 characters, letters/digits/space and _ - . : ( ) [ ] / &mdash; must be unique.</div>
+      <input class="input" value="Proofread baseline run">
+      <div class="strip ok">&#10003; Name is valid.</div>
+    </div>
+  </div>
+  <div class="dlg-foot split">
+    <div class="cluster"><button class="btn secondary">Use default</button></div>
+    <div class="cluster">
+      <button class="btn secondary">Cancel</button>
+      <button class="btn primary">Rename</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div>
+<h3>State B &mdash; validation error (duplicate name)</h3>
+<div class="dlg" style="width:420px">
+  <div class="dlg-head"><span>Rename Run</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+    <div class="kv">
+      <span class="k">Current name</span>
+      <span class="v mono">Run 3 — Graded Benchmark — 2026-05-16 14:53</span>
+    </div>
+    <div class="field">
+      <div class="label">New name</div>
+      <div class="hint">1&ndash;80 characters, letters/digits/space and _ - . : ( ) [ ] / &mdash; must be unique.</div>
+      <input class="input err" value="Speed sweep">
+      <div class="strip err">&#10005; A run named "Speed sweep" already exists.</div>
+    </div>
+  </div>
+  <div class="dlg-foot split">
+    <div class="cluster"><button class="btn secondary">Use default</button></div>
+    <div class="cluster">
+      <button class="btn secondary">Cancel</button>
+      <button class="btn primary" disabled>Rename</button>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="note">An empty input is treated as "use the default name" and commits a NULL
+name &mdash; the primary button stays enabled. "Use default" is a left-cluster side action.
+Validation re-runs live, debounced 150&nbsp;ms.</p>
+
+<!-- ============================================================= -->
+<!-- 2) RUN SUMMARY -->
+<!-- ============================================================= -->
+<h2>2 &middot; Run Summary dialog (pre-start confirmation, mode-aware)</h2>
+<p class="note">The dialog adapts its sections to the selected run mode.
+SYNTHETIC shows the synthetic prompt matrix and no task files; TASKS shows task
+files and an optional judge; GRADED shows task files plus a required judge and an
+embedding section. Every variant lists the per-run snapshot of overridable flags. The
+GRADED variant is shown first in full; the SYNTHETIC and TASKS
+variants are shown side by side below.</p>
+
+<div>
+<span class="modetab">SYNTHETIC</span>
+<span class="modetab">TASKS</span>
+<span class="modetab active">GRADED</span>
+</div>
+<div class="dlg" style="width:600px;margin-top:8px">
+  <div class="dlg-head"><span>Start Benchmark?</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body scroll">
+
+    <div class="section">
+      <div class="section-title">Mode and run-name preview</div>
+      <div class="kv">
+        <span class="k">Run mode</span><span class="v">GRADED</span>
+        <span class="k">Run name (preview)</span><span class="v mono">Run 4 — Graded Benchmark — 2026-05-16 15:08</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Test models &mdash; 3 across 2 providers</div>
+      <div class="kv">
+        <span class="k"><span class="dot ok"></span>ollama_local</span><span class="v">gemma3:27b</span>
+        <span class="k"><span class="dot ok"></span>ollama_local</span><span class="v">qwen3:1.7b</span>
+        <span class="k"><span class="dot warn"></span>lmstudio_local</span><span class="v">gpt-oss:20b &mdash; streaming unconfirmed (TTFT may be missing)</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Judge</div>
+      <div class="kv">
+        <span class="k">Provider &middot; model</span><span class="v">ollama_local &middot; gemma3:27b</span>
+        <span class="k">Per-task judge phase</span><span class="v" style="color:var(--success)">enabled</span>
+        <span class="k">Run-level analysis (feature.judge_run_analysis_enabled)</span><span class="v" style="color:var(--success)">enabled &mdash; default ON in Graded Benchmark; disable to skip the extra inference cost</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Embedding &mdash; used by the cosine phase</div>
+      <div class="kv">
+        <span class="k">Provider &middot; model</span><span class="v">ollama_local &middot; bge-m3</span>
+        <span class="k">Last probe</span><span class="v" style="color:var(--success)">reachable &middot; 1024-dim</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Task files &mdash; 3 files &middot; 30 tasks</div>
+      <div class="kv">
+        <span class="k mono">01_proofreading.yaml</span><span class="v">12 tasks</span>
+        <span class="k mono">02_summarisation.yaml</span><span class="v">10 tasks</span>
+        <span class="k mono">03_translation.yaml</span><span class="v">8 tasks</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Work to be done</div>
+      <div class="kv">
+        <span class="k">Inference calls</span><span class="v">3 models &times; 30 tasks = 90</span>
+        <span class="k">Judge calls</span><span class="v">90 per-task + 1 run summary = 91</span>
+      </div>
+      <div class="hint">Duration is not estimated &mdash; elapsed time is read on the Progress widget once the run starts.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Inference &mdash; per-run snapshot</div>
+      <div class="kv">
+        <span class="k">Warmup</span><span class="v mono">ON &middot; benchmark.warmup_enabled</span>
+        <span class="k">Retry attempts</span><span class="v mono">3 &middot; benchmark.retry_count</span>
+        <span class="k">Timeout min / max</span><span class="v mono">120 / 900 s</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Pipeline events &mdash; per-run snapshot</div>
+      <div class="kv">
+        <span class="k">Pause on provider switch</span><span class="v mono">ON &middot; benchmark.pause_on_provider_switch</span>
+        <span class="k">Pause on model switch</span><span class="v mono">OFF</span>
+        <span class="k">Stop on provider health fail</span><span class="v mono">OFF</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Evaluation phases &mdash; per-run snapshot</div>
+      <div class="kv">
+        <span class="k">Response sanity check</span><span class="v" style="color:var(--success)">always on</span>
+        <span class="k">Keyword phase</span><span class="v mono">ON &middot; eval.keyword_enabled</span>
+        <span class="k">Cosine phase</span><span class="v mono">ON &middot; eval.cosine_enabled</span>
+        <span class="k">Judge phase</span><span class="v mono">ON &middot; eval.judge_enabled</span>
+      </div>
+    </div>
+
+    <div class="callout warn">
+      &#9888; <strong>Warnings (non-blocking)</strong><br>
+      &bull; lmstudio_local does not confirm streaming for gpt-oss:20b; time-to-first-token may be missing for those rows.
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Back</button>
+      <button class="btn primary">Start Benchmark</button>
+    </div>
+  </div>
+</div>
+<p class="note">Hard-error preflight checks pass before the dialog opens; the dialog
+re-checks the environment on open and refuses to open on a broken environment.
+Non-blocking warnings render in the in-dialog callout and never block Start.</p>
+
+<p class="note" style="margin-top:14px"><strong>Per-mode variants.</strong> The
+two non-grading modes drop sections that do not apply. <em>SYNTHETIC</em>
+replaces &ldquo;Task files&rdquo; with a synthetic prompt-size matrix and omits the
+Judge, Embedding, and Evaluation-phases sections entirely. <em>TASKS</em> keeps
+task files and an optional judge but omits the Embedding section and the cosine /
+keyword / judge evaluation phases (Task Benchmark records latency and token metrics only).
+Both still show the per-run flag snapshot for Inference and Pipeline events.</p>
+
+<div style="display:flex;gap:14px;flex-wrap:wrap;max-width:1000px">
+
+  <div style="flex:1;min-width:320px">
+  <div>
+  <span class="modetab active">SYNTHETIC</span>
+  </div>
+  <div class="dlg" style="width:100%;margin-top:8px">
+    <div class="dlg-head"><span>Start Benchmark?</span><span class="dlg-close" title="Close">&#10005;</span></div>
+    <div class="dlg-body scroll" style="max-height:420px">
+
+      <div class="section">
+        <div class="section-title">Mode and run-name preview</div>
+        <div class="kv">
+          <span class="k">Run mode</span><span class="v">SYNTHETIC</span>
+          <span class="k">Run name (preview)</span><span class="v mono">Run 5 — Synthetic Benchmark — 2026-05-16 15:22</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Test models &mdash; 3 across 1 provider</div>
+        <div class="kv">
+          <span class="k"><span class="dot ok"></span>ollama_local</span><span class="v">gemma3:27b</span>
+          <span class="k"><span class="dot ok"></span>ollama_local</span><span class="v">qwen3:1.7b</span>
+          <span class="k"><span class="dot ok"></span>ollama_local</span><span class="v">lfm2:1.2b</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Synthetic prompt-size matrix &mdash; replaces task files</div>
+        <div class="kv">
+          <span class="k">Input sizes</span><span class="v">XS, SM, MD</span>
+          <span class="k">Output caps</span><span class="v">XS, SM</span>
+          <span class="k">Repeats per cell</span><span class="v">3</span>
+          <span class="k">Synthetic tasks per model</span><span class="v">3 in &times; 2 out &times; 3 = 18</span>
+        </div>
+        <div class="hint">No task files are read in Synthetic Benchmark &mdash; prompts are generated from the size matrix.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Work to be done</div>
+        <div class="kv">
+          <span class="k">Inference calls</span><span class="v">3 models &times; 18 = 54</span>
+          <span class="k">Judge calls</span><span class="v" style="color:var(--mute)">none &mdash; grading not run in this mode</span>
+        </div>
+        <div class="hint">Duration is not estimated &mdash; elapsed time is read on the Progress widget once the run starts.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Inference &mdash; per-run snapshot</div>
+        <div class="kv">
+            <span class="k">Warmup</span><span class="v mono">ON &middot; benchmark.warmup_enabled</span>
+          <span class="k">Retry attempts</span><span class="v mono">3 &middot; benchmark.retry_count</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Pipeline events &mdash; per-run snapshot</div>
+        <div class="kv">
+          <span class="k">Pause on provider switch</span><span class="v mono">ON</span>
+          <span class="k">Pause on model switch</span><span class="v mono">OFF</span>
+        </div>
+      </div>
+
+      <div class="note" style="color:var(--mute)">No Judge, Embedding, or Evaluation-phases sections &mdash; Synthetic Benchmark measures speed only.</div>
+    </div>
+    <div class="dlg-foot">
+      <div class="cluster">
+        <button class="btn secondary">Back</button>
+        <button class="btn primary">Start Benchmark</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div style="flex:1;min-width:320px">
+  <div>
+  <span class="modetab active">TASKS</span>
+  </div>
+  <div class="dlg" style="width:100%;margin-top:8px">
+    <div class="dlg-head"><span>Start Benchmark?</span><span class="dlg-close" title="Close">&#10005;</span></div>
+    <div class="dlg-body scroll" style="max-height:420px">
+
+      <div class="section">
+        <div class="section-title">Mode and run-name preview</div>
+        <div class="kv">
+          <span class="k">Run mode</span><span class="v">TASKS</span>
+          <span class="k">Run name (preview)</span><span class="v mono">Run 6 — Task Benchmark — 2026-05-16 15:30</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Test models &mdash; 2 across 1 provider</div>
+        <div class="kv">
+          <span class="k"><span class="dot ok"></span>ollama_local</span><span class="v">gemma3:27b</span>
+          <span class="k"><span class="dot ok"></span>ollama_local</span><span class="v">qwen3:1.7b</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Judge &mdash; optional in Task Benchmark</div>
+        <div class="kv">
+          <span class="k">Per-task judge phase</span><span class="v mono">OFF &middot; eval.judge_enabled</span>
+        </div>
+        <div class="hint">Judge is allowed but off by default in Task Benchmark; when off, no judge section detail is shown.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Task files &mdash; 2 files &middot; 22 tasks</div>
+        <div class="kv">
+          <span class="k mono">01_proofreading.yaml</span><span class="v">12 tasks</span>
+          <span class="k mono">02_summarisation.yaml</span><span class="v">10 tasks</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Work to be done</div>
+        <div class="kv">
+          <span class="k">Inference calls</span><span class="v">2 models &times; 22 tasks = 44</span>
+          <span class="k">Judge calls</span><span class="v" style="color:var(--mute)">none &mdash; judge phase off</span>
+        </div>
+        <div class="hint">Duration is not estimated &mdash; elapsed time is read on the Progress widget once the run starts.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Inference &mdash; per-run snapshot</div>
+        <div class="kv">
+            <span class="k">Warmup</span><span class="v mono">ON &middot; benchmark.warmup_enabled</span>
+          <span class="k">Retry attempts</span><span class="v mono">3 &middot; benchmark.retry_count</span>
+        </div>
+      </div>
+
+      <div class="note" style="color:var(--mute)">No Embedding section and no cosine / keyword / judge evaluation phases &mdash; Task Benchmark records latency and token metrics only.</div>
+    </div>
+    <div class="dlg-foot">
+      <div class="cluster">
+        <button class="btn secondary">Back</button>
+        <button class="btn primary">Start Benchmark</button>
+      </div>
+    </div>
+  </div>
+  </div>
+
+</div>
+
+<!-- ============================================================= -->
+<!-- 3) RESUME SUMMARY -->
+<!-- ============================================================= -->
+<h2>3 &middot; Resume Summary dialog (pre-resume confirmation)</h2>
+<div class="dlg" style="width:560px">
+  <div class="dlg-head"><span>Resume Run &mdash; Run 3 — Graded Benchmark — 2026-05-16 14:53</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+
+    <div class="section">
+      <div class="section-title">Original config</div>
+      <div class="kv">
+        <span class="k">Mode</span><span class="v">GRADED</span>
+        <span class="k">Test models</span><span class="v">4 across 2 providers</span>
+        <span class="k">Judge</span><span class="v">ollama_local &middot; gemma3:27b</span>
+        <span class="k">Embedding</span><span class="v">ollama_local &middot; bge-m3</span>
+        <span class="k">Task files</span><span class="v">3 files</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Current progress</div>
+      <table>
+        <tr><td>Completed</td><td style="text-align:right;color:var(--success)"><strong>60</strong></td></tr>
+        <tr><td>Failed (retryable)</td><td style="text-align:right;color:var(--error)"><strong>5</strong></td></tr>
+        <tr><td>Pending / in pipeline</td><td style="text-align:right;color:var(--info)"><strong>55</strong></td></tr>
+      </table>
+      <div class="hint" style="margin-top:6px">Resume will process the pending and retryable rows. Duration is not estimated.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Drift</div>
+      <div class="callout err">
+        &#10005; <strong>Blocking</strong> &mdash; Provider <span class="mono">lmstudio_local</span> is no longer enabled.
+        5 pending results would be recorded as FAILED_PROVIDER if the run resumes without a fix.
+        <div style="margin-top:6px"><button class="btn sm secondary">Fix in Settings</button></div>
+      </div>
+      <div style="margin-top:8px"><span class="checkbox"></span>
+        <span style="margin-left:4px">Resume anyway &mdash; 5 affected tasks will fail.</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Settings note</div>
+      <div class="hint">This run resumes against the settings it was created with. Later changes to application settings do not affect it.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Tasks to resume</div>
+      <div class="hint" style="margin-bottom:6px">Not-yet-completed tasks are pre-checked. Tick a completed task to force a re-run; Select all / Clear all toggle every enabled row.</div>
+      <div class="cluster" style="margin-bottom:6px"><button class="btn sm secondary">Select all</button><button class="btn sm secondary">Clear all</button></div>
+      <div class="model-list">
+        <div class="model-row"><span class="checkbox checked"></span>Task 014 &mdash; reasoning <span style="margin-left:auto;color:var(--error)">Failed (provider)</span></div>
+        <div class="model-row"><span class="checkbox checked"></span>Task 021 &mdash; coding <span style="margin-left:auto;color:var(--error)">Failed (timeout)</span></div>
+        <div class="model-row"><span class="checkbox checked"></span>Task 033 &mdash; translation <span style="margin-left:auto;color:var(--info)">Pending</span></div>
+        <div class="model-row"><span class="checkbox"></span>Task 002 &mdash; summarisation <span style="margin-left:auto;color:var(--success)">Completed &middot; pass</span></div>
+        <div class="model-row"><span class="checkbox"></span>Task 005 &mdash; reasoning <span style="margin-left:auto;color:var(--success)">Completed &middot; fail</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Cancel</button>
+      <button class="btn primary" disabled>Resume Run</button>
+    </div>
+  </div>
+</div>
+<p class="note">Task selection is <strong>inline</strong> in this dialog (no separate "Pick Rows to Retry" step): not-yet-completed tasks are pre-checked, completed tasks are tickable to force a re-run, and Resume re-runs exactly the checked tasks. Resume Run is disabled while an unconfirmed BLOCKING drift warning is present; ticking "Resume anyway" enables it. WARNING drift never gates the button; settings differences are not drift (DD-57) and produce no row. The standalone Retry Selection dialog (panel 4) is reached only from the Resume widget's Retry row action.</p>
+
+<!-- ============================================================= -->
+<!-- 4) RETRY SELECTION -->
+<!-- ============================================================= -->
+<h2>4 &middot; Retry Selection dialog (granular row picking)</h2>
+<div class="dlg" style="width:700px">
+  <div class="dlg-head"><span>Pick Rows to Retry &mdash; Run 3 — Graded Benchmark — 2026-05-16 14:53</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="cluster">
+        <span style="font-size:11px;color:var(--mute)">Filter</span>
+        <span class="combo"><input class="input" value="Only failed" readonly></span>
+      </div>
+      <div class="cluster">
+        <button class="btn sm secondary">Check all visible</button>
+        <button class="btn sm secondary">Uncheck all visible</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th style="width:32px;text-align:center"><span class="checkbox mixed"></span></th>
+        <th>Model</th><th>Task</th><th>Status</th><th>Time</th><th>Reason</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+          <td style="text-align:center"><span class="checkbox checked"></span></td>
+          <td class="mono">ollama_local &middot; gemma3:27b</td><td>proofread_email</td>
+          <td><span class="pill failed">FAILED_TIMEOUT</span></td><td>900 s</td>
+          <td class="mono">timeout after retries</td>
+        </tr>
+        <tr>
+          <td style="text-align:center"><span class="checkbox checked"></span></td>
+          <td class="mono">ollama_local &middot; qwen3:1.7b</td><td>proofread_email</td>
+          <td><span class="pill failed">FAILED_PROVIDER</span></td><td>&mdash;</td>
+          <td class="mono">503 from provider</td>
+        </tr>
+        <tr>
+          <td style="text-align:center"><span class="checkbox checked"></span></td>
+          <td class="mono">ollama_local &middot; gemma3:27b</td><td>translation_de</td>
+          <td><span class="pill failed">FAILED_INFERENCE</span></td><td>14 s</td>
+          <td class="mono">model returned empty output</td>
+        </tr>
+        <tr>
+          <td style="text-align:center"><span class="checkbox checked"></span></td>
+          <td class="mono">lmstudio_local &middot; gpt-oss:20b</td><td>summarisation_03</td>
+          <td><span class="pill failed">ERRORED</span></td><td>&mdash;</td>
+          <td class="mono">unexpected error</td>
+        </tr>
+        <tr>
+          <td style="text-align:center"><span class="checkbox checked"></span></td>
+          <td class="mono">lmstudio_local &middot; gpt-oss:20b</td><td>translation_de</td>
+          <td><span class="pill failed">FAILED_TIMEOUT</span></td><td>900 s</td>
+          <td class="mono">timeout after retries</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="summary-line">5 selected for retry &middot; 0 not selected &middot; 60 completed rows untouched
+      &mdash; switch the filter to "Only completed" to opt completed rows into a re-run.</div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Cancel</button>
+      <button class="btn primary">Retry Selected</button>
+    </div>
+  </div>
+</div>
+<p class="note">Failed and incomplete rows are pre-checked; COMPLETED rows render
+unchecked but stay selectable. Confirming resets the checked rows to PENDING (clearing
+their verdicts and error fields) and triggers the resume.</p>
+
+<!-- ============================================================= -->
+<!-- 5) ERROR DIALOG -->
+<!-- ============================================================= -->
+<h2>5 &middot; Error dialog (three patterns)</h2>
+<div class="row2">
+
+<div>
+<h3>5a &mdash; recoverable</h3>
+<div class="dlg" style="width:390px">
+  <div class="dlg-head"><span><span class="glyph" style="color:var(--error)">&#10005;</span>Save failed</span></div>
+  <div class="dlg-body">
+    <div>Could not write the settings to the local database. The settings were not saved; you can try again.</div>
+    <div class="detail">DatabaseLockedError: a SQLite write was blocked past the busy timeout
+correlation_id: 7f2a-c019</div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Copy Details</button>
+      <button class="btn primary">Close</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div>
+<h3>5b &mdash; action available</h3>
+<div class="dlg" style="width:390px">
+  <div class="dlg-head"><span><span class="glyph" style="color:var(--error)">&#10005;</span>Provider authentication failed</span></div>
+  <div class="dlg-body">
+    <div>Provider <span class="mono">OpenAI Cloud</span> rejected the credential. Open Settings to correct the API key, then start the run again. (The display name shown here is the SNAPSHOT name from the run-data row per DD-33; the internal <code>provider_id</code> is not displayed in the user-facing message.)</div>
+    <div class="detail">ProviderAuthError: provider rejected the credential
+provider_id: 2a9d7e22-7c64-4d39-803b-3f0a91c14b88 &middot; http_status: 401</div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Copy Details</button>
+      <button class="btn secondary">Open Settings</button>
+      <button class="btn primary">Close</button>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+
+<h3>5c &mdash; fatal (forces exit; no Close)</h3>
+<div class="dlg" style="width:480px">
+  <div class="dlg-head"><span><span class="glyph" style="color:var(--error)">&#10005;</span>The application cannot start</span></div>
+  <div class="dlg-body">
+    <div>The local database could not be opened. The application cannot start. Move or remove the file below, then launch the application again.</div>
+    <div class="detail">DatabaseIntegrityError: schema invariant broken
+File: ~/Library/Application Support/OllamaLLMBench/ollama_llm_bench.sqlite</div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Copy Details</button>
+      <button class="btn danger">Quit</button>
+    </div>
+  </div>
+</div>
+<p class="note">Blocking errors are raised through the Notification Service. The error
+category from the error taxonomy decides the pattern; a programmer error bypasses this
+dialog and reaches the process-terminal crash dialog instead.</p>
+
+<!-- ============================================================= -->
+<!-- 6) ABOUT -->
+<!-- ============================================================= -->
+<h2>6 &middot; About dialog</h2>
+<div class="dlg" style="width:420px">
+  <div class="dlg-head"><span>About Ollama LLM Bench</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+    <div class="idblock">
+      <div class="name">Ollama LLM Bench</div>
+      <div class="ver">Ollama LLM Bench v2.4.1</div>
+      <div class="desc">A local-first LLM benchmarking desktop tool. It runs benchmark
+      tasks against local and cloud providers and grades the results.</div>
+    </div>
+    <div class="section">
+      <div class="section-title">Application data folder</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ~/Library/Application Support/OllamaLLMBench/</span>
+        <span class="cluster">
+          <button class="btn icon" title="Open the application data folder">&#128193;</button>
+          <button class="btn icon" title="Copy the application data folder path">&#128203;</button>
+        </span>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Project</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <a class="mono" href="https://github.com/sanyokkua/ollama-llm-bench"
+          style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          https://github.com/sanyokkua/ollama-llm-bench</a>
+      </div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster"><button class="btn primary">Close</button></div>
+  </div>
+</div>
+<p class="note">Opened from the menu-bar About action. A read-only info surface: it shows
+the build version (omitted if unavailable), the application data folder path with Open
+and Copy actions, a short description of the app, and a link to the GitHub repository.</p>
+
+<!-- ============================================================= -->
+<!-- 7) GENERATE ANALYSIS -->
+<!-- ============================================================= -->
+<h2>7 &middot; Generate Analysis dialog (analysis-model picker)</h2>
+<p class="note">Opens from the Result Widget's Run Analysis tab when the user clicks
+the dynamic-label Generate / Regenerate analysis button. Title and primary button label
+both change between Generate and Regenerate based on whether the run already has a
+<span class="mono">run_analysis</span> body. Two field rows &mdash; Provider and Model
+&mdash; backed by the shared <span class="mono">ui/shared/provider_dropdown</span> and
+<span class="mono">ui/shared/model_dropdown</span> widgets (consumer-wired). The Model
+dropdown filters to chat-capable, non-embedding models. The dialog is bound to the
+application-wide single-inference gate: while another activity holds it, the Confirm
+button is disabled and an inline busy message is shown.</p>
+
+<div class="row2">
+
+<div>
+<h3>State A &mdash; Regenerate, snapshot pair pre-filled</h3>
+<div class="dlg" style="width:440px">
+  <div class="dlg-head"><span>Regenerate Analysis</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+    <div class="field">
+      <div class="label">Provider</div>
+      <div class="combo"><input class="input" value="ollama_local" readonly></div>
+    </div>
+    <div class="field">
+      <div class="label">Model</div>
+      <div class="hint">Chat-capable models only (embedding-only models are hidden).</div>
+      <div class="combo"><input class="input" value="gemma3:27b" readonly></div>
+    </div>
+    <div class="hint" style="margin-top:8px">
+      Regenerating will call the chosen model once against this run's results.
+      The chosen pair is used only for this call; the run's snapshot is not modified.
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Cancel</button>
+      <button class="btn primary">Regenerate</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div>
+<h3>State B &mdash; gate is held by a benchmark run</h3>
+<div class="dlg" style="width:440px">
+  <div class="dlg-head"><span>Regenerate Analysis</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+    <div class="field">
+      <div class="label">Provider</div>
+      <div class="combo"><input class="input" value="ollama_local" readonly></div>
+    </div>
+    <div class="field">
+      <div class="label">Model</div>
+      <div class="hint">Chat-capable models only (embedding-only models are hidden).</div>
+      <div class="combo"><input class="input" value="gemma3:27b" readonly></div>
+    </div>
+    <div class="callout info">
+      &#9432; An inference is currently in flight &mdash; please wait.
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Cancel</button>
+      <button class="btn primary" disabled title="Another inference activity is in flight - please wait.">Regenerate</button>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+
+<div class="row2" style="margin-top:8px">
+
+<div>
+<h3>State C &mdash; Generate, soft warning about reachability</h3>
+<div class="dlg" style="width:440px">
+  <div class="dlg-head"><span>Generate Analysis</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+    <div class="field">
+      <div class="label">Provider</div>
+      <div class="combo"><input class="input" value="openai_cloud" readonly></div>
+    </div>
+    <div class="field">
+      <div class="label">Model</div>
+      <div class="hint">Chat-capable models only (embedding-only models are hidden).</div>
+      <div class="combo"><input class="input" value="gpt-4o-mini" readonly></div>
+    </div>
+    <div class="callout warn">
+      &#9888; The selected pair may be unreachable; the call will fail unless it recovers before Confirm.
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Cancel</button>
+      <button class="btn primary">Generate</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div>
+<h3>State D &mdash; no enabled providers (empty state)</h3>
+<div class="dlg" style="width:440px">
+  <div class="dlg-head"><span>Generate Analysis</span><span class="dlg-close" title="Close">&#10005;</span></div>
+  <div class="dlg-body">
+    <div class="field">
+      <div class="label">Provider</div>
+      <div class="combo"><input class="input" value="" placeholder="No enabled providers" readonly></div>
+      <div class="strip err">&#10005; No enabled providers &mdash; open Settings to add one.</div>
+    </div>
+    <div class="field">
+      <div class="label">Model</div>
+      <div class="combo"><input class="input" value="" placeholder="(no provider)" readonly></div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <div class="cluster">
+      <button class="btn secondary">Cancel</button>
+      <button class="btn primary" disabled>Generate</button>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="note">Confirm dispatches <span class="mono">RunAnalysisService.generate(run_id,
+provider_id, model_name)</span> through the parent controller. On a successful
+<span class="mono">try_acquire(JUDGE_ANALYSIS)</span> the dialog closes immediately and
+the Run Analysis tab shows a spinner; on a failed acquire the dialog stays open with
+the inline busy message until the gate returns to <span class="mono">IDLE</span>.</p>
+
+</div><!-- /gallery -->
+
+<h2>Reference &mdash; modality of each common dialog</h2>
+<table class="reftbl">
+<tr><th>Dialog</th><th>Modal</th><th>Resizable</th><th>Dismiss control</th><th>Right-most primary</th></tr>
+<tr><td>Rename Run</td><td>Application</td><td>No</td><td>Cancel button / title-bar close (X)</td><td>Rename</td></tr>
+<tr><td>Run Summary</td><td>Application</td><td>No (may scroll)</td><td>Back button / title-bar close (X)</td><td>Start Benchmark</td></tr>
+<tr><td>Resume Summary</td><td>Application</td><td>No (may scroll)</td><td>Cancel button / title-bar close (X)</td><td>Resume Run</td></tr>
+<tr><td>Retry Selection</td><td>Application</td><td>No (may scroll)</td><td>Cancel button / title-bar close (X)</td><td>Retry Selected</td></tr>
+<tr><td>Error</td><td>Application</td><td>No</td><td>Close button / title-bar close (X) (no title-bar close for the fatal pattern)</td><td>Close, or Quit (fatal)</td></tr>
+<tr><td>About</td><td>Application</td><td>No</td><td>Close button / title-bar close (X)</td><td>Close</td></tr>
+<tr><td>Generate Analysis</td><td>Application</td><td>No</td><td>Cancel button / title-bar close (X)</td><td>Generate, or Regenerate</td></tr>
+</table>
+
+</body>
+</html>

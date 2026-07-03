@@ -1,0 +1,92 @@
+# Git-level quality gate — separate from, and complementary to, the Claude Code
+# hooks in .claude/settings.json. See CLAUDE.md "Quality gates — do not ignore
+# or bypass" and .claude/hooks/precommit_from_hook.sh.
+#
+# Setup (run once after this repo is bootstrapped):
+#   uv add --dev pre-commit
+#   uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+#
+# Fast checks run at commit time (this file). The full test suite and
+# traceability check run at PUSH time only (see the local `run-tests`/`trace-check`
+# hooks below, both scoped to stage "pre-push") — this keeps every commit fast
+# while still guaranteeing nothing untested reaches a remote branch.
+
+default_language_version:
+  python: python3.13
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0  # keep in sync with the ruff version pinned in pyproject.toml; bump deliberately
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: local
+    hooks:
+      - id: mypy-strict
+        name: mypy --strict
+        entry: uv run mypy --strict
+        language: system
+        types: [python]
+        pass_filenames: true
+        require_serial: true
+
+      - id: import-linter
+        name: import-linter (layer contracts)
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: mdformat-check
+        name: mdformat --check
+        entry: uv run mdformat --check
+        language: system
+        types: [markdown]
+
+      - id: taplo-check
+        name: taplo check (TOML)
+        entry: taplo check
+        language: system
+        types: [toml]
+
+      - id: yamllint
+        name: yamllint
+        entry: uv run yamllint
+        language: system
+        types: [yaml]
+
+      - id: sqlfluff-lint
+        name: sqlfluff lint (SQL, dialect=sqlite)
+        entry: uv run sqlfluff lint --dialect sqlite
+        language: system
+        files: \.sql$
+
+      # --- pre-push stage only: slow checks that don't belong on every commit ---
+      - id: pytest-full-suite
+        name: pytest (full suite, incl. architecture tests)
+        entry: uv run pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: traceability-check
+        name: just trace-check
+        entry: just trace-check
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

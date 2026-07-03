@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ollama LLM Bench — Main Window mockup</title>
+<style>
+:root{
+  --bg:#111827;--bg2:#1f2937;--bg3:#263044;--raised:#2a3344;
+  --border:#374151;--text:#f9fafb;--mute:#9ca3af;
+  --primary:#14b8a6;--success:#34d399;--warn:#fbbf24;--error:#f87171;--info:#60a5fa;
+  --font:"Segoe UI","Helvetica Neue","Cantarell","Ubuntu","Noto Sans","DejaVu Sans","Arial",sans-serif;
+  --mono:"Consolas","Menlo","Cascadia Mono","DejaVu Sans Mono","Ubuntu Mono","Monaco","Courier New",monospace;
+  --radius:6px;
+}
+body{margin:0;padding:24px;background:#0a0f1a;color:var(--text);font-family:var(--font);font-size:12px;line-height:1.45}
+h1{font-size:18px;margin:0 0 4px}
+h2{font-size:13px;margin:24px 0 8px;color:var(--mute);text-transform:uppercase;letter-spacing:.07em}
+p.lede{color:var(--mute);margin:0 0 16px}
+code{font-family:var(--mono);background:var(--bg2);padding:1px 4px;border-radius:3px;font-size:11px}
+
+/* window frame */
+.window{width:1440px;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 14px 48px rgba(0,0,0,.6);display:grid;grid-template-rows:24px 32px 1fr 22px;overflow:hidden}
+.titlebar{background:#2a2f3e;display:flex;align-items:center;padding:0 10px;gap:6px;font-size:11px;color:var(--mute)}
+.dot-tb{width:11px;height:11px;border-radius:50%}
+.dot-tb.r{background:#ff5f56}.dot-tb.y{background:#ffbd2e}.dot-tb.g{background:#27c93f}
+.tb-title{flex:1;text-align:center;color:var(--text)}
+
+/* menu bar — minimal: NO File/Edit/View/Help */
+.menubar{background:var(--bg2);display:flex;align-items:center;gap:16px;padding:0 14px;border-bottom:1px solid var(--border)}
+.menu-action{color:var(--mute);cursor:pointer;font-size:12px}
+.menu-action:hover{color:var(--text)}
+.switcher{display:inline-flex;border:1px solid var(--border);border-radius:5px;overflow:hidden;font-size:11px}
+.seg{padding:4px 12px;display:inline-flex;align-items:center;gap:6px;color:var(--mute);cursor:pointer}
+.seg + .seg{border-left:1px solid var(--border)}
+.seg.active{background:var(--primary);color:#fff}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:11px;
+  background:rgba(20,184,166,.16);color:var(--primary);font-size:11px;cursor:pointer}
+.pill .blip{width:6px;height:6px;border-radius:50%;background:var(--primary)}
+.menu-spacer{flex:1}
+.menu-ver{color:var(--mute);font-size:10px}
+
+/* body — benchmark workspace: 3-panel splitter */
+.body{display:grid;grid-template-columns:360px 1fr 500px;background:var(--bg)}
+.panel{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.panel:last-child{border-right:none}
+.panel-head{padding:7px 12px;border-bottom:1px solid var(--border);font-size:11px;color:var(--mute);
+  text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center}
+.tabstrip{display:flex;border-bottom:1px solid var(--border);background:var(--bg2)}
+.tab{padding:8px 14px;border-bottom:2px solid transparent;color:var(--mute);font-size:12px;cursor:pointer}
+.tab.active{border-color:var(--primary);color:var(--text);background:var(--bg)}
+.panel-body{padding:14px;flex:1;overflow:auto}
+.callout{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--primary);
+  padding:8px 12px;border-radius:var(--radius);font-size:11px;color:var(--mute);margin:0 0 10px}
+.placeholder{border:1px dashed var(--border);border-radius:var(--radius);display:flex;
+  align-items:center;justify-content:center;color:var(--mute);font-size:11px;text-align:center;padding:14px}
+.btn{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);
+  padding:6px 12px;font-size:12px;cursor:pointer}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn:hover{border-color:var(--primary)}
+.icon-btn{width:28px;height:28px;border:1px solid transparent;background:transparent;color:var(--mute);
+  border-radius:var(--radius);cursor:pointer;font-size:13px}
+.icon-btn:hover{background:var(--raised);border-color:var(--border);color:var(--text)}
+.runsel{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;
+  padding:3px 8px;font-size:11px;min-width:250px}
+
+/* status bar */
+.statusbar{background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;
+  padding:0 14px;gap:10px;font-size:11px;color:var(--mute)}
+.health{width:10px;height:10px;border-radius:50%;background:var(--success)}
+.health.deg{background:var(--warn)}.health.bad{background:var(--error)}.health.chk{background:var(--mute)}
+.sb-toast{flex:1;text-align:center;color:var(--info)}
+.sb-ver{color:var(--mute)}
+
+/* docs */
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px;font-size:11px;color:var(--mute);max-width:760px}
+.swatch{display:flex;align-items:center;gap:7px}
+.swatch .health{width:9px;height:9px}
+ul.notes{max-width:980px;color:var(--mute);font-size:11px;padding-left:18px}
+ul.notes li{margin:4px 0}
+.note-edit{color:var(--warn)}
+</style>
+</head>
+<body>
+
+<h1>Ollama LLM Bench — Main Window</h1>
+<p class="lede">Application shell, Benchmark workspace — two frames: the <strong>idle layout</strong> (three panels)
+and the <strong>running layout</strong> (left panel removed, centre expanded). Default size 1440&times;900; resizable
+above the 1280&times;720 minimum. The menu bar is minimal — <strong>no File / Edit / View / Help menus</strong>.</p>
+
+<h2>Frame 1 — Idle layout (no run active)</h2>
+
+<div class="window">
+
+  <!-- macOS-style title bar (the in-window menu bar is used on every platform) -->
+  <div class="titlebar">
+    <span class="dot-tb r"></span><span class="dot-tb y"></span><span class="dot-tb g"></span>
+    <span class="tb-title">Ollama LLM Bench v1.0.0</span>
+  </div>
+
+  <!-- MENU BAR — minimal contract:
+       Settings action + About action + workspace switcher + running pill + version.
+       There is intentionally NO File / Edit / View / Help dropdown menu. -->
+  <div class="menubar">
+    <span class="menu-action" title="Open the Settings dialog">Settings</span>
+    <span class="menu-action" title="Application information: version, links, data folders">About</span>
+
+    <!-- workspace switcher: always visible, two segments -->
+    <span class="switcher" role="group" aria-label="Workspace switcher">
+      <span class="seg active" title="Benchmark workspace">&#9679; Benchmark</span>
+      <span class="seg" title="Task Editor workspace">&#9711; Task Editor</span>
+    </span>
+
+    <!-- running pill: ABSENT in the idle layout — it is shown only while a run is in a
+         non-terminal state; see Frame 2 below -->
+
+    <span class="menu-spacer"></span>
+    <span class="menu-ver">v1.0.0</span>
+  </div>
+
+  <!-- WORKSPACE REGION — Benchmark workspace, 3-panel splitter, idle layout -->
+  <div class="body">
+
+    <!-- LEFT — Run configuration (hidden entirely while a run is active) -->
+    <div class="panel">
+      <div class="panel-head"><span>Run configuration</span></div>
+      <div class="tabstrip">
+        <div class="tab active">New Benchmark</div>
+        <div class="tab">Resume</div>
+      </div>
+      <div class="panel-body">
+        <div class="callout">Tab content. See <code>02_New_Benchmark_Widget/</code> and
+          <code>03_Resume_Benchmark_Widget/</code>. This whole panel is removed from the
+          layout while a run is in progress; the centre panel expands to fill the space.</div>
+        <div class="placeholder" style="height:480px">Active-tab content area</div>
+        <button class="btn primary" style="width:100%;margin-top:10px">Start Benchmark</button>
+      </div>
+    </div>
+
+    <!-- CENTRE — Progress -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>Run progress</span>
+        <span style="text-transform:none;color:var(--text);font-weight:600;display:flex;align-items:center;gap:6px">
+          Run 3 — Graded Benchmark — 2026-05-16 12:53 <span style="color:var(--mute);font-weight:400">(viewing past run)</span>
+        </span>
+      </div>
+      <div class="panel-body">
+        <div class="callout">Centre panel = Progress widget. See <code>04_Progress_Widget/</code>:
+          status badge, run progress, current task, Pause / Stop, log panel.</div>
+        <div class="placeholder" style="height:520px">Progress content area</div>
+      </div>
+    </div>
+
+    <!-- RIGHT — Result (view-only; no rename, no delete) -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>Run results</span>
+        <select class="runsel" title="Select a run to view">
+          <option>Run 3 — Graded Benchmark — 2026-05-16 12:53</option>
+          <option>Run 2 — Task Benchmark — 2026-05-15 09:11</option>
+        </select>
+      </div>
+      <div class="tabstrip">
+        <div class="tab active">Summary</div>
+        <div class="tab">Details</div>
+        <div class="tab">Charts</div>
+        <div class="tab">Run Analysis</div>
+      </div>
+      <div class="panel-body">
+        <div class="callout">Result widget tab body. See <code>05_Result_Widget/</code>.
+          Run management — rename, delete, resume, export — lives in the Resume
+          tab, not here; the Result widget is view-only.</div>
+        <div class="placeholder" style="height:470px">Selected-tab content area</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <span class="health" title="Provider readiness — click to open Settings / Providers"></span>
+    <span style="color:var(--text)">Ready</span>
+    <span class="sb-toast">&nbsp;</span>
+    <span class="sb-ver">v1.0.0</span>
+  </div>
+
+</div>
+
+<h2>Status-bar health-dot states</h2>
+<div class="legend">
+  <div class="swatch"><span class="health"></span> Ready — every enabled provider reachable; embedding resolves</div>
+  <div class="swatch"><span class="health deg"></span> Degraded — some providers down; a run is still possible</div>
+  <div class="swatch"><span class="health bad"></span> Not ready — the gated modes cannot start</div>
+  <div class="swatch"><span class="health chk"></span> Checking — a readiness probe is in flight</div>
+</div>
+
+
+<h2>Frame 2 — Running layout (run in a non-terminal state)</h2>
+<p class="lede">The left configuration panel is <strong>removed from the layout entirely</strong> — a new run cannot be
+configured while one is in progress — and the centre Progress panel expands into the freed space. The running pill
+appears in the menu bar. Stop / completion restores the idle three-panel layout; Pause does not.</p>
+
+<div class="window">
+
+  <div class="titlebar">
+    <span class="dot-tb r"></span><span class="dot-tb y"></span><span class="dot-tb g"></span>
+    <span class="tb-title">Ollama LLM Bench — Running: Run 3</span>
+  </div>
+
+  <div class="menubar">
+    <span class="menu-action" title="Settings is disabled while a run is active">Settings</span>
+    <span class="menu-action" title="Application information: version, links, data folder">About</span>
+    <span class="switcher" role="group" aria-label="Workspace switcher">
+      <span class="seg active" title="Benchmark workspace">&#9679; Benchmark</span>
+      <span class="seg" title="Task Editor workspace">&#9711; Task Editor</span>
+    </span>
+    <!-- running pill: present — a run is active -->
+    <span class="pill" title="Switch to the Benchmark workspace and focus the Progress widget">
+      <span class="blip"></span>Running: Run 3 — Graded Benchmark — 2026-05-16 12:53
+    </span>
+    <span class="menu-spacer"></span>
+    <span class="menu-ver">v1.0.0</span>
+  </div>
+
+  <!-- WORKSPACE REGION — running layout: TWO panels; the left config panel is absent -->
+  <div class="body">
+
+    <!-- CENTRE (expanded) — Progress -->
+    <div class="panel" style="flex:2">
+      <div class="panel-head">
+        <span>Run progress</span>
+        <span style="text-transform:none;color:var(--text);font-weight:600;display:flex;align-items:center;gap:6px">
+          Run 3 — Graded Benchmark — 2026-05-16 12:53
+          <button class="icon-btn" title="Rename the running run">&#9998;</button>
+        </span>
+      </div>
+      <div class="panel-body">
+        <div class="callout">Centre panel = Progress widget, expanded into the space freed by the removed
+          left panel. See <code>04_Progress_Widget/</code>: status badge, run progress, current task,
+          Pause / Stop, log panel.</div>
+        <div class="placeholder" style="height:520px">Progress content area (expanded)</div>
+      </div>
+    </div>
+
+    <!-- RIGHT — Result (unchanged; live-updating) -->
+    <div class="panel">
+      <div class="panel-head">
+        <span>Run results</span>
+        <select class="runsel" title="Select a run to view">
+          <option>Run 3 — Graded Benchmark — 2026-05-16 12:53</option>
+          <option>Run 2 — Task Benchmark — 2026-05-15 09:11</option>
+        </select>
+      </div>
+      <div class="tabstrip">
+        <div class="tab active">Summary</div>
+        <div class="tab">Details</div>
+        <div class="tab">Charts</div>
+        <div class="tab">Run Analysis</div>
+      </div>
+      <div class="panel-body">
+        <div class="callout">Result widget, live-updating for the running run. View-only as always.</div>
+        <div class="placeholder" style="height:470px">Selected-tab content area</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="statusbar">
+    <span class="health" title="Provider readiness — click to open Settings / Providers"></span>
+    <span style="color:var(--text)">Running — task 41 of 80</span>
+    <span class="sb-toast">&nbsp;</span>
+    <span class="sb-ver">v1.0.0</span>
+  </div>
+
+</div>
+
+<h2>Annotations</h2>
+<ul class="notes">
+  <li><strong>Title bar</strong> reads <code>Ollama LLM Bench v{version}</code> at idle, and
+    <code>Ollama LLM Bench - Running: {run_name}</code> or <code>- Paused: {run_name}</code> while a run is active.</li>
+  <li class="note-edit"><strong>Menu bar — corrected.</strong> The menu bar carries only the
+    <em>Settings</em> action, the <em>About</em> action, the <em>workspace switcher</em>, the
+    <em>running pill</em>, and the version string. There is no File / Edit / View / Help dropdown.
+    Quit is the window close (X) control; Task Editor file operations live on
+    the Task Editor toolbar; folder-open actions live in the About dialog.</li>
+  <li><strong>Settings action</strong> opens the Settings dialog. It is shown
+    disabled, with an explanatory tooltip, while a benchmark run is in a non-terminal state.</li>
+  <li><strong>About action</strong> opens the Application Information dialog (version, project links,
+    and the App folder / Run Logs / App Logs buttons).</li>
+  <li><strong>Workspace switcher</strong> is a two-segment control, always visible; it swaps the
+    workspace region between the Benchmark and Task Editor workspaces.</li>
+  <li><strong>Running pill</strong> is present only while a run is non-terminal; clicking it switches to
+    the Benchmark workspace and focuses the Progress widget.</li>
+  <li><strong>Splitter</strong> has three children with minimum widths 320 / 480 / 480 px; handles are
+    1 px and children cannot be collapsed to zero. Sizes persist via <code>ui.splitter_sizes</code>.</li>
+  <li><strong>Running layout</strong> (Frame 2): the left panel is removed entirely and the centre
+    Progress panel expands; Stop or run completion restores the idle three-panel layout (Frame 1), Pause does not.</li>
+  <li><strong>Status bar</strong>: the left health dot plus label is clickable in the Benchmark
+    workspace — it opens Settings / Providers and re-probes; the click is ignored with a toast while a
+    run is non-terminal. The centre region shows transient toasts; the right shows the version.</li>
+</ul>
+
+</body>
+</html>

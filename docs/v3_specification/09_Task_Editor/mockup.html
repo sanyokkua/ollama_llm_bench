@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ollama LLM Bench — Task Editor mockup</title>
+<style>
+:root{
+  --bg:#0a0f1a;--bgw:#111827;--bg2:#1f2937;--bg3:#263044;--bginput:#1f2937;
+  --border:#374151;--text:#f9fafb;--mute:#9ca3af;
+  --primary:#14b8a6;--primaryh:#0fa898;
+  --success:#34d399;--warn:#fbbf24;--error:#f87171;--info:#60a5fa;
+  --radius:5px;
+  --font:"Segoe UI","Helvetica Neue","Cantarell","Ubuntu","Noto Sans","DejaVu Sans","Arial",sans-serif;
+  --mono:"Consolas","Menlo","Cascadia Mono","DejaVu Sans Mono","Ubuntu Mono","Monaco","Courier New",monospace;
+}
+body{margin:0;padding:18px;background:var(--bg);color:var(--text);font-family:var(--font);font-size:12px;line-height:1.45}
+h1{font-size:18px;margin:0 0 6px}
+h2{font-size:13px;margin:26px 0 8px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.note{font-size:11px;color:var(--mute);max-width:1180px;margin-bottom:10px}
+.note code,.legend code{background:var(--bg2);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:10px}
+.window{width:1200px;background:var(--bgw);border:1px solid var(--border);border-radius:8px;box-shadow:0 14px 50px rgba(0,0,0,.65);overflow:hidden;margin-bottom:6px}
+
+/* Menu bar + workspace switcher */
+.menubar{background:var(--bg2);padding:6px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px}
+.menubar .menus{display:flex;gap:14px;color:var(--mute);font-size:12px}
+.workspace-switch{display:inline-flex;border:1px solid var(--border);border-radius:5px;overflow:hidden;background:var(--bgw);font-size:11px}
+.workspace-switch .opt{padding:4px 10px;color:var(--mute);display:inline-flex;align-items:center;gap:5px}
+.workspace-switch .opt + .opt{border-left:1px solid var(--border)}
+.workspace-switch .opt.active{background:var(--primary);color:#fff}
+.workspace-switch .dot{width:6px;height:6px;border-radius:50%;background:var(--mute)}
+.workspace-switch .opt.active .dot{background:#fff}
+.running-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:11px;background:rgba(20,184,166,.15);color:var(--primary);font-size:11px}
+.running-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--primary);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(20,184,166,.7)}70%{box-shadow:0 0 0 7px rgba(20,184,166,0)}100%{box-shadow:0 0 0 0 rgba(20,184,166,0)}}
+.spacer{flex:1}
+.version{color:var(--mute);font-size:10px}
+
+/* Toolbar */
+.toolbar{background:var(--bgw);padding:6px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center}
+.tsep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.btn{padding:4px 10px;border:1px solid var(--border);background:var(--bgw);color:var(--text);border-radius:4px;font-size:11px;font-family:var(--font);cursor:default}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.danger{color:var(--error);border-color:var(--error)}
+.btn.muted{color:var(--mute)}
+.btn.sm{padding:3px 8px;font-size:10px}
+.btn[disabled]{opacity:.4}
+.val-pill{display:inline-flex;gap:6px;align-items:center;font-size:11px;padding:3px 8px;border-radius:3px;font-family:var(--mono)}
+.val-pill.ok{color:var(--success);background:rgba(52,211,153,.10)}
+.val-pill.warn{color:var(--warn);background:rgba(251,191,36,.10)}
+.val-pill.err{color:var(--error);background:rgba(248,113,113,.10)}
+
+/* Three / four-pane body */
+.editor{display:grid;height:640px;background:var(--bgw)}
+.pane{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.pane:last-child{border-right:none}
+.pane-head{padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg2);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);display:flex;justify-content:space-between;align-items:center}
+.pane-body{overflow-y:auto;padding:6px 0;flex:1}
+.pane-foot{padding:6px 8px;border-top:1px solid var(--border);background:var(--bg2);display:flex;flex-wrap:wrap;gap:4px}
+.pane-info{font-size:10px;color:var(--mute);padding:4px 12px;font-style:italic}
+
+/* Files / Tasks rows */
+.lrow{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-left:3px solid transparent;font-size:12px}
+.lrow.active{background:var(--bg3);border-left-color:var(--primary)}
+.lrow .lname{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lrow.task .lname{font-family:var(--mono);font-size:11px}
+.badge{font-family:var(--mono);font-size:11px;font-weight:700}
+.badge.ok{color:var(--success)}
+.badge.dirty{color:var(--warn)}
+.badge.warn{color:var(--warn)}
+.badge.err{color:var(--error)}
+.badge.pend{color:var(--info)}
+
+/* Field editor */
+.form{padding:14px 18px}
+.field{margin-bottom:14px}
+.field-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.field-label{font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.field-label.required::after{content:'*';color:var(--error);margin-left:2px}
+.field-meta{font-size:10px;color:var(--mute)}
+.help-icon{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1px solid var(--mute);border-radius:50%;color:var(--mute);font-size:9px;font-family:var(--mono)}
+.field-format{font-size:10px;color:var(--mute);margin-bottom:3px;font-family:var(--mono)}
+.input{background:var(--bginput);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:5px 8px;font-size:12px;width:100%;box-sizing:border-box;font-family:var(--font)}
+.input.mono{font-family:var(--mono);font-size:11px}
+textarea.input{resize:vertical}
+textarea.input.code{font-family:var(--mono);font-size:11px;line-height:1.5}
+.input.invalid{border-color:var(--error);background:rgba(248,113,113,.05)}
+.input.warnb{border-color:var(--warn);background:rgba(251,191,36,.05)}
+.combo{position:relative}
+.combo::after{content:'';position:absolute;right:8px;top:50%;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--mute);transform:translateY(-30%)}
+.fs{font-size:10px;margin-top:3px;font-family:var(--mono)}
+.fs.ok{color:var(--success)}
+.fs.warn{color:var(--warn)}
+.fs.err{color:var(--error)}
+.fs.info{color:var(--info)}
+
+/* Chip input */
+.chips{display:flex;flex-wrap:wrap;gap:4px;border:1px solid var(--border);background:var(--bginput);border-radius:var(--radius);padding:4px 6px;min-height:28px}
+.chip{background:var(--bg3);color:var(--text);padding:2px 6px;border-radius:10px;font-family:var(--mono);font-size:10px;display:inline-flex;align-items:center;gap:4px}
+.chip .x{color:var(--mute)}
+.ghost{flex:1;background:transparent;border:none;color:var(--mute);font-size:11px;min-width:90px;font-family:var(--mono)}
+
+/* collapsible group */
+.group{margin:14px 0 0;border-top:1px solid var(--border);padding-top:10px}
+.group-head{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);display:flex;align-items:center;gap:6px;margin-bottom:6px}
+
+/* status bar */
+.statusbar{padding:6px 14px;background:var(--bg2);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--mute)}
+.statusbar .l{display:flex;gap:14px;align-items:center}
+.statusbar .r{font-family:var(--mono)}
+
+/* banner */
+.banner{margin:10px 18px 0;padding:8px 10px;border-radius:var(--radius);font-size:11px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.banner.warn{background:rgba(251,191,36,.10);border:1px solid var(--warn);color:var(--warn)}
+.banner.info{background:rgba(96,165,250,.10);border:1px solid var(--info);color:var(--info)}
+
+/* YAML preview */
+.yaml-preview{background:var(--bg2);display:flex;flex-direction:column}
+.yp-head{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:10px;text-transform:uppercase;color:var(--mute);letter-spacing:.06em}
+.yaml-preview pre{flex:1;margin:0;padding:10px;font-family:var(--mono);font-size:11px;overflow:auto;background:var(--bgw)}
+.k{color:var(--info)}.s{color:var(--success)}.bi{color:var(--mute)}
+
+/* help popover */
+.help-pop{width:340px;background:var(--bg2);border:1px solid var(--primary);border-radius:var(--radius);padding:10px;font-size:11px}
+.help-pop h5{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);margin:0 0 4px}
+.help-pop code{background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--mono);font-size:10px}
+.help-pop ul{margin:6px 0 0 16px;padding:0}
+
+.legend{background:rgba(20,184,166,.07);border-left:3px solid var(--primary);border-radius:0 5px 5px 0;padding:12px 14px;font-size:11px;max-width:1180px;margin:12px 0}
+.row{display:flex;gap:10px}
+.empty-drop{display:flex;align-items:center;justify-content:center;height:340px;background:var(--bgw);text-align:center}
+.drop-zone{border:2px dashed var(--border);border-radius:8px;padding:30px 50px;color:var(--mute)}
+</style>
+</head>
+<body>
+
+<h1>Task Editor — full-window workspace</h1>
+<p class="note">The Task Editor is the application's second workspace. It replaces the Benchmark workspace layout when the workspace switcher in the menu bar is set to <strong>Task Editor</strong>. Three panes — <strong>Files</strong>, <strong>Tasks</strong>, <strong>Field editor</strong> — plus an optional read-only <strong>YAML preview</strong>. Drag-drop of <code>.yaml</code> / <code>.yml</code> files and folders is accepted across the whole window. A running benchmark shows as a clickable <span class="running-pill" style="vertical-align:middle"><span class="dot"></span>Running</span> pill in the menu bar.</p>
+
+<h2>1 · Default state — editing an existing task; one file dirty</h2>
+<div class="window">
+  <div class="menubar">
+    <div class="menus"><span title="Open the Settings dialog">Settings</span><span title="About the application">About</span></div>
+    <div class="workspace-switch">
+      <div class="opt"><span class="dot"></span>Benchmark</div>
+      <div class="opt active"><span class="dot"></span>Task Editor</div>
+    </div>
+    <div class="running-pill" title="Click to return to the Benchmark workspace and focus the Progress widget">
+      <span class="dot"></span>Running: Run 3 — Graded Benchmark — 2026-05-16 14:53
+    </div>
+    <div class="spacer"></div>
+    <span class="version">v2.0.0</span>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn">Open File</button>
+    <button class="btn">Open Folder</button>
+    <button class="btn">New File</button>
+    <span class="tsep"></span>
+    <button class="btn primary">Save</button>
+    <button class="btn">Save All <span style="color:var(--warn)">(1)</span></button>
+    <button class="btn">Reload</button>
+    <button class="btn">View YAML</button>
+    <div class="spacer"></div>
+    <span class="val-pill warn" title="Click to focus the first task with a warning">3 tasks · 0 errors · 1 warning</span>
+  </div>
+
+  <div class="editor" style="grid-template-columns:240px 300px 1fr">
+    <!-- FILES -->
+    <div class="pane">
+      <div class="pane-head"><span>Files (3)</span></div>
+      <div class="pane-info">Showing top-level task files only</div>
+      <div class="pane-body">
+        <div class="lrow"><span class="lname">coding_java.yaml</span><span class="badge ok">OK</span></div>
+        <div class="lrow active"><span class="lname">text_operations.yaml</span><span class="badge dirty">●</span></div>
+        <div class="lrow"><span class="lname">data_extraction.yaml</span><span class="badge ok">OK</span></div>
+      </div>
+      <div class="pane-foot">
+        <button class="btn sm">Open File</button>
+        <button class="btn sm">Open Folder</button>
+        <button class="btn sm">New File</button>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="pane">
+      <div class="pane-head"><span>Tasks in text_operations.yaml (3)</span><span style="font-family:var(--mono)">2 OK · 1 warn</span></div>
+      <div class="pane-body">
+        <div class="lrow task"><span class="lname">translation_uk_en_greeting</span><span class="badge ok">OK</span></div>
+        <div class="lrow task active"><span class="lname">translation_uk_hr_greeting</span><span class="badge warn">!</span></div>
+        <div class="lrow task"><span class="lname">text_rewrite_proofread_email</span><span class="badge ok">OK</span></div>
+      </div>
+      <div class="pane-foot">
+        <button class="btn sm">Add task</button>
+        <button class="btn sm">Duplicate</button>
+        <button class="btn sm danger">Remove</button>
+        <button class="btn sm">Move Up</button>
+        <button class="btn sm">Move Down</button>
+      </div>
+    </div>
+
+    <!-- FIELD EDITOR -->
+    <div class="pane">
+      <div class="pane-head"><span>Editing: translation_uk_hr_greeting</span><span class="val-pill warn">1 warning</span></div>
+      <div class="pane-body">
+        <div class="form">
+
+          <div class="field">
+            <div class="field-head">
+              <span class="field-label required">task_id <span class="help-icon" title="About this field">i</span></span>
+              <span class="field-meta">required</span>
+            </div>
+            <div class="field-format">snake_case · ASCII · max 80 chars · unique in file</div>
+            <input class="input mono" value="translation_uk_hr_greeting">
+            <div class="fs ok">valid · unique in file</div>
+          </div>
+
+          <div class="row">
+            <div class="field" style="flex:1">
+              <div class="field-head"><span class="field-label">category <span class="help-icon" title="About this field">i</span></span><span class="field-meta">recommended</span></div>
+              <input class="input" value="Text Operations">
+            </div>
+            <div class="field" style="flex:1">
+              <div class="field-head"><span class="field-label">sub_category <span class="help-icon" title="About this field">i</span></span><span class="field-meta">recommended</span></div>
+              <input class="input" value="Translation">
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field" style="flex:1.2">
+              <div class="field-head"><span class="field-label">cosine_enabled <span class="help-icon" title="About this field">i</span></span><span class="field-meta">optional · default true</span></div>
+              <div class="input combo">true</div>
+            </div>
+            <div class="field" style="flex:1">
+              <div class="field-head"><span class="field-label">difficulty <span class="help-icon" title="About this field">i</span></span><span class="field-meta">default: medium</span></div>
+              <div class="input combo">easy</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-head"><span class="field-label required">question <span class="help-icon" title="About this field">i</span></span><span class="field-meta">required · plain text or markdown</span></div>
+            <textarea class="input" rows="3">Translate the following text to Croatian:
+Добрий день. Я хотів би дізнатися чи можу зняти готівку з банківської карти?</textarea>
+          </div>
+
+          <div class="field">
+            <div class="field-head"><span class="field-label required">golden_answer <span class="help-icon" title="About this field">i</span></span><span class="field-meta">required · supports literal block</span></div>
+            <textarea class="input code" rows="2">Dobar dan. Htio bih saznati mogu li podići gotovinu s bankovne kartice?</textarea>
+          </div>
+
+          <div class="field">
+            <div class="field-head"><span class="field-label">pass_criteria <span class="help-icon" title="About this field">i</span></span><span class="field-meta">recommended for GRADED</span></div>
+            <textarea class="input" rows="2">Translated into Croatian. The polite greeting and the question about cash withdrawal are preserved.</textarea>
+          </div>
+
+          <div class="field">
+            <div class="field-head"><span class="field-label">fail_criteria <span class="help-icon" title="About this field">i</span></span><span class="field-meta">recommended for GRADED</span></div>
+            <textarea class="input warnb" rows="1"></textarea>
+            <div class="fs warn">empty — the judge will fall back to a golden_answer comparison only in GRADED mode</div>
+          </div>
+
+          <div class="group">
+            <div class="group-head"><span>▾</span> Required terms</div>
+            <div class="field">
+              <div class="field-head"><span class="field-label">exact <span class="help-icon" title="About this field">i</span></span><span class="field-meta">substrings that MUST appear verbatim</span></div>
+              <div class="chips">
+                <span class="chip">gotovinu <span class="x">×</span></span>
+                <span class="chip">kartice <span class="x">×</span></span>
+                <input class="ghost" placeholder="Type a value, then click Add…">
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-head"><span class="field-label">semantic <span class="help-icon" title="About this field">i</span></span><span class="field-meta">concepts the response should convey</span></div>
+              <div class="chips">
+                <span class="chip">cash <span class="x">×</span></span>
+                <span class="chip">bank card <span class="x">×</span></span>
+                <input class="ghost" placeholder="Type a value, then click Add…">
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-head"><span class="field-label">forbidden <span class="help-icon" title="About this field">i</span></span><span class="field-meta">substrings that MUST NOT appear</span></div>
+              <div class="chips"><input class="ghost" placeholder="Type a value, then click Add…"></div>
+            </div>
+          </div>
+
+          <div class="group">
+            <div class="group-head"><span>▾</span> Translation extras — always available (DD-46)</div>
+            <div class="row">
+              <div class="field" style="flex:1">
+                <div class="field-head"><span class="field-label">source_language <span class="help-icon" title="About this field">i</span></span><span class="field-meta">ISO 639-1</span></div>
+                <input class="input mono" value="uk">
+              </div>
+              <div class="field" style="flex:1">
+                <div class="field-head"><span class="field-label">target_language <span class="help-icon" title="About this field">i</span></span><span class="field-meta">ISO 639-1</span></div>
+                <input class="input mono" value="hr">
+              </div>
+            </div>
+          </div>
+
+          <div class="group">
+            <div class="group-head"><span>▸</span> Optional context (collapsed) — fail_example</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="l">
+      <span class="val-pill warn">1 warning</span>
+      <span>3 tasks across 3 files · 1 file dirty</span>
+      <span>Last saved 14:23</span>
+    </div>
+    <div class="r">Field: question</div>
+  </div>
+</div>
+
+<h2>2 · Help popover — opens on hover or click of an <span class="help-icon" title="About this field">i</span> icon</h2>
+<div class="legend">
+  Each help icon opens a popover whose content is rendered from <code>field_reference.md</code>; the same text appears everywhere the editor renders that field.
+  <div class="row" style="margin-top:10px">
+    <div class="help-pop">
+      <h5>field · task_id</h5>
+      <strong>Required.</strong> The unique identifier of the task within its file. It is the stable join key against every benchmark result row.<br><br>
+      <strong>Format</strong> · lowercase <code>snake_case</code>, ASCII letters, digits, underscores, maximum 80 characters.<br>
+      <strong>Validation</strong>
+      <ul>
+        <li>Empty → hard error (the file cannot save)</li>
+        <li>Duplicate within the file → hard error on every sharing row</li>
+        <li>Not snake_case, or over 80 chars → soft warning</li>
+      </ul>
+      <strong style="display:block;margin-top:8px">Example</strong> <code>coding_java_two_sum</code>
+    </div>
+  </div>
+</div>
+
+<h2>3 · YAML preview side panel — toggled with the View YAML toolbar control</h2>
+<div class="window">
+  <div class="menubar">
+    <div class="menus"><span>Settings</span><span>About</span></div>
+    <div class="workspace-switch">
+      <div class="opt"><span class="dot"></span>Benchmark</div>
+      <div class="opt active"><span class="dot"></span>Task Editor</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="version">v2.0.0</span>
+  </div>
+  <div class="toolbar">
+    <button class="btn">Open File</button>
+    <button class="btn">New File</button>
+    <button class="btn primary">Save</button>
+    <button class="btn">View YAML <span style="color:var(--primary)">●</span></button>
+    <div class="spacer"></div>
+    <span class="val-pill ok">3 tasks · 0 errors</span>
+  </div>
+  <div class="editor" style="grid-template-columns:220px 1fr 430px;height:520px">
+    <div class="pane">
+      <div class="pane-head"><span>Files (3)</span></div>
+      <div class="pane-body">
+        <div class="lrow"><span class="lname">coding_java.yaml</span><span class="badge ok">OK</span></div>
+        <div class="lrow active"><span class="lname">text_operations.yaml</span><span class="badge ok">OK</span></div>
+        <div class="lrow"><span class="lname">data_extraction.yaml</span><span class="badge ok">OK</span></div>
+      </div>
+    </div>
+    <div class="pane">
+      <div class="pane-head"><span>Editing: translation_uk_en_greeting (1 of 3)</span></div>
+      <div class="pane-body" style="padding:12px 16px">
+        <div class="field">
+          <div class="field-head"><span class="field-label required">task_id</span></div>
+          <input class="input mono" value="translation_uk_en_greeting">
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label required">question</span></div>
+          <textarea class="input" rows="2">Translate the following text to English:
+Добрий день. Я хотів би дізнатися більше про ваші послуги.</textarea>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label required">golden_answer</span></div>
+          <textarea class="input code" rows="2">Good afternoon. I would like to learn more about your services.</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="yaml-preview">
+      <div class="yp-head"><span>YAML preview — read-only</span><button class="btn sm">Copy YAML</button></div>
+<pre><span class="k">schema_version:</span> <span class="s">1</span>
+<span class="k">tasks:</span>
+  <span class="bi">-</span> <span class="k">task_id:</span> <span class="s">translation_uk_en_greeting</span>
+    <span class="k">category:</span> <span class="s">Text Operations</span>
+    <span class="k">sub_category:</span> <span class="s">Translation</span>
+    <span class="k">difficulty:</span> <span class="s">easy</span>
+    <span class="k">question:</span> <span class="bi">|</span>
+      Translate the following text to English:
+      Добрий день. Я хотів би дізнатися...
+    <span class="k">golden_answer:</span> <span class="bi">|</span>
+      Good afternoon. I would like to learn
+      more about your services.
+    <span class="k">required_terms:</span>
+      <span class="k">exact:</span> []
+      <span class="k">semantic:</span>
+        <span class="bi">-</span> <span class="s">services</span>
+        <span class="bi">-</span> <span class="s">learn more</span>
+      <span class="k">forbidden:</span> []
+    <span class="k">source_language:</span> <span class="s">uk</span>
+    <span class="k">target_language:</span> <span class="s">en</span>
+</pre>
+    </div>
+  </div>
+  <div class="statusbar">
+    <div class="l"><span class="val-pill ok">Valid</span><span>3 tasks across 3 files · 0 dirty</span></div>
+    <div class="r">YAML preview: on</div>
+  </div>
+</div>
+<p class="note">The preview shows the exact YAML that Save would write — canonical field order, preserved comments. It is read-only; all editing is form-driven. Save is gated only by hard errors.</p>
+
+<h2>4 · Hard-error state — duplicate task_id; Save disabled</h2>
+<div class="window">
+  <div class="menubar">
+    <div class="menus"><span>Settings</span><span>About</span></div>
+    <div class="workspace-switch">
+      <div class="opt"><span class="dot"></span>Benchmark</div>
+      <div class="opt active"><span class="dot"></span>Task Editor</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="version">v2.0.0</span>
+  </div>
+  <div class="toolbar">
+    <button class="btn">Open File</button>
+    <button class="btn primary" disabled>Save</button>
+    <button class="btn" disabled>Save All <span style="color:var(--mute)">(0)</span></button>
+    <button class="btn">Reload</button>
+    <button class="btn">View YAML</button>
+    <div class="spacer"></div>
+    <span class="val-pill err">3 tasks · 2 errors</span>
+  </div>
+  <div class="editor" style="grid-template-columns:240px 300px 1fr;height:360px">
+    <div class="pane">
+      <div class="pane-head"><span>Files (1)</span></div>
+      <div class="pane-body">
+        <div class="lrow active"><span class="lname">my_new_tasks.yaml</span><span class="badge err">×</span></div>
+      </div>
+    </div>
+    <div class="pane">
+      <div class="pane-head"><span>Tasks (3)</span></div>
+      <div class="pane-body">
+        <div class="lrow task"><span class="lname">duplicate_id</span><span class="badge err">×</span></div>
+        <div class="lrow task active"><span class="lname">duplicate_id</span><span class="badge err">×</span></div>
+        <div class="lrow task"><span class="lname">ok_task</span><span class="badge ok">OK</span></div>
+      </div>
+    </div>
+    <div class="pane">
+      <div class="pane-head"><span>Editing row 2</span><span class="val-pill err">2 errors</span></div>
+      <div class="banner warn">A running benchmark is reading this file. The run cached its tasks at run-start, so a save will not affect it.<span><button class="btn sm">Dismiss</button></span></div>
+      <div class="pane-body" style="padding:12px 18px">
+        <div class="field">
+          <div class="field-head"><span class="field-label required">task_id</span></div>
+          <input class="input mono invalid" value="duplicate_id">
+          <div class="fs err">duplicate — the same task_id is used in row 1; task_id must be unique within a file</div>
+        </div>
+        <div class="field">
+          <div class="field-head"><span class="field-label required">question</span></div>
+          <div class="input combo invalid">(unset)</div>
+          <div class="fs err">required — the task prompt cannot be empty</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="statusbar">
+    <div class="l"><span class="val-pill err">2 errors</span><span>Save is disabled until every hard error is resolved</span></div>
+  </div>
+</div>
+
+<h2>5 · Empty state — no files open</h2>
+<div class="window">
+  <div class="menubar">
+    <div class="menus"><span>Settings</span><span>About</span></div>
+    <div class="workspace-switch">
+      <div class="opt"><span class="dot"></span>Benchmark</div>
+      <div class="opt active"><span class="dot"></span>Task Editor</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="version">v2.0.0</span>
+  </div>
+  <div class="toolbar">
+    <button class="btn">Open File</button>
+    <button class="btn">Open Folder</button>
+    <button class="btn primary">New File</button>
+    <div class="spacer"></div>
+    <span class="val-pill ok" style="opacity:.5">no file open</span>
+  </div>
+  <div class="empty-drop">
+    <div class="drop-zone">
+      <div style="font-size:24px">⬇</div>
+      <div style="margin-top:6px;font-size:13px;color:var(--text)">Drop YAML task files or folders here</div>
+      <div style="margin-top:4px;font-size:11px">or use the toolbar buttons</div>
+      <div style="margin-top:14px;display:flex;gap:6px;justify-content:center">
+        <button class="btn">Open File</button>
+        <button class="btn">Open Folder</button>
+        <button class="btn primary">New File</button>
+      </div>
+      <div style="margin-top:18px;font-size:10px;font-family:var(--mono);color:var(--mute)">
+        Recent files:<br>
+        ~/projects/llm_tasks/coding_java.yaml<br>
+        ~/projects/llm_tasks/text_operations.yaml
+      </div>
+    </div>
+  </div>
+  <div class="statusbar"><div class="l"><span>0 files open</span></div></div>
+</div>
+
+<h2>6 · Unsaved-changes confirmation — leaving the editor / quitting with dirty buffers</h2>
+<div style="width:1200px;height:300px;position:relative;background:var(--bgw);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.55)"></div>
+  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:460px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;box-shadow:0 14px 50px rgba(0,0,0,.65)">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-weight:600;font-size:13px">Save changes before leaving?</div>
+    <div style="padding:14px;font-size:12px;color:var(--text)">
+      <p style="margin:0 0 8px">You have <strong>2 files with unsaved edits</strong>:</p>
+      <div style="font-family:var(--mono);font-size:11px;margin:0 0 10px">
+        <div><span class="badge dirty">●</span> text_operations.yaml <span style="color:var(--success)">— saveable</span></div>
+        <div><span class="badge err">×</span> my_new_tasks.yaml <span style="color:var(--error)">— has a hard error, cannot be saved</span></div>
+      </div>
+      <div class="val-pill warn" style="font-family:var(--font)">Save All writes only the 1 saveable file; the file with a hard error is kept open so you can fix or discard it.</div>
+    </div>
+    <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:6px;justify-content:flex-end">
+      <button class="btn">Cancel</button>
+      <button class="btn danger">Discard All</button>
+      <button class="btn primary">Save All <span style="opacity:.8">(1)</span></button>
+    </div>
+  </div>
+</div>
+<p class="note">Triggered on workspace-leave, file-close, or app-quit while any buffer is dirty (<code>state_machine.md</code> §1 ConfirmLeave / ConfirmQuit, §3 ConfirmClose). <strong>Save All</strong> writes only files free of hard errors and reports any it cannot save; <strong>Discard All</strong> drops every unsaved edit; <strong>Cancel</strong> returns to the editor with all buffers intact. A leave/quit with no dirty buffer proceeds with no dialog.</p>
+
+<h2>7 · External-file-change banner — file changed on disk while open</h2>
+<div class="window">
+  <div class="toolbar">
+    <button class="btn">Open File</button>
+    <button class="btn">Open Folder</button>
+    <button class="btn primary">New File</button>
+    <div class="spacer"></div>
+    <span class="val-pill warn">text_operations.yaml changed on disk</span>
+  </div>
+  <div class="banner info">
+    <span>&#8635; <strong>text_operations.yaml</strong> was modified on disk by another program while open here. Your in-memory edits are unsaved.</span>
+    <span style="display:flex;gap:6px">
+      <button class="btn sm">Keep my edits</button>
+      <button class="btn sm primary">Reload from disk</button>
+    </span>
+  </div>
+  <div class="statusbar"><div class="l"><span>3 files open · 1 changed on disk</span></div></div>
+</div>
+<p class="note"><strong>Keep my edits</strong> leaves the buffer Dirty and silences the watch for this change; <strong>Reload from disk</strong> re-parses the file (routing through the discard-edits confirmation if the buffer is dirty) and the banner clears (<code>state_machine.md</code> §3 ExternalChanged, §7 watch).</p>
+
+<h2>8 · Parse-error banner — reload hit malformed YAML</h2>
+<div class="window">
+  <div class="toolbar">
+    <button class="btn">Open File</button>
+    <button class="btn">Open Folder</button>
+    <button class="btn primary">New File</button>
+    <div class="spacer"></div>
+    <span class="val-pill err">data_extraction.yaml · parse error</span>
+  </div>
+  <div class="banner" style="background:rgba(248,113,113,.10);border:1px solid var(--error);color:var(--error)">
+    <span>&#10005; <strong>data_extraction.yaml</strong> could not be parsed on reload — malformed YAML at line 14. Your previous in-memory model is unchanged and still shown.</span>
+    <span style="display:flex;gap:6px">
+      <button class="btn sm">Reveal in folder</button>
+      <button class="btn sm primary">Reload</button>
+    </span>
+  </div>
+  <div class="statusbar"><div class="l"><span>3 files open · 1 parse error</span></div></div>
+</div>
+<p class="note">A reload that encounters malformed YAML aborts: the prior in-memory model is kept (no data loss), the file shows the <span style="color:var(--error)">×</span> error glyph, and a banner names the failure. The user fixes the file externally and <strong>Reload</strong>s, or <strong>Close</strong>s the file (<code>state_machine.md</code> §3 ParseError).</p>
+
+<div class="legend" style="margin-top:24px">
+  <strong>Workspace switcher</strong> — the segmented control in the menu bar is the only way to swap workspaces; click a segment to switch. The active workspace persists to <code>ui.active_workspace</code> across launches.<br><br>
+  <strong>Running pill</strong> — shown only while at least one benchmark run is in a non-terminal state. Clicking it switches to the Benchmark workspace and focuses the Progress widget.<br><br>
+  <strong>Severity badges</strong> — <span style="color:var(--error)">×</span> hard errors disable Save for that file (empty <code>task_id</code> / <code>question</code> / <code>golden_answer</code>, duplicate ids, malformed YAML). <span style="color:var(--warn)">!</span> soft warnings still save (empty grading criteria, non-canonical snake_case). <span style="color:var(--info)">i</span> soft info is advisory only (e.g. a very long prompt). <span style="color:var(--warn)">●</span> marks a file with unsaved edits.<br><br>
+  <strong>Mouse-only operation</strong> — every editor action is exposed as a toolbar button, a pane control, or a context-menu item; there are no keyboard shortcuts or accelerators.
+</div>
+
+</body>
+</html>
