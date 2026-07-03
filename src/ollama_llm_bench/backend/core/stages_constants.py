@@ -1,5 +1,0 @@
-STAGE_INITIALIZING = "Initializing"
-STAGE_BENCHMARKING = "Benchmarking"
-STAGE_JUDGING = "Judging"
-STAGE_FINISHED = "Finished"
-STAGE_FAILED = "Failed"
