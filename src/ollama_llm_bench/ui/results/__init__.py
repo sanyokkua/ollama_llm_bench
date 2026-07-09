@@ -1,0 +1,1 @@
+"""Benchmark workspace right panel."""

@@ -1,0 +1,1 @@
+"""Event -> display-string formatter."""

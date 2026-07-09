@@ -1,0 +1,1 @@
+"""CSV / Markdown table serializer."""

@@ -1,0 +1,1 @@
+"""RunsStore (BenchmarkRun aggregate)."""

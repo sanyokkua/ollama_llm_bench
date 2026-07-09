@@ -1,0 +1,1 @@
+"""ModelCapabilitiesStore (capability observation cache)."""
