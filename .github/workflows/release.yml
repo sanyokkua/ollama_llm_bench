@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+env:
+  QT_QPA_PLATFORM: offscreen
+
+jobs:
+  quality-gate:
+    name: Quality gate (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.13.3
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run ruff check src tests scripts
+      - run: uv run ruff format --check src tests scripts
+      - run: uv run lint-imports
+      - run: uv run mypy --strict src
+      - run: uv run pytest -q
+
+  audit:
+    name: Dependency audit
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.13.3
+      - run: uv sync --frozen --all-extras --dev
+      - run: uv run pip-audit
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: audit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: dmg
+          - os: windows-latest
+            artifact: zip
+          - os: ubuntu-latest
+            artifact: appimage
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.13.3
+      - run: uv sync --frozen --no-dev --group build
+      # packaging/*.spec files land in Phase 13 (13_Distribution_and_Release/); this step is a
+      # placeholder until then.
+      - name: Build with PyInstaller (--onedir)
+        run: uv run --group build pyinstaller "packaging/${{ matrix.os }}.spec"
+      - name: Package artifact
+        shell: bash
+        run: |
+          mkdir -p dist-artifacts
+          case "${{ matrix.artifact }}" in
+            dmg) echo "macOS .dmg packaging step — packaging/ .spec output staged for hdiutil" ;;
+            zip) echo "Windows portable .zip packaging step" ;;
+            appimage) echo "Linux AppImage packaging step" ;;
+          esac
+      - name: Checksum
+        shell: bash
+        run: |
+          cd dist-artifacts || exit 0
+          sha256sum * > SHA256SUMS 2>/dev/null || shasum -a 256 * > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ollama-llm-bench-${{ matrix.os }}
+          path: dist-artifacts/*
+          if-no-files-found: warn
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+      - name: Publish release with per-OS artifacts and checksums
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-artifacts/**/*
+          fail_on_unmatched_files: false

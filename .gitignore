@@ -192,13 +192,13 @@ fabric.properties
 ### VirtualEnv template
 # Virtualenv
 # http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
+# The bare [Bb]in/[Ii]nclude/[Ll]ib/[Ll]ib64/[Ll]ocal/[Ss]cripts patterns from the generic
+# gitignore.io template are deliberately omitted here: they match any directory with that name
+# anywhere in the repo, which would blanket-ignore this project's required root-level
+# `scripts/` directory (16_Engineering_Standards/01_PROJECT_STRUCTURE.md Section 2). `uv`
+# creates its virtualenv at `.venv/`, already covered below, so the old-style loose
+# `venv/{bin,Scripts,lib,...}` fallback is unnecessary.
 .Python
-[Bb]in
-[Ii]nclude
-[Ll]ib
-[Ll]ib64
-[Ll]ocal
-[Ss]cripts
 pyvenv.cfg
 .venv
 pip-selfcheck.json

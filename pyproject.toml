@@ -1,0 +1,249 @@
+[build-system]
+requires = ["uv_build>=0.9.0,<0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "ollama-llm-bench"
+version = "1.0.0"
+description = "Desktop application for benchmarking local and remote LLMs."
+requires-python = "==3.13.*"
+license = { text = "MIT" }
+readme = "README.md"
+
+dependencies = [
+  "PySide6>=6.8,<6.9",
+  "msgspec>=0.21.0",
+  "psygnal==0.15.*",
+  "structlog>=25.5.0",
+  "icontract>=2.7.3",
+  "ruamel.yaml>=0.18",
+  "platformdirs>=4.0",
+  "click>=8.1",
+  "typing-extensions>=4.5.0",
+]
+
+[project.scripts]
+ollama-llm-bench = "ollama_llm_bench.__main__:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+  "pytest-qt>=4.5",
+  "pytest-cov>=4.0",
+  "pytest-mock>=3.12",
+  "pytest-archon>=0.0.7",
+  "pytest-randomly>=3.15",
+  "pytest-rerunfailures",
+  "pytest-httpserver",
+  # hypothesis is capped below 6.137.3 because icontract-hypothesis 1.1.7 (latest on PyPI)
+  # hooks hypothesis.internal.reflection.extract_lambda_source at import time via a
+  # hypothesis entry point, and that symbol was removed starting in hypothesis 6.137.3; the
+  # combination crashes on import (AttributeError during the hypothesis entry-point hook).
+  # Revisit this cap when icontract-hypothesis ships a fix for the renamed/removed symbol.
+  "hypothesis>=6.100,<6.137.3",
+  "icontract-hypothesis",
+  "freezegun>=1.4",
+  "ruff>=0.9.0",
+  "mypy>=1.16",
+  "import-linter>=2.11",
+  "pip-audit>=2.10",
+]
+build = ["pyinstaller>=6.0"]
+# Project convention (rules/formatting.md), not part of the spec's Python-only toolchain table:
+# non-Python formatters/linters invoked by `just format` / `just format-check` and by
+# .pre-commit-config.yaml via `uv run`.
+formatting = [
+  "mdformat>=0.7",
+  "mdformat-gfm>=0.3",
+  "taplo>=0.9",
+  "yamllint>=1.35",
+  "sqlfluff>=3.0",
+]
+
+[tool.uv]
+default-groups = ["dev", "formatting"]
+
+[tool.uv.build-backend]
+module-name = "ollama_llm_bench"
+module-root = "src"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "W",   # pycodestyle + pyflakes
+  "I",   # import sorting
+  "B",   # bugbear
+  "UP",  # pyupgrade
+  "S",   # bandit security
+  "SIM", # simplify
+  "A",   # builtin shadowing
+  "C4",  # comprehensions
+  "RUF", # ruff-specific
+  "TID", # tidy imports
+  "PL",  # pylint subset
+  "TC",  # type-checking imports
+  "ARG", # unused arguments
+  "G",   # logging format
+  "DTZ", # datetime timezone
+  "T20", # no print
+  "BLE", # blind except
+  "FBT", # boolean trap
+  "PIE",
+  "RET",
+]
+ignore = ["E501"] # line length is enforced by the formatter
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+known-first-party = ["ollama_llm_bench"]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+"src/ollama_llm_bench/backend/*/__init__.py" = ["F401"] # intentional re-exports
+"src/ollama_llm_bench/backend/*/api.py" = ["F401"]
+"src/ollama_llm_bench/adapters/*/__init__.py" = ["F401"]
+"src/ollama_llm_bench/adapters/*/api.py" = ["F401"]
+"src/ollama_llm_bench/ui/*/__init__.py" = ["F401"]
+"src/ollama_llm_bench/ui/*/api.py" = ["F401"]
+"src/ollama_llm_bench/compose.py" = ["F401"]
+"tests/**/*" = ["ARG", "S101"] # tests may use assert
+"tests/typing_negative/**/*" = ["F401", "F841"] # intentionally broken types
+"scripts/trace.py" = [
+  "A005",
+] # filename fixed by justfile's `just trace` invocation contract
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = "tests.typing_negative.*"
+ignore_errors = true
+
+[tool.importlinter]
+root_packages = ["ollama_llm_bench"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Backend layer is Qt-free"
+type = "forbidden"
+source_modules = [
+  "ollama_llm_bench.backend.domain",
+  "ollama_llm_bench.backend.errors",
+  "ollama_llm_bench.backend.events",
+  "ollama_llm_bench.backend.infra",
+  "ollama_llm_bench.backend.settings",
+  "ollama_llm_bench.backend.stores",
+  "ollama_llm_bench.backend.persistence.runs",
+  "ollama_llm_bench.backend.persistence.tasks",
+  "ollama_llm_bench.backend.persistence.results",
+  "ollama_llm_bench.backend.persistence.providers",
+  "ollama_llm_bench.backend.persistence.model_capabilities",
+  "ollama_llm_bench.backend.persistence.app_settings",
+  "ollama_llm_bench.backend.platform",
+  "ollama_llm_bench.backend.concurrency",
+  "ollama_llm_bench.backend.benchmark_pipeline",
+  "ollama_llm_bench.backend.evaluation",
+  "ollama_llm_bench.backend.embedding",
+  "ollama_llm_bench.backend.adaptive_timeout",
+  "ollama_llm_bench.backend.circuit_breaker",
+  "ollama_llm_bench.backend.readiness",
+  "ollama_llm_bench.backend.mode_visibility",
+  "ollama_llm_bench.backend.run_drift",
+  "ollama_llm_bench.backend.yaml_formatter",
+  "ollama_llm_bench.backend.task_files",
+  "ollama_llm_bench.backend.charts",
+  "ollama_llm_bench.backend.csv_export",
+  "ollama_llm_bench.backend.html_rendering",
+  "ollama_llm_bench.backend.run_analysis",
+  "ollama_llm_bench.backend.performance_task_generator",
+  "ollama_llm_bench.backend.log_formatting",
+  "ollama_llm_bench.backend.log_file_writer",
+  "ollama_llm_bench.backend.model_helpers",
+  "ollama_llm_bench.backend.retry",
+  "ollama_llm_bench.backend.provider_registry",
+  "ollama_llm_bench.backend.provider_openai_compatible",
+  "ollama_llm_bench.backend.provider_anthropic",
+  "ollama_llm_bench.backend.provider_gemini",
+]
+forbidden_modules = ["PySide6"]
+
+[[tool.importlinter.contracts]]
+name = "Module internals are private"
+type = "forbidden"
+source_modules = ["ollama_llm_bench"]
+forbidden_modules = ["ollama_llm_bench.*._internal"]
+ignore_imports = ["ollama_llm_bench.*.* -> ollama_llm_bench.*._internal.*"]
+# Phase 0's scaffold has no _internal/ packages or internal imports yet, so this ignore
+# expression matches nothing until later phases add them; "warn" (not the default "error")
+# keeps that expected, temporary state from failing the gate.
+unmatched_ignore_imports_alerting = "warn"
+
+[[tool.importlinter.contracts]]
+name = "Provider adapters are independent"
+type = "independence"
+modules = [
+  "ollama_llm_bench.backend.provider_openai_compatible",
+  "ollama_llm_bench.backend.provider_anthropic",
+  "ollama_llm_bench.backend.provider_gemini",
+]
+
+[[tool.importlinter.contracts]]
+name = "Only compose.py wires concrete adapters"
+type = "forbidden"
+source_modules = ["ollama_llm_bench.ui", "ollama_llm_bench.adapters"]
+forbidden_modules = [
+  "ollama_llm_bench.backend.provider_openai_compatible",
+  "ollama_llm_bench.backend.provider_anthropic",
+  "ollama_llm_bench.backend.provider_gemini",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["src", "tests"]
+pythonpath = ["src"]
+addopts = [
+  "--import-mode=importlib",
+  "--strict-markers",
+  "--strict-config",
+  "-ra",
+]
+markers = [
+  "unit: Fast isolated unit tests",
+  "integration: Tests requiring real local resources",
+  "slow: Tests exceeding the standard time budget",
+  "property: Hypothesis-driven property tests",
+  "allow_qt_warnings: Test may emit Qt warnings without failing",
+]
+
+[tool.coverage.run]
+source_pkgs = ["ollama_llm_bench"]
+branch = true
+omit = ["*/tests/*", "*/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
