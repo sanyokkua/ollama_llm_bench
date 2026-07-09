@@ -25,3 +25,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Three accepted Architecture Decision Records: `docs/adr/0001-programmatic-qt-widgets-theming.md`,
   `docs/adr/0002-scoped-reactive-stores-and-event-bus.md`,
   `docs/adr/0003-uv-build-and-unsigned-distribution.md`.
+- Backend domain vocabulary (`backend/domain/`): 27 closed enumerations (`StrEnum`), 33
+  cross-boundary `msgspec.Struct` records, 7 type aliases, 14 constrained types per
+  `docs/v3_specification/10_Domain_and_Data/02_DTOS_AND_ENUMS.md`, establishing the
+  foundational Qt-free domain model for Phase 1.

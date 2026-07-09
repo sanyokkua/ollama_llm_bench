@@ -47,4 +47,4 @@ trace-check:
     uv run python scripts/validate_traceability.py
 
 check: lint format-check typecheck import-check arch-test
-    uv run pytest tests/unit tests/integration -q
+    uv run pytest tests/unit tests/integration src -q

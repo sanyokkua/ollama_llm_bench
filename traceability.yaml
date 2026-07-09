@@ -1,30 +1,173 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-09T13:17:49Z'
+generated_at: '2026-07-09T15:35:38Z'
 generator_version: 1
 stories:
   STORY-001:
     title: Define the shared domain DTOs, enums, type aliases, and constrained types
-    status: draft
+    status: done
     spec_clauses:
     - 10_Domain_and_Data/01_DOMAIN_MODEL.md#315-in-memory-only-entities
     - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#2-type-aliases
     - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#3-reusable-constrained-types
     - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#4-enumerations
-    - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records-runtime-and-service-dtos
+    - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records--runtime-and-service-dtos
     modules:
     - backend/domain/
     edge_cases: []
     acceptance_criteria:
       STORY-001-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[CosineScore]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[CosineThreshold]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[DurationMs]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[ModelNameStr]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[NonEmptyStr]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[NonNegativeFloat]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[NonNegativeInt]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[PositiveFloat]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[PositiveInt]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[ProviderIdStr]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[RepeatCount]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[RetryCount]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[TaskIdStr]
+        - src/ollama_llm_bench/backend/domain/tests/test_constrained_types.py::test_constrained_type_bounds_enforced_at_construction[TimeoutSeconds]
       STORY-001-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[AdaptiveTimeoutRole]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[AttemptOutcome]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[CancelLevel]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[CancelReason]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[CapabilitySource]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ChartKind]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ChatRole]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[Difficulty]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ErrorKind]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[InferenceActivity]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[InferenceContext]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[InferenceTestOutcome]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ModelCapability]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ModelRole]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ProviderTestStatus]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ProviderType]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ReadinessState]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ReasoningEffort]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ResolutionLayer]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ResponseFormat]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ResultStatus]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ResultTermKind]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[RunMode]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[RunStatus]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[TaskOrigin]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[TaskTermKind]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[Verdict]
       STORY-001-AC-3:
-        tests: []
+        tests:
+        - tests/architecture/test_dtos.py::test_at_least_one_struct_discovered
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[AppMetaRecord]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[AppReadinessSnapshot]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[AppSettingRecord]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[BenchmarkResultAttempt]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[BenchmarkResultTerm]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[BenchmarkResult]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[BenchmarkRunModelEntry]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[BenchmarkRunProviderEntry]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[BenchmarkRunSettingEntry]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[BenchmarkRun]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[BenchmarkTask]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ChartData]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ChartFilters]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ChartSeries]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ChatChunk]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ChatMessage]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ChatRequest]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ChatResponse]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[GateLease]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[HeatmapData]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[InferenceActivityContext]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[InferenceActivityState]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[InferenceTestResult]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ModelCapabilityRecord]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ModelDescriptor]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[PerformanceConfig]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ProviderConfigDraft]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ProviderConfig]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ProviderHealth]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[RequiredTerms]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ResultPatch]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[RunStartRequest]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[RunStatusPatch]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[AppMetaRecord]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[AppReadinessSnapshot]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[AppSettingRecord]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[BenchmarkResultAttempt]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[BenchmarkResultTerm]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[BenchmarkResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[BenchmarkRunModelEntry]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[BenchmarkRunProviderEntry]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[BenchmarkRunSettingEntry]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[BenchmarkRun]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[BenchmarkTask]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ChartData]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ChartFilters]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ChartSeries]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ChatChunk]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ChatMessage]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ChatRequest]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ChatResponse]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[GateLease]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[HeatmapData]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[InferenceActivityContext]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[InferenceActivityState]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[InferenceTestResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ModelCapabilityRecord]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ModelDescriptor]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[PerformanceConfig]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ProviderConfigDraft]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ProviderConfig]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ProviderHealth]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[RequiredTerms]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ResultPatch]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[RunStartRequest]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[RunStatusPatch]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[AppMetaRecord]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[AppReadinessSnapshot]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[AppSettingRecord]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[BenchmarkResultAttempt]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[BenchmarkResultTerm]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[BenchmarkResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[BenchmarkRunModelEntry]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[BenchmarkRunProviderEntry]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[BenchmarkRunSettingEntry]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[BenchmarkRun]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[BenchmarkTask]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ChartData]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ChartFilters]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ChartSeries]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ChatChunk]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ChatMessage]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ChatRequest]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ChatResponse]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[GateLease]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[HeatmapData]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[InferenceActivityContext]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[InferenceActivityState]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[InferenceTestResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ModelCapabilityRecord]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ModelDescriptor]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[PerformanceConfig]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ProviderConfigDraft]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ProviderConfig]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ProviderHealth]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[RequiredTerms]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ResultPatch]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[RunStartRequest]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[RunStatusPatch]
       STORY-001-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/domain/tests/test_public_surface.py::test_domain_public_symbols_are_reexported
       STORY-001-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/domain/tests/test_provider_config.py::test_provider_config_draft_omits_provider_id_and_validates_uuid
   STORY-002:
     title: Define the four-category error taxonomy and the secret-redaction module
     status: draft
@@ -213,7 +356,7 @@ clauses:
   10_Domain_and_Data/02_DTOS_AND_ENUMS.md#4-enumerations:
     stories:
     - STORY-001
-  10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records-runtime-and-service-dtos:
+  10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records--runtime-and-service-dtos:
     stories:
     - STORY-001
   10_Domain_and_Data/07_FILE_LAYOUT.md#1-application-data-directory-per-operating-system:

@@ -1,12 +1,12 @@
 ---
 id: STORY-001
 title: Define the shared domain DTOs, enums, type aliases, and constrained types
-status: draft
+status: done
 spec_clauses:
   - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#2-type-aliases
   - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#3-reusable-constrained-types
   - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#4-enumerations
-  - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records-runtime-and-service-dtos
+  - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records--runtime-and-service-dtos
   - 10_Domain_and_Data/01_DOMAIN_MODEL.md#315-in-memory-only-entities
 modules:
   - backend/domain/
@@ -65,7 +65,7 @@ public surface.
   violation must raise at construction.
 - `10_Domain_and_Data/02_DTOS_AND_ENUMS.md#4-enumerations` — the total member set of every
   `StrEnum` and its string value; the checklist for AC-2.
-- `10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records-runtime-and-service-dtos` — the
+- `10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records--runtime-and-service-dtos` — the
   runtime/service records including `InferenceActivityContext` / `InferenceActivityState`.
 - `10_Domain_and_Data/01_DOMAIN_MODEL.md#315-in-memory-only-entities` — `ProviderHealth`
   and `AppReadinessSnapshot` are in-memory-only domain entities defined here (resolving the
@@ -150,9 +150,9 @@ field of `ProviderConfig` except `provider_id`, and the `provider_id` field of
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-001.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/domain/`.
-- [ ] `test_dtos_are_frozen_kw_only` passes for every Struct this story adds.
-- [ ] Backend branch coverage for `backend/domain/` meets the Phase 1 ≥90% gate.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-001.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/domain/`.
+- [x] `test_dtos_are_frozen_kw_only` passes for every Struct this story adds.
+- [x] Backend branch coverage for `backend/domain/` meets the Phase 1 ≥90% gate.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.

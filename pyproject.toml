@@ -123,6 +123,10 @@ docstring-code-format = true
 "src/ollama_llm_bench/ui/*/api.py" = ["F401"]
 "src/ollama_llm_bench/compose.py" = ["F401"]
 "tests/**/*" = ["ARG", "S101"] # tests may use assert
+"src/ollama_llm_bench/*/tests/**/*" = [
+  "ARG",
+  "S101",
+] # colocated per-module tests may use assert
 "tests/typing_negative/**/*" = ["F401", "F841"] # intentionally broken types
 "scripts/trace.py" = [
   "A005",
