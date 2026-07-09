@@ -2,7 +2,7 @@
 
 Each phase in `01_PHASE_BREAKDOWN.md` is still too large for one Claude Code coding turn. The
 spec already defines the right atomic unit — a **story** — in
-`docs/spec/14_Process_and_Traceability/02_STORY_FORMAT.md`. Reuse it verbatim rather than
+`docs/v3_specification/14_Process_and_Traceability/02_STORY_FORMAT.md`. Reuse it verbatim rather than
 inventing a different task format; this is what keeps the rewrite traceable back to the spec
 and lets `just trace-check` mechanically prove nothing was skipped.
 
@@ -15,18 +15,18 @@ For each phase, run this project's existing agent pipeline (already defined in
    `01_PHASE_BREAKDOWN.md`) and the *current* state of `src/ollama_llm_bench/` (what previous
    phases already built). Output: a map of what exists vs. what this phase still needs, and
    which spec clauses/modules are still unaddressed.
-2. **`architect`** — turns the investigator's findings into a set of story files under
+1. **`architect`** — turns the investigator's findings into a set of story files under
    `docs/stories/`, one per module or tightly-coupled module group, sized S/M/L per the
    spec's sizing rules (S = 1 module/1-3 AC, M = ≤3 modules/≤6 AC, L = ≤5 modules/≤10 AC,
    split if larger). The architect must set each story's `spec_clauses:` and `modules:`
    front-matter from the phase's spec inputs — **a story that cites no spec clause is
    rejected**, since an unlinked story is exactly how a requirement gets silently dropped.
-3. **`coder`** — implements exactly one story at a time (per its own scoping rule: "Surgical
+1. **`coder`** — implements exactly one story at a time (per its own scoping rule: "Surgical
    implementation of one plan step at a time"). Never lets a coder session span multiple
    stories — that's how partial/half-tested code creeps in.
-4. **`tester`** — writes the story's acceptance-criteria tests (Given/When/Then, table-driven,
+1. **`tester`** — writes the story's acceptance-criteria tests (Given/When/Then, table-driven,
    or Hypothesis invariant, per `05_ACCEPTANCE_CRITERIA_PATTERNS.md`) and runs `just check`.
-5. **`docs-writer`** — updates `docs/architecture.md` / module docstrings if the story changed
+1. **`docs-writer`** — updates `docs/architecture.md` / module docstrings if the story changed
    the public surface; this is cheap to do per-story rather than batched at the end.
 
 Run `debugger` ad hoc whenever `tester` or CI surfaces a failure that isn't a quick fix.
@@ -35,6 +35,7 @@ Run `debugger` ad hoc whenever `tester` or CI surfaces a failure that isn't a qu
 
 The architect agent should generate a phase's stories from a fresh `investigator` pass at the
 start of that phase, not all 60+ up front from this planning session. Reasons:
+
 - A story written against Phase 6 before Phases 1-5 exist would have to guess at the exact
   shape of dependencies that don't exist yet — likely wrong in some detail, silently
   reintroducing the requirement-loss risk this whole plan exists to prevent.
@@ -136,6 +137,6 @@ constrained types (`CosineScore` rejects outside [0.0, 1.0], etc.).
 ```
 
 Every other story in every phase follows this same shape. The discipline that matters most:
-**`spec_clauses:` must name real anchors in `docs/spec/`, and `just trace-check` must be run
+**`spec_clauses:` must name real anchors in `docs/v3_specification/`, and `just trace-check` must be run
 before a story is marked `done`** — that single check is what guarantees the rewrite can't
 silently drop a requirement the way an unstructured task list could.

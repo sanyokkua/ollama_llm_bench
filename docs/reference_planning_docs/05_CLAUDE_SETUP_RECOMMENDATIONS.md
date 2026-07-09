@@ -1,16 +1,22 @@
 # Claude Code Setup Recommendations — Spec v3 Rewrite
 
-**Status:** Draft — for review and approval before anything is generated.
+**Status:** Implemented — nearly everything recommended in this document (the CLAUDE.md
+sections in §1, all 7 agents in §2, all 16 skills in §3, all 14 rules in §4, the
+hooks/hookify rules in §5, and every plugin in §6's "Recommended" table) has already been
+built in `.claude/` and verified to match these tables. This document is kept as the design
+rationale, not an outstanding to-do list. See `00_OVERVIEW_AND_DECISIONS.md`'s "Current
+status" section for what Phase 0 scaffold work (`pyproject.toml`, `justfile`, `docs/stories/`,
+`docs/adr/`, etc.) is still pending.
 **Scope:** this document covers ONLY the `.claude/` configuration (CLAUDE.md, agents, skills,
 rules, hooks) and which marketplace plugins/MCPs to install. It does not cover the
 implementation plan itself (phases/stories — see `01_PHASE_BREAKDOWN.md`/`02_STORY_PROCESS.md`)
 or the spec-vendoring location. Assumes the workflow you described: new branch
-`feature/v3-redesign`, repo emptied, spec copied to `docs/v3_specification/`.
+`feature/spec-v3-implementation`, repo emptied, spec copied to `docs/v3_specification/`.
 
 Sources: Claude Code's own docs (`code.claude.com/docs`), the "Steering Claude Code" framework
-Anthropic published, the current (stale) `.claude/` setup in this repo, and the full
-`App_Specification_Ollama_Bench_Final/` spec content already analyzed in this session
-(particularly `16_Engineering_Standards/`, `14_Process_and_Traceability/`,
+Anthropic published, the current (stale) `.claude/` setup in this repo, and the spec content
+vendored in-repo at `docs/v3_specification/` and already analyzed in this session (particularly
+`16_Engineering_Standards/`, `14_Process_and_Traceability/`,
 `08_Cross_Cutting/08-E_interfaces_contracts.md`).
 
 ## 0. The mental model (why each category exists)
@@ -26,10 +32,11 @@ Anthropic published, the current (stale) `.claude/` setup in this repo, and the 
 
 The current repo's setup already uses CLAUDE.md + rules + skills + agents correctly in shape;
 it's the *content* that's stale (describes the old dataclass/ABC/`backend/core+services`
-architecture). The plan below keeps the shape, replaces the content, and adds hooks (currently
-unused) plus a small number of plugins where they cover a real gap.
+architecture). The plan below keeps the shape, replaces the content, and added hooks (11
+scripts, now wired via `settings.json`) plus a small number of plugins where they covered a
+real gap.
 
----
+______________________________________________________________________
 
 ## 1. CLAUDE.md — required sections
 
@@ -54,7 +61,7 @@ spec-dump would produce.
 | "Don't ignore lint/type errors" rule (NEW — your note) | Directly addresses the failure mode you described — models rationalizing a reported issue as "pre-existing" and moving on. Since this is a from-scratch rewrite there's no large inherited legacy debt to use as an excuse, so this can be enforced strictly | "A `ruff`/`mypy` issue reported by a hook in a file you touched must be fixed before you consider the story done — 'pre-existing' is not a valid reason to leave it, since hooks only fire on files you've edited. If something is genuinely out of scope, say so explicitly in the story's notes instead of silently skipping it." Backed by the hooks in §5, which make this close to mechanically enforced rather than just requested | `CLAUDE.md`, near the hooks/commands sections |
 | "Never bypass quality gates" rule (NEW — your note) | Backstops the pre-commit setup in §5a — without this, a frustrated session could just use `--no-verify` to get past a blocking hook | "Never run `git commit --no-verify`/`-n`, never delete or comment out a failing test to make a suite pass, never weaken a `ruff`/`mypy` rule to silence a finding without discussing it first." | `CLAUDE.md` |
 
----
+______________________________________________________________________
 
 ## 2. Agents (`.claude/agents/*.md`)
 
@@ -86,7 +93,7 @@ Why no separate "architecture-boundary" agent: that job is better done determini
 `import-linter` + `pytest-archon` + a hook (see §5) than by another probabilistic agent —
 mechanical checks should be mechanical.
 
----
+______________________________________________________________________
 
 ## 3. Skills (`.claude/skills/*/SKILL.md`)
 
@@ -114,11 +121,10 @@ match, near-zero cost until invoked).
 | `create-mermaid-diagrams` | (unchanged) | Still applicable, spec uses Mermaid throughout | (keep existing trigger) | `.claude/skills/create-mermaid-diagrams/` |
 | `project-docs` | `repository-documentation.md`-adjacent | Update for the `docs/stories/`+`docs/adr/`+`docs/v3_specification/` structure | "Use when writing or updating project documentation outside a story file." | `.claude/skills/project-docs/` |
 
-Use the **`skill-creator`** plugin/skill (already available in this environment) to actually
-author each `SKILL.md` once this table is approved — it knows the correct frontmatter/structure
-conventions, so generation should go through it rather than hand-rolled files.
+Skills were authored using the **`skill-creator`** plugin/skill, which handles the correct
+frontmatter/structure conventions.
 
----
+______________________________________________________________________
 
 ## 4. Rules (`.claude/rules/*.md`)
 
@@ -143,7 +149,7 @@ invented.
 | `code-documentation.md` | `src/**/*.py` | Largely unchanged (Google-style docstrings still apply) — minor updates for `icontract` interplay | current `code-documentation.md`, light edit |
 | `traceability-and-stories.md` | `docs/stories/**/*.md`, `docs/adr/**/*.md` | New rule — makes the "every story must cite real spec anchors, every story has exactly one coding session" discipline enforceable even when the `story-and-traceability-workflow` skill isn't explicitly invoked | (new) |
 
----
+______________________________________________________________________
 
 ## 5. Hooks (deterministic enforcement — currently unused in this repo)
 
@@ -182,14 +188,14 @@ excuse in the first place, since the hook simply never reports on files you didn
 | End-of-turn check | `Stop` | Runs `ruff check && mypy --strict && import-linter` (fast subset, not full `just check`) before a coding session ends; exit code 2 here is the documented, reliable way to force Claude to keep working rather than stopping with known-broken code | native hook, exit-2-to-continue pattern; guard against infinite loops on out-of-scope failures using the `stop_hook_active` flag the hook payload provides |
 | Fresh-session orientation | `SessionStart` | Injects current branch, current phase marker, and open `docs/stories/*.md` with `status: in-progress` — keeps every new session oriented without growing CLAUDE.md | native hook (small script reading a phase-marker file + `git branch --show-current` + a `docs/stories/` scan) |
 
----
+______________________________________________________________________
 
 ## 5a. Git-level pre-commit framework (separate system from Claude Code hooks)
 
 You're right that this is partly outside "Claude setup" proper, but Claude needs to know it
-exists and never route around it — so it's specified here even though the actual
-`.pre-commit-config.yaml` gets generated alongside the Phase 0 toolchain work, not the
-`.claude/` config itself.
+exists and never route around it — so it's specified here even though it's a separate system
+from the `.claude/` config itself. `.pre-commit-config.yaml` already exists at the repo root
+today, independent of the still-pending `pyproject.toml`/toolchain work.
 
 | Concern | Recommendation | Reasoning |
 |---|---|---|
@@ -199,7 +205,7 @@ exists and never route around it — so it's specified here even though the actu
 | Two systems working together | Claude Code's own `PreToolUse(git commit)` hook (§5, "Pre-commit-from-hook" row) calls the *same* `pre-commit run` Claude would otherwise discover failing only after attempting the commit — the git-level hook is still installed and is the actual backstop (it fires even for a manual `git commit` outside any Claude session) | Per the documented pattern: "the useful pattern is to run pre-commit from a Claude Code hook, so issues surface immediately during the session" — the two are complementary, neither replaces the other |
 | Bypass policy | `--no-verify` is banned (CLAUDE.md rule + the hookify blocker in §5) | Otherwise the whole point of this section is moot |
 
----
+______________________________________________________________________
 
 ## 6. Plugins and MCP servers — what to install vs. skip
 
@@ -248,15 +254,3 @@ PySide6 desktop app, no web frontend, no cloud-platform integration, no CRM/tick
 | `explanatory-output-style` / `learning-output-style` | Educational/teaching modes — irrelevant to unattended implementation work. |
 | `claude-code-setup` | Could not confirm this plugin exists or what it does via search — skip until/unless you can point me at it directly. |
 | Everything else in your pasted list (chrome-devtools, playwright, frontend-design, all non-Python LSPs, every SaaS/CRM/cloud-platform/payments/data-warehouse connector) | No surface area in this project — a single-window offline-first PySide6 desktop app with no web frontend, no cloud infra, and no third-party SaaS integration. |
-
----
-
-## Next step
-
-Once you approve/edit this table, I'll generate, in order: the rewritten `CLAUDE.md` → the
-rules (§4) → the skills (§3, via `skill-creator`) → the agent definitions (§2) → the
-`settings.json` hooks + hookify rule files (§5) → the `.pre-commit-config.yaml` (§5a) → the
-`.mcp.json` entry for `context7`. I won't start on `docs/stories/` content itself (that's the
-separate implementation-plan work in `01_PHASE_BREAKDOWN.md`/`02_STORY_PROCESS.md`), and I
-won't run `pre-commit install` or any plugin-install commands myself — those are local commands
-you run, I'll just leave the config files ready for them.

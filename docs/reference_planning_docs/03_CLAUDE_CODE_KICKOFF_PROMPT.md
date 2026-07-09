@@ -1,41 +1,43 @@
 # Kickoff Prompt — Phase 0
 
-Paste this (adjusted per your answers to D1–D5 in `00_OVERVIEW_AND_DECISIONS.md`) into a fresh
-Claude Code session running inside this repository.
+Paste this into a fresh Claude Code session running inside this repository to continue Phase
+0's remaining scaffold work.
 
----
+______________________________________________________________________
 
-> Read `.AdditionalDocs/Spec3_Rewrite_Plan/00_OVERVIEW_AND_DECISIONS.md`,
+> Read `docs/reference_planning_docs/00_OVERVIEW_AND_DECISIONS.md`,
 > `01_PHASE_BREAKDOWN.md`, and `02_STORY_PROCESS.md` in full before doing anything else.
 >
 > We are executing Phase 0 of that plan: governance and scaffold for a ground-up rewrite of
-> this application per the specification at
-> `/Users/ok/Documents/ReviewAndAnalysesOfSpec3/App_Specification_Ollama_Bench_Final/`. This
-> is NOT an incremental change — the existing `src/ollama_llm_bench/` and `tests/` content is
-> being replaced entirely, per decision D5 in the overview file.
+> this application per the specification vendored in-repo at `docs/v3_specification/`.
 >
-> Decisions D1–D5 have been resolved as follows: [[ PASTE YOUR ANSWERS HERE — e.g. "D1: stay
-> on feature/v2-app-redesign. D2: vendor the spec to docs/spec/. D3: rewrite CLAUDE.md and
-> rules per the recommendation. D4: ratify all 3 ADRs. D5: confirmed as described." ]]
+> This repository is already on branch `feature/spec-v3-implementation` with the specification
+> vendored at `docs/v3_specification/` and `.claude/` (CLAUDE.md plus all rule files) already
+> rewritten to spec-v3 conventions. This session's job is the two things still outstanding:
+> ratify the 3 proposed ADRs from
+> `docs/v3_specification/15_Risks_and_Open_Questions/03_PROPOSED_ADRS.md` into
+> `docs/adr/0001..0003`, and build the rest of the Phase 0 scaffold (`pyproject.toml`,
+> `justfile`, `docs/stories/`, CI workflows, and the other items) — see
+> `01_PHASE_BREAKDOWN.md`'s Phase 0 section for the complete, current list.
 >
-> Execute Phase 0's work list from `01_PHASE_BREAKDOWN.md` exactly, in order. Before deleting
-> anything, run `git status` and confirm the working tree is clean (stop and ask if it isn't —
-> do not delete uncommitted work). Use the `investigator` agent first to confirm the current
-> state of `src/` and `.claude/` matches what the plan assumes, then proceed with the
-> documented changes directly (Phase 0 is scaffolding, not a story-by-story phase).
+> Execute Phase 0's work list from `01_PHASE_BREAKDOWN.md` exactly, in order. Before creating
+> new scaffold files, run `git status` and confirm the working tree is clean (stop and ask if
+> it isn't). Use the `investigator` agent first to confirm the current state of `src/` and
+> `.claude/` matches what the plan assumes, then proceed with the documented changes directly
+> (Phase 0 is scaffolding, not a story-by-story phase).
 >
 > When Phase 0's definition-of-done is met, stop and report back — do not proceed into Phase 1
-> (`docs/spec/10_Domain_and_Data/...`) without confirmation, since Phase 1 is where actual
-> application code generation begins and is worth a fresh review checkpoint.
+> (`docs/v3_specification/10_Domain_and_Data/...`) without confirmation, since Phase 1 is where
+> actual application code generation begins and is worth a fresh review checkpoint.
 
----
+______________________________________________________________________
 
 ## Kicking off later phases
 
 For Phase N (N ≥ 1), use this template in a fresh session once the prior phase's
 definition-of-done is confirmed met:
 
-> Read `.AdditionalDocs/Spec3_Rewrite_Plan/01_PHASE_BREAKDOWN.md` Phase N's section, and
+> Read `docs/reference_planning_docs/01_PHASE_BREAKDOWN.md` Phase N's section, and
 > `02_STORY_PROCESS.md`. Confirm Phase <N-1>'s definition-of-done is still met (`just check`
 > green) before starting.
 >

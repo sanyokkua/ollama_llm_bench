@@ -1,9 +1,9 @@
 # Phase Breakdown
 
 Thirteen phases, strictly ordered by the dependency DAG in
-`docs/spec/14_Process_and_Traceability/01_MODULE_INVENTORY.md` §3 (after vendoring per
-decision D2 — paths below assume the spec lives at `docs/spec/` in this repo; adjust if you
-keep it external). Each phase lists: what it builds, which spec files govern it, which of the
+`docs/v3_specification/14_Process_and_Traceability/01_MODULE_INVENTORY.md` §3. The spec is
+already vendored in-repo at `docs/v3_specification/`; every spec path below uses that prefix.
+Each phase lists: what it builds, which spec files govern it, which of the
 62 inventory modules it covers, and its definition-of-done. Phases 2–7 are backend-only
 (Qt-free, can be built and fully unit-tested with zero UI). Phases 8–10 require Phases 2–7
 complete. Do not start a phase whose "Depends on" list isn't done — that's the #1 way to lose
@@ -12,59 +12,63 @@ requirements (building a widget against a service contract that later changes).
 A phase is not "one story" — see `02_STORY_PROCESS.md` for how each phase splits into S/M/L
 stories. The numbers in "~Stories" are an estimate to help scope a session, not a hard count.
 
----
+______________________________________________________________________
 
 ## Phase 0 — Governance and scaffold (no application code)
 
-**Goal:** repo is ready to receive the rewrite; nothing about the old app remains except what
-decision D5 says to keep.
+**Goal:** repo is ready to receive the rewrite; no application code exists yet on this branch,
+so there's nothing to remove.
 
-**Spec inputs:** `docs/spec/16_Engineering_Standards/01_PROJECT_STRUCTURE.md`,
+**Spec inputs:** `docs/v3_specification/16_Engineering_Standards/01_PROJECT_STRUCTURE.md`,
 `02_TOOLCHAIN.md`, `08_CICD_AND_PACKAGING.md`; `14_Process_and_Traceability/02_STORY_FORMAT.md`,
 `03_TRACEABILITY.md`, `04_ADR_FORMAT.md`.
 
+The spec is already vendored at `docs/v3_specification/`, and `.claude/CLAUDE.md` plus all rule
+files are already rewritten to spec-v3 conventions — this section lists only what's still
+outstanding.
+
 **Work:**
-1. Vendor the spec (D2): copy `App_Specification_Ollama_Bench_Final/` → `docs/spec/`.
-2. Delete `src/ollama_llm_bench/{backend,ui}/*` contents and `tests/{unit,integration,widget}/*`
-   per D5, keeping empty `src/ollama_llm_bench/__init__.py` and `tests/__init__.py` as anchors.
-3. Rewrite `pyproject.toml`: `uv_build` backend, full dependency table from `02_TOOLCHAIN.md`
-   (runtime: PySide6 6.8+, msgspec, psygnal==0.15.*, structlog, icontract, ruamel.yaml,
+
+1. Ratify the 3 proposed ADRs from
+   `docs/v3_specification/15_Risks_and_Open_Questions/03_PROPOSED_ADRS.md` (programmatic
+   Qt-Widgets theming, scoped reactive stores + event bus, `uv_build` + unsigned distribution)
+   into `docs/adr/0001..0003` with status `accepted`.
+1. Rewrite `pyproject.toml`: `uv_build` backend, full dependency table from `02_TOOLCHAIN.md`
+   (runtime: PySide6 6.8+, msgspec, psygnal==0.15.\*, structlog, icontract, ruamel.yaml,
    platformdirs, click, typing-extensions; dev: pytest-qt, pytest-archon, import-linter,
    pytest-httpserver, hypothesis, icontract-hypothesis, freezegun, pip-audit; build:
    pyinstaller), ruff config (line-length 100, the rule sets listed in §10 of the toolchain
    doc), mypy strict config.
-4. Add `justfile` mirroring every CI step (`setup`, `lint`, `format`, `typecheck`,
+1. Add `justfile` mirroring every CI step (`setup`, `lint`, `format`, `typecheck`,
    `import-check`, `arch-test`, `test`, `coverage-layers`, `trace`, `trace-check`, `check`).
-5. Add `import-linter` config (4 contracts: core Qt-free, provider-adapter independence,
-   compose.py-only-concrete-wiring, UI-imports-only-Protocols) per
-   `01_PROJECT_STRUCTURE.md` §9.
-6. Scaffold the full `src/ollama_llm_bench/` tree from `01_PROJECT_STRUCTURE.md`'s verbatim
+1. Add `import-linter` config (4 contracts: core Qt-free, provider-adapter independence,
+   compose.py-only-concrete-wiring, UI-imports-only-Protocols) per `01_PROJECT_STRUCTURE.md`
+   §9.
+1. Scaffold the full `src/ollama_llm_bench/` tree from `01_PROJECT_STRUCTURE.md`'s verbatim
    tree as **empty packages** (`__init__.py` with docstring only) — every `backend/*`,
    `adapters/*`, `ui/*` directory that Phase 2+ will fill in. This gives import-linter and
    pytest-archon something to validate from day one.
-7. Scaffold `tests/{architecture,unit,integration,e2e,perf,typing_negative}/`.
-8. Set up `docs/stories/`, `docs/adr/` (+ `docs/adr/README.md` index), `scripts/trace.py`,
+1. Scaffold `tests/{architecture,unit,integration,e2e,perf,typing_negative}/`.
+1. Set up `docs/stories/`, `docs/adr/` (+ `docs/adr/README.md` index), `scripts/trace.py`,
    `scripts/validate_traceability.py` (per `03_TRACEABILITY.md` §3-4).
-9. Ratify the 3 proposed ADRs (D4) as `docs/adr/0001..0003`.
-10. Rewrite `.claude/CLAUDE.md` + the affected rule files per decision D3.
-11. Replace `docs/*.md` (old architecture docs) with a stub `docs/architecture.md` pointing at
-    `docs/spec/` as the authority until Phase 12 writes the real one.
-12. Reset `CHANGELOG.md` `[Unreleased]` section; note the rewrite as a `Breaking` entry.
-13. New GitHub Actions workflows per `08_CICD_AND_PACKAGING.md` (PR-gate: lint→typecheck→test;
-    release-tag: + audit→build→release). Two triggers only — no schedule/dispatch (DD-36).
+1. Replace `docs/*.md` (old architecture docs) with a stub `docs/architecture.md` pointing at
+   `docs/v3_specification/` as the authority until Phase 12 writes the real one.
+1. Reset `CHANGELOG.md` `[Unreleased]` section; note the rewrite as a `Breaking` entry.
+1. New GitHub Actions workflows per `08_CICD_AND_PACKAGING.md` (PR-gate: lint→typecheck→test;
+   release-tag: audit→build→release). Two triggers only — no schedule/dispatch (DD-36).
 
 **Definition of done:** `uv sync` succeeds; `just check` runs (even though it has nothing to
 lint yet beyond the empty scaffold) and is green; `import-linter` config validates against the
 empty tree; CI workflow YAML is valid; `docs/adr/` has 3 accepted ADRs; `.claude/CLAUDE.md`
 reflects the new stack with no contradictions left.
 
----
+______________________________________________________________________
 
 ## Phase 1 — Domain, errors, events, infra (the Qt-free foundation)
 
 **Depends on:** Phase 0.
 
-**Spec inputs:** `docs/spec/10_Domain_and_Data/01_DOMAIN_MODEL.md`, `02_DTOS_AND_ENUMS.md`,
+**Spec inputs:** `docs/v3_specification/10_Domain_and_Data/01_DOMAIN_MODEL.md`, `02_DTOS_AND_ENUMS.md`,
 `08_REDACTION_PATTERNS.md`; `08_Cross_Cutting/08-E_interfaces_contracts.md` §5-6, §22 (Clock,
 Subscription, EventBus, ApplicationContext); `11_Services_and_Algorithms/17_ERROR_TAXONOMY.md`;
 `16_Engineering_Standards/03_CODING_STANDARDS.md`, `05_ERROR_HANDLING_STANDARD.md`,
@@ -85,13 +89,13 @@ retry-policy primitives (backoff formula, per-category tables from `18_RETRY_POL
 floor); `icontract` on every public `api.py` function; no `asyncio`/`anyio` import anywhere
 (architecture test, D-R-01).
 
----
+______________________________________________________________________
 
 ## Phase 2 — Persistence (6 stores + schema)
 
 **Depends on:** Phase 1.
 
-**Spec inputs:** `docs/spec/10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` (full DDL — the
+**Spec inputs:** `docs/v3_specification/10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` (full DDL — the
 authoritative source); `08_Cross_Cutting/08-O_persistence_schema.md` (bridging clarifications);
 `08_Cross_Cutting/08-E_interfaces_contracts.md` §7 (6 Store Protocols);
 `12_Quality_and_NFRs/06_DATA_INTEGRITY.md`; `04_ERROR_RECOVERY.md`.
@@ -110,13 +114,13 @@ an explicit test proves the "run header write comes last" durability ordering in
 (`12_Quality_and_NFRs/06_DATA_INTEGRITY.md` §2); crash-recovery sweep has a dedicated test per
 each of the 4 non-terminal `ResultStatus` values it must reset.
 
----
+______________________________________________________________________
 
 ## Phase 3 — Settings, reactive stores, readiness
 
 **Depends on:** Phase 2.
 
-**Spec inputs:** `docs/spec/08_Cross_Cutting/08-C_settings_hierarchy.md`,
+**Spec inputs:** `docs/v3_specification/08_Cross_Cutting/08-C_settings_hierarchy.md`,
 `08-G_feature_flags.md` (every settings key); `11_Services_and_Algorithms/09_READINESS_PROBE.md`;
 `08_Cross_Cutting/08-E_interfaces_contracts.md` §8, §13 (SettingsService, RunSnapshotBuilder,
 InferenceActivityStore).
@@ -135,13 +139,13 @@ registry keys; a concurrency test proves the gate is exclusive under concurrent 
 readiness aggregation has a table-driven test covering every `ProviderTestStatus` × overall
 combination from `09_READINESS_PROBE.md` §6.5.
 
----
+______________________________________________________________________
 
 ## Phase 4 — Provider adapters
 
 **Depends on:** Phase 1 (domain/errors/events only — does not need persistence).
 
-**Spec inputs:** `docs/spec/11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md`,
+**Spec inputs:** `docs/v3_specification/11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md`,
 `03_PROVIDER_REGISTRY.md`; `16_Engineering_Standards/07_TESTING_STANDARD.md` §7a (provider
 wire-stub via `pytest-httpserver`).
 
@@ -161,13 +165,13 @@ tested against a local `pytest-httpserver` instance with canned SSE/error payloa
 suite runs against both the real adapter (vs. stub) and each adapter's `testing.py` fake to
 prove fidelity (`07_TESTING_STANDARD.md` §6a).
 
----
+______________________________________________________________________
 
 ## Phase 5 — Pipeline-support services
 
 **Depends on:** Phases 1, 3, 4.
 
-**Spec inputs:** `docs/spec/11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md`,
+**Spec inputs:** `docs/v3_specification/11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md`,
 `08_CIRCUIT_BREAKER.md`, `10_MODE_VISIBILITY_POLICY.md`, `11_RUN_DRIFT_DETECTOR.md`;
 `08_Cross_Cutting/08-B_benchmark_state_machine.md` §6-7.
 
@@ -184,13 +188,13 @@ table; run-drift detector's 4 checks (DD-57, environment-availability only).
 each get a `RuleBasedStateMachine` Hypothesis test walking every legal transition; the
 mode-visibility table is asserted total (every cell defined) by an architecture-style test.
 
----
+______________________________________________________________________
 
 ## Phase 6 — Embedding, evaluation, benchmark pipeline (the core engine)
 
 **Depends on:** Phases 1–5 (this is the most dependency-heavy phase — do not start early).
 
-**Spec inputs:** `docs/spec/11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md`,
+**Spec inputs:** `docs/v3_specification/11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md`,
 `04_EVALUATION_PIPELINE.md`, `16_CONCURRENCY_MODEL.md`;
 `08_Cross_Cutting/08-P_judge_protocol.md`, `08-B_benchmark_state_machine.md` (full);
 `16_Engineering_Standards/04_CONCURRENCY_STANDARD.md`.
@@ -219,13 +223,13 @@ settings snapshot; the verdict-cascade table from `08-P` §11.5 is exercised as 
 test (every {phases-enabled} × {force-judge} combination); the 10 state-machine invariants in
 `08-B_benchmark_state_machine.md` §12 each have a named test.
 
----
+______________________________________________________________________
 
 ## Phase 7 — Presentation-support & data-exchange backend modules
 
 **Depends on:** Phases 1, 2, 6 (needs `BenchmarkResult` shape and a populated DB to serialize).
 
-**Spec inputs:** `docs/spec/11_Services_and_Algorithms/12_YAML_FORMATTER.md`,
+**Spec inputs:** `docs/v3_specification/11_Services_and_Algorithms/12_YAML_FORMATTER.md`,
 `13_CHART_AGGREGATORS.md`, `19_TABLE_SERIALIZATION.md`, `20_HTML_RENDERING.md`,
 `21_PERFORMANCE_TASK_GENERATOR.md`, `22_RUN_ANALYSIS_SERVICE.md`, `15_LOG_FORMATTING.md`,
 `14_VALIDATION_CASCADE.md`; `10_Domain_and_Data/04_YAML_TASK_FORMAT.md`, `05_EXPORT_FORMATS.md`,
@@ -254,13 +258,13 @@ modulo canonical reordering); each of the 12 chart kinds has a fixture-based sna
 export filename sanitization (SPEC-064 path-traversal guard) has a dedicated test; HTML
 renderer has an XSS-style test asserting no `<script>`/`on*` ever escapes unescaped.
 
----
+______________________________________________________________________
 
 ## Phase 8 — Adapters layer (Qt-binding glue)
 
 **Depends on:** Phases 1–7 complete (this layer wraps everything backend exposes).
 
-**Spec inputs:** `docs/spec/14_Process_and_Traceability/01_MODULE_INVENTORY.md` §5;
+**Spec inputs:** `docs/v3_specification/14_Process_and_Traceability/01_MODULE_INVENTORY.md` §5;
 `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b (the 7 per-widget Gateway Protocols),
 §19-21 (WorkspaceController, NotificationService, NativePickers, Clipboard, FileSystemActions);
 `16_Engineering_Standards/04_CONCURRENCY_STANDARD.md` (TaskRunner/QRunnable wiring).
@@ -285,13 +289,13 @@ critical correctness point, see the dispatcher-deadlock anti-pattern in
 still resolves its `Future`; import-linter contract "UI imports no concrete backend, only
 Protocols + adapters" passes.
 
----
+______________________________________________________________________
 
 ## Phase 9 — UI foundation (theme + shared primitives)
 
 **Depends on:** Phase 8 (needs `ProviderRegistry`/event-bus adapters for the dropdowns).
 
-**Spec inputs:** `docs/spec/08_Cross_Cutting/08-D_color_palette_and_typography.md`,
+**Spec inputs:** `docs/v3_specification/08_Cross_Cutting/08-D_color_palette_and_typography.md`,
 `08-L_ui_standardization.md`.
 
 **Modules:** `ui/theme/`, `ui/shared/` (incl. `provider_dropdown/`, `model_dropdown/`)
@@ -309,7 +313,7 @@ the full contrast matrix from `08-D` §14 for both themes.
 **Note:** because every later UI module depends on `ui/theme`, treat this phase as a hard gate
 — do not let any Phase 10 widget session start before `ui/theme`'s architecture test is green.
 
----
+______________________________________________________________________
 
 ## Phase 10 — UI widgets and screens
 
@@ -334,13 +338,13 @@ floor) hitting every state in the widget's `state_machine.md`; the widget's cont
 only on its Gateway Protocol (architecture test); every edge case in `08-I` tagged to that
 screen in `08-R_screen_index_and_traceability.md` §3 has a passing test.
 
----
+______________________________________________________________________
 
 ## Phase 11 — Composition root and entry point
 
 **Depends on:** Phases 1–10 all complete (this wires literally everything).
 
-**Spec inputs:** `docs/spec/14_Process_and_Traceability/01_MODULE_INVENTORY.md` §7;
+**Spec inputs:** `docs/v3_specification/14_Process_and_Traceability/01_MODULE_INVENTORY.md` §7;
 `08_Cross_Cutting/08-M_app_lifecycle.md`.
 
 **Modules:** `compose.py`, `__main__.py`.
@@ -354,13 +358,13 @@ unsaved-editor confirm → persist UI state → close DB → exit); single-insta
 Qt platform), reaches `Idle`, and shuts down cleanly; `compose.py` stays within the spec's
 50-200 line budget (a longer file signals a wiring mistake, not thoroughness).
 
----
+______________________________________________________________________
 
 ## Phase 12 — NFR hardening and traceability closure
 
 **Depends on:** Phase 11.
 
-**Spec inputs:** `docs/spec/12_Quality_and_NFRs/*` (all 8 files);
+**Spec inputs:** `docs/v3_specification/12_Quality_and_NFRs/*` (all 8 files);
 `14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md`; `08_Cross_Cutting/08-I_edge_cases.md`.
 
 **Work:** run `just trace-check` and close every gap it reports (uncovered spec clause,
@@ -376,13 +380,13 @@ the accessibility floor's 10 release-blocking requirements; verify resource-limi
 mirror) is green; the 16 risks in the risk register each have their stated mitigation
 verifiably in place (spot-check, not exhaustive).
 
----
+______________________________________________________________________
 
 ## Phase 13 — Packaging, CI release path, distribution docs
 
 **Depends on:** Phase 12.
 
-**Spec inputs:** `docs/spec/16_Engineering_Standards/08_CICD_AND_PACKAGING.md`;
+**Spec inputs:** `docs/v3_specification/16_Engineering_Standards/08_CICD_AND_PACKAGING.md`;
 `13_Distribution_and_Release/*` (all 7 files).
 
 **Work:** one PyInstaller `--onedir` spec per OS (macOS arm64-only `.dmg`, Windows portable
@@ -395,7 +399,7 @@ distribution folder content (these can be largely copied/adapted from
 three OS artifacts + checksums via the workflow; each artifact smoke-launches on its OS per
 the release workflow's post-build check.
 
----
+______________________________________________________________________
 
 ## Summary dependency graph
 

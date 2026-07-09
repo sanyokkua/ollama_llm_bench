@@ -8,7 +8,8 @@ drifting away from the spec when Claude Code does the work, and which model for 
 You already have one — it's just bespoke rather than off-the-shelf. The plan in this folder
 (stories with `spec_clauses:`/`modules:`/`acceptance_criteria:` front-matter, a generated
 `traceability.yaml`, a `just trace-check` gate) **is** spec-driven development, built directly
-from your spec's own `14_Process_and_Traceability/` format rather than a generic template.
+from your spec's own `docs/v3_specification/14_Process_and_Traceability/` format rather than a
+generic template.
 
 Two named tools came up in your question — here's what they actually are and whether to add
 them:
@@ -51,7 +52,7 @@ right spec clause but **misreads** it. That needs separate guardrails:
    can't resolve from the files it read. Answer those explicitly — in chat is fine, but paste
    the resolution into the relevant story's "Design constraints" section so it's not re-litigated
    per story. This is Spec Kit's `/clarify` idea, just folded into your existing per-phase flow.
-2. **Independent AC verification ("second opinion") before coding starts.** After `architect`
+1. **Independent AC verification ("second opinion") before coding starts.** After `architect`
    writes a story, hand the story file (only the file — not the conversation that produced it)
    to a **fresh** agent with no other context, plus the exact spec files it cites, and ask it to
    re-derive the acceptance criteria from scratch and diff against what's written. Run this as
@@ -59,21 +60,22 @@ right spec clause but **misreads** it. That needs separate guardrails:
    context window. This catches the single highest-risk failure mode: an architect
    session quietly misremembering a detail from a 2000-line contracts file it read 40 tool calls
    ago.
-3. **One story per coding session, never more.** Already in `02_STORY_PROCESS.md` — repeating
+1. **One story per coding session, never more.** Already in `02_STORY_PROCESS.md` — repeating
    it because it's the single most effective lever. Context-window degradation over a long
    session is a bigger drift source than any individual model's reasoning quality.
-4. **Spec-conformance code review, not just correctness review.** When a story's implementation
+1. **Spec-conformance code review, not just correctness review.** When a story's implementation
    is done, don't just run the generic `engineering:code-review` skill (security/performance/
    correctness) — explicitly also ask a reviewer pass "does this implementation match every
    acceptance criterion in the story, line by line, and does it introduce any behavior the cited
    spec clauses don't authorize?" Generic code review will pass code that's good Python but
    subtly wrong against the spec (e.g. uses `frozenset` for `setting_overrides` semantics close
-   to but not identical to what `08-G_feature_flags.md` actually specifies).
-5. **`just trace-check` is a hard gate, not a courtesy check.** Refuse to mark any story `done`
+   to but not identical to what `docs/v3_specification/08_Cross_Cutting/08-G_feature_flags.md`
+   actually specifies).
+1. **`just trace-check` is a hard gate, not a courtesy check.** Refuse to mark any story `done`
    — and refuse to move to the next phase — while it reports any gap. Treat a passing
    `trace-check` as necessary, not sufficient (it proves nothing was *skipped*; steps 1-4 are
    what catch something done *wrong*).
-6. **Human checkpoint at every phase boundary**, per `03_CLAUDE_CODE_KICKOFF_PROMPT.md` — review
+1. **Human checkpoint at every phase boundary**, per `03_CLAUDE_CODE_KICKOFF_PROMPT.md` — review
    the story list for completeness against the phase's module list before any `coder` session
    starts, and spot-check a sample of diffs against the spec after. Don't let a Claude Code
    session chain straight through multiple phases unattended; the plan is deliberately built to
@@ -102,22 +104,11 @@ Rule of thumb underlying the table: **Opus where a mistake is expensive to detec
 already-correct contract (writing code/tests to a precise story), Haiku where the task is pure
 retrieval with no judgment call.**
 
-## 4. What's left in Phase 0, given branch + delete + commit + spec copy are done
+## 4. What's left in Phase 0
 
-You've completed the branch (`feature/v3-redesign`) and spec-vendoring steps (decisions D1/D2
-from `00_OVERVIEW_AND_DECISIONS.md` are now resolved by your actions — update that file's D1/D2
-status if you want the package to reflect it). Remaining Phase 0 items from
-`01_PHASE_BREAKDOWN.md`, in order:
-
-1. Resolve D3 (rewrite `.claude/CLAUDE.md` + the conflicting rule files), D4 (ratify the 3
-   proposed ADRs), D5 (confirm exact deletion scope was matched — `.claude/agents/*` should
-   still exist; `LICENSE`/`.git*` should still exist).
-2. `pyproject.toml` rewrite (`uv_build`, full dependency table, ruff/mypy config).
-3. `justfile`, `import-linter` config.
-4. Scaffold the empty `src/ollama_llm_bench/` package tree from
-   `docs/spec/16_Engineering_Standards/01_PROJECT_STRUCTURE.md`'s verbatim tree.
-5. Scaffold `tests/{architecture,unit,integration,e2e,perf,typing_negative}/`.
-6. `docs/stories/`, `docs/adr/`, `scripts/trace.py`, `scripts/validate_traceability.py`.
-7. New CI workflows (PR-gate + release-tag only, per DD-36 — no schedule/dispatch trigger).
-8. `just sync && just check` green on the empty scaffold = Phase 0 done → start Phase 1 with a
-   fresh session per `03_CLAUDE_CODE_KICKOFF_PROMPT.md`.
+Governance work — branch, spec vendoring, and the `.claude/` rewrite — is already done; see
+`00_OVERVIEW_AND_DECISIONS.md`'s "Current baseline" section for what that covers.
+`01_PHASE_BREAKDOWN.md`'s Phase 0 section is the canonical, current list of what's still
+outstanding (ratifying the 3 proposed ADRs plus the remaining scaffold items); once that list
+is green (`just sync && just check` passes), Phase 0 is done and Phase 1 starts with a fresh
+session per `03_CLAUDE_CODE_KICKOFF_PROMPT.md`.
