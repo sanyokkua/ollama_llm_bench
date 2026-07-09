@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-09T15:35:38Z'
+generated_at: '2026-07-09T20:25:50Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -170,7 +170,7 @@ stories:
         - src/ollama_llm_bench/backend/domain/tests/test_provider_config.py::test_provider_config_draft_omits_provider_id_and_validates_uuid
   STORY-002:
     title: Define the four-category error taxonomy and the secret-redaction module
-    status: draft
+    status: done
     spec_clauses:
     - 10_Domain_and_Data/08_REDACTION_PATTERNS.md#3-the-regex-denylist
     - 10_Domain_and_Data/08_REDACTION_PATTERNS.md#7-the-api-surface
@@ -186,17 +186,77 @@ stories:
     - EC-RD-6
     acceptance_criteria:
       STORY-002-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_except_exception_does_not_catch_programmer_error
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_programmer_error_is_outside_exception
       STORY-002-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ConfigurationError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseDiskFullError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseLockedError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[EmbeddingUnavailableError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpConnectionError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpTimeoutError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[LLMOutputParseError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContextLengthError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderOverloadedError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderQuotaExhaustedError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderRateLimitedError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderServerError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskCancelledError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskFileError]
       STORY-002-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpConnectionError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpTimeoutError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[MissingEnvVarError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ModelNotAvailableError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderAuthError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderBadRequestError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderContentFilterError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderOverloadedError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderQuotaExhaustedError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderRateLimitedError]
+        - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderServerError]
       STORY-002-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_clean_text_passes_through_unchanged
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-01_openai_key]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-02_anthropic_key]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-03_google_key]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-04_github_token]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-05_azure_key]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-06_bearer_token]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-07_authorization_header]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-08_api_key_kv]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-09_jwt]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-10_generic_long_token]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-13a_underscore_free_lookalike_still_redacted]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-18_multiple_secrets_in_one_line]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_env_var_name_exception_leaves_value_unchanged
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_password_is_redacted_via_processor
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_short_value_is_redacted_by_name_not_regex
       STORY-002-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_applies_length_cap_after_substitution
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_length_cap_rt15_nine_thousand_chars_no_secret
       STORY-002-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_non_safe_field_with_same_shape_is_still_redacted
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[empty_string]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[none]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_repeated_secret_every_occurrence_replaced
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[correlation_id]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[model_digest]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[result_id]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[run_id]
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[task_id]
   STORY-003:
     title: Define the EventBus Protocol and every event payload Struct
     status: draft
@@ -437,15 +497,195 @@ edge_cases:
   EC-RD-3:
     stories:
     - STORY-002
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_except_exception_does_not_catch_programmer_error
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpConnectionError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpTimeoutError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[MissingEnvVarError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ModelNotAvailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderAuthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderBadRequestError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderContentFilterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderOverloadedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderQuotaExhaustedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderRateLimitedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderServerError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_programmer_error_is_outside_exception
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ConfigurationError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseDiskFullError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseLockedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[EmbeddingUnavailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpConnectionError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpTimeoutError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[LLMOutputParseError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContextLengthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderOverloadedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderQuotaExhaustedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderRateLimitedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderServerError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskCancelledError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskFileError]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_clean_text_passes_through_unchanged
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-01_openai_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-02_anthropic_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-03_google_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-04_github_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-05_azure_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-06_bearer_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-07_authorization_header]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-08_api_key_kv]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-09_jwt]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-10_generic_long_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-13a_underscore_free_lookalike_still_redacted]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-18_multiple_secrets_in_one_line]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_env_var_name_exception_leaves_value_unchanged
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_password_is_redacted_via_processor
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_short_value_is_redacted_by_name_not_regex
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_applies_length_cap_after_substitution
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_length_cap_rt15_nine_thousand_chars_no_secret
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_non_safe_field_with_same_shape_is_still_redacted
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[empty_string]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[none]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_repeated_secret_every_occurrence_replaced
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[correlation_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[model_digest]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[result_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[run_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[task_id]
   EC-RD-5:
     stories:
     - STORY-002
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_except_exception_does_not_catch_programmer_error
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpConnectionError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpTimeoutError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[MissingEnvVarError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ModelNotAvailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderAuthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderBadRequestError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderContentFilterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderOverloadedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderQuotaExhaustedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderRateLimitedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderServerError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_programmer_error_is_outside_exception
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ConfigurationError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseDiskFullError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseLockedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[EmbeddingUnavailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpConnectionError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpTimeoutError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[LLMOutputParseError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContextLengthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderOverloadedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderQuotaExhaustedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderRateLimitedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderServerError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskCancelledError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskFileError]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_clean_text_passes_through_unchanged
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-01_openai_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-02_anthropic_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-03_google_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-04_github_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-05_azure_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-06_bearer_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-07_authorization_header]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-08_api_key_kv]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-09_jwt]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-10_generic_long_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-13a_underscore_free_lookalike_still_redacted]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-18_multiple_secrets_in_one_line]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_env_var_name_exception_leaves_value_unchanged
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_password_is_redacted_via_processor
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_short_value_is_redacted_by_name_not_regex
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_applies_length_cap_after_substitution
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_length_cap_rt15_nine_thousand_chars_no_secret
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_non_safe_field_with_same_shape_is_still_redacted
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[empty_string]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[none]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_repeated_secret_every_occurrence_replaced
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[correlation_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[model_digest]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[result_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[run_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[task_id]
   EC-RD-6:
     stories:
     - STORY-002
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_except_exception_does_not_catch_programmer_error
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpConnectionError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpTimeoutError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[MissingEnvVarError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ModelNotAvailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderAuthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderBadRequestError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderContentFilterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderOverloadedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderQuotaExhaustedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderRateLimitedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderServerError]
+    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_programmer_error_is_outside_exception
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ConfigurationError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseDiskFullError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseLockedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[EmbeddingUnavailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpConnectionError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpTimeoutError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[LLMOutputParseError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContextLengthError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderOverloadedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderQuotaExhaustedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderRateLimitedError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderServerError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskCancelledError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskFileError]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_clean_text_passes_through_unchanged
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-01_openai_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-02_anthropic_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-03_google_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-04_github_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-05_azure_key]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-06_bearer_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-07_authorization_header]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-08_api_key_kv]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-09_jwt]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-10_generic_long_token]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-13a_underscore_free_lookalike_still_redacted]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-18_multiple_secrets_in_one_line]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_env_var_name_exception_leaves_value_unchanged
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_password_is_redacted_via_processor
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_short_value_is_redacted_by_name_not_regex
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_applies_length_cap_after_substitution
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_length_cap_rt15_nine_thousand_chars_no_secret
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_non_safe_field_with_same_shape_is_still_redacted
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[empty_string]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[none]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_repeated_secret_every_occurrence_replaced
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[correlation_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[model_digest]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[result_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[run_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[task_id]
 modules:
   backend/concurrency/:
     stories:

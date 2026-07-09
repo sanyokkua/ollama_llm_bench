@@ -1,7 +1,7 @@
 ---
 id: STORY-002
 title: Define the four-category error taxonomy and the secret-redaction module
-status: draft
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#62-the-hierarchy
   - 11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#63-leaf-catalogue

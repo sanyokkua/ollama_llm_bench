@@ -29,3 +29,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   cross-boundary `msgspec.Struct` records, 7 type aliases, 14 constrained types per
   `docs/v3_specification/10_Domain_and_Data/02_DTOS_AND_ENUMS.md`, establishing the
   foundational Qt-free domain model for Phase 1.
+- Error taxonomy and secret redaction (`backend/errors/`): 27 exception classes forming the
+  four-category error taxonomy (`TransientError`, `PermanentError`, `UserError`,
+  `ProgrammerError`) with 20 leaves plus 3 programmer-error leaves; the `ErrorContext`
+  redaction-safe carrier; and the `redact()` and `redact_for_log` secret-redaction module
+  guarding against provider credential leaks per
+  `docs/v3_specification/11_Services_and_Algorithms/17_ERROR_TAXONOMY.md` and
+  `docs/v3_specification/10_Domain_and_Data/08_REDACTION_PATTERNS.md`.
