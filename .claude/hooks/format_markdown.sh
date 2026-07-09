@@ -39,6 +39,17 @@ case "$(basename "${FILE_PATH}")" in
     ;;
 esac
 
+# Prefer the project's uv-managed environment: it carries mdformat-gfm and
+# mdformat-frontmatter (pyproject.toml `formatting` dependency group), which a
+# bare global `mdformat` or an ephemeral `uvx mdformat` environment would lack —
+# without mdformat-frontmatter, mdformat rewrites a literal YAML frontmatter
+# "---" delimiter into a "___" thematic break and corrupts it.
+if command -v uv >/dev/null 2>&1 && [[ -f "${CLAUDE_PROJECT_DIR:-.}/pyproject.toml" ]]; then
+  (cd "${CLAUDE_PROJECT_DIR:-.}" && uv run mdformat "${FILE_PATH}") >/dev/null 2>&1 \
+    || echo "mdformat reported an issue formatting ${FILE_PATH} (non-blocking)." >&2
+  exit 0
+fi
+
 if command -v mdformat >/dev/null 2>&1; then
   mdformat "${FILE_PATH}" >/dev/null 2>&1 \
     || echo "mdformat reported an issue formatting ${FILE_PATH} (non-blocking)." >&2

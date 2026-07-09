@@ -1,7 +1,327 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-09T09:49:37Z'
+generated_at: '2026-07-09T13:17:49Z'
 generator_version: 1
-stories: {}
-clauses: {}
-edge_cases: {}
-modules: {}
+stories:
+  STORY-001:
+    title: Define the shared domain DTOs, enums, type aliases, and constrained types
+    status: draft
+    spec_clauses:
+    - 10_Domain_and_Data/01_DOMAIN_MODEL.md#315-in-memory-only-entities
+    - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#2-type-aliases
+    - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#3-reusable-constrained-types
+    - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#4-enumerations
+    - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records-runtime-and-service-dtos
+    modules:
+    - backend/domain/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-001-AC-1:
+        tests: []
+      STORY-001-AC-2:
+        tests: []
+      STORY-001-AC-3:
+        tests: []
+      STORY-001-AC-4:
+        tests: []
+      STORY-001-AC-5:
+        tests: []
+  STORY-002:
+    title: Define the four-category error taxonomy and the secret-redaction module
+    status: draft
+    spec_clauses:
+    - 10_Domain_and_Data/08_REDACTION_PATTERNS.md#3-the-regex-denylist
+    - 10_Domain_and_Data/08_REDACTION_PATTERNS.md#7-the-api-surface
+    - 10_Domain_and_Data/08_REDACTION_PATTERNS.md#8-order-of-operations-inside-a-redaction-pass
+    - 11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#62-the-hierarchy
+    - 11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#63-leaf-catalogue
+    - 11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#64-mixed-inheritance-for-multi-axis-dispatch
+    modules:
+    - backend/errors/
+    edge_cases:
+    - EC-RD-3
+    - EC-RD-5
+    - EC-RD-6
+    acceptance_criteria:
+      STORY-002-AC-1:
+        tests: []
+      STORY-002-AC-2:
+        tests: []
+      STORY-002-AC-3:
+        tests: []
+      STORY-002-AC-4:
+        tests: []
+      STORY-002-AC-5:
+        tests: []
+      STORY-002-AC-6:
+        tests: []
+  STORY-003:
+    title: Define the EventBus Protocol and every event payload Struct
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#6-event-bus
+    - 08_Cross_Cutting/08-J_event_bus_catalog.md#2-subscription-ownership-binding-rule
+    - 08_Cross_Cutting/08-J_event_bus_catalog.md#3-threading-model
+    - 08_Cross_Cutting/08-J_event_bus_catalog.md#5-event-catalog
+    - 08_Cross_Cutting/08-J_event_bus_catalog.md#7-event-to-payload-index
+    - 08_Cross_Cutting/08-Q_event_payload_schemas.md#1-conventions
+    modules:
+    - backend/events/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-003-AC-1:
+        tests: []
+      STORY-003-AC-2:
+        tests: []
+      STORY-003-AC-3:
+        tests: []
+      STORY-003-AC-4:
+        tests: []
+      STORY-003-AC-5:
+        tests: []
+  STORY-004:
+    title: Provide the Clock, structlog two-stream logging setup, and OS path resolver
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock
+    - 10_Domain_and_Data/07_FILE_LAYOUT.md#8-rotation-and-cleanup-policies
+    - 16_Engineering_Standards/06_LOGGING_STANDARD.md#2-the-two-log-streams
+    - 16_Engineering_Standards/06_LOGGING_STANDARD.md#3-logging-configuration
+    - 16_Engineering_Standards/06_LOGGING_STANDARD.md#6-bound-context-and-correlation
+    - 16_Engineering_Standards/06_LOGGING_STANDARD.md#7-the-redaction-processor
+    - 16_Engineering_Standards/06_LOGGING_STANDARD.md#9-rotation-retention-and-locations
+    modules:
+    - backend/infra/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-004-AC-1:
+        tests: []
+      STORY-004-AC-2:
+        tests: []
+      STORY-004-AC-3:
+        tests: []
+      STORY-004-AC-4:
+        tests: []
+      STORY-004-AC-5:
+        tests: []
+  STORY-005:
+    title: Detect the host OS and resolve OS-appropriate application-data paths
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-K_platform_specifics.md#13-platform-specific-edge-cases
+    - 08_Cross_Cutting/08-K_platform_specifics.md#2-the-platform-detector-and-the-platform-profile
+    - 08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system
+    - 10_Domain_and_Data/07_FILE_LAYOUT.md#1-application-data-directory-per-operating-system
+    modules:
+    - backend/platform/
+    edge_cases:
+    - EC-PLAT-1
+    - EC-PLAT-4
+    acceptance_criteria:
+      STORY-005-AC-1:
+        tests: []
+      STORY-005-AC-2:
+        tests: []
+      STORY-005-AC-3:
+        tests: []
+      STORY-005-AC-4:
+        tests: []
+  STORY-006:
+    title: Provide the two-level CancellationToken and the TaskRunner concurrency port
+    status: draft
+    spec_clauses:
+    - 11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#61-the-taskrunner-and-the-worker-pool
+    - 11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#63-the-single-cancellationtoken
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#3-the-taskrunner-port-and-the-qt-adapter
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#5-the-cancellationtoken
+    modules:
+    - backend/concurrency/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-006-AC-1:
+        tests: []
+      STORY-006-AC-2:
+        tests: []
+      STORY-006-AC-3:
+        tests: []
+      STORY-006-AC-4:
+        tests: []
+      STORY-006-AC-5:
+        tests: []
+  STORY-007:
+    title: Provide the transient-only retry policy with bounded exponential backoff
+    status: draft
+    spec_clauses:
+    - 11_Services_and_Algorithms/18_RETRY_POLICY.md#61-the-retry-filter
+    - 11_Services_and_Algorithms/18_RETRY_POLICY.md#62-per-category-retry-parameters
+    - 11_Services_and_Algorithms/18_RETRY_POLICY.md#63-backoff-computation
+    - 11_Services_and_Algorithms/18_RETRY_POLICY.md#64-honouring-a-provider-retry-after
+    - 11_Services_and_Algorithms/18_RETRY_POLICY.md#65-respecting-cancellation
+    modules:
+    - backend/retry/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-007-AC-1:
+        tests: []
+      STORY-007-AC-2:
+        tests: []
+      STORY-007-AC-3:
+        tests: []
+      STORY-007-AC-4:
+        tests: []
+      STORY-007-AC-5:
+        tests: []
+clauses:
+  08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock:
+    stories:
+    - STORY-004
+  08_Cross_Cutting/08-E_interfaces_contracts.md#6-event-bus:
+    stories:
+    - STORY-003
+  08_Cross_Cutting/08-J_event_bus_catalog.md#2-subscription-ownership-binding-rule:
+    stories:
+    - STORY-003
+  08_Cross_Cutting/08-J_event_bus_catalog.md#3-threading-model:
+    stories:
+    - STORY-003
+  08_Cross_Cutting/08-J_event_bus_catalog.md#5-event-catalog:
+    stories:
+    - STORY-003
+  08_Cross_Cutting/08-J_event_bus_catalog.md#7-event-to-payload-index:
+    stories:
+    - STORY-003
+  08_Cross_Cutting/08-K_platform_specifics.md#13-platform-specific-edge-cases:
+    stories:
+    - STORY-005
+  08_Cross_Cutting/08-K_platform_specifics.md#2-the-platform-detector-and-the-platform-profile:
+    stories:
+    - STORY-005
+  08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system:
+    stories:
+    - STORY-005
+  08_Cross_Cutting/08-Q_event_payload_schemas.md#1-conventions:
+    stories:
+    - STORY-003
+  10_Domain_and_Data/01_DOMAIN_MODEL.md#315-in-memory-only-entities:
+    stories:
+    - STORY-001
+  10_Domain_and_Data/02_DTOS_AND_ENUMS.md#2-type-aliases:
+    stories:
+    - STORY-001
+  10_Domain_and_Data/02_DTOS_AND_ENUMS.md#3-reusable-constrained-types:
+    stories:
+    - STORY-001
+  10_Domain_and_Data/02_DTOS_AND_ENUMS.md#4-enumerations:
+    stories:
+    - STORY-001
+  10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records-runtime-and-service-dtos:
+    stories:
+    - STORY-001
+  10_Domain_and_Data/07_FILE_LAYOUT.md#1-application-data-directory-per-operating-system:
+    stories:
+    - STORY-005
+  10_Domain_and_Data/07_FILE_LAYOUT.md#8-rotation-and-cleanup-policies:
+    stories:
+    - STORY-004
+  10_Domain_and_Data/08_REDACTION_PATTERNS.md#3-the-regex-denylist:
+    stories:
+    - STORY-002
+  10_Domain_and_Data/08_REDACTION_PATTERNS.md#7-the-api-surface:
+    stories:
+    - STORY-002
+  10_Domain_and_Data/08_REDACTION_PATTERNS.md#8-order-of-operations-inside-a-redaction-pass:
+    stories:
+    - STORY-002
+  11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#61-the-taskrunner-and-the-worker-pool:
+    stories:
+    - STORY-006
+  11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#63-the-single-cancellationtoken:
+    stories:
+    - STORY-006
+  11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#62-the-hierarchy:
+    stories:
+    - STORY-002
+  11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#63-leaf-catalogue:
+    stories:
+    - STORY-002
+  11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#64-mixed-inheritance-for-multi-axis-dispatch:
+    stories:
+    - STORY-002
+  11_Services_and_Algorithms/18_RETRY_POLICY.md#61-the-retry-filter:
+    stories:
+    - STORY-007
+  11_Services_and_Algorithms/18_RETRY_POLICY.md#62-per-category-retry-parameters:
+    stories:
+    - STORY-007
+  11_Services_and_Algorithms/18_RETRY_POLICY.md#63-backoff-computation:
+    stories:
+    - STORY-007
+  11_Services_and_Algorithms/18_RETRY_POLICY.md#64-honouring-a-provider-retry-after:
+    stories:
+    - STORY-007
+  11_Services_and_Algorithms/18_RETRY_POLICY.md#65-respecting-cancellation:
+    stories:
+    - STORY-007
+  16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#3-the-taskrunner-port-and-the-qt-adapter:
+    stories:
+    - STORY-006
+  16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#5-the-cancellationtoken:
+    stories:
+    - STORY-006
+  16_Engineering_Standards/06_LOGGING_STANDARD.md#2-the-two-log-streams:
+    stories:
+    - STORY-004
+  16_Engineering_Standards/06_LOGGING_STANDARD.md#3-logging-configuration:
+    stories:
+    - STORY-004
+  16_Engineering_Standards/06_LOGGING_STANDARD.md#6-bound-context-and-correlation:
+    stories:
+    - STORY-004
+  16_Engineering_Standards/06_LOGGING_STANDARD.md#7-the-redaction-processor:
+    stories:
+    - STORY-004
+  16_Engineering_Standards/06_LOGGING_STANDARD.md#9-rotation-retention-and-locations:
+    stories:
+    - STORY-004
+edge_cases:
+  EC-PLAT-1:
+    stories:
+    - STORY-005
+    tests: []
+  EC-PLAT-4:
+    stories:
+    - STORY-005
+    tests: []
+  EC-RD-3:
+    stories:
+    - STORY-002
+    tests: []
+  EC-RD-5:
+    stories:
+    - STORY-002
+    tests: []
+  EC-RD-6:
+    stories:
+    - STORY-002
+    tests: []
+modules:
+  backend/concurrency/:
+    stories:
+    - STORY-006
+  backend/domain/:
+    stories:
+    - STORY-001
+  backend/errors/:
+    stories:
+    - STORY-002
+  backend/events/:
+    stories:
+    - STORY-003
+  backend/infra/:
+    stories:
+    - STORY-004
+  backend/platform/:
+    stories:
+    - STORY-005
+  backend/retry/:
+    stories:
+    - STORY-007

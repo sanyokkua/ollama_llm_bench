@@ -55,6 +55,7 @@ build = ["pyinstaller>=6.0"]
 formatting = [
   "mdformat>=0.7",
   "mdformat-gfm>=0.3",
+  "mdformat-frontmatter>=0.4",
   "taplo>=0.9",
   "yamllint>=1.35",
   "sqlfluff>=3.0",
