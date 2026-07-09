@@ -83,7 +83,7 @@ just import-check            # import-linter contracts
 just arch-test                # pytest-archon + AST architecture tests
 just test                    # pytest
 just coverage-layers          # per-layer coverage gates (backend >=90%, view-models/controllers >=85%, widgets >=60%)
-just trace                   # regenerate docs/traceability.yaml from docs/stories/
+just trace                   # regenerate traceability.yaml (repo root) from docs/stories/
 just trace-check             # fail if any spec clause, module, or edge case is uncovered
 ```
 
