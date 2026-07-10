@@ -1,7 +1,7 @@
 ---
 id: STORY-009
 title: Provide the RunsStore over the run header and its three frozen snapshot tables
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#71-runsstore
   - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#51-benchmark_runs

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T13:47:05Z'
+generated_at: '2026-07-10T14:19:05Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -651,7 +651,7 @@ stories:
         - tests/integration/persistence/test_app_settings_store.py::test_setting_upsert_read_and_schema_version
   STORY-009:
     title: Provide the RunsStore over the run header and its three frozen snapshot tables
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#71-runsstore
     - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#51-benchmark_runs
@@ -663,11 +663,14 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-009-AC-1:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_runs_store.py::test_create_run_writes_header_and_snapshots_atomically
       STORY-009-AC-2:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_runs_store.py::test_terminal_header_write_comes_last_after_all_result_rows
       STORY-009-AC-3:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_runs_store.py::test_list_newest_first_update_status_and_cascade_delete
   STORY-010:
     title: Provide the TasksStore over the frozen task snapshot and its keyword-term rows
     status: draft

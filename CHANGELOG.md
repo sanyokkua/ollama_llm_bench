@@ -25,6 +25,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `EXPECTED_SCHEMA_VERSION` and `DB_FILENAME`. Implements the four-branch startup logic (file
   absent → first-run DDL; schema version match → no-op; older same-major → additive evolution;
   newer or cross-major → hard error).
+- Benchmark run persistence (`backend/persistence/runs/`): the `RunsStore` Protocol (six
+  methods: `create_run`, `get_run`, `list_runs`, `update_run_status`, `rename_run`, `delete_run`)
+  and factory `create_runs_store(write_conn, lock, read_conn_factory)`. Atomically creates a
+  run header and its three frozen snapshot child tables (`benchmark_run_models`,
+  `benchmark_run_providers`, `benchmark_run_settings`), reads fully assembled runs newest-first,
+  applies partial header updates leaving snapshots immutable, renames runs, and cascades delete
+  across all eight dependent tables per `08-E` §7.1 and `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md`.
 - Error taxonomy leaf `PersistenceError(PermanentError)` for storage failures raised by every
   method of the six per-aggregate persistence stores (`RunsStore`, `TasksStore`, `ResultsStore`,
   `ProvidersStore`, `ModelCapabilitiesStore`, `AppSettingsStore`) and the module's connection
