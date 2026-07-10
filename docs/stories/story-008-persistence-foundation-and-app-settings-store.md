@@ -1,7 +1,7 @@
 ---
 id: STORY-008
 title: Provide the single-writer connection, schema lifecycle, and AppSettingsStore
-status: draft
+status: done
 spec_clauses:
   - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#21-connection-topology-dd-41
   - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#2-connection-pragmas

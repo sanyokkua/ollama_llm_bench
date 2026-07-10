@@ -21,6 +21,7 @@ from ollama_llm_bench.backend.errors._internal.hierarchy import (
     MissingEnvVarError,
     ModelNotAvailableError,
     OsAdapterError,
+    PersistenceError,
     ProviderAuthError,
     ProviderBadRequestError,
     ProviderContentFilterError,
@@ -108,6 +109,12 @@ _LEAF_CASES: tuple[tuple[type[Exception], ErrorCategory, str | None, str | None]
         ResultStatus.ERRORED.value,
     ),
     (EmbeddingUnavailableError, ErrorCategory.PERMANENT, ErrorKind.OTHER.value, None),
+    (
+        PersistenceError,
+        ErrorCategory.PERMANENT,
+        ErrorKind.OTHER.value,
+        ResultStatus.ERRORED.value,
+    ),
     # User
     (
         ProviderAuthError,

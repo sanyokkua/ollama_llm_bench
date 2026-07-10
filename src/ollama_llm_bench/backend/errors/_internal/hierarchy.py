@@ -39,6 +39,7 @@ __all__: list[str] = [
     "ModelNotAvailableError",
     "OsAdapterError",
     "PermanentError",
+    "PersistenceError",
     "ProgrammerError",
     "ProviderAuthError",
     "ProviderBadRequestError",
@@ -245,6 +246,22 @@ class EmbeddingUnavailableError(PermanentError):
 
     error_kind: ClassVar[str | None] = "other"
     terminal_result_status: ClassVar[str | None] = None
+
+
+class PersistenceError(PermanentError):
+    """A persistence-store operation failed (`08-E_interfaces_contracts.md` §7).
+
+    Raised by every public method of the six per-aggregate persistence stores
+    (`RunsStore`, `TasksStore`, `ResultsStore`, `ProvidersStore`,
+    `ModelCapabilitiesStore`, `AppSettingsStore`) on a storage failure — a wrapped
+    `sqlite3.Error`, a missing row where the contract requires one, or a duplicate-name
+    constraint violation. Not itself a `sqlite3` type: the persistence layer wraps every
+    `sqlite3.Error` into this leaf at the store boundary, per the same adapter-boundary
+    translation pattern used for provider SDK exceptions.
+    """
+
+    error_kind: ClassVar[str | None] = "other"
+    terminal_result_status: ClassVar[str | None] = "errored"
 
 
 # --------------------------------------------------------------------------- #

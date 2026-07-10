@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T12:25:44Z'
+generated_at: '2026-07-10T13:47:05Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -324,6 +324,7 @@ stories:
         - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
         - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
         - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
+        - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[PersistenceError]
         - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
         - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
         - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]
@@ -605,7 +606,7 @@ stories:
         - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_cancellation_at_attempt_start_and_during_backoff_sleep
   STORY-008:
     title: Provide the single-writer connection, schema lifecycle, and AppSettingsStore
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#76-appsettingsstore
     - 08_Cross_Cutting/08-I_edge_cases.md#ec-persist-1--database-schema-version-mismatch-at-startup
@@ -622,17 +623,32 @@ stories:
     - EC-PERSIST-5
     acceptance_criteria:
       STORY-008-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_ensure_schema_first_run_then_reopen_reports_match
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_first_run_creates_every_table_and_index_and_seeds_app_meta
+        - tests/integration/persistence/test_app_settings_store.py::test_first_run_creates_schema_and_seeds_app_meta
       STORY-008-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_matching_schema_version_performs_no_ddl_or_write
+        - tests/integration/persistence/test_app_settings_store.py::test_matching_schema_version_performs_no_ddl
       STORY-008-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_newer_schema_version_raises_persistence_error_leaving_row_untouched
+        - tests/integration/persistence/test_app_settings_store.py::test_newer_or_cross_major_version_is_hard_error_leaving_file_untouched
       STORY-008-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_schema_evolution.py::test_additive_steps_never_mutate_existing_rows
       STORY-008-AC-5:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_single_writer.py::test_concurrent_writes_are_serialized_through_one_lock
       STORY-008-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_get_schema_version_returns_the_stored_integer
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_get_setting_returns_none_for_an_unwritten_key
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_list_settings_returns_every_written_key
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_upsert_and_get_setting_round_trips_a_written_key
+        - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_upsert_settings_updates_an_existing_key
+        - tests/integration/persistence/test_app_settings_store.py::test_setting_upsert_read_and_schema_version
   STORY-009:
     title: Provide the RunsStore over the run header and its three frozen snapshot tables
     status: draft
@@ -936,7 +952,22 @@ edge_cases:
   EC-PERSIST-1:
     stories:
     - STORY-008
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_get_schema_version_returns_the_stored_integer
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_get_setting_returns_none_for_an_unwritten_key
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_list_settings_returns_every_written_key
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_upsert_and_get_setting_round_trips_a_written_key
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_upsert_settings_updates_an_existing_key
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_schema_evolution.py::test_additive_steps_never_mutate_existing_rows
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_ensure_schema_first_run_then_reopen_reports_match
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_first_run_creates_every_table_and_index_and_seeds_app_meta
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_matching_schema_version_performs_no_ddl_or_write
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_newer_schema_version_raises_persistence_error_leaving_row_untouched
+    - tests/integration/persistence/test_app_settings_store.py::test_first_run_creates_schema_and_seeds_app_meta
+    - tests/integration/persistence/test_app_settings_store.py::test_matching_schema_version_performs_no_ddl
+    - tests/integration/persistence/test_app_settings_store.py::test_newer_or_cross_major_version_is_hard_error_leaving_file_untouched
+    - tests/integration/persistence/test_app_settings_store.py::test_setting_upsert_read_and_schema_version
+    - tests/integration/persistence/test_single_writer.py::test_concurrent_writes_are_serialized_through_one_lock
   EC-PERSIST-4:
     stories:
     - STORY-011
@@ -944,7 +975,22 @@ edge_cases:
   EC-PERSIST-5:
     stories:
     - STORY-008
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_get_schema_version_returns_the_stored_integer
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_get_setting_returns_none_for_an_unwritten_key
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_list_settings_returns_every_written_key
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_upsert_and_get_setting_round_trips_a_written_key
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_app_settings_store_unit.py::test_upsert_settings_updates_an_existing_key
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_schema_evolution.py::test_additive_steps_never_mutate_existing_rows
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_ensure_schema_first_run_then_reopen_reports_match
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_first_run_creates_every_table_and_index_and_seeds_app_meta
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_matching_schema_version_performs_no_ddl_or_write
+    - src/ollama_llm_bench/backend/persistence/app_settings/tests/test_version_check_unit.py::test_newer_schema_version_raises_persistence_error_leaving_row_untouched
+    - tests/integration/persistence/test_app_settings_store.py::test_first_run_creates_schema_and_seeds_app_meta
+    - tests/integration/persistence/test_app_settings_store.py::test_matching_schema_version_performs_no_ddl
+    - tests/integration/persistence/test_app_settings_store.py::test_newer_or_cross_major_version_is_hard_error_leaving_file_untouched
+    - tests/integration/persistence/test_app_settings_store.py::test_setting_upsert_read_and_schema_version
+    - tests/integration/persistence/test_single_writer.py::test_concurrent_writes_are_serialized_through_one_lock
   EC-PLAT-1:
     stories:
     - STORY-005
@@ -998,6 +1044,7 @@ edge_cases:
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[PersistenceError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]
@@ -1062,6 +1109,7 @@ edge_cases:
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[PersistenceError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]
@@ -1126,6 +1174,7 @@ edge_cases:
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
+    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[PersistenceError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
     - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]

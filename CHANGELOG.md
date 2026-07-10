@@ -17,6 +17,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Persistence foundation layer (`backend/persistence/app_settings/`): the single-writer
+  connection manager and schema lifecycle (ADR-0004) per DD-41 and DD-53, exposing
+  `open_write_connection()` (writer + lock), `open_read_connection()` (read-only connection
+  factory), `ensure_schema()` (first-run DDL and startup version check with additive evolution),
+  `create_app_settings_store()` (typed settings store factory), and constants
+  `EXPECTED_SCHEMA_VERSION` and `DB_FILENAME`. Implements the four-branch startup logic (file
+  absent → first-run DDL; schema version match → no-op; older same-major → additive evolution;
+  newer or cross-major → hard error).
+- Error taxonomy leaf `PersistenceError(PermanentError)` for storage failures raised by every
+  method of the six per-aggregate persistence stores (`RunsStore`, `TasksStore`, `ResultsStore`,
+  `ProvidersStore`, `ModelCapabilitiesStore`, `AppSettingsStore`) and the module's connection
+  and schema-initialization functions per `08-E` §7.3.
+
+### Added (Phase 0 continued)
+
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest
   configuration), `justfile` (local CI-parity task runner), the `src/ollama_llm_bench/`
   three-layer package tree (`backend/`, `adapters/`, `ui/`), the `tests/` tree, the
