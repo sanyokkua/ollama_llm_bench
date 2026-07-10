@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T11:48:38Z'
+generated_at: '2026-07-10T12:25:44Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -603,6 +603,137 @@ stories:
       STORY-007-AC-5:
         tests:
         - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_cancellation_at_attempt_start_and_during_backoff_sleep
+  STORY-008:
+    title: Provide the single-writer connection, schema lifecycle, and AppSettingsStore
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#76-appsettingsstore
+    - 08_Cross_Cutting/08-I_edge_cases.md#ec-persist-1--database-schema-version-mismatch-at-startup
+    - 08_Cross_Cutting/08-I_edge_cases.md#ec-persist-5--database-file-missing-or-unreadable-at-startup
+    - 08_Cross_Cutting/08-O_persistence_schema.md#6-schema-versioning--additive-structural-steps-no-data-migration-dd-53
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#10-seed-data
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#2-connection-pragmas
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#21-connection-topology-dd-41
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#8-schema-versioning--additive-structural-steps-no-data-migration-dd-53
+    modules:
+    - backend/persistence/app_settings/
+    edge_cases:
+    - EC-PERSIST-1
+    - EC-PERSIST-5
+    acceptance_criteria:
+      STORY-008-AC-1:
+        tests: []
+      STORY-008-AC-2:
+        tests: []
+      STORY-008-AC-3:
+        tests: []
+      STORY-008-AC-4:
+        tests: []
+      STORY-008-AC-5:
+        tests: []
+      STORY-008-AC-6:
+        tests: []
+  STORY-009:
+    title: Provide the RunsStore over the run header and its three frozen snapshot tables
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#71-runsstore
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#51-benchmark_runs
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#7-foreign-keys-and-cascade-policy
+    - 12_Quality_and_NFRs/06_DATA_INTEGRITY.md#2-sqlite-wal-transactional-guarantees
+    - 12_Quality_and_NFRs/06_DATA_INTEGRITY.md#4-atomicity-per-write-operation
+    modules:
+    - backend/persistence/runs/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-009-AC-1:
+        tests: []
+      STORY-009-AC-2:
+        tests: []
+      STORY-009-AC-3:
+        tests: []
+  STORY-010:
+    title: Provide the TasksStore over the frozen task snapshot and its keyword-term rows
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#72-tasksstore
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#55-benchmark_tasks
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#56-benchmark_task_terms
+    modules:
+    - backend/persistence/tasks/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-010-AC-1:
+        tests: []
+      STORY-010-AC-2:
+        tests: []
+  STORY-011:
+    title: Provide the ResultsStore with the resume, retry, and crash-recovery sweeps
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#73-resultsstore
+    - 08_Cross_Cutting/08-I_edge_cases.md#ec-persist-4--a-retryable-failure-row-after-crash-recovery
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#57-benchmark_results
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#9-crash-recovery-sweep
+    - 12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep
+    - 12_Quality_and_NFRs/06_DATA_INTEGRITY.md#6-idempotency-per-operation
+    modules:
+    - backend/persistence/results/
+    edge_cases:
+    - EC-PERSIST-4
+    acceptance_criteria:
+      STORY-011-AC-1:
+        tests: []
+      STORY-011-AC-2:
+        tests: []
+      STORY-011-AC-3:
+        tests: []
+      STORY-011-AC-4:
+        tests: []
+      STORY-011-AC-5:
+        tests: []
+      STORY-011-AC-6:
+        tests: []
+  STORY-012:
+    title: Provide the ProvidersStore with UUID4 id generation and built-in provider seeding
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#74-providersstore
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#10-seed-data
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#42-providers
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#43-provider_models
+    - 12_Quality_and_NFRs/06_DATA_INTEGRITY.md#7a-unique-on-name-invariants-and-auto-id-atomicity-dd-33
+    modules:
+    - backend/persistence/providers/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-012-AC-1:
+        tests: []
+      STORY-012-AC-2:
+        tests: []
+      STORY-012-AC-3:
+        tests: []
+      STORY-012-AC-4:
+        tests: []
+      STORY-012-AC-5:
+        tests: []
+  STORY-013:
+    title: Provide the ModelCapabilitiesStore over the probed-capability cache
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#75-modelcapabilitiesstore
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#46-model_capabilities
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#7-foreign-keys-and-cascade-policy
+    modules:
+    - backend/persistence/model_capabilities/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-013-AC-1:
+        tests: []
+      STORY-013-AC-2:
+        tests: []
+      STORY-013-AC-3:
+        tests: []
 clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock:
     stories:
@@ -610,6 +741,33 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#6-event-bus:
     stories:
     - STORY-003
+  08_Cross_Cutting/08-E_interfaces_contracts.md#71-runsstore:
+    stories:
+    - STORY-009
+  08_Cross_Cutting/08-E_interfaces_contracts.md#72-tasksstore:
+    stories:
+    - STORY-010
+  08_Cross_Cutting/08-E_interfaces_contracts.md#73-resultsstore:
+    stories:
+    - STORY-011
+  08_Cross_Cutting/08-E_interfaces_contracts.md#74-providersstore:
+    stories:
+    - STORY-012
+  08_Cross_Cutting/08-E_interfaces_contracts.md#75-modelcapabilitiesstore:
+    stories:
+    - STORY-013
+  08_Cross_Cutting/08-E_interfaces_contracts.md#76-appsettingsstore:
+    stories:
+    - STORY-008
+  08_Cross_Cutting/08-I_edge_cases.md#ec-persist-1--database-schema-version-mismatch-at-startup:
+    stories:
+    - STORY-008
+  08_Cross_Cutting/08-I_edge_cases.md#ec-persist-4--a-retryable-failure-row-after-crash-recovery:
+    stories:
+    - STORY-011
+  08_Cross_Cutting/08-I_edge_cases.md#ec-persist-5--database-file-missing-or-unreadable-at-startup:
+    stories:
+    - STORY-008
   08_Cross_Cutting/08-J_event_bus_catalog.md#2-subscription-ownership-binding-rule:
     stories:
     - STORY-003
@@ -631,6 +789,9 @@ clauses:
   08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system:
     stories:
     - STORY-005
+  08_Cross_Cutting/08-O_persistence_schema.md#6-schema-versioning--additive-structural-steps-no-data-migration-dd-53:
+    stories:
+    - STORY-008
   08_Cross_Cutting/08-Q_event_payload_schemas.md#1-conventions:
     stories:
     - STORY-003
@@ -649,6 +810,47 @@ clauses:
   10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records--runtime-and-service-dtos:
     stories:
     - STORY-001
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#10-seed-data:
+    stories:
+    - STORY-008
+    - STORY-012
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#2-connection-pragmas:
+    stories:
+    - STORY-008
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#21-connection-topology-dd-41:
+    stories:
+    - STORY-008
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#42-providers:
+    stories:
+    - STORY-012
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#43-provider_models:
+    stories:
+    - STORY-012
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#46-model_capabilities:
+    stories:
+    - STORY-013
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#51-benchmark_runs:
+    stories:
+    - STORY-009
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#55-benchmark_tasks:
+    stories:
+    - STORY-010
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#56-benchmark_task_terms:
+    stories:
+    - STORY-010
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#57-benchmark_results:
+    stories:
+    - STORY-011
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#7-foreign-keys-and-cascade-policy:
+    stories:
+    - STORY-009
+    - STORY-013
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#8-schema-versioning--additive-structural-steps-no-data-migration-dd-53:
+    stories:
+    - STORY-008
+  10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#9-crash-recovery-sweep:
+    stories:
+    - STORY-011
   10_Domain_and_Data/07_FILE_LAYOUT.md#1-application-data-directory-per-operating-system:
     stories:
     - STORY-005
@@ -694,6 +896,21 @@ clauses:
   11_Services_and_Algorithms/18_RETRY_POLICY.md#65-respecting-cancellation:
     stories:
     - STORY-007
+  12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep:
+    stories:
+    - STORY-011
+  12_Quality_and_NFRs/06_DATA_INTEGRITY.md#2-sqlite-wal-transactional-guarantees:
+    stories:
+    - STORY-009
+  12_Quality_and_NFRs/06_DATA_INTEGRITY.md#4-atomicity-per-write-operation:
+    stories:
+    - STORY-009
+  12_Quality_and_NFRs/06_DATA_INTEGRITY.md#6-idempotency-per-operation:
+    stories:
+    - STORY-011
+  12_Quality_and_NFRs/06_DATA_INTEGRITY.md#7a-unique-on-name-invariants-and-auto-id-atomicity-dd-33:
+    stories:
+    - STORY-012
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#3-the-taskrunner-port-and-the-qt-adapter:
     stories:
     - STORY-006
@@ -716,6 +933,18 @@ clauses:
     stories:
     - STORY-004
 edge_cases:
+  EC-PERSIST-1:
+    stories:
+    - STORY-008
+    tests: []
+  EC-PERSIST-4:
+    stories:
+    - STORY-011
+    tests: []
+  EC-PERSIST-5:
+    stories:
+    - STORY-008
+    tests: []
   EC-PLAT-1:
     stories:
     - STORY-005
@@ -950,6 +1179,24 @@ modules:
   backend/infra/:
     stories:
     - STORY-004
+  backend/persistence/app_settings/:
+    stories:
+    - STORY-008
+  backend/persistence/model_capabilities/:
+    stories:
+    - STORY-013
+  backend/persistence/providers/:
+    stories:
+    - STORY-012
+  backend/persistence/results/:
+    stories:
+    - STORY-011
+  backend/persistence/runs/:
+    stories:
+    - STORY-009
+  backend/persistence/tasks/:
+    stories:
+    - STORY-010
   backend/platform/:
     stories:
     - STORY-005
