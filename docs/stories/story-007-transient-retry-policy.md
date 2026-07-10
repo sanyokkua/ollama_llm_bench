@@ -1,7 +1,7 @@
 ---
 id: STORY-007
 title: Provide the transient-only retry policy with bounded exponential backoff
-status: draft
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/18_RETRY_POLICY.md#61-the-retry-filter
   - 11_Services_and_Algorithms/18_RETRY_POLICY.md#62-per-category-retry-parameters

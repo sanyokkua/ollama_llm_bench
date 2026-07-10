@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T11:25:10Z'
+generated_at: '2026-07-10T11:48:38Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -136,6 +136,7 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.platform.models.PlatformProfile]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -209,6 +210,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.platform.models.PlatformProfile]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -282,6 +284,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.platform.models.PlatformProfile]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.retry.models.RetryPolicy]
       STORY-001-AC-4:
         tests:
         - src/ollama_llm_bench/backend/domain/tests/test_public_surface.py::test_domain_public_symbols_are_reexported
@@ -570,7 +573,7 @@ stories:
         - src/ollama_llm_bench/backend/concurrency/tests/test_cancellation_token.py::test_hard_cancel_hooks_invoked_once_removable_and_isolate_failures
   STORY-007:
     title: Provide the transient-only retry policy with bounded exponential backoff
-    status: draft
+    status: done
     spec_clauses:
     - 11_Services_and_Algorithms/18_RETRY_POLICY.md#61-the-retry-filter
     - 11_Services_and_Algorithms/18_RETRY_POLICY.md#62-per-category-retry-parameters
@@ -582,15 +585,24 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-007-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_retry_filter_matches_transient_category_root_not_leaf_list
       STORY-007-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_default_policy_attempt_cap_and_cause_chaining
       STORY-007-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_permanent_user_and_programmer_errors_are_not_retried[permanent_error]
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_permanent_user_and_programmer_errors_are_not_retried[task_cancelled_error]
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_permanent_user_and_programmer_errors_are_not_retried[user_error]
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_programmer_error_propagates_uncaught_with_no_retry_bookkeeping
       STORY-007-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_backoff_growth_cap_budget_cutoff_and_retry_after_override
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_compute_wait_formula_directly
       STORY-007-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/retry/tests/test_with_retry.py::test_cancellation_at_attempt_start_and_during_backoff_sleep
 clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock:
     stories:
