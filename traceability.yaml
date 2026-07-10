@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T20:34:45Z'
+generated_at: '2026-07-10T20:58:40Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -779,7 +779,113 @@ stories:
       STORY-013-AC-3:
         tests:
         - tests/integration/persistence/test_model_capabilities_store.py::test_provider_delete_cascades_capabilities
+  STORY-014:
+    title: Resolve the three-layer settings hierarchy and build the frozen per-run snapshot
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order
+    - 08_Cross_Cutting/08-C_settings_hierarchy.md#3-the-settings-accessor
+    - 08_Cross_Cutting/08-C_settings_hierarchy.md#4-which-keys-are-per-run-overridable
+    - 08_Cross_Cutting/08-C_settings_hierarchy.md#5-creating-the-per-run-snapshot
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#8-settings-service
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#8a-run-snapshot-builder
+    - 08_Cross_Cutting/08-G_feature_flags.md#3-benchmark--benchmark-behaviour
+    - 08_Cross_Cutting/08-G_feature_flags.md#4-feature--inference-and-analysis-behaviour
+    - 08_Cross_Cutting/08-G_feature_flags.md#5-eval--evaluation-behaviour
+    modules:
+    - backend/settings/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-014-AC-1:
+        tests: []
+      STORY-014-AC-2:
+        tests: []
+      STORY-014-AC-3:
+        tests: []
+      STORY-014-AC-4:
+        tests: []
+      STORY-014-AC-5:
+        tests: []
+      STORY-014-AC-6:
+        tests: []
+  STORY-015:
+    title: Provide the application-wide single-inference gate with lease ownership and watchdog
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store
+    - 08_Cross_Cutting/08-I_edge_cases.md#ec-run-14--watchdog-auto-release-of-the-inference-activity-gate
+    - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#78-inferenceactivitycontext-and-inferenceactivitystate
+    - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#414-inferenceactivitystore
+    modules:
+    - backend/stores/inference_activity/
+    edge_cases:
+    - EC-RUN-14
+    acceptance_criteria:
+      STORY-015-AC-1:
+        tests: []
+      STORY-015-AC-2:
+        tests: []
+      STORY-015-AC-3:
+        tests: []
+      STORY-015-AC-4:
+        tests: []
+      STORY-015-AC-5:
+        tests: []
+      STORY-015-AC-6:
+        tests: []
+  STORY-016:
+    title: Aggregate provider and embedding health into one application-readiness snapshot
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service
+    - 08_Cross_Cutting/08-I_edge_cases.md#ec-run-13--readiness-probe-requested-mid-benchmark
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#62-the-probe-of-one-provider
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#63-the-embedding-model-probe
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#64-probe_all--probing-every-provider-concurrently
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#65-aggregation-into-the-overall-verdict
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#66-coalescing-overlapping-probe-requests
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#7-configuration
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#9-threading-and-concurrency
+    modules:
+    - backend/readiness/
+    edge_cases:
+    - EC-RUN-13
+    acceptance_criteria:
+      STORY-016-AC-1:
+        tests: []
+      STORY-016-AC-2:
+        tests: []
+      STORY-016-AC-3:
+        tests: []
+      STORY-016-AC-4:
+        tests: []
+      STORY-016-AC-5:
+        tests: []
+      STORY-016-AC-6:
+        tests: []
+      STORY-016-AC-7:
+        tests: []
+      STORY-016-AC-8:
+        tests: []
 clauses:
+  08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order:
+    stories:
+    - STORY-014
+  08_Cross_Cutting/08-C_settings_hierarchy.md#3-the-settings-accessor:
+    stories:
+    - STORY-014
+  08_Cross_Cutting/08-C_settings_hierarchy.md#4-which-keys-are-per-run-overridable:
+    stories:
+    - STORY-014
+  08_Cross_Cutting/08-C_settings_hierarchy.md#5-creating-the-per-run-snapshot:
+    stories:
+    - STORY-014
+  08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service:
+    stories:
+    - STORY-016
+  08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store:
+    stories:
+    - STORY-015
   08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock:
     stories:
     - STORY-004
@@ -804,6 +910,21 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#76-appsettingsstore:
     stories:
     - STORY-008
+  08_Cross_Cutting/08-E_interfaces_contracts.md#8-settings-service:
+    stories:
+    - STORY-014
+  08_Cross_Cutting/08-E_interfaces_contracts.md#8a-run-snapshot-builder:
+    stories:
+    - STORY-014
+  08_Cross_Cutting/08-G_feature_flags.md#3-benchmark--benchmark-behaviour:
+    stories:
+    - STORY-014
+  08_Cross_Cutting/08-G_feature_flags.md#4-feature--inference-and-analysis-behaviour:
+    stories:
+    - STORY-014
+  08_Cross_Cutting/08-G_feature_flags.md#5-eval--evaluation-behaviour:
+    stories:
+    - STORY-014
   08_Cross_Cutting/08-I_edge_cases.md#ec-persist-1--database-schema-version-mismatch-at-startup:
     stories:
     - STORY-008
@@ -813,6 +934,12 @@ clauses:
   08_Cross_Cutting/08-I_edge_cases.md#ec-persist-5--database-file-missing-or-unreadable-at-startup:
     stories:
     - STORY-008
+  08_Cross_Cutting/08-I_edge_cases.md#ec-run-13--readiness-probe-requested-mid-benchmark:
+    stories:
+    - STORY-016
+  08_Cross_Cutting/08-I_edge_cases.md#ec-run-14--watchdog-auto-release-of-the-inference-activity-gate:
+    stories:
+    - STORY-015
   08_Cross_Cutting/08-J_event_bus_catalog.md#2-subscription-ownership-binding-rule:
     stories:
     - STORY-003
@@ -855,6 +982,9 @@ clauses:
   10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records--runtime-and-service-dtos:
     stories:
     - STORY-001
+  10_Domain_and_Data/02_DTOS_AND_ENUMS.md#78-inferenceactivitycontext-and-inferenceactivitystate:
+    stories:
+    - STORY-015
   10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#10-seed-data:
     stories:
     - STORY-008
@@ -911,6 +1041,30 @@ clauses:
   10_Domain_and_Data/08_REDACTION_PATTERNS.md#8-order-of-operations-inside-a-redaction-pass:
     stories:
     - STORY-002
+  11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#414-inferenceactivitystore:
+    stories:
+    - STORY-015
+  11_Services_and_Algorithms/09_READINESS_PROBE.md#62-the-probe-of-one-provider:
+    stories:
+    - STORY-016
+  11_Services_and_Algorithms/09_READINESS_PROBE.md#63-the-embedding-model-probe:
+    stories:
+    - STORY-016
+  11_Services_and_Algorithms/09_READINESS_PROBE.md#64-probe_all--probing-every-provider-concurrently:
+    stories:
+    - STORY-016
+  11_Services_and_Algorithms/09_READINESS_PROBE.md#65-aggregation-into-the-overall-verdict:
+    stories:
+    - STORY-016
+  11_Services_and_Algorithms/09_READINESS_PROBE.md#66-coalescing-overlapping-probe-requests:
+    stories:
+    - STORY-016
+  11_Services_and_Algorithms/09_READINESS_PROBE.md#7-configuration:
+    stories:
+    - STORY-016
+  11_Services_and_Algorithms/09_READINESS_PROBE.md#9-threading-and-concurrency:
+    stories:
+    - STORY-016
   11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#61-the-taskrunner-and-the-worker-pool:
     stories:
     - STORY-006
@@ -1257,6 +1411,14 @@ edge_cases:
     - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[result_id]
     - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[run_id]
     - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[task_id]
+  EC-RUN-13:
+    stories:
+    - STORY-016
+    tests: []
+  EC-RUN-14:
+    stories:
+    - STORY-015
+    tests: []
 modules:
   backend/concurrency/:
     stories:
@@ -1294,6 +1456,15 @@ modules:
   backend/platform/:
     stories:
     - STORY-005
+  backend/readiness/:
+    stories:
+    - STORY-016
   backend/retry/:
     stories:
     - STORY-007
+  backend/settings/:
+    stories:
+    - STORY-014
+  backend/stores/inference_activity/:
+    stories:
+    - STORY-015
