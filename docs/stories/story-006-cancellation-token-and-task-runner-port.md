@@ -1,7 +1,7 @@
 ---
 id: STORY-006
 title: Provide the two-level CancellationToken and the TaskRunner concurrency port
-status: draft
+status: done
 spec_clauses:
   - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#3-the-taskrunner-port-and-the-qt-adapter
   - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#5-the-cancellationtoken

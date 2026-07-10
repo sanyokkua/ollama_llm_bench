@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T10:53:49Z'
+generated_at: '2026-07-10T11:25:10Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -518,7 +518,7 @@ stories:
         - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_raises_named_error_on_disk_space_failure
   STORY-006:
     title: Provide the two-level CancellationToken and the TaskRunner concurrency port
-    status: draft
+    status: done
     spec_clauses:
     - 11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#61-the-taskrunner-and-the-worker-pool
     - 11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#63-the-single-cancellationtoken
@@ -529,15 +529,45 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-006-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/concurrency/tests/test_task_runner.py::test_inline_task_runner_captures_pre_submission_cancellation_on_future
+        - src/ollama_llm_bench/backend/concurrency/tests/test_task_runner.py::test_inline_task_runner_captures_worker_exception_on_future
+        - src/ollama_llm_bench/backend/concurrency/tests/test_task_runner.py::test_inline_task_runner_executes_synchronously_and_resolves_future
+        - src/ollama_llm_bench/backend/concurrency/tests/test_task_runner.py::test_task_runner_protocol_declares_exactly_submit
+        - tests/architecture/test_concurrency_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[_internal/cancellation_token.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[_internal/inline_task_runner.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[api.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[protocols.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/conftest.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/test_cancellation_token.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/test_task_runner.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[_internal/cancellation_token.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[_internal/inline_task_runner.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[protocols.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/conftest.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/test_cancellation_token.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/test_task_runner.py]
       STORY-006-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/concurrency/tests/test_cancellation_token.py::test_cancellation_level_is_monotonic_never_downgraded
       STORY-006-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/concurrency/tests/test_cancellation_token.py::test_raise_if_cancelled_and_level_query_properties
       STORY-006-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/concurrency/tests/test_cancellation_token.py::test_wait_returns_early_on_cross_thread_cancel
       STORY-006-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/concurrency/tests/test_cancellation_token.py::test_add_hard_cancel_hook_invokes_immediately_when_already_hard_cancelled
+        - src/ollama_llm_bench/backend/concurrency/tests/test_cancellation_token.py::test_hard_cancel_hooks_invoked_once_removable_and_isolate_failures
   STORY-007:
     title: Provide the transient-only retry policy with bounded exponential backoff
     status: draft
