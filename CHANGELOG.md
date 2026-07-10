@@ -32,6 +32,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `benchmark_run_providers`, `benchmark_run_settings`), reads fully assembled runs newest-first,
   applies partial header updates leaving snapshots immutable, renames runs, and cascades delete
   across all eight dependent tables per `08-E` §7.1 and `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md`.
+- Benchmark task snapshot persistence (`backend/persistence/tasks/`): the `TasksStore` Protocol
+  (two methods: `create_tasks`, `list_tasks`) and factory `create_tasks_store(write_conn, lock, read_conn_factory)`. Atomically inserts a run's frozen `benchmark_tasks` snapshot and its
+  `benchmark_task_terms` child rows in one transaction, reads tasks in `task_order` with their
+  keyword-term rows assembled per `08-E` §7.2 and `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md`.
 - Error taxonomy leaf `PersistenceError(PermanentError)` for storage failures raised by every
   method of the six per-aggregate persistence stores (`RunsStore`, `TasksStore`, `ResultsStore`,
   `ProvidersStore`, `ModelCapabilitiesStore`, `AppSettingsStore`) and the module's connection

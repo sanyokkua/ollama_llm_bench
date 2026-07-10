@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T14:19:05Z'
+generated_at: '2026-07-10T14:57:15Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -673,7 +673,7 @@ stories:
         - tests/integration/persistence/test_runs_store.py::test_list_newest_first_update_status_and_cascade_delete
   STORY-010:
     title: Provide the TasksStore over the frozen task snapshot and its keyword-term rows
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#72-tasksstore
     - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#55-benchmark_tasks
@@ -683,9 +683,11 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-010-AC-1:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_tasks_store.py::test_create_tasks_writes_tasks_and_terms_atomically
       STORY-010-AC-2:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_tasks_store.py::test_list_tasks_returns_tasks_in_order_with_terms
   STORY-011:
     title: Provide the ResultsStore with the resume, retry, and crash-recovery sweeps
     status: draft

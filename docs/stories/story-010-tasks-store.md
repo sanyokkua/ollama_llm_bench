@@ -1,7 +1,7 @@
 ---
 id: STORY-010
 title: Provide the TasksStore over the frozen task snapshot and its keyword-term rows
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#72-tasksstore
   - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#55-benchmark_tasks
@@ -98,9 +98,26 @@ a run that has no tasks.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-010.
-- [ ] Integration tests run against a real `tmp_path` SQLite database — never an in-memory
+- [x] Every acceptance criterion has a passing test that names STORY-010.
+- [x] Integration tests run against a real `tmp_path` SQLite database — never an in-memory
   database.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/persistence/tasks/`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/persistence/tasks/`.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- `just trace` regenerates `traceability.yaml` cleanly for this story: `STORY-010-AC-1` and
+  `STORY-010-AC-2` are each mapped to their proving test, and `backend/persistence/tasks/`
+  introduces zero orphan clauses/tests of its own.
+- `just trace-check` still fails at the repo level, but on the same four pre-existing gaps
+  (`EC-PERSIST-6` dangling row; `EC-PROV-1a`/`EC-RUN-1a` uncovered; `EC-PERSIST-4` named by
+  STORY-011 with no test yet) already documented as pre-existing by STORY-003 and STORY-005 —
+  confirmed present with STORY-010's changes stashed out. STORY-010 itself introduces no new
+  gap.
+- `just test` — 467 passed, including both of this story's integration tests, independently
+  re-run and verified by the tester agent (not just the coder's report).
+- `backend/persistence/tasks/` is purely internal backend API — not yet wired into
+  `compose.py` and not user-facing — so README.md and docs/architecture/ needed no change
+  (confirmed, not assumed, by the docs-writer pass); CHANGELOG.md did warrant an entry and got
+  one, under `[Unreleased] / Added`, matching the pattern set by STORY-008/STORY-009.
