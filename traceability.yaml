@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T15:46:47Z'
+generated_at: '2026-07-10T19:11:37Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -733,7 +733,7 @@ stories:
         - tests/integration/persistence/test_results_store.py::test_reset_full_vs_stage_preserving_retry
   STORY-012:
     title: Provide the ProvidersStore with UUID4 id generation and built-in provider seeding
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#74-providersstore
     - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#10-seed-data
@@ -745,15 +745,20 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-012-AC-1:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_providers_store.py::test_add_generates_uuid4_and_returns_it_after_commit
       STORY-012-AC-2:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_providers_store.py::test_duplicate_name_raises_atomically_and_get_by_name_precheck
       STORY-012-AC-3:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_providers_store.py::test_update_preserves_immutable_provider_id
       STORY-012-AC-4:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_providers_store.py::test_delete_cascades_models_and_caps_but_preserves_run_snapshot
       STORY-012-AC-5:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_provider_seed.py::test_seed_writes_three_builtin_providers_in_one_transaction
   STORY-013:
     title: Provide the ModelCapabilitiesStore over the probed-capability cache
     status: draft

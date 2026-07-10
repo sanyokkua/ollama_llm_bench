@@ -36,6 +36,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (two methods: `create_tasks`, `list_tasks`) and factory `create_tasks_store(write_conn, lock, read_conn_factory)`. Atomically inserts a run's frozen `benchmark_tasks` snapshot and its
   `benchmark_task_terms` child rows in one transaction, reads tasks in `task_order` with their
   keyword-term rows assembled per `08-E` §7.2 and `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md`.
+- Provider catalog persistence (`backend/persistence/providers/`): the `ProvidersStore` Protocol
+  (six methods: `list_providers`, `get_by_name`, `add`, `update`, `delete`, `replace_providers`)
+  and factories `create_providers_store(write_conn, lock, read_conn_factory)` and
+  `seed_builtin_providers(write_conn, lock)`. The `add` method generates a fresh UUID4
+  `provider_id`, returns it only after commit, and enforces `UNIQUE (name)` constraints. The
+  `seed_builtin_providers` function initializes three built-in OpenAI-compatible local providers
+  (Ollama, LM Studio, llama.cpp) in one transaction, each with `enabled=1`, no API key, and
+  `provider_order` 0/1/2, per `08-E` §7.4, `DD-33`, and
+  `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §10.
 - Error taxonomy leaf `PersistenceError(PermanentError)` for storage failures raised by every
   method of the six per-aggregate persistence stores (`RunsStore`, `TasksStore`, `ResultsStore`,
   `ProvidersStore`, `ModelCapabilitiesStore`, `AppSettingsStore`) and the module's connection

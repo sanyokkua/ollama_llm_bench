@@ -1,7 +1,7 @@
 ---
 id: STORY-012
 title: Provide the ProvidersStore with UUID4 id generation and built-in provider seeding
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#74-providersstore
   - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#42-providers
