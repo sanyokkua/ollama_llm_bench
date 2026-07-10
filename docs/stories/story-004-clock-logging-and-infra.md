@@ -1,7 +1,7 @@
 ---
 id: STORY-004
 title: Provide the Clock, structlog two-stream logging setup, and OS path resolver
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock
   - 16_Engineering_Standards/06_LOGGING_STANDARD.md#2-the-two-log-streams
@@ -133,8 +133,34 @@ with a 10 MB trigger and 5 retained backups.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-004.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/infra/`.
-- [ ] Backend branch coverage for `backend/infra/` meets the Phase 1 ≥90% gate.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-004.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/infra/`.
+- [x] Backend branch coverage for `backend/infra/` meets the Phase 1 ≥90% gate.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- **Module-boundary table reading (clarification, explicit user direction).**
+  `16_Engineering_Standards/01_PROJECT_STRUCTURE.md` line 341's per-row table, read
+  literally, would forbid `backend/infra/` from importing anything from any other
+  `backend/*` sub-package at all. That literal reading is too strict and is not how this
+  constraint is applied in this codebase: the real constraint is that `backend/` stays
+  decoupled from `ui`/`adapters` (backend never imports `ui`/`adapters`) — not that every
+  backend sub-package is walled off from every other. Within `backend/`, sub-packages
+  freely reuse each other's types/functions/classes. Concretely, this story imports
+  `Iso8601Utc` directly from `backend/domain/models.py` (used as the `Clock` Protocol's
+  and `SystemClock`'s `now_utc()` return type — no local redeclaration) and imports
+  `redact_for_log` directly from `backend/errors/api.py`, installing it as the `app.*`
+  pipeline's redaction processor with no injected-callable indirection — both per this
+  explicit clarification overriding a literal reading of the module-boundary table.
+- **`PlatformDetector` Protocol location (clarification, explicit user direction).**
+  STORY-005 (`backend/platform/`, the real `PlatformDetector`) is still `status: draft`
+  with no code at all, but this story's AC-5 needs path resolution tested against "a
+  fake `PlatformDetector`". Since there is nothing in `backend/platform/` yet to import,
+  a narrow, structurally-typed `PlatformDetector` Protocol carrying only the single
+  `app_data_root` member this module needs is declared locally in
+  `backend/infra/protocols.py`, rather than this story reaching into STORY-005's
+  not-yet-existent module. STORY-005's future concrete class satisfies this Protocol
+  structurally with zero coupling (Protocol matching is structural, not nominal), and
+  this keeps this story's `modules: [backend/infra/]` front-matter accurate.

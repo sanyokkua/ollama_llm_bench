@@ -44,3 +44,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `docs/v3_specification/08_Cross_Cutting/08-Q_event_payload_schemas.md`. The Qt delivery
   bridge and the concrete `EventBus` implementation live in the adapter layer (`adapters/qt_event_bus/`,
   a later story).
+- Cross-cutting infrastructure (`backend/infra/`): the `Clock` Protocol (injectable,
+  testable time source with `now_utc()` and `monotonic_ms()`) backed by a `SystemClock`
+  factory; the two-stream `structlog` logging configuration (`configure_logging` for
+  `app.*` with rotating file, `INFO` level, full redaction; `open_run_log` context manager
+  for per-run `run.*` logs with `DEBUG` level and no redaction) with non-blocking
+  queue-and-worker-thread I/O; the `PlatformDetector` Protocol stub (narrow, structurally
+  typed, carrying only `app_data_root` until STORY-005); and the path-resolution surface
+  (`app_log_path`, `run_log_path`, and their directory variants) composing over the platform
+  detector per `docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md` and
+  `docs/v3_specification/16_Engineering_Standards/06_LOGGING_STANDARD.md`.

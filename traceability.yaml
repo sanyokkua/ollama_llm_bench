@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T08:46:18Z'
+generated_at: '2026-07-10T09:59:39Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -453,7 +453,7 @@ stories:
         - src/ollama_llm_bench/backend/events/tests/test_public_surface.py::test_events_public_symbols_and_signal_names_are_reexported_and_total
   STORY-004:
     title: Provide the Clock, structlog two-stream logging setup, and OS path resolver
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock
     - 10_Domain_and_Data/07_FILE_LAYOUT.md#8-rotation-and-cleanup-policies
@@ -467,15 +467,21 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-004-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/infra/tests/test_clock.py::test_clock_now_utc_and_monotonic_ms_contract
       STORY-004-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/infra/tests/test_logging.py::test_app_stream_is_redacted_and_run_stream_is_not
+        - src/ollama_llm_bench/backend/infra/tests/test_logging.py::test_configure_logging_called_twice_does_not_duplicate_handlers_or_records
       STORY-004-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/infra/tests/test_logging.py::test_run_stream_never_propagates_to_app_log
       STORY-004-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/infra/tests/test_logging.py::test_bound_run_context_propagates_across_worker_threads
       STORY-004-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/infra/tests/test_path_resolution.py::test_log_paths_resolve_from_platform_detector_and_rotation_is_configured
   STORY-005:
     title: Detect the host OS and resolve OS-appropriate application-data paths
     status: draft
