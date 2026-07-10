@@ -1,7 +1,8 @@
-"""Architecture test: every ``msgspec.Struct`` in ``backend/domain/models.py`` is declared
-``frozen=True, kw_only=True, gc=False`` (STORY-001-AC-3).
+"""Architecture test: every ``msgspec.Struct`` in every ``backend/<module>/models.py`` is
+declared ``frozen=True, kw_only=True, gc=False`` (STORY-001-AC-3, extended to every backend
+module by STORY-003 so this gate is not silently scoped to ``backend/domain/`` alone).
 
-Two complementary techniques are used together: an AST walk over the source file catches the
+Two complementary techniques are used together: an AST walk over each source file catches the
 declaration-site keyword arguments (structural, cannot be faked by runtime behaviour alone),
 and a runtime construction/mutation check on every discovered Struct proves the declared flags
 actually take effect (behavioural, catches a msgspec version regression an AST check alone
@@ -10,23 +11,37 @@ would miss).
 
 import ast
 from enum import StrEnum
+import importlib
 import inspect
-from types import UnionType
+from pathlib import Path
+from types import ModuleType, UnionType
 from typing import Annotated, TypeAliasType, get_args, get_origin
 
 import msgspec
 import pytest
 
-from ollama_llm_bench.backend.domain import models as domain_models
+from ollama_llm_bench import backend
 
-_MODELS_SOURCE_PATH = inspect.getfile(domain_models)
+_BACKEND_PACKAGE_ROOT = Path(inspect.getfile(backend)).parent
 _MIN_EXPECTED_STRUCT_COUNT = 30
 
 
-def _iter_struct_class_defs() -> list[ast.ClassDef]:
-    """Return every class definition in ``models.py`` whose bases include ``msgspec.Struct``."""
-    with open(_MODELS_SOURCE_PATH, encoding="utf-8") as source_file:
-        tree = ast.parse(source_file.read(), filename=_MODELS_SOURCE_PATH)
+def _discover_models_modules() -> list[ModuleType]:
+    """Import every ``backend/<module>/models.py`` file discovered on disk."""
+    return [
+        importlib.import_module(f"{backend.__name__}.{models_path.parent.name}.models")
+        for models_path in sorted(_BACKEND_PACKAGE_ROOT.glob("*/models.py"))
+    ]
+
+
+_MODELS_MODULES = _discover_models_modules()
+
+
+def _iter_struct_class_defs(module: ModuleType) -> list[ast.ClassDef]:
+    """Return every class definition in ``module`` whose bases include ``msgspec.Struct``."""
+    source_path = inspect.getfile(module)
+    with open(source_path, encoding="utf-8") as source_file:
+        tree = ast.parse(source_file.read(), filename=source_path)
     return [
         node
         for node in ast.walk(tree)
@@ -39,32 +54,40 @@ def _iter_struct_class_defs() -> list[ast.ClassDef]:
     ]
 
 
-def _struct_class_defs_and_ids() -> tuple[list[ast.ClassDef], list[str]]:
-    defs = _iter_struct_class_defs()
-    return defs, [node.name for node in defs]
+def _struct_defs_and_ids() -> tuple[list[tuple[ModuleType, ast.ClassDef]], list[str]]:
+    pairs: list[tuple[ModuleType, ast.ClassDef]] = []
+    ids: list[str] = []
+    for module in _MODELS_MODULES:
+        for struct_def in _iter_struct_class_defs(module):
+            pairs.append((module, struct_def))
+            ids.append(f"{module.__name__}.{struct_def.name}")
+    return pairs, ids
 
 
-_STRUCT_DEFS, _STRUCT_IDS = _struct_class_defs_and_ids()
+_STRUCT_DEFS, _STRUCT_IDS = _struct_defs_and_ids()
 
 
 def test_at_least_one_struct_discovered() -> None:
     """Proves: STORY-001-AC-3
 
-    Sanity guard for the AST walker itself: ``models.py`` declares at least one
-    ``msgspec.Struct`` subclass, so the parametrized checks below are not vacuously true.
+    Sanity guard for the AST walker itself: the discovered ``models.py`` files declare at
+    least one ``msgspec.Struct`` subclass, so the parametrized checks below are not
+    vacuously true.
     """
     # Assert
     assert len(_STRUCT_DEFS) >= _MIN_EXPECTED_STRUCT_COUNT
 
 
-@pytest.mark.parametrize("struct_def", _STRUCT_DEFS, ids=_STRUCT_IDS)
-def test_dtos_are_frozen_kw_only(struct_def: ast.ClassDef) -> None:
+@pytest.mark.parametrize("module_and_struct_def", _STRUCT_DEFS, ids=_STRUCT_IDS)
+def test_dtos_are_frozen_kw_only(module_and_struct_def: tuple[ModuleType, ast.ClassDef]) -> None:
     """Proves: STORY-001-AC-3
 
-    Every ``msgspec.Struct`` subclass declared in ``backend/domain/models.py`` carries the
-    ``frozen=True, kw_only=True, gc=False`` class keyword arguments at its declaration site.
+    Every ``msgspec.Struct`` subclass declared in any ``backend/<module>/models.py`` carries
+    the ``frozen=True, kw_only=True, gc=False`` class keyword arguments at its declaration
+    site.
     """
     # Act
+    _module, struct_def = module_and_struct_def
     declared_kwargs = {kw.arg: kw.value for kw in struct_def.keywords if kw.arg is not None}
 
     # Assert
@@ -82,26 +105,35 @@ def _is_ast_false(node: ast.expr) -> bool:
     return isinstance(node, ast.Constant) and node.value is False
 
 
-def _discover_struct_classes() -> list[type[msgspec.Struct]]:
-    """Return every ``msgspec.Struct`` subclass actually defined in ``models.py`` at runtime."""
+def _discover_struct_classes(module: ModuleType) -> list[type[msgspec.Struct]]:
+    """Return every ``msgspec.Struct`` subclass actually defined in ``module`` at runtime."""
     return [
         obj
-        for _, obj in inspect.getmembers(domain_models, inspect.isclass)
+        for _, obj in inspect.getmembers(module, inspect.isclass)
         if issubclass(obj, msgspec.Struct)
         and obj is not msgspec.Struct
-        and obj.__module__ == domain_models.__name__
+        and obj.__module__ == module.__name__
     ]
 
 
-_RUNTIME_STRUCTS = _discover_struct_classes()
-_RUNTIME_STRUCT_IDS = [cls.__name__ for cls in _RUNTIME_STRUCTS]
+def _runtime_structs_and_ids() -> tuple[list[type[msgspec.Struct]], list[str]]:
+    structs: list[type[msgspec.Struct]] = []
+    ids: list[str] = []
+    for module in _MODELS_MODULES:
+        for struct_cls in _discover_struct_classes(module):
+            structs.append(struct_cls)
+            ids.append(f"{module.__name__}.{struct_cls.__name__}")
+    return structs, ids
+
+
+_RUNTIME_STRUCTS, _RUNTIME_STRUCT_IDS = _runtime_structs_and_ids()
 
 
 @pytest.mark.parametrize("struct_cls", _RUNTIME_STRUCTS, ids=_RUNTIME_STRUCT_IDS)
 def test_struct_rejects_positional_construction(struct_cls: type[msgspec.Struct]) -> None:
     """Proves: STORY-001-AC-3
 
-    Every domain ``msgspec.Struct`` rejects positional construction because it is declared
+    Every backend ``msgspec.Struct`` rejects positional construction because it is declared
     ``kw_only=True`` — passing any positional argument raises ``TypeError``.
     """
     # Arrange
@@ -117,7 +149,7 @@ def test_struct_rejects_positional_construction(struct_cls: type[msgspec.Struct]
 def test_struct_instance_is_immutable(struct_cls: type[msgspec.Struct]) -> None:
     """Proves: STORY-001-AC-3
 
-    Every domain ``msgspec.Struct`` is immutable because it is declared ``frozen=True`` —
+    Every backend ``msgspec.Struct`` is immutable because it is declared ``frozen=True`` —
     assigning to any field of a constructed instance raises ``AttributeError``.
     """
     # Arrange

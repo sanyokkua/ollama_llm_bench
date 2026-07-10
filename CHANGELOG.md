@@ -36,3 +36,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   guarding against provider credential leaks per
   `docs/v3_specification/11_Services_and_Algorithms/17_ERROR_TAXONOMY.md` and
   `docs/v3_specification/10_Domain_and_Data/08_REDACTION_PATTERNS.md`.
+- Typed event bus core (`backend/events/`): the `EventBus` and `Subscription` service Protocols
+  (`typing.Protocol`, no concrete implementation yet), 36 event payload types as frozen
+  `msgspec.Struct` records with full type safety and schema validation, and 36 signal-name
+  string constants — the complete closed catalogue per
+  `docs/v3_specification/08_Cross_Cutting/08-J_event_bus_catalog.md` and
+  `docs/v3_specification/08_Cross_Cutting/08-Q_event_payload_schemas.md`. The Qt delivery
+  bridge and the concrete `EventBus` implementation live in the adapter layer (`adapters/qt_event_bus/`,
+  a later story).

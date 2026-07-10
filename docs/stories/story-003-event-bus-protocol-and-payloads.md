@@ -1,7 +1,7 @@
 ---
 id: STORY-003
 title: Define the EventBus Protocol and every event payload Struct
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#6-event-bus
   - 08_Cross_Cutting/08-J_event_bus_catalog.md#2-subscription-ownership-binding-rule
@@ -43,7 +43,7 @@ module that needs to announce something happened.
   (`08-J_event_bus_catalog.md` §7) and field-defined in `08-Q_event_payload_schemas.md`:
   the 7 run-lifecycle payloads, 8 stage/progress payloads, 6 per-task payloads, 3
   run-name/run-list payloads, 4 table/chart-data payloads, 3 settings/providers payloads,
-  4 global/app-readiness payloads, and 2 workspace/task-file payloads (33 payload Structs
+  4 global/app-readiness payloads, and 2 workspace/task-file payloads (36 payload Structs
   total, one per event name in the §7 index).
 - The closed set of `signal_name` string constants matching the catalogue's leading-underscore
   event names (`_run_started`, `_task_completed`, `_inference_progress`, …), exported so
@@ -77,14 +77,14 @@ module that needs to announce something happened.
   `any → UI` threading rules per event, and the ordering guarantees (dispatcher-emitted
   run-domain events are totally ordered; `_inference_progress` is best-effort latest-wins
   except relative to its own task's `_task_completed`).
-- `08_Cross_Cutting/08-J_event_bus_catalog.md#5-event-catalog` — the full 33-event catalogue
+- `08_Cross_Cutting/08-J_event_bus_catalog.md#5-event-catalog` — the full 36-event catalogue
   (tables 5.1–5.8), each event's purpose, payload type name, emitter, subscribers, threading
   rule, and coalescing/debounce rule.
 - `08_Cross_Cutting/08-J_event_bus_catalog.md#7-event-to-payload-index` — the one-to-one
   event-name-to-Struct-name mapping this story's Struct set must match exactly.
 - `08_Cross_Cutting/08-Q_event_payload_schemas.md#1-conventions` — the field-naming and
   typing conventions every payload Struct follows (plus the per-event sections of that same
-  file for the concrete field lists of each of the 33 Structs).
+  file for the concrete field lists of each of the 36 Structs).
 
 ## Design constraints
 
@@ -113,18 +113,18 @@ exactly `cancel() -> None`. Both are `typing.Protocol` types, not `abc.ABC`.
 For every event name in the `08-J_event_bus_catalog.md` §7 event-to-payload index, a
 matching `msgspec.Struct(frozen=True, kw_only=True, gc=False)` payload type exists in
 `backend/events/`, is named exactly as in the index, and its field set matches the
-corresponding section of `08-Q_event_payload_schemas.md` (table-driven over all 33 events).
+corresponding section of `08-Q_event_payload_schemas.md` (table-driven over all 36 events).
 
 ### STORY-003-AC-3
 
 Every payload Struct that names a provider (per the catalogue's provider-identity rule,
-DD-33) declares a `provider_id: ProviderIdStr` field and declares no `name`/`provider_name`
+DD-33) declares a `provider_id: ProviderId` field and declares no `name`/`provider_name`
 field; where a run-scoped provider name is needed the payload instead carries the run's
 snapshot-name field, never a live-registry name.
 
 ### STORY-003-AC-4
 
-`TaskCompletedEvent` declares `status: ResultStatus` and an optional `verdict: Verdict | None` field; constructing it with `verdict` set while `status != ResultStatus.COMPLETED`
+`TaskCompletedEvent` declares `result_status: ResultStatus` and an optional `verdict: Verdict | None` field; constructing it with `verdict` set while `result_status != ResultStatus.COMPLETED`
 is representable (the Struct does not forbid it, since the pipeline guarantees the
 invariant at the call site) but no payload Struct anywhere in this module declares a
 numeric judge-score field.
@@ -154,10 +154,31 @@ has no member absent from, and no member beyond, the §7 index.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-003.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/events/`.
-- [ ] `test_dtos_are_frozen_kw_only` (from STORY-001's architecture test) passes for every
+- [x] Every acceptance criterion has a passing test that names STORY-003.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/events/`.
+- [x] `test_dtos_are_frozen_kw_only` (from STORY-001's architecture test) passes for every
   Struct this story adds.
-- [ ] Backend branch coverage for `backend/events/` meets the Phase 1 ≥90% gate.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Backend branch coverage for `backend/events/` meets the Phase 1 ≥90% gate.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-003.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- The spec's `08-J_event_bus_catalog.md` §7 index actually lists **36** events, not the "33"
+  originally written into this story's prose; the prose (and AC-4's field name) has been
+  corrected to match spec ground truth (`08-J` §7 / `08-Q`), since AC-2/AC-5 bind to "the §7
+  index", not a literal count. `TaskCompletedEvent`'s status field is `result_status`
+  (matching `08-Q`), not `status`. AC-3's provider-identity field type is `ProviderId` (the
+  plain type alias `08-Q` §1 actually imports), not `ProviderIdStr` (the UUID4-pattern
+  constrained type used elsewhere in `backend/domain/`).
+- `tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only` previously walked only
+  `backend/domain/models.py`, so it did not actually exercise this story's new
+  `backend/events/models.py` Structs (or `backend/errors/models.py`'s, from STORY-002). It has
+  been generalized to discover and parametrize over every `backend/*/models.py` on disk, so
+  this and future stories are covered by construction.
+- `just trace-check` still fails on five pre-existing, STORY-003-unrelated gaps
+  (`EC-PERSIST-6` dangling row; `EC-PROV-1a`/`EC-RUN-1a` uncovered; `EC-PLAT-1`/`EC-PLAT-4`
+  named by draft STORY-005 with no test yet) — confirmed present in the STORY-002 `done`
+  commit (`c96f4b0`) before this story's work began. STORY-003 itself has zero orphan
+  clauses/tests. Likewise `just coverage-layers`'s UI-layer check reports "No data to report"
+  because no `ui/` code exists yet in Phase 1 — also pre-existing at `c96f4b0`.
