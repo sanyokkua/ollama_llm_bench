@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T14:57:15Z'
+generated_at: '2026-07-10T15:46:47Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -690,7 +690,7 @@ stories:
         - tests/integration/persistence/test_tasks_store.py::test_list_tasks_returns_tasks_in_order_with_terms
   STORY-011:
     title: Provide the ResultsStore with the resume, retry, and crash-recovery sweeps
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#73-resultsstore
     - 08_Cross_Cutting/08-I_edge_cases.md#ec-persist-4--a-retryable-failure-row-after-crash-recovery
@@ -704,17 +704,33 @@ stories:
     - EC-PERSIST-4
     acceptance_criteria:
       STORY-011-AC-1:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_results_store.py::test_create_and_list_results_with_child_rows
       STORY-011-AC-2:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_results_store.py::test_update_result_replaces_term_and_attempt_children_wholesale
       STORY-011-AC-3:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_cosine_check]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_judge_check]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_keyword_check]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[completed]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[errored]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[failed_inference]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[failed_judge_timeout]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[failed_provider]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[failed_timeout]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[pending]
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[running_inference]
       STORY-011-AC-4:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_crash_recovery_sweep.py::test_recover_in_flight_results_is_idempotent
       STORY-011-AC-5:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_results_store.py::test_list_resumable_returns_pending_and_retryable_failures
       STORY-011-AC-6:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_results_store.py::test_reset_full_vs_stage_preserving_retry
   STORY-012:
     title: Provide the ProvidersStore with UUID4 id generation and built-in provider seeding
     status: draft
@@ -976,7 +992,23 @@ edge_cases:
   EC-PERSIST-4:
     stories:
     - STORY-011
-    tests: []
+    tests:
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_recover_in_flight_results_is_idempotent
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_cosine_check]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_judge_check]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_keyword_check]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[completed]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[errored]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[failed_inference]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[failed_judge_timeout]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[failed_provider]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[failed_timeout]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[pending]
+    - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[running_inference]
+    - tests/integration/persistence/test_results_store.py::test_create_and_list_results_with_child_rows
+    - tests/integration/persistence/test_results_store.py::test_list_resumable_returns_pending_and_retryable_failures
+    - tests/integration/persistence/test_results_store.py::test_reset_full_vs_stage_preserving_retry
+    - tests/integration/persistence/test_results_store.py::test_update_result_replaces_term_and_attempt_children_wholesale
   EC-PERSIST-5:
     stories:
     - STORY-008

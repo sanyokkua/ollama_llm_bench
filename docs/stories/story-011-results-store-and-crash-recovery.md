@@ -1,7 +1,7 @@
 ---
 id: STORY-011
 title: Provide the ResultsStore with the resume, retry, and crash-recovery sweeps
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#73-resultsstore
   - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#57-benchmark_results
