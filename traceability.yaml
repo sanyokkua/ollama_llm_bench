@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T19:11:37Z'
+generated_at: '2026-07-10T20:34:45Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -761,7 +761,7 @@ stories:
         - tests/integration/persistence/test_provider_seed.py::test_seed_writes_three_builtin_providers_in_one_transaction
   STORY-013:
     title: Provide the ModelCapabilitiesStore over the probed-capability cache
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#75-modelcapabilitiesstore
     - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#46-model_capabilities
@@ -771,11 +771,14 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-013-AC-1:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_model_capabilities_store.py::test_upsert_then_list_returns_record
       STORY-013-AC-2:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_model_capabilities_store.py::test_upsert_same_triple_updates_in_place
       STORY-013-AC-3:
-        tests: []
+        tests:
+        - tests/integration/persistence/test_model_capabilities_store.py::test_provider_delete_cascades_capabilities
 clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock:
     stories:

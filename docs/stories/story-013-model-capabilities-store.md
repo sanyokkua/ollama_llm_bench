@@ -1,7 +1,7 @@
 ---
 id: STORY-013
 title: Provide the ModelCapabilitiesStore over the probed-capability cache
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#75-modelcapabilitiesstore
   - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#46-model_capabilities
@@ -104,10 +104,29 @@ Given cached capability rows for a provider, when that provider is deleted (STOR
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-013.
-- [ ] Integration tests run against a real `tmp_path` SQLite database — never an in-memory
+- [x] Every acceptance criterion has a passing test that names STORY-013.
+- [x] Integration tests run against a real `tmp_path` SQLite database — never an in-memory
   database.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for
   `backend/persistence/model_capabilities/`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- `just trace` regenerates `traceability.yaml` cleanly for this story: `STORY-013-AC-1`,
+  `STORY-013-AC-2`, and `STORY-013-AC-3` are each mapped to their proving test, and
+  `backend/persistence/model_capabilities/` introduces zero orphan clauses/tests of its own.
+- `just trace-check` still fails at the repo level, but only on the same pre-existing gaps
+  already documented by STORY-003/STORY-005/STORY-010 (`EC-PERSIST-6` dangling row;
+  `EC-PROV-1a`/`EC-RUN-1a` uncovered) — confirmed present with STORY-013's changes stashed
+  out. STORY-013 cites no `edge_cases:` and introduces no new gap.
+- `just check` (ruff, ruff format --check, mypy --strict, import-linter, pytest-archon, full
+  test suite) passes clean: 245 architecture tests + 246 unit/integration tests, all passing.
+- `just test` — 491 passed total, including all three of this story's integration tests,
+  independently re-run and verified by the tester agent (not just the coder's report).
+- `backend/persistence/model_capabilities/` is purely internal backend API — not yet wired
+  into `compose.py`; the docs-writer agent confirmed no README/architecture/CHANGELOG update
+  is warranted, since `01_MODULE_INVENTORY.md` already documented this module before the
+  story and no new convention was introduced (the implementation clones the existing
+  `backend/persistence/providers/` pattern from STORY-012 exactly).
