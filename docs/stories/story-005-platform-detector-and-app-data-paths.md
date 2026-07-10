@@ -1,7 +1,7 @@
 ---
 id: STORY-005
 title: Detect the host OS and resolve OS-appropriate application-data paths
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-K_platform_specifics.md#2-the-platform-detector-and-the-platform-profile
   - 08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system
@@ -143,9 +143,39 @@ mojibake (EC-PLAT-4).
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-005.
-- [ ] EC-PLAT-1 and EC-PLAT-4 have passing tests.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/platform/`.
-- [ ] Backend branch coverage for `backend/platform/` meets the Phase 1 ≥90% gate.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-005.
+- [x] EC-PLAT-1 and EC-PLAT-4 have passing tests.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/platform/`.
+- [x] Backend branch coverage for `backend/platform/` meets the Phase 1 ≥90% gate.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- An independent spec-conformance review (post-implementation) found EC-PLAT-1's spec text
+  (`08-I_edge_cases.md#EC-PLAT-1`) actually covers both a permission failure *and* a
+  disk-space failure, naming both the path and the reason — the first implementation only
+  caught `PermissionError` and hardcoded the message reason. Fixed:
+  `create_app_data_dir_impl` now catches `OSError` (a superset including `PermissionError`)
+  and surfaces the real `strerror`, with a new test
+  (`test_app_data_dir_creation_raises_named_error_on_disk_space_failure`) proving the
+  disk-space branch via a monkeypatched `Path.mkdir` raising `OSError(errno.ENOSPC, ...)`.
+- The review also flagged the Windows `%LOCALAPPDATA%`-unset fallback
+  (`home_path / "AppData" / "Local" / "OllamaLLMBench"`) as not spec-authorized (neither
+  08-K §3 nor `07_FILE_LAYOUT.md` §1 documents a fallback for this case, since real Windows
+  always sets `LOCALAPPDATA`). Kept as a defensive-only branch (avoids producing a broken
+  relative path in a pathological environment) with a one-line comment making the judgment
+  call explicit, rather than removing it or inventing further untested behaviour.
+- `supports_native_dark_mode` resolves to `True` for `UNKNOWN` per the same
+  Linux-convention-fallback rule (EC-K7) applied to every other OS-dependent field in this
+  profile — Linux's own row is `True` per §7. This is a judgment call the review flagged as
+  worth a human decision; kept as-is for consistency with how every other field's `UNKNOWN`
+  fallback is resolved in this module.
+- `just trace-check` still fails on three pre-existing, STORY-005-unrelated gaps
+  (`EC-PERSIST-6` dangling row; `EC-PROV-1a`/`EC-RUN-1a` uncovered) — the same gaps STORY-003
+  already documented as pre-existing at the STORY-002 `done` commit. STORY-005 itself
+  resolves the `EC-PLAT-1`/`EC-PLAT-4` gaps STORY-003 flagged as pending on this story, and
+  introduces zero new orphan clauses/tests. Likewise `just coverage-layers`'s UI-layer check
+  still reports "No data to report" because no `ui/` code exists yet in Phase 1 — also
+  pre-existing, not introduced by this story. `backend/platform/`'s own coverage is 97-100%
+  per file, comfortably above the ≥90% gate.

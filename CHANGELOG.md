@@ -54,3 +54,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`app_log_path`, `run_log_path`, and their directory variants) composing over the platform
   detector per `docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md` and
   `docs/v3_specification/16_Engineering_Standards/06_LOGGING_STANDARD.md`.
+- Platform detection and OS-appropriate paths (`backend/platform/`): the `PlatformDetector`
+  Protocol and `PlatformKind` enum classifying the host into `MACOS`, `WINDOWS`, `LINUX`,
+  or `UNKNOWN`; the immutable `PlatformProfile` DTO carrying OS version, application-data
+  root, home path, desktop path, path separator, line ending, filesystem properties, and
+  native theme support; the factory `make_platform_detector()` binding to the real host
+  environment; and `create_app_data_dir()` for recursive, idempotent creation of the
+  OS-appropriate app-data directory per `docs/v3_specification/08_Cross_Cutting/08-K_platform_specifics.md`.

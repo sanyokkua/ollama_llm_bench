@@ -206,6 +206,10 @@ def _placeholder_for_class(field_type: object) -> object:
         return next(iter(field_type)).value
     if isinstance(field_type, type) and issubclass(field_type, msgspec.Struct):
         return _zero_valued_payload(field_type)
+    if field_type is Path:
+        # msgspec has no builtin str -> Path coercion (even under strict=False), so the
+        # placeholder must already be a Path instance rather than a string.
+        return Path("x")
     return _SCALAR_PLACEHOLDERS.get(field_type, "x")
 
 

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T09:59:39Z'
+generated_at: '2026-07-10T10:53:49Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -135,6 +135,7 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -207,6 +208,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -279,6 +281,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.platform.models.PlatformProfile]
       STORY-001-AC-4:
         tests:
         - src/ollama_llm_bench/backend/domain/tests/test_public_surface.py::test_domain_public_symbols_are_reexported
@@ -484,7 +487,7 @@ stories:
         - src/ollama_llm_bench/backend/infra/tests/test_path_resolution.py::test_log_paths_resolve_from_platform_detector_and_rotation_is_configured
   STORY-005:
     title: Detect the host OS and resolve OS-appropriate application-data paths
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-K_platform_specifics.md#13-platform-specific-edge-cases
     - 08_Cross_Cutting/08-K_platform_specifics.md#2-the-platform-detector-and-the-platform-profile
@@ -497,13 +500,22 @@ stories:
     - EC-PLAT-4
     acceptance_criteria:
       STORY-005-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[linux]
+        - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[macos]
+        - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[windows]
       STORY-005-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[empty_string]
+        - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[unset]
       STORY-005-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_unknown_host_falls_back_to_linux_conventions
       STORY-005-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_is_idempotent_and_raises_named_error_on_permission_failure
+        - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_permission_failure_and_non_ascii_path
+        - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_raises_named_error_on_disk_space_failure
   STORY-006:
     title: Provide the two-level CancellationToken and the TaskRunner concurrency port
     status: draft
@@ -665,11 +677,29 @@ edge_cases:
   EC-PLAT-1:
     stories:
     - STORY-005
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_is_idempotent_and_raises_named_error_on_permission_failure
+    - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_permission_failure_and_non_ascii_path
+    - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_raises_named_error_on_disk_space_failure
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[linux]
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[macos]
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[windows]
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_unknown_host_falls_back_to_linux_conventions
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[empty_string]
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[unset]
   EC-PLAT-4:
     stories:
     - STORY-005
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_is_idempotent_and_raises_named_error_on_permission_failure
+    - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_permission_failure_and_non_ascii_path
+    - src/ollama_llm_bench/backend/platform/tests/test_app_data_creation.py::test_app_data_dir_creation_raises_named_error_on_disk_space_failure
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[linux]
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[macos]
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_platform_kind_and_app_data_root_per_os[windows]
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_unknown_host_falls_back_to_linux_conventions
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[empty_string]
+    - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[unset]
   EC-RD-3:
     stories:
     - STORY-002
