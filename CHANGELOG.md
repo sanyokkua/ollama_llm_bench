@@ -17,6 +17,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Settings service and run snapshot builder (`backend/settings/`): the `SettingsService`
+  Protocol (typed read/write methods `get_str`/`get_bool`/`get_int`/`get_float`/`set`/`upsert`
+  resolving through the three-layer cascade per-run snapshot → user-saved → default) and
+  `RunSnapshotBuilder` Protocol (`build_snapshot()` freezing the per-run-overridable keys at
+  run creation), plus their factories `make_settings_service()` and `make_run_snapshot_builder()`.
+  Implements the DEFAULTS registry (51 keys covering every `benchmark.*`, `feature.*`, `eval.*`,
+  `embedding.*`, `ui.*`, `logging.*`, `task_editor.*` setting), the PER_RUN_OVERRIDABLE registry
+  (27 overridable keys), coercion-failure fallback with logged warning for user-saved values and
+  hard crash for snapshot values (SPEC-110), and an `_app_settings_changed` event on every
+  `set`/`upsert` per `08-C` §2–§5, `08-E` §8–§8a, and `08-G` §3–§9.
 - Persistence foundation layer (`backend/persistence/app_settings/`): the single-writer
   connection manager and schema lifecycle (ADR-0004) per DD-41 and DD-53, exposing
   `open_write_connection()` (writer + lock), `open_read_connection()` (read-only connection

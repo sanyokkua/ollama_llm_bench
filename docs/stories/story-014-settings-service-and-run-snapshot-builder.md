@@ -1,7 +1,7 @@
 ---
 id: STORY-014
 title: Resolve the three-layer settings hierarchy and build the frozen per-run snapshot
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order
   - 08_Cross_Cutting/08-C_settings_hierarchy.md#3-the-settings-accessor
@@ -179,12 +179,31 @@ appears in the snapshot.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-014.
-- [ ] A Hypothesis property test proves resolution-order correctness across all registry keys
+- [x] Every acceptance criterion has a passing test that names STORY-014.
+- [x] A Hypothesis property test proves resolution-order correctness across all registry keys
   (STORY-014-AC-2).
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/settings/`.
-- [ ] An architecture test confirms `backend/settings/` imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
-  </content>
-  </invoke>
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/settings/`.
+- [x] An architecture test confirms `backend/settings/` imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-014.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- `just trace-check` still fails on five pre-existing, STORY-014-unrelated gaps
+  (`EC-PERSIST-6` dangling row; `EC-PROV-1a`/`EC-RUN-1a` uncovered; `EC-RUN-13`/`EC-RUN-14`
+  named by draft STORY-016/STORY-015 with no test yet) — confirmed present in the
+  `186b896` commit ("Phase 3. Created user stories") before this story's work began, and
+  already documented as the same pre-existing gap by STORY-003/STORY-005/STORY-010/STORY-013's
+  own Notes sections. The first three trace to a permanent cross-reference gap between the
+  read-only vendored `08-I_edge_cases.md` catalog and `06_EDGE_CASE_TO_TEST_MAPPING.md` (neither
+  file may be edited in place per `repository-documentation.md`); the last two will close once
+  STORY-015/STORY-016 are implemented. STORY-014 itself has zero orphan clauses/ACs/tests —
+  verified directly against the regenerated `traceability.yaml`.
+- Independent spec-conformance review (read-only) returned CONFORMS WITH CONCERNS, both
+  non-blocking: (1) `_internal/registry.py`'s `benchmark.*` block comment ("12 keys, all
+  per-run-overridable except `last_mode`") was flagged as possibly conflating total-vs-overridable
+  counts, but on inspection the phrasing is accurate as written (12 total, 11 of which are
+  overridable) and needed no change; (2) `SettingsService.set` also emits
+  `_app_settings_changed`, which `08-E` §8's literal text documents only for `upsert` — this is
+  a deliberate, story-sanctioned choice (`In scope` explicitly says "on every `upsert` (and
+  `set`)"), not a deviation.

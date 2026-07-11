@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-10T20:58:40Z'
+generated_at: '2026-07-11T09:08:34Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -781,7 +781,7 @@ stories:
         - tests/integration/persistence/test_model_capabilities_store.py::test_provider_delete_cascades_capabilities
   STORY-014:
     title: Resolve the three-layer settings hierarchy and build the frozen per-run snapshot
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order
     - 08_Cross_Cutting/08-C_settings_hierarchy.md#3-the-settings-accessor
@@ -797,17 +797,63 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-014-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/settings/tests/test_defaults_floor.py::test_default_layer_bool_keys_resolve_without_raising
+        - src/ollama_llm_bench/backend/settings/tests/test_defaults_floor.py::test_default_layer_int_keys_resolve_without_raising
+        - src/ollama_llm_bench/backend/settings/tests/test_defaults_floor.py::test_default_layer_is_total_over_registry
+        - tests/architecture/test_settings_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/registry.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/resolver.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/run_snapshot_builder_impl.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/settings_service_impl.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[api.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[models.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[protocols.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[testing.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[tests/conftest.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[tests/test_defaults_floor.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[tests/test_resolution_order.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[tests/test_run_snapshot_builder.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[tests/test_settings_service.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/registry.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/resolver.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/run_snapshot_builder_impl.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/settings_service_impl.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[models.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[protocols.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[testing.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[tests/conftest.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[tests/test_defaults_floor.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[tests/test_resolution_order.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[tests/test_run_snapshot_builder.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[tests/test_settings_service.py]
       STORY-014-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/settings/tests/test_resolution_order.py::test_non_overridable_key_never_resolves_from_an_adversarial_snapshot
+        - src/ollama_llm_bench/backend/settings/tests/test_resolution_order.py::test_resolution_returns_first_present_layer_in_order
+        - src/ollama_llm_bench/backend/settings/tests/test_resolution_order.py::test_run_none_skips_snapshot_layer_even_for_overridable_key
       STORY-014-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/settings/tests/test_settings_service.py::test_unknown_key_raises_configuration_error_without_side_effects
+        - src/ollama_llm_bench/backend/settings/tests/test_settings_service.py::test_upsert_with_one_unknown_key_among_known_keys_writes_nothing
       STORY-014-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/settings/tests/test_settings_service.py::test_malformed_snapshot_value_raises_programmer_error
+        - src/ollama_llm_bench/backend/settings/tests/test_settings_service.py::test_malformed_user_value_falls_through_to_default_and_logs_a_warning
       STORY-014-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/settings/tests/test_settings_service.py::test_upsert_changed_keys_is_not_a_diff_against_prior_values
+        - src/ollama_llm_bench/backend/settings/tests/test_settings_service.py::test_upsert_writes_atomically_and_emits_settings_changed_with_changed_keys
       STORY-014-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/settings/tests/test_run_snapshot_builder.py::test_build_snapshot_captures_exactly_the_per_run_overridable_keys
   STORY-015:
     title: Provide the application-wide single-inference gate with lease ownership and watchdog
     status: draft
