@@ -24,6 +24,7 @@ from collections.abc import Callable
 
 import pytest
 
+from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.domain import (
     ChatRequest,
     ChatResponse,
@@ -189,11 +190,11 @@ class FakeLLMClient:
         """Unused by these tests."""
         raise NotImplementedError("test_inference is not exercised by provider_registry tests")
 
-    def chat(self, request: ChatRequest) -> ChatResponse:
+    def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse:
         """Unused by these tests."""
         raise NotImplementedError("chat is not exercised by provider_registry tests")
 
-    def chat_stream(self, request: ChatRequest) -> ChatStream:
+    def chat_stream(self, request: ChatRequest, *, token: CancellationToken) -> ChatStream:
         """Unused by these tests."""
         raise NotImplementedError("chat_stream is not exercised by provider_registry tests")
 

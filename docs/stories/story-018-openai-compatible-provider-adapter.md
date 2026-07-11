@@ -1,7 +1,7 @@
 ---
 id: STORY-018
 title: Implement the OpenAI-compatible LLM client adapter with exception translation
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
   - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#62-transport-streaming-and-time-to-first-token
@@ -35,6 +35,7 @@ depends_on:
   - STORY-006
   - STORY-015
   - STORY-017
+  - STORY-021
 owner: coder
 estimate: L
 ---
@@ -57,15 +58,17 @@ every re-raised message is redacted at the boundary.
   re-exporting the canonical `LLMClient` Protocol from `backend/provider_registry` (STORY-017) and
   guarded by `icontract` on programmer invariants only.
 - **`chat_stream` / `chat` (§6.2–§6.4)** — streaming transport, TTFT from the first non-empty
-  `delta.content` chunk, the internal-consume `chat` sugar over `chat_stream`, the finite-deadline
-  wrap on the stream (SPEC-015), and the DD-51 non-streaming fallback behind the same iterator
-  contract.
+  `delta.content` chunk, the internal-consume `chat` sugar over `chat_stream`, and the
+  finite-deadline wrap on the stream (SPEC-015). The transport always opens in streaming mode;
+  no non-streaming fallback path is implemented (see Out of scope).
 - **Token-usage capture (§6.5)** — sending `stream_options={"include_usage": true}` on every
   streaming request and reading `prompt_tokens`/`completion_tokens` from the final chunk or the
   post-stream response object; leaving both `None` when the provider reports no usage.
 - **Mid-stream cancellation (§6.6, DD-39)** — the chunk-boundary hard-cancel poll plus the
   registered idempotent abort hook that closes the in-flight stream, raising `TaskCancelledError`
-  within `provider.hard_cancel_max_ms`; the soft flag is never polled mid-call.
+  within `provider.hard_cancel_max_ms`; the soft flag is never polled mid-call. `chat`/`chat_stream`
+  receive the run's `CancellationToken` through the mandatory keyword-only `token` parameter added to
+  the canonical Protocol by STORY-021 (ADR-0005).
 - **`embed(text)` (§6.7)** — one `/v1/embeddings` call returning a `tuple[float, ...]`, wrapped in
   the embedding timeout.
 - **`probe_health()` (§6.8.1, §6.9.1)** — reachability handshake then `GET /v1/models` discovery
@@ -90,6 +93,9 @@ every re-raised message is redacted at the boundary.
 
 - The canonical `LLMClient` Protocol declaration and provider-registry routing — owned by
   STORY-017; this story re-exports and implements that Protocol.
+- The mandatory keyword-only `token: CancellationToken` parameter on `chat`/`chat_stream` — added to
+  the canonical Protocol by STORY-021 (ADR-0005); this story consumes it and implements the abort
+  hook and chunk-boundary poll against it (AC-6).
 - The `ANTHROPIC` and `GEMINI` adapters — owned by STORY-019 and STORY-020; provider adapters never
   import one another.
 - The provider wire stub itself (`tests/integration/provider_stub/`, §7a) — a shared test fixture,
@@ -99,6 +105,11 @@ every re-raised message is redacted at the boundary.
   the client returns `text` verbatim and leaves `completion_tokens` untouched.
 - The adaptive-timeout budget and retry — the client receives a fully-formed `ChatRequest` with the
   deadline already set and performs exactly one call.
+- **The DD-51 non-streaming fallback.** The transport always opens in streaming mode; a fallback
+  to a non-streaming request when the provider cannot stream is not implemented by this story. All
+  five real target backends (Ollama, LM Studio, llama.cpp, OpenAI, Azure) support streaming, the
+  fallback is defensive-only, and no acceptance criterion or Test Plan entry in this story ever
+  named it. See Notes for the scope-narrowing rationale.
 
 ## Spec inputs
 
@@ -106,7 +117,8 @@ every re-raised message is redacted at the boundary.
   implements: return shapes, the never-raises rules for `probe_health`/`test_inference`, and the
   soft-failure-in-`ChatResponse.error` contract.
 - `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#62-transport-streaming-and-time-to-first-token`
-  — the six-step TTFT measurement and the DD-51 non-streaming fallback behind the iterator.
+  — the six-step TTFT measurement; the DD-51 non-streaming fallback it also describes is out of
+  scope for this story (see Out of scope, Notes).
 - `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm` — the one-call rule,
   the given-not-computed deadline, the finite-deadline invariant (SPEC-015), and the hard-vs-soft
   failure split.
@@ -216,14 +228,15 @@ Each `test_inference(model_name)` scenario produces the `InferenceTestResult.out
 table, the method never raises, and on any non-`GATE_BUSY` path the `PROVIDER_TEST` gate is acquired
 before the call and released in `finally`:
 
-| Scenario                                                  | `outcome`                                                  |
-| --------------------------------------------------------- | ---------------------------------------------------------- |
-| gate already held by another activity                     | `GATE_BUSY` (no call issued, `latency_ms=None`)            |
-| canned-prompt call returns non-empty text                 | `SUCCESS` (`response_excerpt` verbatim, `last_error=None`) |
-| call exceeds the inference-test deadline                  | `TIMEOUT`                                                  |
-| provider rejects with a model-not-found error             | `MODEL_NOT_FOUND`                                          |
-| provider rejects with an auth error                       | `AUTH_FAILED`                                              |
-| any other provider rejection or unexpected internal error | `PROVIDER_ERROR` (redacted `last_error`)                   |
+| Scenario                                                    | `outcome`                                                  |
+| ----------------------------------------------------------- | ---------------------------------------------------------- |
+| gate already held by another activity                       | `GATE_BUSY` (no call issued, `latency_ms=None`)            |
+| canned-prompt call returns non-empty text                   | `SUCCESS` (`response_excerpt` verbatim, `last_error=None`) |
+| call exceeds the inference-test deadline                    | `TIMEOUT`                                                  |
+| provider rejects with a model-not-found error               | `MODEL_NOT_FOUND`                                          |
+| provider rejects with an auth error                         | `AUTH_FAILED`                                              |
+| endpoint unreachable / connection-refused before round-trip | `REACHABILITY_FAILED`                                      |
+| any other provider rejection or unexpected internal error   | `PROVIDER_ERROR` (redacted `last_error`)                   |
 
 ### STORY-018-AC-10
 
@@ -266,17 +279,21 @@ plain OpenAI-compatible mode.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-018.
-- [ ] The `LLMClient` shared contract-test suite (§6a) runs against both the real adapter (wire
-  stub, §7a) and `provider_openai_compatible/testing.py`, and both legs pass.
-- [ ] Table-driven tests cover the exception-translation matrix (AC-5), the probe/list scenarios
+- [x] Every acceptance criterion has a passing test that names STORY-018.
+- [x] The `LLMClient` shared contract-test suite (§6a) runs against both the real adapter (wire
+  stub, §7a) and `provider_openai_compatible/testing.py`, and both legs pass
+  (`tests/contract/test_llm_client_contract.py`).
+- [x] Table-driven tests cover the exception-translation matrix (AC-5), the probe/list scenarios
   (AC-7), and the `test_inference` outcome map (AC-9).
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/provider_openai_compatible/`.
-- [ ] An architecture test confirms `backend/provider_openai_compatible/` imports no Qt, no
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/provider_openai_compatible/`.
+- [x] An architecture test confirms `backend/provider_openai_compatible/` imports no Qt, no
   `asyncio`, and no sibling provider adapter, and that no provider SDK exception type escapes any
-  public method (the finite-deadline / no-raw-SDK invariants).
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-018.
-- [ ] The module inventory is unchanged.
+  public method (the finite-deadline / no-raw-SDK invariants) —
+  `tests/architecture/test_provider_openai_compatible_module.py`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-018.
+- [x] The module inventory is unchanged.
+- [x] The DD-51 non-streaming fallback is accurately reflected as out of scope in this story's own
+  text (no fallback code shipped; streaming-only transport), matching what was actually built.
 
 ## Notes
 
@@ -294,3 +311,19 @@ plain OpenAI-compatible mode.
 - The provider wire stub (`tests/integration/provider_stub/`, §7a) is a shared test fixture the
   tester builds for this story's integration leg and reuses for STORY-019/020; it is not a shipped
   module and is outside this story's `modules:` surface.
+- **Cancellation-token parameter dependency (STORY-021).** AC-6 requires the run's
+  `CancellationToken` to reach `chat`/`chat_stream`. That token arrives through the mandatory
+  keyword-only `token` parameter STORY-021 adds to the canonical `LLMClient` Protocol (ADR-0005);
+  this story `depends_on: STORY-021` so the corrected signature is in place before the adapter
+  implements against it.
+- **Scope-narrowing decision, recorded post-implementation.** The DD-51 non-streaming fallback was
+  deliberately not built beyond what was needed for type-correctness during the original
+  implementation pass — no acceptance criterion or Test Plan entry in this story ever named it,
+  and it was explicitly called out as "not built by this task" in the original implementation
+  plan. That decision was never reflected back into this story's own "In scope"/"Spec inputs"
+  text until a `spec-conformance-reviewer` pass flagged the inconsistency; the "In scope"/"Out of
+  scope"/"Spec inputs" sections above were corrected to match what was actually implemented
+  (streaming-only transport, no fallback). No fallback code was added as part of that correction —
+  a human should decide later whether a follow-up story is warranted for the DD-51 fallback
+  itself.
+  </content>

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T13:49:33Z'
+generated_at: '2026-07-11T16:23:50Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -136,6 +136,7 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.platform.models.PlatformProfile]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
@@ -210,6 +211,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.platform.models.PlatformProfile]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
@@ -284,6 +286,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.platform.models.PlatformProfile]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.retry.models.RetryPolicy]
       STORY-001-AC-4:
         tests:
@@ -1003,8 +1006,10 @@ stories:
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_construction.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_deferred_close.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_get_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_llm_client_protocol.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_reload_atomicity.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_secret_resolution.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_testing_fakes_conform.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[__init__.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[_internal/__init__.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[_internal/client_builder.py]
@@ -1017,8 +1022,10 @@ stories:
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_construction.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_deferred_close.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_get_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_llm_client_protocol.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_reload_atomicity.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_secret_resolution.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_testing_fakes_conform.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[__init__.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[_internal/__init__.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[_internal/client_builder.py]
@@ -1031,8 +1038,10 @@ stories:
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_construction.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_deferred_close.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_get_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_llm_client_protocol.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_reload_atomicity.py]
         - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_secret_resolution.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_testing_fakes_conform.py]
       STORY-017-AC-2:
         tests:
         - src/ollama_llm_bench/backend/provider_registry/tests/test_construction.py::test_routing_is_by_provider_id_not_model_name
@@ -1066,7 +1075,7 @@ stories:
         - src/ollama_llm_bench/backend/provider_registry/tests/test_deferred_close.py::test_superseded_clients_close_only_when_gate_idle[gate_idle]
   STORY-018:
     title: Implement the OpenAI-compatible LLM client adapter with exception translation
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
     - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#610-exception-translation
@@ -1084,25 +1093,163 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-018-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_chat_stream.py::test_chat_streams_content_and_captures_ttft_and_usage
+        - tests/contract/test_llm_client_contract.py::test_capability_flags_return_bool[fake]
+        - tests/contract/test_llm_client_contract.py::test_capability_flags_return_bool[real]
+        - tests/contract/test_llm_client_contract.py::test_chat_returns_chat_response_with_text[fake]
+        - tests/contract/test_llm_client_contract.py::test_chat_returns_chat_response_with_text[real]
+        - tests/contract/test_llm_client_contract.py::test_chat_stream_yields_chunks_and_exposes_trailing_response[fake]
+        - tests/contract/test_llm_client_contract.py::test_chat_stream_yields_chunks_and_exposes_trailing_response[real]
+        - tests/contract/test_llm_client_contract.py::test_close_does_not_raise_and_is_idempotent[fake]
+        - tests/contract/test_llm_client_contract.py::test_close_does_not_raise_and_is_idempotent[real]
       STORY-018-AC-10:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_azure_mode.py::test_azure_fields_select_azure_transport
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_azure_mode.py::test_is_azure_mode_true_only_when_all_three_fields_populated
       STORY-018-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_chat_stream.py::test_ttft_measured_from_first_content_chunk
       STORY-018-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_chat_stream.py::test_empty_stream_reports_soft_error_without_raising
       STORY-018-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_deadline.py::test_mid_stream_stall_raises_timeout_and_closes_stream
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_deadline.py::test_stall_past_deadline_raises_timeout_and_closes_stream
       STORY-018-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_exception_translation.py::test_connection_refused_translates_to_http_connection_error
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[authentication_error]
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[bad_request_error]
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[rate_limit_error]
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[server_error_5xx]
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_exception_translation.py::test_unenumerated_sdk_exception_falls_through_catch_all
+        - tests/architecture/test_provider_openai_compatible_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_provider_openai_compatible_module.py::test_chat_connection_refused_never_lets_a_raw_httpx_exception_escape
+        - tests/architecture/test_provider_openai_compatible_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[400]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[401]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[404]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[429]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[500]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_embed_never_lets_a_raw_sdk_exception_escape[400]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_embed_never_lets_a_raw_sdk_exception_escape[401]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_embed_never_lets_a_raw_sdk_exception_escape[404]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_embed_never_lets_a_raw_sdk_exception_escape[429]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_embed_never_lets_a_raw_sdk_exception_escape[500]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_list_models_never_lets_a_raw_sdk_exception_escape[400]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_list_models_never_lets_a_raw_sdk_exception_escape[401]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_list_models_never_lets_a_raw_sdk_exception_escape[404]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_list_models_never_lets_a_raw_sdk_exception_escape[429]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_list_models_never_lets_a_raw_sdk_exception_escape[500]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[_internal/azure_mode.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[_internal/chat_stream_impl.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[_internal/client_impl.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[_internal/collaborators.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[_internal/sdk_factory.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[_internal/soft_failure.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[_internal/translate_exception.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[api.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[models.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[testing.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/conftest.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_azure_mode.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_cancellation.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_deadline.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_embed.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_exception_translation.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_inference_test.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_probe_health.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[_internal/azure_mode.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[_internal/chat_stream_impl.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[_internal/client_impl.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[_internal/collaborators.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[_internal/sdk_factory.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[_internal/soft_failure.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[_internal/translate_exception.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[models.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[testing.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/conftest.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_azure_mode.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_cancellation.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_deadline.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_embed.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_exception_translation.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_inference_test.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_probe_health.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[_internal/__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[_internal/azure_mode.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[_internal/chat_stream_impl.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[_internal/client_impl.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[_internal/collaborators.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[_internal/sdk_factory.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[_internal/soft_failure.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[_internal/translate_exception.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[api.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[models.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[testing.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/__init__.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/conftest.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_azure_mode.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_cancellation.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_deadline.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_embed.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_exception_translation.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_inference_test.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_probe_health.py]
       STORY-018-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_cancellation.py::test_hard_cancel_aborts_stream_within_bound
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_cancellation.py::test_hard_cancel_hook_closes_stream_even_when_not_polled_first
       STORY-018-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_probe_health.py::test_list_models_raises_when_listing_call_fails
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_probe_health.py::test_reachable_with_listing_5xx_still_reports_reachable
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_probe_health.py::test_reachable_with_zero_models_is_healthy
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_probe_health.py::test_unreachable_host_reports_unreachable_without_raising
+        - tests/architecture/test_provider_openai_compatible_module.py::test_probe_health_never_raises_even_when_discovery_sdk_call_fails[400]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_probe_health_never_raises_even_when_discovery_sdk_call_fails[401]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_probe_health_never_raises_even_when_discovery_sdk_call_fails[404]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_probe_health_never_raises_even_when_discovery_sdk_call_fails[429]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_probe_health_never_raises_even_when_discovery_sdk_call_fails[500]
+        - tests/contract/test_llm_client_contract.py::test_list_models_returns_tuple_of_strings[fake]
+        - tests/contract/test_llm_client_contract.py::test_list_models_returns_tuple_of_strings[real]
+        - tests/contract/test_llm_client_contract.py::test_probe_health_never_raises_and_returns_provider_health[fake]
+        - tests/contract/test_llm_client_contract.py::test_probe_health_never_raises_and_returns_provider_health[real]
       STORY-018-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_embed.py::test_embed_raises_provider_error_with_redacted_message_on_sdk_failure
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_embed.py::test_embed_returns_vector_of_endpoints_dimensionality
+        - tests/contract/test_llm_client_contract.py::test_embed_returns_tuple_of_floats[fake]
+        - tests/contract/test_llm_client_contract.py::test_embed_returns_tuple_of_floats[real]
       STORY-018-AC-9:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_inference_test.py::test_test_inference_classifies_outcome_by_failure_scenario[auth_failed]
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_inference_test.py::test_test_inference_classifies_outcome_by_failure_scenario[model_not_found]
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_inference_test.py::test_test_inference_classifies_outcome_by_failure_scenario[provider_error]
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_inference_test.py::test_test_inference_classifies_outcome_by_failure_scenario[reachability_failed]
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_inference_test.py::test_test_inference_classifies_timeout_outcome
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_inference_test.py::test_test_inference_releases_gate_in_finally_after_success
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_inference_test.py::test_test_inference_reports_gate_busy_without_issuing_a_call
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_inference_test.py::test_test_inference_success_returns_verbatim_excerpt
+        - tests/architecture/test_provider_openai_compatible_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[400]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[401]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[404]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[429]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[500]
+        - tests/contract/test_llm_client_contract.py::test_test_inference_never_raises_and_returns_inference_test_result[fake]
+        - tests/contract/test_llm_client_contract.py::test_test_inference_never_raises_and_returns_inference_test_result[real]
   STORY-019:
     title: Implement the Anthropic LLM client adapter with thinking-block handling and exception translation
     status: draft
@@ -1172,6 +1319,30 @@ stories:
         tests: []
       STORY-020-AC-8:
         tests: []
+  STORY-021:
+    title: Add a mandatory CancellationToken parameter to the canonical LLMClient chat surface
+    status: done
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#66-mid-stream-cancellation
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#5-the-cancellationtoken
+    modules:
+    - backend/provider_registry/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-021-AC-1:
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_llm_client_protocol.py::test_chat_methods_require_keyword_only_cancellation_token
+      STORY-021-AC-2:
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_llm_client_protocol.py::test_missing_token_fails_protocol_and_present_token_satisfies
+      STORY-021-AC-3:
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_fake_llm_client_chat_methods_accept_keyword_only_token
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_fake_llm_client_chat_raises_not_implemented_when_called_with_a_real_token
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_fake_llm_client_satisfies_llm_client_protocol_structurally
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_registry_fakes_match_corrected_chat_signature
 clauses:
   08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order:
     stories:
@@ -1191,6 +1362,7 @@ clauses:
     - STORY-018
     - STORY-019
     - STORY-020
+    - STORY-021
   08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service:
     stories:
     - STORY-016
@@ -1371,6 +1543,7 @@ clauses:
     - STORY-018
     - STORY-019
     - STORY-020
+    - STORY-021
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#64-the-chat_stream-surface:
     stories:
     - STORY-018
@@ -1389,6 +1562,7 @@ clauses:
     - STORY-018
     - STORY-019
     - STORY-020
+    - STORY-021
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#67-the-embedding-surface:
     stories:
     - STORY-018
@@ -1504,6 +1678,7 @@ clauses:
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#5-the-cancellationtoken:
     stories:
     - STORY-006
+    - STORY-021
   16_Engineering_Standards/06_LOGGING_STANDARD.md#2-the-two-log-streams:
     stories:
     - STORY-004
@@ -1913,6 +2088,7 @@ modules:
   backend/provider_registry/:
     stories:
     - STORY-017
+    - STORY-021
   backend/readiness/:
     stories:
     - STORY-016

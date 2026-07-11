@@ -2,7 +2,9 @@
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
 §9 (Provider Registry) and §10 (LLM Client);
-``docs/v3_specification/11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md``.
+``docs/v3_specification/11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md`` §6.3, §6.6;
+``docs/v3_specification/11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md``;
+``docs/adr/0005-llmclient-chat-takes-mandatory-cancellation-token.md``.
 
 Per the resolution recorded in ``docs/stories/story-017-provider-registry-and-llm-client-
 protocol.md`` ("Ambiguity #1"), the one authoritative Python declaration of ``LLMClient``
@@ -15,11 +17,16 @@ to this module.
 ``ChatStream`` is declared locally as a small structural Protocol (a synchronous iterator
 of ``ChatChunk`` that also exposes ``trailing_response()``) because no such type exists
 yet in ``backend/domain`` — see 08-E §10's ``chat_stream`` docstring.
+
+Per STORY-021/ADR-0005, ``chat``/``chat_stream`` take a mandatory keyword-only
+``token: CancellationToken`` so the hard-cancellation contract of §6.6 is expressible; the
+token is a live handle passed alongside the frozen ``ChatRequest``, never carried inside it.
 """
 
 from collections.abc import Callable, Iterator
 from typing import Protocol
 
+from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.domain import (
     ChatChunk,
     ChatRequest,
@@ -105,20 +112,32 @@ class LLMClient(Protocol):
         """
         ...
 
-    def chat(self, request: ChatRequest) -> ChatResponse:
+    def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse:
         """Consume this client's own ``chat_stream`` to completion.
 
         Convenience wrapper (DD-51); not a second transport path. Error
         behaviour is identical to ``chat_stream``.
 
+        ``token`` is the run's live two-level ``CancellationToken`` (mandatory,
+        keyword-only, no default — ADR-0005). The implementation registers an
+        idempotent abort hook against the in-flight stream via
+        ``token.add_hard_cancel_hook(...)`` and polls
+        ``token.is_hard_cancelled`` at each chunk boundary (§6.3, §6.6). Soft
+        cancellation is never observed mid-call — only a hard cancel (Stop /
+        Shutdown) aborts promptly, closing the stream and returning nothing
+        partial, bounded by ``provider.hard_cancel_max_ms`` (default 2000 ms).
+
         Raises:
             ProviderError: The provider rejected the request or returned an
                 unusable response.
             TimeoutError: The call exceeded ``request.timeout_ms``.
+            TaskCancelledError: ``token`` observed a hard cancellation
+                mid-call (§6.6); raised promptly, within
+                ``provider.hard_cancel_max_ms`` of the cancel.
         """
         ...
 
-    def chat_stream(self, request: ChatRequest) -> ChatStream:
+    def chat_stream(self, request: ChatRequest, *, token: CancellationToken) -> ChatStream:
         """Execute a chat call, returning a synchronous stream of chunks (DD-51).
 
         THE chat execution surface; invoked on a worker thread. The transport
@@ -126,10 +145,23 @@ class LLMClient(Protocol):
         client falls back to a non-streaming request behind the same iterator
         contract.
 
+        ``token`` is the run's live two-level ``CancellationToken`` (mandatory,
+        keyword-only, no default — ADR-0005). The implementation registers an
+        idempotent abort hook against the in-flight stream via
+        ``token.add_hard_cancel_hook(...)`` and polls
+        ``token.is_hard_cancelled`` at each chunk boundary (§6.3, §6.4, §6.6).
+        Soft cancellation is never observed mid-call — only a hard cancel
+        (Stop / Shutdown) aborts promptly, closing the stream and returning
+        nothing partial, bounded by ``provider.hard_cancel_max_ms`` (default
+        2000 ms).
+
         Raises:
             ProviderError: The provider rejected the request or returned an
                 unusable response.
             TimeoutError: The call exceeded ``request.timeout_ms``.
+            TaskCancelledError: ``token`` observed a hard cancellation
+                mid-call (§6.6); raised promptly, within
+                ``provider.hard_cancel_max_ms`` of the cancel.
         """
         ...
 
