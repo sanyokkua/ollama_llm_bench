@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T11:33:12Z'
+generated_at: '2026-07-11T11:52:33Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -970,6 +970,147 @@ stories:
         tests:
         - src/ollama_llm_bench/backend/readiness/tests/test_orchestration.py::test_bare_probe_never_submits_to_the_task_runner
         - src/ollama_llm_bench/backend/readiness/tests/test_orchestration.py::test_probe_all_fans_out_concurrently_and_never_deadlocks
+  STORY-017:
+    title: Own one LLM client per provider and route composite targets through the registry
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#9-provider-registry
+    - 11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#61-the-registry-contract
+    - 11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#62-building-a-client-from-a-provider-configuration
+    - 11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#63-secret-resolution
+    - 11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#64-composite-key-routing
+    - 11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#65-enable-and-disable
+    - 11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#66-rebuilding-on-configuration-change
+    - 11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#9-threading-and-concurrency
+    modules:
+    - backend/provider_registry/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-017-AC-1:
+        tests: []
+      STORY-017-AC-2:
+        tests: []
+      STORY-017-AC-3:
+        tests: []
+      STORY-017-AC-4:
+        tests: []
+      STORY-017-AC-5:
+        tests: []
+      STORY-017-AC-6:
+        tests: []
+      STORY-017-AC-7:
+        tests: []
+      STORY-017-AC-8:
+        tests: []
+  STORY-018:
+    title: Implement the OpenAI-compatible LLM client adapter with exception translation
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#610-exception-translation
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#62-transport-streaming-and-time-to-first-token
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#64-the-chat_stream-surface
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#65-token-usage-capture
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#66-mid-stream-cancellation
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#67-the-embedding-surface
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#681-probe_health--reachability--conditional-discovery
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#682-test_inferencemodel_name--manual-end-to-end-check
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#691-per-provider-type-discovery-support-matrix
+    modules:
+    - backend/provider_openai_compatible/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-018-AC-1:
+        tests: []
+      STORY-018-AC-10:
+        tests: []
+      STORY-018-AC-2:
+        tests: []
+      STORY-018-AC-3:
+        tests: []
+      STORY-018-AC-4:
+        tests: []
+      STORY-018-AC-5:
+        tests: []
+      STORY-018-AC-6:
+        tests: []
+      STORY-018-AC-7:
+        tests: []
+      STORY-018-AC-8:
+        tests: []
+      STORY-018-AC-9:
+        tests: []
+  STORY-019:
+    title: Implement the Anthropic LLM client adapter with thinking-block handling and exception translation
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#610-exception-translation
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#64-the-chat_stream-surface
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#65-token-usage-capture
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#66-mid-stream-cancellation
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#681-probe_health--reachability--conditional-discovery
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#682-test_inferencemodel_name--manual-end-to-end-check
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#69-per-provider-type-behaviour-matrix
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#691-per-provider-type-discovery-support-matrix
+    modules:
+    - backend/provider_anthropic/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-019-AC-1:
+        tests: []
+      STORY-019-AC-2:
+        tests: []
+      STORY-019-AC-3:
+        tests: []
+      STORY-019-AC-4:
+        tests: []
+      STORY-019-AC-5:
+        tests: []
+      STORY-019-AC-6:
+        tests: []
+      STORY-019-AC-7:
+        tests: []
+      STORY-019-AC-8:
+        tests: []
+  STORY-020:
+    title: Implement the Gemini LLM client adapter with per-chunk usage and SDK discovery
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#610-exception-translation
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#64-the-chat_stream-surface
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#65-token-usage-capture
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#65a-per-chunk-delta_tokens-and-provider-availability-matrix
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#66-mid-stream-cancellation
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#67-the-embedding-surface
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#681-probe_health--reachability--conditional-discovery
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#682-test_inferencemodel_name--manual-end-to-end-check
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#691-per-provider-type-discovery-support-matrix
+    modules:
+    - backend/provider_gemini/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-020-AC-1:
+        tests: []
+      STORY-020-AC-2:
+        tests: []
+      STORY-020-AC-3:
+        tests: []
+      STORY-020-AC-4:
+        tests: []
+      STORY-020-AC-5:
+        tests: []
+      STORY-020-AC-6:
+        tests: []
+      STORY-020-AC-7:
+        tests: []
+      STORY-020-AC-8:
+        tests: []
 clauses:
   08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order:
     stories:
@@ -983,6 +1124,12 @@ clauses:
   08_Cross_Cutting/08-C_settings_hierarchy.md#5-creating-the-per-run-snapshot:
     stories:
     - STORY-014
+  08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client:
+    stories:
+    - STORY-017
+    - STORY-018
+    - STORY-019
+    - STORY-020
   08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service:
     stories:
     - STORY-016
@@ -1019,6 +1166,9 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#8a-run-snapshot-builder:
     stories:
     - STORY-014
+  08_Cross_Cutting/08-E_interfaces_contracts.md#9-provider-registry:
+    stories:
+    - STORY-017
   08_Cross_Cutting/08-G_feature_flags.md#3-benchmark--benchmark-behaviour:
     stories:
     - STORY-014
@@ -1147,6 +1297,80 @@ clauses:
   11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#414-inferenceactivitystore:
     stories:
     - STORY-015
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#610-exception-translation:
+    stories:
+    - STORY-018
+    - STORY-019
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#62-transport-streaming-and-time-to-first-token:
+    stories:
+    - STORY-018
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm:
+    stories:
+    - STORY-018
+    - STORY-019
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#64-the-chat_stream-surface:
+    stories:
+    - STORY-018
+    - STORY-019
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#65-token-usage-capture:
+    stories:
+    - STORY-018
+    - STORY-019
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#65a-per-chunk-delta_tokens-and-provider-availability-matrix:
+    stories:
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#66-mid-stream-cancellation:
+    stories:
+    - STORY-018
+    - STORY-019
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#67-the-embedding-surface:
+    stories:
+    - STORY-018
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#681-probe_health--reachability--conditional-discovery:
+    stories:
+    - STORY-018
+    - STORY-019
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#682-test_inferencemodel_name--manual-end-to-end-check:
+    stories:
+    - STORY-018
+    - STORY-019
+    - STORY-020
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#69-per-provider-type-behaviour-matrix:
+    stories:
+    - STORY-019
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#691-per-provider-type-discovery-support-matrix:
+    stories:
+    - STORY-018
+    - STORY-019
+    - STORY-020
+  11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#61-the-registry-contract:
+    stories:
+    - STORY-017
+  11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#62-building-a-client-from-a-provider-configuration:
+    stories:
+    - STORY-017
+  11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#63-secret-resolution:
+    stories:
+    - STORY-017
+  11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#64-composite-key-routing:
+    stories:
+    - STORY-017
+  11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#65-enable-and-disable:
+    stories:
+    - STORY-017
+  11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#66-rebuilding-on-configuration-change:
+    stories:
+    - STORY-017
+  11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#9-threading-and-concurrency:
+    stories:
+    - STORY-017
   11_Services_and_Algorithms/09_READINESS_PROBE.md#62-the-probe-of-one-provider:
     stories:
     - STORY-016
@@ -1616,6 +1840,18 @@ modules:
   backend/platform/:
     stories:
     - STORY-005
+  backend/provider_anthropic/:
+    stories:
+    - STORY-019
+  backend/provider_gemini/:
+    stories:
+    - STORY-020
+  backend/provider_openai_compatible/:
+    stories:
+    - STORY-018
+  backend/provider_registry/:
+    stories:
+    - STORY-017
   backend/readiness/:
     stories:
     - STORY-016
