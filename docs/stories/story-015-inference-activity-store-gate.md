@@ -1,7 +1,7 @@
 ---
 id: STORY-015
 title: Provide the application-wide single-inference gate with lease ownership and watchdog
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store
   - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#414-inferenceactivitystore

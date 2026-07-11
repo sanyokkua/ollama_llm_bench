@@ -17,6 +17,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Application-wide single-inference gate (`backend/stores/inference_activity/`): the
+  method-only `InferenceActivityStore` Protocol (`try_acquire`, `release`, `state`, `is_busy`,
+  no `psygnal.Signal`) and factory `make_inference_activity_store(clock, event_bus)`, enforcing
+  that at most one inference-class activity (`BENCHMARK_RUN`, `JUDGE_ANALYSIS`,
+  `PROVIDER_TEST`, `READINESS_PROBE`) holds the gate at a time. Ownership is a monotonically
+  increasing `GateLease`, not the activity itself, so a late or foreign `release` can never
+  steal a successor's hold. A lazy, pull-based watchdog (checked at the top of every
+  lock-guarded method, no timer thread) auto-releases `JUDGE_ANALYSIS` after 10 minutes,
+  `PROVIDER_TEST` after 60 seconds, and `READINESS_PROBE` after 30 seconds of holding the gate;
+  `BENCHMARK_RUN` has no watchdog and owns its own lifecycle. Every acquire and release
+  (including a watchdog auto-release) publishes `_inference_activity_changed` on the Qt-free
+  `EventBus` per `08-E` §13, `11_Services_and_Algorithms/01_SERVICE_INVENTORY.md` §4.14, and
+  `08-I` EC-RUN-14. No caller is wired to the gate yet — STORY-016 is the first consumer.
 - Settings service and run snapshot builder (`backend/settings/`): the `SettingsService`
   Protocol (typed read/write methods `get_str`/`get_bool`/`get_int`/`get_float`/`set`/`upsert`
   resolving through the three-layer cascade per-run snapshot → user-saved → default) and

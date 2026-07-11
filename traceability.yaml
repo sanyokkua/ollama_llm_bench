@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T09:08:34Z'
+generated_at: '2026-07-11T10:03:13Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -856,7 +856,7 @@ stories:
         - src/ollama_llm_bench/backend/settings/tests/test_run_snapshot_builder.py::test_build_snapshot_captures_exactly_the_per_run_overridable_keys
   STORY-015:
     title: Provide the application-wide single-inference gate with lease ownership and watchdog
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store
     - 08_Cross_Cutting/08-I_edge_cases.md#ec-run-14--watchdog-auto-release-of-the-inference-activity-gate
@@ -868,17 +868,37 @@ stories:
     - EC-RUN-14
     acceptance_criteria:
       STORY-015-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_fresh_store_starts_idle_and_not_busy[fake]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_fresh_store_starts_idle_and_not_busy[real]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_idle_store_returns_lease_matching_activity[fake]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_idle_store_returns_lease_matching_activity[real]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_acquire_holds_gate_and_emits_activity_changed
       STORY-015-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_held_store_returns_none[fake]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_held_store_returns_none[real]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_gate_is_mutually_exclusive_under_concurrent_acquire
       STORY-015-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_current_lease_returns_store_to_idle[fake]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_current_lease_returns_store_to_idle[real]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_release_frees_gate_and_is_idempotent
       STORY-015-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_stale_lease_is_a_noop[fake]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_stale_lease_is_a_noop[real]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_superseded_lease_release_never_frees_successor_hold
       STORY-015-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[benchmark_run_never]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[judge_analysis_10min]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[provider_test_60s]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[readiness_probe_30s]
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_does_not_fire_before_its_timeout_elapses
       STORY-015-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_late_release_after_watchdog_noops_and_reacquire_succeeds
   STORY-016:
     title: Aggregate provider and embedding health into one application-readiness snapshot
     status: draft
@@ -1464,7 +1484,27 @@ edge_cases:
   EC-RUN-14:
     stories:
     - STORY-015
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_fresh_store_starts_idle_and_not_busy[fake]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_fresh_store_starts_idle_and_not_busy[real]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_current_lease_returns_store_to_idle[fake]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_current_lease_returns_store_to_idle[real]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_stale_lease_is_a_noop[fake]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_stale_lease_is_a_noop[real]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_held_store_returns_none[fake]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_held_store_returns_none[real]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_idle_store_returns_lease_matching_activity[fake]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_idle_store_returns_lease_matching_activity[real]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_acquire_holds_gate_and_emits_activity_changed
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_gate_is_mutually_exclusive_under_concurrent_acquire
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_release_frees_gate_and_is_idempotent
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_superseded_lease_release_never_frees_successor_hold
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_late_release_after_watchdog_noops_and_reacquire_succeeds
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[benchmark_run_never]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[judge_analysis_10min]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[provider_test_60s]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[readiness_probe_30s]
+    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_does_not_fire_before_its_timeout_elapses
 modules:
   backend/concurrency/:
     stories:
