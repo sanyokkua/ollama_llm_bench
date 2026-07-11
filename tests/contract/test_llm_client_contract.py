@@ -61,6 +61,16 @@ from ollama_llm_bench.backend.provider_anthropic.tests.conftest import (
     anthropic_success_stream_body,
     make_provider_config as make_anthropic_provider_config,
 )
+from ollama_llm_bench.backend.provider_gemini._internal.client_impl import GeminiClient
+from ollama_llm_bench.backend.provider_gemini._internal.collaborators import (
+    GeminiClientCollaborators,
+)
+from ollama_llm_bench.backend.provider_gemini.models import GeminiClientSettings
+from ollama_llm_bench.backend.provider_gemini.testing import FakeGeminiClient
+from ollama_llm_bench.backend.provider_gemini.tests.conftest import (
+    gemini_success_stream_body,
+    make_provider_config as make_gemini_provider_config,
+)
 from ollama_llm_bench.backend.provider_openai_compatible._internal.client_impl import (
     OpenAICompatibleClient,
 )
@@ -88,6 +98,7 @@ _CANNED_TEXT = "hello from the contract suite"
 _CANNED_VECTOR = (0.1, 0.2, 0.3, 0.4)
 _EXPECTED_VECTOR_LEN = 4
 _ANTHROPIC_PROVIDER_ID = "22222222-2222-4222-8222-222222222222"
+_GEMINI_PROVIDER_ID = "33333333-3333-4333-8333-333333333333"
 
 
 @pytest.fixture(scope="session")
@@ -272,6 +283,74 @@ def _make_anthropic_fake_client() -> FakeAnthropicClient:
     return fake
 
 
+def _make_gemini_real_client(httpserver: HTTPServer) -> GeminiClient:
+    """Build a real ``GeminiClient`` wired against ``httpserver``, with the
+    canned streaming chat response pre-registered at the real SDK's
+    ``streamGenerateContent`` path and the canned embedding response
+    pre-registered at its ``batchEmbedContents`` path.
+
+    ``probe_health`` issues a bare reachability ``GET /`` (matched by
+    ``pytest_httpserver``'s implicit fallback of an unmatched path to 404,
+    still a successful TCP/HTTP round trip — reachable) followed by
+    ``GET /v1beta/models`` for discovery; ``test_inference`` reuses the same
+    registered streaming route as ``chat``.
+    """
+    body = gemini_success_stream_body(text=_CANNED_TEXT)
+    httpserver.expect_request(
+        "/v1beta/models/test-model:streamGenerateContent", method="POST"
+    ).respond_with_data(body, content_type="text/event-stream")
+    httpserver.expect_request("/v1beta/models", method="GET").respond_with_json(
+        {"models": [{"name": "models/test-model"}]}
+    )
+    httpserver.expect_request(
+        "/v1beta/models/embed-model:batchEmbedContents", method="POST"
+    ).respond_with_json({"embeddings": [{"values": list(_CANNED_VECTOR)}]})
+    clock = FakeClock()
+    event_bus = FakeEventBus()
+    gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
+    config = make_gemini_provider_config(base_url=httpserver.url_for("/"))
+    collaborators = GeminiClientCollaborators(
+        clock=clock, event_bus=event_bus, inference_activity_store=gate
+    )
+    settings = GeminiClientSettings(embedding_model="embed-model")
+    return GeminiClient(
+        config=config, resolved_api_key="test-key", collaborators=collaborators, settings=settings
+    )
+
+
+def _make_gemini_fake_client() -> FakeGeminiClient:
+    """Build a ``FakeGeminiClient`` with every canned response this suite's
+    assertions need, shape-comparable to the real leg's wire responses."""
+    fake = FakeGeminiClient()
+    fake.set_chat_response(
+        ChatResponse(text=_CANNED_TEXT, total_time_ms=1, ttft_ms=1),
+        chunks=(ChatChunk(content=_CANNED_TEXT),),
+    )
+    fake.set_probe_health(
+        ProviderHealth(
+            provider_id=_GEMINI_PROVIDER_ID,
+            reachable=True,
+            discovery_supported=True,
+            model_count=1,
+            last_probe_ms=1,
+            probed_at=1,
+        )
+    )
+    fake.set_models(("test-model",))
+    fake.set_test_inference_result(
+        InferenceTestResult(
+            outcome=InferenceTestOutcome.SUCCESS,
+            provider_id=_GEMINI_PROVIDER_ID,
+            model_name="test-model",
+            latency_ms=1,
+            response_excerpt=_CANNED_TEXT,
+            tested_at=1,
+        )
+    )
+    fake.set_embed_vector(_CANNED_VECTOR)
+    return fake
+
+
 def _build_llm_client(param: str, httpserver: HTTPServer) -> LLMClient:
     """Build the ``LLMClient`` leg named by ``param``; shared by both
     parametrized fixtures below."""
@@ -281,10 +360,23 @@ def _build_llm_client(param: str, httpserver: HTTPServer) -> LLMClient:
         return _make_fake_client()
     if param == "anthropic_real":
         return _make_anthropic_real_client(httpserver)
-    return _make_anthropic_fake_client()
+    if param == "anthropic_fake":
+        return _make_anthropic_fake_client()
+    if param == "gemini_real":
+        return _make_gemini_real_client(httpserver)
+    return _make_gemini_fake_client()
 
 
-@pytest.fixture(params=["openai_real", "openai_fake", "anthropic_real", "anthropic_fake"])
+@pytest.fixture(
+    params=[
+        "openai_real",
+        "openai_fake",
+        "anthropic_real",
+        "anthropic_fake",
+        "gemini_real",
+        "gemini_fake",
+    ]
+)
 def llm_client(request: pytest.FixtureRequest, httpserver: HTTPServer) -> LLMClient:
     """Parametrized ``LLMClient`` under test: each real wire-stub-backed
     adapter and its ``testing.py`` fake — every leg runs every test below."""
@@ -292,16 +384,20 @@ def llm_client(request: pytest.FixtureRequest, httpserver: HTTPServer) -> LLMCli
     return _build_llm_client(param, httpserver)
 
 
-@pytest.fixture(params=["openai_real", "openai_fake"])
-def openai_llm_client(request: pytest.FixtureRequest, httpserver: HTTPServer) -> LLMClient:
-    """Parametrized ``LLMClient`` under test, OpenAI-compatible legs only.
+@pytest.fixture(params=["openai_real", "openai_fake", "gemini_real", "gemini_fake"])
+def embedding_capable_llm_client(
+    request: pytest.FixtureRequest, httpserver: HTTPServer
+) -> LLMClient:
+    """Parametrized ``LLMClient`` under test, embedding/discovery-capable legs only.
 
     Used only by ``test_embed_returns_tuple_of_floats`` and
     ``test_list_models_returns_tuple_of_strings`` — Anthropic's ``embed``/
     ``list_models`` deliberately raise immediately (§6.9/§6.9.1), so those
     two assertions are not a Protocol-level contract every implementation
     shares; STORY-019's own colocated tests prove the Anthropic raise
-    behaviour instead.
+    behaviour instead. OpenAI-compatible and Gemini both implement ``embed``/
+    ``list_models`` for real (§6.9), so both join this fixture — STORY-020
+    adds the Gemini legs onto what was previously an OpenAI-only fixture.
     """
     param: str = request.param
     return _build_llm_client(param, httpserver)
@@ -385,35 +481,37 @@ def test_test_inference_never_raises_and_returns_inference_test_result(
     assert isinstance(result, InferenceTestResult)
 
 
-def test_list_models_returns_tuple_of_strings(openai_llm_client: LLMClient) -> None:
+def test_list_models_returns_tuple_of_strings(embedding_capable_llm_client: LLMClient) -> None:
     """Proves: STORY-018-AC-7
 
-    Given any OpenAI-compatible ``LLMClient`` implementation, when
+    Given any embedding/discovery-capable ``LLMClient`` implementation, when
     ``list_models`` is called, then it returns a ``tuple[str, ...]``. Scoped
-    to the OpenAI-compatible legs only — Anthropic's ``list_models``
-    deliberately raises immediately (STORY-019 §6.9.1), so this is a
-    per-provider-type contract, not a Protocol-wide one.
+    to the embedding/discovery-capable legs (OpenAI-compatible and Gemini)
+    only — Anthropic's ``list_models`` deliberately raises immediately
+    (STORY-019 §6.9.1), so this is a per-provider-type contract, not a
+    Protocol-wide one.
     """
     # Act
-    models = openai_llm_client.list_models()
+    models = embedding_capable_llm_client.list_models()
 
     # Assert
     assert isinstance(models, tuple)
     assert all(isinstance(model, str) for model in models)
 
 
-def test_embed_returns_tuple_of_floats(openai_llm_client: LLMClient) -> None:
+def test_embed_returns_tuple_of_floats(embedding_capable_llm_client: LLMClient) -> None:
     """Proves: STORY-018-AC-8
 
-    Given any OpenAI-compatible ``LLMClient`` implementation with an
-    embedding model configured, when ``embed(text)`` is called, then it
+    Given any embedding/discovery-capable ``LLMClient`` implementation with
+    an embedding model configured, when ``embed(text)`` is called, then it
     returns a ``tuple[float, ...]`` matching the canned vector's
-    dimensionality. Scoped to the OpenAI-compatible legs only — Anthropic's
-    ``embed`` deliberately raises immediately (STORY-019-AC-6), so this is a
-    per-provider-type contract, not a Protocol-wide one.
+    dimensionality. Scoped to the embedding/discovery-capable legs
+    (OpenAI-compatible and Gemini) only — Anthropic's ``embed`` deliberately
+    raises immediately (STORY-019-AC-6), so this is a per-provider-type
+    contract, not a Protocol-wide one.
     """
     # Act
-    vector = openai_llm_client.embed("hello world")
+    vector = embedding_capable_llm_client.embed("hello world")
 
     # Assert
     assert isinstance(vector, tuple)

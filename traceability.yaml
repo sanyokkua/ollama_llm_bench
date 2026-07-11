@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T19:18:24Z'
+generated_at: '2026-07-11T20:15:16Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -137,6 +137,7 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppMetaRecord]
@@ -213,6 +214,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppMetaRecord]
@@ -289,6 +291,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.retry.models.RetryPolicy]
       STORY-001-AC-4:
@@ -1100,18 +1103,26 @@ stories:
         - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_chat_stream.py::test_chat_streams_content_and_captures_ttft_and_usage
         - tests/contract/test_llm_client_contract.py::test_capability_flags_return_bool[anthropic_fake]
         - tests/contract/test_llm_client_contract.py::test_capability_flags_return_bool[anthropic_real]
+        - tests/contract/test_llm_client_contract.py::test_capability_flags_return_bool[gemini_fake]
+        - tests/contract/test_llm_client_contract.py::test_capability_flags_return_bool[gemini_real]
         - tests/contract/test_llm_client_contract.py::test_capability_flags_return_bool[openai_fake]
         - tests/contract/test_llm_client_contract.py::test_capability_flags_return_bool[openai_real]
         - tests/contract/test_llm_client_contract.py::test_chat_returns_chat_response_with_text[anthropic_fake]
         - tests/contract/test_llm_client_contract.py::test_chat_returns_chat_response_with_text[anthropic_real]
+        - tests/contract/test_llm_client_contract.py::test_chat_returns_chat_response_with_text[gemini_fake]
+        - tests/contract/test_llm_client_contract.py::test_chat_returns_chat_response_with_text[gemini_real]
         - tests/contract/test_llm_client_contract.py::test_chat_returns_chat_response_with_text[openai_fake]
         - tests/contract/test_llm_client_contract.py::test_chat_returns_chat_response_with_text[openai_real]
         - tests/contract/test_llm_client_contract.py::test_chat_stream_yields_chunks_and_exposes_trailing_response[anthropic_fake]
         - tests/contract/test_llm_client_contract.py::test_chat_stream_yields_chunks_and_exposes_trailing_response[anthropic_real]
+        - tests/contract/test_llm_client_contract.py::test_chat_stream_yields_chunks_and_exposes_trailing_response[gemini_fake]
+        - tests/contract/test_llm_client_contract.py::test_chat_stream_yields_chunks_and_exposes_trailing_response[gemini_real]
         - tests/contract/test_llm_client_contract.py::test_chat_stream_yields_chunks_and_exposes_trailing_response[openai_fake]
         - tests/contract/test_llm_client_contract.py::test_chat_stream_yields_chunks_and_exposes_trailing_response[openai_real]
         - tests/contract/test_llm_client_contract.py::test_close_does_not_raise_and_is_idempotent[anthropic_fake]
         - tests/contract/test_llm_client_contract.py::test_close_does_not_raise_and_is_idempotent[anthropic_real]
+        - tests/contract/test_llm_client_contract.py::test_close_does_not_raise_and_is_idempotent[gemini_fake]
+        - tests/contract/test_llm_client_contract.py::test_close_does_not_raise_and_is_idempotent[gemini_real]
         - tests/contract/test_llm_client_contract.py::test_close_does_not_raise_and_is_idempotent[openai_fake]
         - tests/contract/test_llm_client_contract.py::test_close_does_not_raise_and_is_idempotent[openai_real]
       STORY-018-AC-10:
@@ -1234,16 +1245,22 @@ stories:
         - tests/architecture/test_provider_openai_compatible_module.py::test_probe_health_never_raises_even_when_discovery_sdk_call_fails[404]
         - tests/architecture/test_provider_openai_compatible_module.py::test_probe_health_never_raises_even_when_discovery_sdk_call_fails[429]
         - tests/architecture/test_provider_openai_compatible_module.py::test_probe_health_never_raises_even_when_discovery_sdk_call_fails[500]
+        - tests/contract/test_llm_client_contract.py::test_list_models_returns_tuple_of_strings[gemini_fake]
+        - tests/contract/test_llm_client_contract.py::test_list_models_returns_tuple_of_strings[gemini_real]
         - tests/contract/test_llm_client_contract.py::test_list_models_returns_tuple_of_strings[openai_fake]
         - tests/contract/test_llm_client_contract.py::test_list_models_returns_tuple_of_strings[openai_real]
         - tests/contract/test_llm_client_contract.py::test_probe_health_never_raises_and_returns_provider_health[anthropic_fake]
         - tests/contract/test_llm_client_contract.py::test_probe_health_never_raises_and_returns_provider_health[anthropic_real]
+        - tests/contract/test_llm_client_contract.py::test_probe_health_never_raises_and_returns_provider_health[gemini_fake]
+        - tests/contract/test_llm_client_contract.py::test_probe_health_never_raises_and_returns_provider_health[gemini_real]
         - tests/contract/test_llm_client_contract.py::test_probe_health_never_raises_and_returns_provider_health[openai_fake]
         - tests/contract/test_llm_client_contract.py::test_probe_health_never_raises_and_returns_provider_health[openai_real]
       STORY-018-AC-8:
         tests:
         - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_embed.py::test_embed_raises_provider_error_with_redacted_message_on_sdk_failure
         - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_embed.py::test_embed_returns_vector_of_endpoints_dimensionality
+        - tests/contract/test_llm_client_contract.py::test_embed_returns_tuple_of_floats[gemini_fake]
+        - tests/contract/test_llm_client_contract.py::test_embed_returns_tuple_of_floats[gemini_real]
         - tests/contract/test_llm_client_contract.py::test_embed_returns_tuple_of_floats[openai_fake]
         - tests/contract/test_llm_client_contract.py::test_embed_returns_tuple_of_floats[openai_real]
       STORY-018-AC-9:
@@ -1263,6 +1280,8 @@ stories:
         - tests/architecture/test_provider_openai_compatible_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[500]
         - tests/contract/test_llm_client_contract.py::test_test_inference_never_raises_and_returns_inference_test_result[anthropic_fake]
         - tests/contract/test_llm_client_contract.py::test_test_inference_never_raises_and_returns_inference_test_result[anthropic_real]
+        - tests/contract/test_llm_client_contract.py::test_test_inference_never_raises_and_returns_inference_test_result[gemini_fake]
+        - tests/contract/test_llm_client_contract.py::test_test_inference_never_raises_and_returns_inference_test_result[gemini_real]
         - tests/contract/test_llm_client_contract.py::test_test_inference_never_raises_and_returns_inference_test_result[openai_fake]
         - tests/contract/test_llm_client_contract.py::test_test_inference_never_raises_and_returns_inference_test_result[openai_real]
   STORY-019:
@@ -1407,7 +1426,7 @@ stories:
         - src/ollama_llm_bench/backend/provider_anthropic/tests/test_request_translation.py::test_max_tokens_reflects_an_explicit_caller_value
   STORY-020:
     title: Implement the Gemini LLM client adapter with per-chunk usage and SDK discovery
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
     - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#610-exception-translation
@@ -1425,21 +1444,126 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-020-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_chat_stream.py::test_chat_assembles_text_and_captures_ttft_and_usage
       STORY-020-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_delta_tokens.py::test_per_chunk_usage_maps_to_delta_tokens
       STORY-020-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_chat_stream.py::test_reasoning_and_text_parts_concatenated_in_order
       STORY-020-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_exception_translation.py::test_connection_refused_translates_to_http_connection_error
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[auth_401]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[auth_403]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[bad_request_400]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[model_not_found_404]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[rate_limited_429]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_exception_translation.py::test_sdk_failure_translates_to_taxonomy_and_redacts[server_error_500]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_exception_translation.py::test_unenumerated_status_falls_through_catch_all
+        - tests/architecture/test_provider_gemini_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_provider_gemini_module.py::test_chat_connection_refused_never_lets_a_raw_httpx_exception_escape
+        - tests/architecture/test_provider_gemini_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[400]
+        - tests/architecture/test_provider_gemini_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[401]
+        - tests/architecture/test_provider_gemini_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[404]
+        - tests/architecture/test_provider_gemini_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[429]
+        - tests/architecture/test_provider_gemini_module.py::test_chat_never_lets_a_raw_sdk_exception_escape[500]
+        - tests/architecture/test_provider_gemini_module.py::test_embed_never_lets_a_raw_sdk_exception_escape
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[_internal/chat_stream_impl.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[_internal/client_impl.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[_internal/collaborators.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[_internal/sdk_factory.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[_internal/soft_failure.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[_internal/translate_exception.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[api.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[models.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[testing.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/conftest.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_cancellation.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_delta_tokens.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_embed.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_exception_translation.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_inference_test.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_probe_health.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[_internal/chat_stream_impl.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[_internal/client_impl.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[_internal/collaborators.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[_internal/sdk_factory.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[_internal/soft_failure.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[_internal/translate_exception.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[models.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[testing.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/conftest.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_cancellation.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_delta_tokens.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_embed.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_exception_translation.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_inference_test.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_probe_health.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[_internal/__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[_internal/chat_stream_impl.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[_internal/client_impl.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[_internal/collaborators.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[_internal/sdk_factory.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[_internal/soft_failure.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[_internal/translate_exception.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[api.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[models.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[testing.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/__init__.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/conftest.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_cancellation.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_delta_tokens.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_embed.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_exception_translation.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_inference_test.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_probe_health.py]
       STORY-020-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_cancellation.py::test_hard_cancel_aborts_stream_within_bound
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_cancellation.py::test_hard_cancel_hook_closes_stream_even_when_not_polled_first
       STORY-020-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_probe_health.py::test_probe_health_reachable_with_models
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_probe_health.py::test_probe_health_reachable_with_zero_models_is_healthy
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_probe_health.py::test_probe_health_sdk_build_lacks_models_list_falls_back
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_probe_health.py::test_probe_health_unreachable_host_never_raises
+        - tests/architecture/test_provider_gemini_module.py::test_probe_health_never_raises_even_when_reachability_call_fails[400]
+        - tests/architecture/test_provider_gemini_module.py::test_probe_health_never_raises_even_when_reachability_call_fails[401]
+        - tests/architecture/test_provider_gemini_module.py::test_probe_health_never_raises_even_when_reachability_call_fails[404]
+        - tests/architecture/test_provider_gemini_module.py::test_probe_health_never_raises_even_when_reachability_call_fails[429]
+        - tests/architecture/test_provider_gemini_module.py::test_probe_health_never_raises_even_when_reachability_call_fails[500]
       STORY-020-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_embed.py::test_embed_returns_vector
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_embed.py::test_embed_translates_sdk_error
       STORY-020-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_inference_test.py::test_test_inference_classifies_outcome_by_failure_scenario[auth_failed]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_inference_test.py::test_test_inference_classifies_outcome_by_failure_scenario[model_not_found]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_inference_test.py::test_test_inference_classifies_outcome_by_failure_scenario[provider_error]
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_inference_test.py::test_test_inference_classifies_timeout_outcome
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_inference_test.py::test_test_inference_releases_gate_in_finally_after_failure
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_inference_test.py::test_test_inference_releases_gate_in_finally_after_success
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_inference_test.py::test_test_inference_reports_gate_busy_without_issuing_a_call
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_inference_test.py::test_test_inference_success_returns_verbatim_excerpt
+        - tests/architecture/test_provider_gemini_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[400]
+        - tests/architecture/test_provider_gemini_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[401]
+        - tests/architecture/test_provider_gemini_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[404]
+        - tests/architecture/test_provider_gemini_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[429]
+        - tests/architecture/test_provider_gemini_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[500]
   STORY-021:
     title: Add a mandatory CancellationToken parameter to the canonical LLMClient chat surface
     status: ready

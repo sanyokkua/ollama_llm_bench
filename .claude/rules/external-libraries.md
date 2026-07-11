@@ -41,6 +41,7 @@ PSF), and a small transitive footprint. Failing any criterion requires a recorde
 | `platformdirs`      | `>=4.0`      | Cross-platform application-data directory resolution                                                                                |
 | `openai`            | `>=2.45.0`   | OpenAI-compatible chat/embeddings SDK; backs Ollama, LM Studio, llama.cpp, OpenAI, and Azure (`backend/provider_openai_compatible`) |
 | `anthropic`         | `>=0.116.0`  | Anthropic Messages API SDK; backs `backend/provider_anthropic`                                                                      |
+| `google-genai`      | `>=2.11.0`   | Google Gen AI SDK (unified `google-genai` package, not the deprecated `google-generativeai`); backs `backend/provider_gemini`       |
 | `click`             | `>=8.1`      | Command-line interface for the diagnostic doctor commands                                                                           |
 | `typing-extensions` | `>=4.5.0`    | `@deprecated` (PEP 702) runtime support                                                                                             |
 
