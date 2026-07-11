@@ -1,7 +1,7 @@
 ---
 id: STORY-021
 title: Add a mandatory CancellationToken parameter to the canonical LLMClient chat surface
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
   - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm
@@ -147,15 +147,15 @@ in behaviour.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-021.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/provider_registry/`,
+- [x] Every acceptance criterion has a passing test that names STORY-021.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/provider_registry/`,
   including the newly-permitted `backend/concurrency` import.
-- [ ] An architecture test confirms `backend/provider_registry/` still imports no Qt, no
+- [x] An architecture test confirms `backend/provider_registry/` still imports no Qt, no
   `asyncio`, and no concrete provider adapter after the added `backend/concurrency` import.
-- [ ] The STORY-017 test suite for `backend/provider_registry/` still passes with its fakes
+- [x] The STORY-017 test suite for `backend/provider_registry/` still passes with its fakes
   updated to the corrected signature.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-021.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-021.
+- [x] The module inventory is unchanged.
 
 ## Notes
 
@@ -169,4 +169,10 @@ in behaviour.
   behaviour has a token to work with; STORY-019 and STORY-020 (still `draft`) consume the same
   corrected signature. No caller currently passes a token, so no production call site outside the
   three adapters needs updating within this story's scope.
+- **Landed inside the STORY-018 commit.** The coder session implementing STORY-018 hit this
+  Protocol gap directly, wrote ADR-0005, authored this story file, corrected
+  `backend/provider_registry/protocols.py`, updated `FakeLLMClient`, and wrote both AC test
+  files — all inside commit `daee0c4` ("STORY-018"), rather than a dedicated `STORY-021` commit.
+  There is no separate STORY-021 commit in `git log`; this note exists so that absence isn't
+  mistaken for missing work.
   </content>

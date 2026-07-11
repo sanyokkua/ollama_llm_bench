@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T20:15:16Z'
+generated_at: '2026-07-11T20:35:35Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1566,7 +1566,7 @@ stories:
         - tests/architecture/test_provider_gemini_module.py::test_test_inference_never_raises_even_when_chat_sdk_call_fails[500]
   STORY-021:
     title: Add a mandatory CancellationToken parameter to the canonical LLMClient chat surface
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
     - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm
