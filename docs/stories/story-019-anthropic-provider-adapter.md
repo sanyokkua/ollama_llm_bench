@@ -1,7 +1,7 @@
 ---
 id: STORY-019
 title: Implement the Anthropic LLM client adapter with thinking-block handling and exception translation
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
   - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm

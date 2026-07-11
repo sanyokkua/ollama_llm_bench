@@ -1,29 +1,39 @@
-"""The shared ``LLMClient`` contract-test suite (§6a) — runs against both the real
-``OpenAICompatibleClient`` (wire-stub-backed, §7a) and the
-``provider_openai_compatible/testing.py`` fake, proving the fake is a faithful
-stand-in for the real adapter.
+"""The shared ``LLMClient`` contract-test suite (§6a) — runs against both real
+provider adapters (wire-stub-backed, §7a) and their ``testing.py`` fakes,
+proving each fake is a faithful stand-in for its real adapter.
 
 Source of truth: ``docs/v3_specification/16_Engineering_Standards/07_TESTING_STANDARD.md``
-§6a; ``docs/stories/story-018-openai-compatible-provider-adapter.md`` Definition of
-Done ("The ``LLMClient`` shared contract-test suite (§6a) runs against both the real
-adapter (wire stub, §7a) and ``provider_openai_compatible/testing.py``, and both legs
+§6a; ``docs/stories/story-018-openai-compatible-provider-adapter.md`` and
+``docs/stories/story-019-anthropic-provider-adapter.md`` Definition of Done
+("The ``LLMClient`` shared contract-test suite (§6a) runs against both the real
+adapter (wire stub, §7a) and the module's ``testing.py`` fake, and both legs
 pass.").
 
 This is the **first** contract suite in the codebase — STORY-018 is the first
-concrete ``LLMClient`` provider adapter to ship alongside its ``testing.py`` fake.
-Every assertion below is a genuine ``LLMClient`` Protocol-level behavioural contract
+concrete ``LLMClient`` provider adapter to ship alongside its ``testing.py`` fake;
+STORY-019 adds the ``ANTHROPIC`` real/fake legs onto the same suite. Every
+assertion below is a genuine ``LLMClient`` Protocol-level behavioural contract
 (``08_Cross_Cutting/08-E_interfaces_contracts.md`` §10: return shapes, the
 never-raises rules for ``probe_health``/``test_inference``) — never a
-provider-specific wire detail. The suite is parametrized ``params=["real", "fake"]``
-via the ``llm_client`` fixture below; both legs must pass in the pull-request gate.
+provider-specific wire detail. The suite is parametrized
+``params=["openai_real", "openai_fake", "anthropic_real", "anthropic_fake"]``
+via the ``llm_client`` fixture below; every leg must pass in the pull-request
+gate. ``embed``/``list_models`` are OpenAI-only Protocol-level assertions
+(``test_embed_returns_tuple_of_floats``, ``test_list_models_returns_tuple_of_strings``)
+because Anthropic's ``LLMClient`` deliberately raises immediately from both —
+per-provider-type behaviour §6.9, not a Protocol-level contract every
+implementation shares; STORY-019's own colocated
+``tests/test_probe_and_embed.py`` proves the Anthropic raise-immediately
+contract instead.
 
-The real leg reuses the wire-stub fixture patterns already established in
+The real legs reuse the wire-stub fixture patterns already established in
 ``src/ollama_llm_bench/backend/provider_openai_compatible/tests/conftest.py``
-(``FakeClock``, ``FakeEventBus``, the ``threaded=True`` httpserver override) rather
-than duplicating them — this module imports those helpers directly. The fake leg
-constructs ``FakeOpenAICompatibleClient`` from the module's own ``testing.py`` and
-configures its canned responses to be shape-comparable with the real leg's wire-stub
-responses (non-empty ``text``, a populated embedding vector, etc.).
+and ``src/ollama_llm_bench/backend/provider_anthropic/tests/conftest.py``
+(``FakeClock``, ``FakeEventBus``, the ``threaded=True`` httpserver override)
+rather than duplicating them — this module imports those helpers directly.
+Each fake leg constructs the module's own fake from its ``testing.py`` and
+configures its canned responses to be shape-comparable with the real leg's
+wire-stub responses (non-empty ``text``, a populated embedding vector, etc.).
 """
 
 from collections.abc import Iterator
@@ -40,6 +50,16 @@ from ollama_llm_bench.backend.domain import (
     InferenceTestOutcome,
     InferenceTestResult,
     ProviderHealth,
+)
+from ollama_llm_bench.backend.provider_anthropic._internal.client_impl import AnthropicClient
+from ollama_llm_bench.backend.provider_anthropic._internal.collaborators import (
+    AnthropicClientCollaborators,
+)
+from ollama_llm_bench.backend.provider_anthropic.models import AnthropicClientSettings
+from ollama_llm_bench.backend.provider_anthropic.testing import FakeAnthropicClient
+from ollama_llm_bench.backend.provider_anthropic.tests.conftest import (
+    anthropic_success_stream_body,
+    make_provider_config as make_anthropic_provider_config,
 )
 from ollama_llm_bench.backend.provider_openai_compatible._internal.client_impl import (
     OpenAICompatibleClient,
@@ -67,6 +87,7 @@ pytestmark = pytest.mark.integration
 _CANNED_TEXT = "hello from the contract suite"
 _CANNED_VECTOR = (0.1, 0.2, 0.3, 0.4)
 _EXPECTED_VECTOR_LEN = 4
+_ANTHROPIC_PROVIDER_ID = "22222222-2222-4222-8222-222222222222"
 
 
 @pytest.fixture(scope="session")
@@ -189,13 +210,101 @@ def _make_fake_client() -> FakeOpenAICompatibleClient:
     return fake
 
 
-@pytest.fixture(params=["real", "fake"])
-def llm_client(request: pytest.FixtureRequest, httpserver: HTTPServer) -> LLMClient:
-    """Parametrized ``LLMClient`` under test: the real wire-stub-backed adapter,
-    or the module's ``testing.py`` fake — both legs run every test below."""
-    if request.param == "real":
+def _make_anthropic_real_client(httpserver: HTTPServer) -> AnthropicClient:
+    """Build a real ``AnthropicClient`` wired against ``httpserver``, with the
+    canned streaming chat response pre-registered at the real SDK's
+    ``/v1/messages`` path.
+
+    ``probe_health`` and ``test_inference`` both reuse this same registered
+    route: ``probe_health`` issues a bare reachability ``GET /`` (matched by
+    ``pytest_httpserver``'s implicit fallback of an unmatched path to 404,
+    which is still a successful TCP/HTTP round trip — reachable), and
+    ``test_inference`` issues its own canned-prompt ``POST /v1/messages``
+    against the same stub.
+    """
+    body = anthropic_success_stream_body(text=_CANNED_TEXT)
+    httpserver.expect_request("/v1/messages", method="POST").respond_with_data(
+        body, content_type="text/event-stream"
+    )
+    clock = FakeClock()
+    event_bus = FakeEventBus()
+    gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
+    config = make_anthropic_provider_config(base_url=httpserver.url_for("/"))
+    collaborators = AnthropicClientCollaborators(
+        clock=clock, event_bus=event_bus, inference_activity_store=gate
+    )
+    return AnthropicClient(
+        config=config,
+        resolved_api_key="sk-ant-test-key",
+        collaborators=collaborators,
+        settings=AnthropicClientSettings(),
+    )
+
+
+def _make_anthropic_fake_client() -> FakeAnthropicClient:
+    """Build a ``FakeAnthropicClient`` with every canned response this suite's
+    assertions need, shape-comparable to the real leg's wire responses."""
+    fake = FakeAnthropicClient()
+    fake.set_chat_response(
+        ChatResponse(text=_CANNED_TEXT, total_time_ms=1, ttft_ms=1),
+        chunks=(ChatChunk(content=_CANNED_TEXT),),
+    )
+    fake.set_probe_health(
+        ProviderHealth(
+            provider_id=_ANTHROPIC_PROVIDER_ID,
+            reachable=True,
+            discovery_supported=False,
+            model_count=None,
+            last_probe_ms=1,
+            probed_at=1,
+        )
+    )
+    fake.set_test_inference_result(
+        InferenceTestResult(
+            outcome=InferenceTestOutcome.SUCCESS,
+            provider_id=_ANTHROPIC_PROVIDER_ID,
+            model_name="claude-test-model",
+            latency_ms=1,
+            response_excerpt=_CANNED_TEXT,
+            tested_at=1,
+        )
+    )
+    return fake
+
+
+def _build_llm_client(param: str, httpserver: HTTPServer) -> LLMClient:
+    """Build the ``LLMClient`` leg named by ``param``; shared by both
+    parametrized fixtures below."""
+    if param == "openai_real":
         return _make_real_client(httpserver)
-    return _make_fake_client()
+    if param == "openai_fake":
+        return _make_fake_client()
+    if param == "anthropic_real":
+        return _make_anthropic_real_client(httpserver)
+    return _make_anthropic_fake_client()
+
+
+@pytest.fixture(params=["openai_real", "openai_fake", "anthropic_real", "anthropic_fake"])
+def llm_client(request: pytest.FixtureRequest, httpserver: HTTPServer) -> LLMClient:
+    """Parametrized ``LLMClient`` under test: each real wire-stub-backed
+    adapter and its ``testing.py`` fake — every leg runs every test below."""
+    param: str = request.param
+    return _build_llm_client(param, httpserver)
+
+
+@pytest.fixture(params=["openai_real", "openai_fake"])
+def openai_llm_client(request: pytest.FixtureRequest, httpserver: HTTPServer) -> LLMClient:
+    """Parametrized ``LLMClient`` under test, OpenAI-compatible legs only.
+
+    Used only by ``test_embed_returns_tuple_of_floats`` and
+    ``test_list_models_returns_tuple_of_strings`` — Anthropic's ``embed``/
+    ``list_models`` deliberately raise immediately (§6.9/§6.9.1), so those
+    two assertions are not a Protocol-level contract every implementation
+    shares; STORY-019's own colocated tests prove the Anthropic raise
+    behaviour instead.
+    """
+    param: str = request.param
+    return _build_llm_client(param, httpserver)
 
 
 @pytest.fixture
@@ -276,29 +385,35 @@ def test_test_inference_never_raises_and_returns_inference_test_result(
     assert isinstance(result, InferenceTestResult)
 
 
-def test_list_models_returns_tuple_of_strings(llm_client: LLMClient) -> None:
+def test_list_models_returns_tuple_of_strings(openai_llm_client: LLMClient) -> None:
     """Proves: STORY-018-AC-7
 
-    Given any ``LLMClient`` implementation, when ``list_models`` is called,
-    then it returns a ``tuple[str, ...]``.
+    Given any OpenAI-compatible ``LLMClient`` implementation, when
+    ``list_models`` is called, then it returns a ``tuple[str, ...]``. Scoped
+    to the OpenAI-compatible legs only — Anthropic's ``list_models``
+    deliberately raises immediately (STORY-019 §6.9.1), so this is a
+    per-provider-type contract, not a Protocol-wide one.
     """
     # Act
-    models = llm_client.list_models()
+    models = openai_llm_client.list_models()
 
     # Assert
     assert isinstance(models, tuple)
     assert all(isinstance(model, str) for model in models)
 
 
-def test_embed_returns_tuple_of_floats(llm_client: LLMClient) -> None:
+def test_embed_returns_tuple_of_floats(openai_llm_client: LLMClient) -> None:
     """Proves: STORY-018-AC-8
 
-    Given any ``LLMClient`` implementation with an embedding model
-    configured, when ``embed(text)`` is called, then it returns a
-    ``tuple[float, ...]`` matching the canned vector's dimensionality.
+    Given any OpenAI-compatible ``LLMClient`` implementation with an
+    embedding model configured, when ``embed(text)`` is called, then it
+    returns a ``tuple[float, ...]`` matching the canned vector's
+    dimensionality. Scoped to the OpenAI-compatible legs only — Anthropic's
+    ``embed`` deliberately raises immediately (STORY-019-AC-6), so this is a
+    per-provider-type contract, not a Protocol-wide one.
     """
     # Act
-    vector = llm_client.embed("hello world")
+    vector = openai_llm_client.embed("hello world")
 
     # Assert
     assert isinstance(vector, tuple)

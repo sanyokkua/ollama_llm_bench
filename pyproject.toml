@@ -21,6 +21,7 @@ dependencies = [
   "click>=8.1",
   "typing-extensions>=4.5.0",
   "openai>=2.45.0",
+  "anthropic>=0.116.0",
 ]
 
 [project.scripts]
