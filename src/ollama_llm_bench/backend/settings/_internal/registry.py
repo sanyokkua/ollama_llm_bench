@@ -5,9 +5,17 @@ Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-G_feature_flags.md`
 no resolution logic; it is a pure data table.
 
 ``DEFAULTS`` is the floor: one entry, in its registry storage-form string, for every
-``benchmark.*``, ``feature.*``, ``eval.*``, ``embedding.*``, ``ui.*``, ``logging.*``, and
-``task_editor.*`` key — 51 keys in total. Booleans store as ``"true"``/``"false"``,
-enums store their ``StrEnum`` member's ``.value``.
+``benchmark.*``, ``feature.*``, ``eval.*``, ``embedding.*``, ``ui.*``, ``logging.*``,
+``task_editor.*``, ``provider.*``, and ``readiness.*`` key. Booleans store as
+``"true"``/``"false"``, enums store their ``StrEnum`` member's ``.value``.
+
+``provider.probe_timeout_ms`` and ``readiness.snapshot_staleness_ms`` are documented in
+``11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md`` §7 and
+``11_Services_and_Algorithms/09_READINESS_PROBE.md`` §7 respectively but were not yet
+present in the ``08-G`` registry document or this in-code table; they are added here
+(STORY-016) as a purely additive registry entry — neither per-run-overridable nor
+schema-affecting — so the Readiness Service can resolve its timeout/staleness budgets
+through ``SettingsService`` instead of a hardcoded literal.
 
 ``PER_RUN_OVERRIDABLE`` is the exact set of keys frozen into a run's settings snapshot at
 run creation — 27 keys: every ``benchmark.*`` key except ``benchmark.last_mode`` (11),
@@ -95,6 +103,10 @@ DEFAULTS: dict[SettingKey, str] = {
     # --- task_editor.* (`08-G` §9) — 2 keys, none per-run-overridable ---
     "task_editor.auto_format_on_save": "true",
     "task_editor.warn_on_empty_grading_criteria": "true",
+    # --- provider.* / readiness.* (STORY-016; `02_LLM_CLIENT_PROTOCOL.md` §7,
+    # `09_READINESS_PROBE.md` §7) — 2 keys, none per-run-overridable ---
+    "provider.probe_timeout_ms": "5000",
+    "readiness.snapshot_staleness_ms": "30000",
 }
 
 PER_RUN_OVERRIDABLE: frozenset[SettingKey] = frozenset(

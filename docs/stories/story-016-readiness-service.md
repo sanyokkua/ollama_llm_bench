@@ -1,7 +1,7 @@
 ---
 id: STORY-016
 title: Aggregate provider and embedding health into one application-readiness snapshot
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service
   - 11_Services_and_Algorithms/09_READINESS_PROBE.md#62-the-probe-of-one-provider
@@ -222,12 +222,36 @@ even with the pool saturated.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-016.
-- [ ] EC-RUN-13 has a passing test.
-- [ ] A table-driven test covers every provider-condition and every aggregation combination from
+- [x] Every acceptance criterion has a passing test that names STORY-016.
+- [x] EC-RUN-13 has a passing test.
+- [x] A table-driven test covers every provider-condition and every aggregation combination from
   `09_READINESS_PROBE.md` §6.5 (STORY-016-AC-2, STORY-016-AC-3).
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/readiness/`.
-- [ ] An architecture test confirms `backend/readiness/` imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/readiness/`.
+- [x] An architecture test confirms `backend/readiness/` imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-016.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- `just trace-check` still fails on the same three pre-existing, STORY-016-unrelated gaps
+  already documented by STORY-003/STORY-005/STORY-010/STORY-013/STORY-014's own Notes sections
+  (`EC-PERSIST-6` dangling row; `EC-PROV-1a`/`EC-RUN-1a` uncovered) — confirmed present before
+  this story's work began (`git stash` + re-run reproduced the identical three failures). These
+  trace to a permanent cross-reference gap between the read-only vendored `08-I_edge_cases.md`
+  catalog and `06_EDGE_CASE_TO_TEST_MAPPING.md` (neither file may be edited in place per
+  `repository-documentation.md`). STORY-016 itself has zero orphan clauses/ACs/tests — all 8
+  ACs and EC-RUN-13 show non-empty `tests:` lists in `traceability.yaml`.
+- During test-writing, a real implementation bug was found and fixed: `_probe_one` only caught
+  `ConfigurationError`, so an arbitrary exception from a collaborator's `probe_health()` could
+  propagate out of `probe()`/`probe_all()`, violating the "never raises" guarantee
+  (STORY-016-AC-7's spirit and `09_READINESS_PROBE.md` §5). Fixed by collapsing any exception
+  from `probe_health()` into an `UNREACHABLE`-shaped `ProviderHealth`, logged via `structlog`,
+  mirroring the existing timeout-collapse pattern in `_await_health_result`.
+- `backend/provider_registry/` and `backend/embedding/` are still stub packages with no story
+  built yet, so `backend/readiness/protocols.py` declares narrow, readiness-local collaborator
+  Protocols (`ReadinessLLMClient`, `ReadinessProviderRegistry`, `ReadinessEmbeddingSelector`,
+  `ReadinessEmbeddingSelection`) rather than importing from those modules, following the same
+  precedent as `backend/infra/protocols.py`'s `PlatformDetector`. When those modules' stories
+  land, their concrete types will satisfy these Protocols structurally with no code change here;
+  only `compose.py` will need updating to wire the real instances in.
   </content>

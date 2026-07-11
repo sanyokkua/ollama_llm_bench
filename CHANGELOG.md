@@ -40,6 +40,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (27 overridable keys), coercion-failure fallback with logged warning for user-saved values and
   hard crash for snapshot values (SPEC-110), and an `_app_settings_changed` event on every
   `set`/`upsert` per `08-C` §2–§5, `08-E` §8–§8a, and `08-G` §3–§9.
+- Readiness probe service (`backend/readiness/`): the `ReadinessService` Protocol with three
+  methods — `snapshot()` (fast-synchronous cached read, returns `CHECKING` before the first
+  probe), `probe(provider_id)` (blocking leaf probe of one provider), and `probe_all()`
+  (blocking, dispatcher-orchestrated concurrent per-provider probes plus a single embedding
+  handshake). Aggregates provider and embedding reachability into an `AppReadinessSnapshot`
+  with one of four states (`READY`, `DEGRADED`, `NOT_READY`, `CHECKING`). The service
+  never raises, never executes billable `embed()` calls, integrates with the single-inference
+  gate via `InferenceActivity.READINESS_PROBE`, coalesces overlapping `probe_all` calls onto
+  one shared in-flight batch, and emits `_app_readiness_changed` only when the recomputed
+  snapshot differs from the cached one. Consumes `ReadinessProviderRegistry` and
+  `ReadinessEmbeddingSelector` Protocols, plus `SettingsService`, `InferenceActivityStore`,
+  `EventBus`, `TaskRunner`, and `Clock`. Per `08-E` §12 and `11_Services_and_Algorithms/09_READINESS_PROBE.md`.
 - Persistence foundation layer (`backend/persistence/app_settings/`): the single-writer
   connection manager and schema lifecycle (ADR-0004) per DD-41 and DD-53, exposing
   `open_write_connection()` (writer + lock), `open_read_connection()` (read-only connection

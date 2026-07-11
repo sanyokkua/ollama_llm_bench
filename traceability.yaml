@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T10:03:13Z'
+generated_at: '2026-07-11T11:08:20Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -901,7 +901,7 @@ stories:
         - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_late_release_after_watchdog_noops_and_reacquire_succeeds
   STORY-016:
     title: Aggregate provider and embedding health into one application-readiness snapshot
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service
     - 08_Cross_Cutting/08-I_edge_cases.md#ec-run-13--readiness-probe-requested-mid-benchmark
@@ -918,21 +918,58 @@ stories:
     - EC-RUN-13
     acceptance_criteria:
       STORY-016-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/readiness/tests/test_snapshot.py::test_snapshot_is_checking_before_first_probe
+        - src/ollama_llm_bench/backend/readiness/tests/test_snapshot.py::test_snapshot_never_triggers_a_probe_as_a_side_effect
+        - src/ollama_llm_bench/backend/readiness/tests/test_snapshot.py::test_snapshot_returns_synchronously_with_no_blocking_call
       STORY-016-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[all_reachable_embedding_not_ok]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[all_reachable_embedding_ok]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[all_reachable_multi_embedding_ok]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[one_enabled_none_reachable]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[partially_reachable_embedding_not_ok]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[partially_reachable_embedding_ok]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[two_enabled_none_reachable_embedding_any]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[zero_enabled_providers]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[zero_enabled_providers_embedding_any]
+        - src/ollama_llm_bench/backend/readiness/tests/test_probe_all_never_raises.py::test_probe_all_collapses_an_arbitrary_leaf_exception_to_unreachable_snapshot
+        - src/ollama_llm_bench/backend/readiness/tests/test_probe_one.py::test_provider_probe_exceeding_timeout_collapses_to_unreachable
       STORY-016-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[enabled_but_env_var_unresolved]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[reachable_discovery_not_supported_anthropic_style]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[reachable_discovery_supported_listing_call_failed]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[reachable_discovery_supported_models_gt_0]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[reachable_discovery_supported_zero_models]
+        - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[unreachable_refused_auth_or_deadline]
+        - src/ollama_llm_bench/backend/readiness/tests/test_probe_one.py::test_enabled_provider_with_no_client_reports_missing_env_with_no_network_call
       STORY-016-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_automatic_check_never_issues_model_compute
+        - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_client_without_embedding_surface_yields_false
+        - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_discovery_supported_but_model_not_listed_yields_false
+        - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_listed_but_cannot_embed_model_still_passes_handshake
+        - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_no_selection_yields_false
+        - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_persistence_error_resolving_selection_yields_false_not_raised
+        - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_selection_provider_unreachable_in_batch_yields_false
       STORY-016-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/readiness/tests/test_coalescing.py::test_overlapping_probe_all_calls_coalesce_to_one_batch
       STORY-016-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/readiness/tests/test_events.py::test_event_emitted_again_when_snapshot_differs
+        - src/ollama_llm_bench/backend/readiness/tests/test_events.py::test_event_emitted_only_on_snapshot_change
       STORY-016-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/readiness/tests/test_gate_deferral.py::test_gate_is_released_in_finally_even_when_probe_raises
+        - src/ollama_llm_bench/backend/readiness/tests/test_gate_deferral.py::test_probe_deferred_forever_when_gate_never_goes_idle_reports_deferred_health
+        - src/ollama_llm_bench/backend/readiness/tests/test_gate_deferral.py::test_probe_deferred_when_gate_held_by_benchmark_run
+        - src/ollama_llm_bench/backend/readiness/tests/test_probe_all_never_raises.py::test_probe_collapses_an_arbitrary_leaf_exception_to_unreachable_health
       STORY-016-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/readiness/tests/test_orchestration.py::test_bare_probe_never_submits_to_the_task_runner
+        - src/ollama_llm_bench/backend/readiness/tests/test_orchestration.py::test_probe_all_fans_out_concurrently_and_never_deadlocks
 clauses:
   08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order:
     stories:
@@ -1480,7 +1517,44 @@ edge_cases:
   EC-RUN-13:
     stories:
     - STORY-016
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[all_reachable_embedding_not_ok]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[all_reachable_embedding_ok]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[all_reachable_multi_embedding_ok]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[one_enabled_none_reachable]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[partially_reachable_embedding_not_ok]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[partially_reachable_embedding_ok]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[two_enabled_none_reachable_embedding_any]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[zero_enabled_providers]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_overall_state_folds_provider_and_embedding_results[zero_enabled_providers_embedding_any]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[enabled_but_env_var_unresolved]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[reachable_discovery_not_supported_anthropic_style]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[reachable_discovery_supported_listing_call_failed]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[reachable_discovery_supported_models_gt_0]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[reachable_discovery_supported_zero_models]
+    - src/ollama_llm_bench/backend/readiness/tests/test_aggregation.py::test_provider_condition_maps_to_health_and_healthy_count[unreachable_refused_auth_or_deadline]
+    - src/ollama_llm_bench/backend/readiness/tests/test_coalescing.py::test_overlapping_probe_all_calls_coalesce_to_one_batch
+    - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_automatic_check_never_issues_model_compute
+    - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_client_without_embedding_surface_yields_false
+    - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_discovery_supported_but_model_not_listed_yields_false
+    - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_listed_but_cannot_embed_model_still_passes_handshake
+    - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_no_selection_yields_false
+    - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_persistence_error_resolving_selection_yields_false_not_raised
+    - src/ollama_llm_bench/backend/readiness/tests/test_embedding_probe.py::test_selection_provider_unreachable_in_batch_yields_false
+    - src/ollama_llm_bench/backend/readiness/tests/test_events.py::test_event_emitted_again_when_snapshot_differs
+    - src/ollama_llm_bench/backend/readiness/tests/test_events.py::test_event_emitted_only_on_snapshot_change
+    - src/ollama_llm_bench/backend/readiness/tests/test_gate_deferral.py::test_gate_is_released_in_finally_even_when_probe_raises
+    - src/ollama_llm_bench/backend/readiness/tests/test_gate_deferral.py::test_probe_deferred_forever_when_gate_never_goes_idle_reports_deferred_health
+    - src/ollama_llm_bench/backend/readiness/tests/test_gate_deferral.py::test_probe_deferred_when_gate_held_by_benchmark_run
+    - src/ollama_llm_bench/backend/readiness/tests/test_orchestration.py::test_bare_probe_never_submits_to_the_task_runner
+    - src/ollama_llm_bench/backend/readiness/tests/test_orchestration.py::test_probe_all_fans_out_concurrently_and_never_deadlocks
+    - src/ollama_llm_bench/backend/readiness/tests/test_probe_all_never_raises.py::test_probe_all_collapses_an_arbitrary_leaf_exception_to_unreachable_snapshot
+    - src/ollama_llm_bench/backend/readiness/tests/test_probe_all_never_raises.py::test_probe_collapses_an_arbitrary_leaf_exception_to_unreachable_health
+    - src/ollama_llm_bench/backend/readiness/tests/test_probe_one.py::test_enabled_provider_with_no_client_reports_missing_env_with_no_network_call
+    - src/ollama_llm_bench/backend/readiness/tests/test_probe_one.py::test_provider_probe_exceeding_timeout_collapses_to_unreachable
+    - src/ollama_llm_bench/backend/readiness/tests/test_snapshot.py::test_snapshot_is_checking_before_first_probe
+    - src/ollama_llm_bench/backend/readiness/tests/test_snapshot.py::test_snapshot_never_triggers_a_probe_as_a_side_effect
+    - src/ollama_llm_bench/backend/readiness/tests/test_snapshot.py::test_snapshot_returns_synchronously_with_no_blocking_call
   EC-RUN-14:
     stories:
     - STORY-015
