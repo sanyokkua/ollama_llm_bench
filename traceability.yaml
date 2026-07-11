@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T11:52:33Z'
+generated_at: '2026-07-11T13:49:33Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -972,7 +972,7 @@ stories:
         - src/ollama_llm_bench/backend/readiness/tests/test_orchestration.py::test_probe_all_fans_out_concurrently_and_never_deadlocks
   STORY-017:
     title: Own one LLM client per provider and route composite targets through the registry
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#9-provider-registry
@@ -988,21 +988,82 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-017-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_construction.py::test_registry_lists_enabled_and_routes_each_provider
+        - tests/architecture/test_provider_registry_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[_internal/client_builder.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[_internal/registry_impl.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[api.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[protocols.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/conftest.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_build_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_construction.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_deferred_close.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_get_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_reload_atomicity.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_defines_no_async_function[tests/test_secret_resolution.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[_internal/__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[_internal/client_builder.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[_internal/registry_impl.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[api.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[protocols.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/conftest.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_build_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_construction.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_deferred_close.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_get_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_reload_atomicity.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_concrete_provider_adapter[tests/test_secret_resolution.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[_internal/client_builder.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[_internal/registry_impl.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[protocols.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/conftest.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_build_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_construction.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_deferred_close.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_get_client.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_reload_atomicity.py]
+        - tests/architecture/test_provider_registry_module.py::test_provider_registry_module_imports_no_qt_or_asyncio[tests/test_secret_resolution.py]
       STORY-017-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_construction.py::test_routing_is_by_provider_id_not_model_name
       STORY-017-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_get_client.py::test_get_client_outcome_per_provider_state[disabled]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_get_client.py::test_get_client_outcome_per_provider_state[enabled_unresolved_secret]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_get_client.py::test_get_client_outcome_per_provider_state[enabled_valid_resolved]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_get_client.py::test_get_client_outcome_per_provider_state[not_in_catalog]
       STORY-017-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_build_client.py::test_build_outcome_per_provider_configuration[anthropic_resolved_key]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_build_client.py::test_build_outcome_per_provider_configuration[gemini_unresolved_key]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_build_client.py::test_build_outcome_per_provider_configuration[openai_compatible_empty_base_url_no_azure]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_build_client.py::test_build_outcome_per_provider_configuration[openai_compatible_full_azure_triple]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_build_client.py::test_build_outcome_per_provider_configuration[openai_compatible_keyless_local]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_build_client.py::test_build_outcome_per_provider_configuration[openai_compatible_partial_azure]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_build_client.py::test_build_outcome_per_provider_configuration[openai_compatible_plain_base_url]
       STORY-017-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_secret_resolution.py::test_resolved_key_is_used_but_never_logged_or_emitted
       STORY-017-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_reload_atomicity.py::test_reload_structural_failure_rolls_back_and_emits_nothing
       STORY-017-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_reload_atomicity.py::test_reload_omits_missing_env_provider_and_still_succeeds
       STORY-017-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_deferred_close.py::test_superseded_clients_close_only_when_gate_idle[gate_busy]
+        - src/ollama_llm_bench/backend/provider_registry/tests/test_deferred_close.py::test_superseded_clients_close_only_when_gate_idle[gate_idle]
   STORY-018:
     title: Implement the OpenAI-compatible LLM client adapter with exception translation
     status: draft

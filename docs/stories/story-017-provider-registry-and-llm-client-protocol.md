@@ -1,7 +1,7 @@
 ---
 id: STORY-017
 title: Own one LLM client per provider and route composite targets through the registry
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#9-provider-registry
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
@@ -271,3 +271,15 @@ per this table (SPEC-045, §6.6):
   the pipeline and the Readiness Service; nothing in this story calls those services, so they are
   not restated as ACs here — only the registry's enumerate-and-route surface those consumers rely
   on is proven.
+
+## Notes (fix-it pass addendum)
+
+- **Known limitation — keyless carve-out is not local-vs-cloud-aware.** §6.2/§6.3 scope the
+  keyless-provider carve-out to a *local* `OPENAI_COMPATIBLE` provider; `ProviderConfig` has no
+  field distinguishing local from cloud `OPENAI_COMPATIBLE` providers, so `client_builder.py`'s
+  `resolve_secret` currently applies the carve-out to any `OPENAI_COMPATIBLE` provider with an
+  empty `api_key_raw`, local or not. No acceptance criterion in this story exercises a cloud
+  `OPENAI_COMPATIBLE` provider with an empty key, so this is not a proven defect, but it is a real
+  gap. Fixing it requires a domain-model change (a discriminator field) and is out of scope here —
+  flagged for whichever future story (likely STORY-018, the `OPENAI_COMPATIBLE` adapter) needs to
+  decide whether that distinction matters.

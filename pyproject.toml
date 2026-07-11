@@ -215,7 +215,11 @@ modules = [
 [[tool.importlinter.contracts]]
 name = "Only compose.py wires concrete adapters"
 type = "forbidden"
-source_modules = ["ollama_llm_bench.ui", "ollama_llm_bench.adapters"]
+source_modules = [
+  "ollama_llm_bench.ui",
+  "ollama_llm_bench.adapters",
+  "ollama_llm_bench.backend.provider_registry",
+]
 forbidden_modules = [
   "ollama_llm_bench.backend.provider_openai_compatible",
   "ollama_llm_bench.backend.provider_anthropic",

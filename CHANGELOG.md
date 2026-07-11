@@ -131,3 +131,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   native theme support; the factory `make_platform_detector()` binding to the real host
   environment; and `create_app_data_dir()` for recursive, idempotent creation of the
   OS-appropriate app-data directory per `docs/v3_specification/08_Cross_Cutting/08-K_platform_specifics.md`.
+- Provider registry and canonical LLM client protocol (`backend/provider_registry/`): the
+  `ProviderRegistry` Protocol (three methods: `list_enabled()`, `get_client(provider_id)`,
+  `reload()`) managing one `LLMClient` per enabled, structurally valid provider; the canonical
+  `LLMClient` Protocol defining the chat/embedding/health-probe contract every provider
+  adapter implements; the `ClientBuilder` type alias for per-`ProviderType` client constructors;
+  and the `make_provider_registry(...)` factory guarded by `icontract`. Routes benchmark
+  targets by `provider_id` alone; resolves each provider's api-key from the named environment
+  variable; rebuilds atomically on configuration change; and defers closing superseded clients
+  until the single-inference gate is idle (SPEC-045) per `08-E` §9–§10 and
+  `11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md`.
