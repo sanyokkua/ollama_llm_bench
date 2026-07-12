@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T20:35:35Z'
+generated_at: '2026-07-11T20:54:30Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1588,6 +1588,134 @@ stories:
         - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_fake_llm_client_chat_raises_not_implemented_when_called_with_a_real_token
         - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_fake_llm_client_satisfies_llm_client_protocol_structurally
         - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_registry_fakes_match_corrected_chat_signature
+  STORY-022:
+    title: Compute per-role adaptive timeout budgets and track per-model exclusion
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#17-adaptive-timeout-service
+    - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#13-per-role-bucket-independence
+    - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#61-per-bucket-state
+    - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#62-state-machine
+    - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#63-the-escalation-ladder-per-role
+    - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#64-recording-an-outcome
+    - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#7-configuration
+    - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#9-threading-and-concurrency
+    modules:
+    - backend/adaptive_timeout/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-022-AC-1:
+        tests: []
+      STORY-022-AC-2:
+        tests: []
+      STORY-022-AC-3:
+        tests: []
+      STORY-022-AC-4:
+        tests: []
+      STORY-022-AC-5:
+        tests: []
+      STORY-022-AC-6:
+        tests: []
+  STORY-023:
+    title: Trip a consistently-failing provider out of a run and probe it before closing
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#18-provider-circuit-breaker
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#63-state-diagram
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#67-per-provider-scope
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#7-configuration
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#9-threading-and-concurrency
+    modules:
+    - backend/circuit_breaker/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-023-AC-1:
+        tests: []
+      STORY-023-AC-2:
+        tests: []
+      STORY-023-AC-3:
+        tests: []
+      STORY-023-AC-4:
+        tests: []
+      STORY-023-AC-5:
+        tests: []
+  STORY-024:
+    title: Provide the data-driven mode-visibility policy over the RunMode x ConfigSection table
+    status: draft
+    spec_clauses:
+    - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#3-master-service-table
+    - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#3-outputs
+    - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#61-the-section-vocabulary
+    - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#62-the-policy-table
+    - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#63-the-lookup
+    - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#8-error-handling
+    - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#9-threading-and-concurrency
+    modules:
+    - backend/mode_visibility/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-024-AC-1:
+        tests: []
+      STORY-024-AC-2:
+        tests: []
+      STORY-024-AC-3:
+        tests: []
+      STORY-024-AC-4:
+        tests: []
+  STORY-025:
+    title: Detect environment-availability drift between a run snapshot and the live configuration
+    status: draft
+    spec_clauses:
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#3-outputs
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#61-check-1--provider-drift
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#62-check-2--test-model-drift
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#63-check-3--judge-model-drift
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#64-check-4--embedding-drift
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#65-assembly-and-ordering
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#8-error-handling
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#9-threading-and-concurrency
+    modules:
+    - backend/run_drift/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-025-AC-1:
+        tests: []
+      STORY-025-AC-2:
+        tests: []
+      STORY-025-AC-3:
+        tests: []
+      STORY-025-AC-4:
+        tests: []
+      STORY-025-AC-5:
+        tests: []
+      STORY-025-AC-6:
+        tests: []
+  STORY-026:
+    title: Provide the model-name parser, embedding-model classifier, and capability service
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#75-modelcapabilitiesstore
+    - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#3-master-service-table
+    - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#47-modelnameparser
+    - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#48-modelcapabilityservice
+    - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#49-embeddingmodelclassifier
+    modules:
+    - backend/model_helpers/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-026-AC-1:
+        tests: []
+      STORY-026-AC-2:
+        tests: []
+      STORY-026-AC-3:
+        tests: []
+      STORY-026-AC-4:
+        tests: []
+      STORY-026-AC-5:
+        tests: []
 clauses:
   08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order:
     stories:
@@ -1614,6 +1742,12 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store:
     stories:
     - STORY-015
+  08_Cross_Cutting/08-E_interfaces_contracts.md#17-adaptive-timeout-service:
+    stories:
+    - STORY-022
+  08_Cross_Cutting/08-E_interfaces_contracts.md#18-provider-circuit-breaker:
+    stories:
+    - STORY-023
   08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock:
     stories:
     - STORY-004
@@ -1635,6 +1769,7 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#75-modelcapabilitiesstore:
     stories:
     - STORY-013
+    - STORY-026
   08_Cross_Cutting/08-E_interfaces_contracts.md#76-appsettingsstore:
     stories:
     - STORY-008
@@ -1772,9 +1907,22 @@ clauses:
   10_Domain_and_Data/08_REDACTION_PATTERNS.md#8-order-of-operations-inside-a-redaction-pass:
     stories:
     - STORY-002
+  11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#3-master-service-table:
+    stories:
+    - STORY-024
+    - STORY-026
   11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#414-inferenceactivitystore:
     stories:
     - STORY-015
+  11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#47-modelnameparser:
+    stories:
+    - STORY-026
+  11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#48-modelcapabilityservice:
+    stories:
+    - STORY-026
+  11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#49-embeddingmodelclassifier:
+    stories:
+    - STORY-026
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#610-exception-translation:
     stories:
     - STORY-018
@@ -1851,6 +1999,48 @@ clauses:
   11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#9-threading-and-concurrency:
     stories:
     - STORY-017
+  11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#13-per-role-bucket-independence:
+    stories:
+    - STORY-022
+  11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#61-per-bucket-state:
+    stories:
+    - STORY-022
+  11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#62-state-machine:
+    stories:
+    - STORY-022
+  11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#63-the-escalation-ladder-per-role:
+    stories:
+    - STORY-022
+  11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#64-recording-an-outcome:
+    stories:
+    - STORY-022
+  11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#7-configuration:
+    stories:
+    - STORY-022
+  11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#9-threading-and-concurrency:
+    stories:
+    - STORY-022
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states:
+    stories:
+    - STORY-023
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#63-state-diagram:
+    stories:
+    - STORY-023
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold:
+    stories:
+    - STORY-023
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing:
+    stories:
+    - STORY-023
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#67-per-provider-scope:
+    stories:
+    - STORY-023
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#7-configuration:
+    stories:
+    - STORY-023
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#9-threading-and-concurrency:
+    stories:
+    - STORY-023
   11_Services_and_Algorithms/09_READINESS_PROBE.md#62-the-probe-of-one-provider:
     stories:
     - STORY-016
@@ -1872,6 +2062,48 @@ clauses:
   11_Services_and_Algorithms/09_READINESS_PROBE.md#9-threading-and-concurrency:
     stories:
     - STORY-016
+  11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#3-outputs:
+    stories:
+    - STORY-024
+  11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#61-the-section-vocabulary:
+    stories:
+    - STORY-024
+  11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#62-the-policy-table:
+    stories:
+    - STORY-024
+  11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#63-the-lookup:
+    stories:
+    - STORY-024
+  11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#8-error-handling:
+    stories:
+    - STORY-024
+  11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#9-threading-and-concurrency:
+    stories:
+    - STORY-024
+  11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#3-outputs:
+    stories:
+    - STORY-025
+  11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#61-check-1--provider-drift:
+    stories:
+    - STORY-025
+  11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#62-check-2--test-model-drift:
+    stories:
+    - STORY-025
+  11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#63-check-3--judge-model-drift:
+    stories:
+    - STORY-025
+  11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#64-check-4--embedding-drift:
+    stories:
+    - STORY-025
+  11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#65-assembly-and-ordering:
+    stories:
+    - STORY-025
+  11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#8-error-handling:
+    stories:
+    - STORY-025
+  11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#9-threading-and-concurrency:
+    stories:
+    - STORY-025
   11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#61-the-taskrunner-and-the-worker-pool:
     stories:
     - STORY-006
@@ -2285,6 +2517,12 @@ edge_cases:
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[readiness_probe_30s]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_does_not_fire_before_its_timeout_elapses
 modules:
+  backend/adaptive_timeout/:
+    stories:
+    - STORY-022
+  backend/circuit_breaker/:
+    stories:
+    - STORY-023
   backend/concurrency/:
     stories:
     - STORY-006
@@ -2300,6 +2538,12 @@ modules:
   backend/infra/:
     stories:
     - STORY-004
+  backend/mode_visibility/:
+    stories:
+    - STORY-024
+  backend/model_helpers/:
+    stories:
+    - STORY-026
   backend/persistence/app_settings/:
     stories:
     - STORY-008
@@ -2340,6 +2584,9 @@ modules:
   backend/retry/:
     stories:
     - STORY-007
+  backend/run_drift/:
+    stories:
+    - STORY-025
   backend/settings/:
     stories:
     - STORY-014
