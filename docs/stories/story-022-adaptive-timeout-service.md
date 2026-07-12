@@ -1,7 +1,7 @@
 ---
 id: STORY-022
 title: Compute per-role adaptive timeout budgets and track per-model exclusion
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#13-per-role-bucket-independence
   - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#61-per-bucket-state

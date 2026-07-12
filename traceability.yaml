@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-12T16:22:10Z'
+generated_at: '2026-07-12T21:06:57Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1599,7 +1599,7 @@ stories:
         - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_registry_fakes_match_corrected_chat_signature
   STORY-022:
     title: Compute per-role adaptive timeout budgets and track per-model exclusion
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#17-adaptive-timeout-service
     - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#13-per-role-bucket-independence
