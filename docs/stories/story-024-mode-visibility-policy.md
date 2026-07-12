@@ -152,3 +152,23 @@ and never returns a silent `HIDDEN` default.
 - [x] An architecture test confirms `backend/mode_visibility/` imports no Qt and no `asyncio`.
 - [x] The traceability record validates with no orphan clause and no orphan test for STORY-024.
 - [x] The module inventory is unchanged.
+
+## Notes
+
+STORY-024's own traceability entries are gap-free (`just trace-check` reports zero orphans for
+this story's clauses, modules, ACs, and tests). Separately, the repo-wide `just trace-check`
+invocation currently fails due to 3 pre-existing edge-case catalog/mapping gaps —
+`EC-PERSIST-6` (a mapping-table row with no catalog entry), `EC-PROV-1a` and `EC-RUN-1a` (catalog
+entries with no mapping-table row) — in `08_Cross_Cutting/08-I_edge_cases.md` and
+`14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md`. Both files were last touched at
+the repository's initial bootstrap commit, confirming these gaps predate STORY-024 (and every
+other story to date) and are unrelated to mode-visibility work.
+
+These gaps are out of scope for this story. Fixing them is also currently blocked by a process
+gap, not just missing effort: `docs/v3_specification/` is documented as read-only — never edited
+in place — and any fix requires a new story, but the story front-matter schema requires
+`modules:` to cite at least one real path from `01_MODULE_INVENTORY.md`, which enumerates only
+`backend/`, `adapters/`, and `ui/` application code. A pure vendored-spec-consistency fix touches
+no application module, so it cannot be expressed as a conformant story without fabricating a
+module citation. Resolving this — either by carving out a schema exception (e.g. via an ADR) or
+by some other sanctioned process — is left for the project owner.
