@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-11T20:54:30Z'
+generated_at: '2026-07-12T09:34:16Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1590,7 +1590,7 @@ stories:
         - src/ollama_llm_bench/backend/provider_registry/tests/test_testing_fakes_conform.py::test_registry_fakes_match_corrected_chat_signature
   STORY-022:
     title: Compute per-role adaptive timeout budgets and track per-model exclusion
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#17-adaptive-timeout-service
     - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#13-per-role-bucket-independence
@@ -1605,20 +1605,31 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-022-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_ladder_bounds.py::test_next_budget_stays_within_bounds_and_lands_on_max
       STORY-022-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_state_machine.py::TestAdaptiveTimeoutStateMachine::runTest
       STORY-022-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_record_outcome.py::test_error_outcome_is_never_reported_so_state_is_unchanged
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_record_outcome.py::test_success_promotes_lkg_above_the_minimum
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_record_outcome.py::test_success_resets_counter_and_raises_lkg
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_record_outcome.py::test_timeout_below_max_does_not_touch_counter
       STORY-022-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_record_outcome.py::test_exclusion_after_exactly_threshold_consecutive_max_timeouts
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_record_outcome.py::test_success_before_threshold_prevents_exclusion
       STORY-022-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_role_independence.py::test_judge_exclusion_leaves_inference_bucket_usable
       STORY-022-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_error_handling.py::test_degenerate_min_greater_than_max_clamps_and_does_not_raise
+        - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_error_handling.py::test_excluded_bucket_ignores_late_outcomes
   STORY-023:
     title: Trip a consistently-failing provider out of a run and probe it before closing
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#18-provider-circuit-breaker
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
@@ -1644,7 +1655,7 @@ stories:
         tests: []
   STORY-024:
     title: Provide the data-driven mode-visibility policy over the RunMode x ConfigSection table
-    status: draft
+    status: ready
     spec_clauses:
     - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#3-master-service-table
     - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#3-outputs
@@ -1667,7 +1678,7 @@ stories:
         tests: []
   STORY-025:
     title: Detect environment-availability drift between a run snapshot and the live configuration
-    status: draft
+    status: ready
     spec_clauses:
     - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#3-outputs
     - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#61-check-1--provider-drift
@@ -1695,7 +1706,7 @@ stories:
         tests: []
   STORY-026:
     title: Provide the model-name parser, embedding-model classifier, and capability service
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#75-modelcapabilitiesstore
     - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#3-master-service-table

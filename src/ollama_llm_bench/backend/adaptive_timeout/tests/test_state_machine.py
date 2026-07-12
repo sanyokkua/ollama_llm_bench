@@ -89,4 +89,19 @@ class _AdaptiveTimeoutStateMachine(RuleBasedStateMachine):
         assert self.service.model_state(_PROVIDER, _MODEL, _ROLE) == expected_model_state
 
 
-TestAdaptiveTimeoutStateMachine = pytest.mark.slow(_AdaptiveTimeoutStateMachine.TestCase)
+# Hypothesis builds `.TestCase` dynamically per state machine, so it is a runtime
+# value, not a statically-known type -- mypy cannot check a class-body subclassing a
+# dynamically-constructed base. Only one `unittest.TestCase` subclass is bound at
+# module scope (this one) so pytest's default collector picks up exactly one case.
+@pytest.mark.slow
+class TestAdaptiveTimeoutStateMachine(_AdaptiveTimeoutStateMachine.TestCase):  # type: ignore[misc,valid-type]
+    """Runs ``_AdaptiveTimeoutStateMachine`` as a pytest-collected unittest.TestCase."""
+
+    def runTest(self) -> None:
+        """Proves: STORY-022-AC-2
+
+        Walks every legal record_success/record_timeout/next_budget sequence and
+        checks the resulting state, last_known_good_ms, and consecutive-max
+        counter against the §6.2 state machine after every step.
+        """
+        super().runTest()

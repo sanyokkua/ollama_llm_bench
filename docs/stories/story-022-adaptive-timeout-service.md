@@ -187,10 +187,26 @@ and the service does not raise.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-022.
-- [ ] A `RuleBasedStateMachine` Hypothesis test walks every legal transition of the §6.2 state
+- [x] Every acceptance criterion has a passing test that names STORY-022.
+- [x] A `RuleBasedStateMachine` Hypothesis test walks every legal transition of the §6.2 state
   machine (STORY-022-AC-2).
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/adaptive_timeout/`.
-- [ ] An architecture test confirms `backend/adaptive_timeout/` imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-022.
-- [ ] The module inventory is unchanged.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/adaptive_timeout/`.
+- [x] An architecture test confirms `backend/adaptive_timeout/` imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-022.
+- [x] The module inventory is unchanged.
+
+**Implementation status:** Implementation is complete — all six acceptance criteria have
+passing tests, `just check` and `just trace`/`just trace-check` are green (the three
+pre-existing edge-case-catalog gaps `just trace-check` reports are unrelated to this story and
+predate it). `status` is deliberately left as `ready`, not `done`, pending the
+`spec-conformance-reviewer` gate per the story workflow.
+
+Two pre-DD-65 documentation gaps in the vendored spec were identified during implementation and
+did not block this story (see the coder's implementation plan for detail): (1)
+`07_ADAPTIVE_TIMEOUT.md` §8's error table still says "the `AdaptiveTimeoutRole` enum has exactly
+two members" — stale text; the rest of that document, DD-65, and the already-implemented
+`backend/domain/models.py` (STORY-001) confirm the 3-member model (`INFERENCE`, `JUDGE`,
+`RUN_ANALYSIS`) this story implements. (2) `08-E_interfaces_contracts.md` §17 still describes the
+pre-DD-65 "shared JUDGE bucket" model; `07_ADAPTIVE_TIMEOUT.md` is unambiguous that DD-65
+supersedes it. Both are pre-existing spec-text staleness, not user-facing ambiguity requiring a
+decision.
