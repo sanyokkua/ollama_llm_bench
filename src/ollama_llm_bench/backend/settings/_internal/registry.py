@@ -17,10 +17,21 @@ present in the ``08-G`` registry document or this in-code table; they are added 
 schema-affecting — so the Readiness Service can resolve its timeout/staleness budgets
 through ``SettingsService`` instead of a hardcoded literal.
 
+``circuit_breaker.enabled``, ``circuit_breaker.failure_threshold``, and
+``circuit_breaker.cooldown_seconds`` are documented in
+``11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md`` §7 but were not yet present in the
+``08-G`` registry document or this in-code table; they are added here (STORY-023) as a
+purely additive registry entry, **and** as ``PER_RUN_OVERRIDABLE`` members — the breaker
+reads all three once from the run's frozen settings snapshot at construction (§7), so a
+settings change mid-run never affects an already-running breaker — so
+``backend/circuit_breaker/`` can resolve its configuration through the run snapshot
+instead of a hardcoded literal.
+
 ``PER_RUN_OVERRIDABLE`` is the exact set of keys frozen into a run's settings snapshot at
-run creation — 27 keys: every ``benchmark.*`` key except ``benchmark.last_mode`` (11),
-both ``feature.*`` keys (2), and every ``eval.*`` key (14). No ``ui.*``, ``embedding.*``,
-``logging.*``, or ``task_editor.*`` key is ever a member — this includes
+run creation — 30 keys: every ``benchmark.*`` key except ``benchmark.last_mode`` (11),
+both ``feature.*`` keys (2), every ``eval.*`` key (14), and all three
+``circuit_breaker.*`` keys (3, STORY-023). No ``ui.*``, ``embedding.*``, ``logging.*``,
+``task_editor.*``, or ``provider.*``/``readiness.*`` key is ever a member — this includes
 ``ui.stream_tokens_to_log``, which lives in the spec's §4 ``feature.*`` table but is a
 live UI/log preference, not a run input (`08-G` §4).
 
@@ -107,6 +118,11 @@ DEFAULTS: dict[SettingKey, str] = {
     # `09_READINESS_PROBE.md` §7) — 2 keys, none per-run-overridable ---
     "provider.probe_timeout_ms": "5000",
     "readiness.snapshot_staleness_ms": "30000",
+    # --- circuit_breaker.* (STORY-023; `08_CIRCUIT_BREAKER.md` §7) — 3 keys,
+    # all per-run-overridable ---
+    "circuit_breaker.enabled": "true",
+    "circuit_breaker.failure_threshold": "5",
+    "circuit_breaker.cooldown_seconds": "60",
 }
 
 PER_RUN_OVERRIDABLE: frozenset[SettingKey] = frozenset(
@@ -141,5 +157,9 @@ PER_RUN_OVERRIDABLE: frozenset[SettingKey] = frozenset(
         "eval.min_sample_size",
         "eval.embedding_consecutive_failures_to_skip",
         "eval.min_cosine_coverage",
+        # All three circuit_breaker.* keys (3, STORY-023)
+        "circuit_breaker.enabled",
+        "circuit_breaker.failure_threshold",
+        "circuit_breaker.cooldown_seconds",
     }
 )

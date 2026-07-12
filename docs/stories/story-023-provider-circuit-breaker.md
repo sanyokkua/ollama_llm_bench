@@ -1,7 +1,7 @@
 ---
 id: STORY-023
 title: Trip a consistently-failing provider out of a run and probe it before closing
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#63-state-diagram
@@ -13,6 +13,7 @@ spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#18-provider-circuit-breaker
 modules:
   - backend/circuit_breaker/
+  - backend/settings/
 acceptance_criteria:
   - STORY-023-AC-1
   - STORY-023-AC-2
@@ -58,8 +59,10 @@ while leaving every other targeted provider running at full speed.
   `circuit_breaker.enabled` (default `true`), `circuit_breaker.failure_threshold` (default `5`),
   `circuit_breaker.cooldown_seconds` (default `60`) — and the inert no-op behaviour when
   `enabled` is `false` (§7).
-- Emitting exactly one `_model_stability_changed` (`ModelStabilityChangedEvent`) on each state
-  transition.
+- Making every state transition observable via `state()` / `should_skip()` /
+  `cooldown_remaining_seconds()` immediately after the triggering call, so a caller (the future
+  pipeline) can detect the transition and construct the composite `_model_stability_changed`
+  event itself.
 - The `make_circuit_breaker` factory on `api.py`, guarded by `icontract` on programmer invariants
   only, and `backend/circuit_breaker/testing.py`.
 
@@ -76,6 +79,15 @@ while leaving every other targeted provider running at full speed.
   share no state (§6.9).
 - The Qt bridge marshalling `_model_stability_changed` to the Progress widget — a later
   adapter/UI phase.
+- **Literal construction/emission of `ModelStabilityChangedEvent`.** That struct is composite —
+  it also requires `model_name`/`model_consecutive_successes`/`model_promotion_threshold`,
+  fields this module has no access to and, per §6.9, must not share state with
+  (`backend/adaptive_timeout` owns them). Following the identical precedent already shipped in
+  STORY-022 (which hit the same conflict and deferred literal event-bus emission to
+  `backend/benchmark_pipeline/`), this module makes every transition observable through its
+  Protocol's query methods instead; `backend/benchmark_pipeline/` combines this module's state
+  with `AdaptiveTimeoutService`'s in a later phase and publishes the real composite event. No
+  `backend/events` import appears in this module.
 
 ## Spec inputs
 
@@ -100,8 +112,10 @@ while leaving every other targeted provider running at full speed.
 ## Design constraints
 
 - `backend/circuit_breaker/` is Qt-free and asyncio-free; it imports only `backend/domain`
-  (`ProviderId`, `BenchmarkRunSettingEntry`, the stability event payload), `backend/infra`
-  (`Clock` for `monotonic_ms`), and `backend/events` (`01_MODULE_INVENTORY.md` §4.4). No PySide6.
+  (`ProviderId`, `BenchmarkRunSettingEntry`) and `backend/infra` (`Clock` for `monotonic_ms`). No
+  PySide6, and no `backend/events` import — see the Out-of-scope note on deferred event
+  emission; this module exposes observable state instead of constructing
+  `ModelStabilityChangedEvent` itself.
 - `CircuitState` is contract-local to this module (defined in `08-E` §18); the module introduces
   no new persisted enum.
 - The breaker owns no thread, timer, or executor; the `TRIPPED → PROBING` move is evaluated
@@ -127,9 +141,9 @@ three query methods.
 
 Given a `CLOSED` provider, when `failure_threshold` consecutive `record_failure` calls are made
 with no intervening `record_success`, then the breaker becomes `TRIPPED` on exactly the
-`failure_threshold`-th call, `should_skip` returns `True`, and exactly one
-`_model_stability_changed` event carrying `TRIPPED` is emitted; a `record_success` at any count
-below the threshold resets the counter so no trip occurs.
+`failure_threshold`-th call (`state() == TRIPPED`, `should_skip() == True` from that call
+onward); a `record_success` at any count below the threshold resets the counter so no trip
+occurs.
 
 ### STORY-023-AC-3
 
@@ -146,9 +160,10 @@ this table across successive queries with no intervening outcome:
 ### STORY-023-AC-4
 
 Given a `PROBING` provider, when `record_success` is reported, then the breaker moves to `CLOSED`
-with a zero counter and emits one `_model_stability_changed` carrying `CLOSED`; when
-`record_failure` is reported instead, then the breaker re-trips to `TRIPPED`, stamps a fresh
-`cooldown_seconds` window, and emits one `_model_stability_changed` carrying `TRIPPED`.
+with a zero counter (`state() == CLOSED`, `should_skip() == False`); when `record_failure` is
+reported instead, then the breaker re-trips to `TRIPPED` and stamps a fresh `cooldown_seconds`
+window (`cooldown_remaining_seconds()` reports the full window again, not the elapsed remainder
+of the prior one).
 
 ### STORY-023-AC-5
 
@@ -177,10 +192,30 @@ other `CLOSED` — the two records are independent.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-023.
-- [ ] A `RuleBasedStateMachine` Hypothesis test walks every legal transition of the §6.3 state
+- [x] Every acceptance criterion has a passing test that names STORY-023.
+- [x] A `RuleBasedStateMachine` Hypothesis test walks every legal transition of the §6.3 state
   machine (STORY-023-AC-1).
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/circuit_breaker/`.
-- [ ] An architecture test confirms `backend/circuit_breaker/` imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-023.
-- [ ] The module inventory is unchanged.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/circuit_breaker/`.
+- [x] An architecture test confirms `backend/circuit_breaker/` imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-023.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- `just trace-check` still fails on the same three pre-existing, STORY-023-unrelated gaps
+  already documented by STORY-003/STORY-005/STORY-010/STORY-013/STORY-014/STORY-016's own Notes
+  sections (`EC-PERSIST-6` dangling row; `EC-PROV-1a`/`EC-RUN-1a` uncovered) — confirmed present
+  before this story's work began (`git stash` + re-run reproduced the identical three failures).
+  These trace to a permanent cross-reference gap between the read-only vendored
+  `08-I_edge_cases.md` catalog and `06_EDGE_CASE_TO_TEST_MAPPING.md` (neither file may be edited
+  in place per `repository-documentation.md`). STORY-023 itself has zero orphan clauses/ACs/
+  tests — all 8 spec clauses and all 5 ACs show non-empty `tests:`/`stories:` lists in
+  `traceability.yaml`.
+- Per the two planning decisions recorded in this story's In-scope/Out-of-scope sections: this
+  module emits no `_model_stability_changed` event and imports no `backend/events` symbol,
+  making every transition observable via `state()`/`should_skip()`/`cooldown_remaining_seconds()`
+  instead (mirroring STORY-022's identical precedent); and the three `circuit_breaker.*` settings
+  keys were added to `backend/settings/_internal/registry.py`'s `DEFAULTS`/`PER_RUN_OVERRIDABLE`
+  as part of this story (mirroring STORY-016's identical precedent for
+  `provider.probe_timeout_ms`/`readiness.snapshot_staleness_ms`), which is why `modules:` lists
+  `backend/settings/` alongside `backend/circuit_breaker/`.

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-12T09:34:16Z'
+generated_at: '2026-07-12T10:22:49Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1629,7 +1629,7 @@ stories:
         - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_error_handling.py::test_excluded_bucket_ignores_late_outcomes
   STORY-023:
     title: Trip a consistently-failing provider out of a run and probe it before closing
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#18-provider-circuit-breaker
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
@@ -1641,18 +1641,24 @@ stories:
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#9-threading-and-concurrency
     modules:
     - backend/circuit_breaker/
+    - backend/settings/
     edge_cases: []
     acceptance_criteria:
       STORY-023-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_state_machine.py::TestCircuitBreakerStateMachine::runTest
       STORY-023-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py::test_trips_on_exact_threshold_and_success_resets_counter
       STORY-023-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py::test_lazy_probe_slot_admits_exactly_one_task[first-skip-admits-probe-then-second-skip-blocked]
       STORY-023-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_probe_outcome.py::test_probe_success_closes_and_probe_failure_retrips
       STORY-023-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_config_and_scope.py::test_disabled_breaker_is_inert_and_providers_are_independent
   STORY-024:
     title: Provide the data-driven mode-visibility policy over the RunMode x ConfigSection table
     status: ready
@@ -2601,6 +2607,7 @@ modules:
   backend/settings/:
     stories:
     - STORY-014
+    - STORY-023
   backend/stores/inference_activity/:
     stories:
     - STORY-015
