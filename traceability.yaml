@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-12T10:22:49Z'
+generated_at: '2026-07-12T12:00:02Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1661,7 +1661,7 @@ stories:
         - src/ollama_llm_bench/backend/circuit_breaker/tests/test_config_and_scope.py::test_disabled_breaker_is_inert_and_providers_are_independent
   STORY-024:
     title: Provide the data-driven mode-visibility policy over the RunMode x ConfigSection table
-    status: ready
+    status: done
     spec_clauses:
     - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#3-master-service-table
     - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#3-outputs
@@ -1675,13 +1675,100 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-024-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_full_product_has_thirty_cells
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-advanced_options]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-embedding_model_info]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-input_sizes]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-judge_model_picker]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-output_sizes]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-repeats]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-run_analysis_toggle]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-run_mode_selector]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-task_files]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[graded-test_models_picker]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-advanced_options]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-embedding_model_info]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-input_sizes]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-judge_model_picker]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-output_sizes]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-repeats]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-run_analysis_toggle]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-run_mode_selector]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-task_files]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[synthetic-test_models_picker]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-advanced_options]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-embedding_model_info]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-input_sizes]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-judge_model_picker]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-output_sizes]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-repeats]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-run_analysis_toggle]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-run_mode_selector]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-task_files]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_table_totality.py::test_policy_table_is_total_over_the_product[tasks-test_models_picker]
+        - tests/architecture/test_mode_visibility_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_defines_no_async_function[api.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_defines_no_async_function[models.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_defines_no_async_function[tests/test_error_handling.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_defines_no_async_function[tests/test_policy_cells.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_defines_no_async_function[tests/test_table_totality.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_defines_no_async_function[tests/test_visible_sections.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_imports_no_qt_or_asyncio[models.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_imports_no_qt_or_asyncio[tests/test_error_handling.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_imports_no_qt_or_asyncio[tests/test_policy_cells.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_imports_no_qt_or_asyncio[tests/test_table_totality.py]
+        - tests/architecture/test_mode_visibility_module.py::test_mode_visibility_module_imports_no_qt_or_asyncio[tests/test_visible_sections.py]
       STORY-024-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-advanced_options-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-embedding_model_info-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-input_sizes-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-judge_model_picker-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-output_sizes-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-repeats-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-run_analysis_toggle-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-run_mode_selector-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-task_files-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[graded-test_models_picker-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-advanced_options-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-embedding_model_info-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-input_sizes-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-judge_model_picker-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-output_sizes-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-repeats-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-run_analysis_toggle-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-run_mode_selector-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-task_files-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[synthetic-test_models_picker-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-advanced_options-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-embedding_model_info-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-input_sizes-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-judge_model_picker-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-output_sizes-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-repeats-hidden]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-run_analysis_toggle-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-run_mode_selector-visible]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-task_files-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_each_cell_matches_the_spec_table[tasks-test_models_picker-visible_required]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_policy_cells.py::test_expected_cells_table_has_thirty_entries
       STORY-024-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_visible_sections.py::test_visible_sections_are_the_non_hidden_cells[graded]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_visible_sections.py::test_visible_sections_are_the_non_hidden_cells[synthetic]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_visible_sections.py::test_visible_sections_are_the_non_hidden_cells[tasks]
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_visible_sections.py::test_visible_sections_synthetic_excludes_task_files
       STORY-024-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_error_handling.py::test_is_visible_with_non_config_section_raises_violation_error
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_error_handling.py::test_is_visible_with_non_run_mode_raises_violation_error
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_error_handling.py::test_self_check_passes_on_the_real_policy_table
+        - src/ollama_llm_bench/backend/mode_visibility/tests/test_error_handling.py::test_self_check_raises_on_a_table_missing_one_cell
   STORY-025:
     title: Detect environment-availability drift between a run snapshot and the live configuration
     status: ready

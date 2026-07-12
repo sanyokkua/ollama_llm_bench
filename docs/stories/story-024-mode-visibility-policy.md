@@ -1,7 +1,7 @@
 ---
 id: STORY-024
 title: Provide the data-driven mode-visibility policy over the RunMode x ConfigSection table
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#3-outputs
   - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#61-the-section-vocabulary
@@ -145,10 +145,10 @@ and never returns a silent `HIDDEN` default.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-024.
-- [ ] An architecture-style test asserts the policy table is total — every one of the 30
+- [x] Every acceptance criterion has a passing test that names STORY-024.
+- [x] An architecture-style test asserts the policy table is total — every one of the 30
   `RunMode × ConfigSection` cells is defined (STORY-024-AC-1).
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/mode_visibility/`.
-- [ ] An architecture test confirms `backend/mode_visibility/` imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-024.
-- [ ] The module inventory is unchanged.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/mode_visibility/`.
+- [x] An architecture test confirms `backend/mode_visibility/` imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-024.
+- [x] The module inventory is unchanged.
