@@ -140,8 +140,11 @@ and never returns a silent `HIDDEN` default.
   `src/ollama_llm_bench/backend/mode_visibility/tests/test_visible_sections.py`,
   `test_visible_sections_are_the_non_hidden_cells`.
 - STORY-024-AC-4 — unit, colocated
-  `src/ollama_llm_bench/backend/mode_visibility/tests/test_error_handling.py`,
-  `test_unknown_section_raises_and_self_check_catches_missing_cell`. Covers T-13/T-14.
+  `src/ollama_llm_bench/backend/mode_visibility/tests/test_error_handling.py`:
+  `test_is_visible_with_non_config_section_raises_violation_error`,
+  `test_is_visible_with_non_run_mode_raises_violation_error`,
+  `test_self_check_passes_on_the_real_policy_table`,
+  `test_self_check_raises_on_a_table_missing_one_cell`. Covers T-13/T-14.
 
 ## Definition of done
 
