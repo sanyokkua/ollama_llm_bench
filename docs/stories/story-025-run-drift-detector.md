@@ -1,7 +1,7 @@
 ---
 id: STORY-025
 title: Detect environment-availability drift between a run snapshot and the live configuration
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#3-outputs
   - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#61-check-1--provider-drift
@@ -187,8 +187,39 @@ warnings are emitted as `WARNING` rather than `BLOCKING` and the detector does n
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-025.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/run_drift/`.
-- [ ] An architecture test confirms `backend/run_drift/` imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-025.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-025.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/run_drift/`.
+- [x] An architecture test confirms `backend/run_drift/` imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-025.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+Tests were written as colocated `src/ollama_llm_bench/backend/run_drift/tests/*.py` files,
+one per acceptance criterion, matching the file-per-AC layout above. Within each file the
+single planned test function was split into several smaller, single-concept test functions
+(Given/When/Then for AC-1/AC-3/AC-5, table-driven `@pytest.mark.parametrize` for AC-2/AC-4,
+and several Given/When/Then functions for AC-6's ordering/downgrade/incomplete-snapshot
+scenarios) rather than one large function per criterion — this follows the project's
+one-assertion-concept-per-test convention (`testing-standard-pyqt`) more closely than the
+test plan's single-function-per-AC naming implied. All test-plan scenarios (T-1 through T-16)
+are covered; T-17 (idempotent re-run after a fix) and T-18 (read-only) are implicitly covered
+by the detector's purity (no constructor state, no mutation of any input DTO — msgspec
+`frozen=True` structs make mutation impossible by construction) rather than by a dedicated
+test, since the detector has no state to leak between calls.
+
+`backend/run_drift/` colocated tests reach 100% statement/branch coverage on every
+`_internal/*.py` file; the only uncovered line in the module (`protocols.py` line 19, the `...`
+body of the `RunDriftDetector.detect` Protocol method) is the same, expected pattern seen in
+every sibling module's `protocols.py` (e.g. `readiness/protocols.py`,
+`circuit_breaker/protocols.py`) — a Protocol body is never called directly, only through a
+concrete implementation. `just coverage-layers`' backend-layer gate (`>=90%`) passes at exactly
+90% project-wide with this story's tests included.
+
+STORY-025's own traceability entries are gap-free (`just trace-check` reports zero orphans for
+this story's clauses, modules, ACs, and tests — verified directly against the generated
+`traceability.yaml`). Separately, the repo-wide `just trace-check` invocation currently fails
+due to the same 3 pre-existing edge-case catalog/mapping gaps documented in STORY-024's Notes
+(`EC-PERSIST-6`, `EC-PROV-1a`, `EC-RUN-1a`), which predate this story and are unrelated to
+`backend/run_drift/` — STORY-025 cites no `edge_cases:` at all. These gaps remain out of scope
+for this story for the same reasons recorded in STORY-024.

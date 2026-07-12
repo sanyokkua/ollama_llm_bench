@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-12T12:42:39Z'
+generated_at: '2026-07-12T13:31:39Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -140,6 +140,8 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.retry.models.RetryPolicy]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.run_drift.models.DriftWarning]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -217,6 +219,8 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.retry.models.RetryPolicy]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.run_drift.models.DriftWarning]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -294,6 +298,8 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.retry.models.RetryPolicy]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.run_drift.models.DriftWarning]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
       STORY-001-AC-4:
         tests:
         - src/ollama_llm_bench/backend/domain/tests/test_public_surface.py::test_domain_public_symbols_are_reexported
@@ -1771,7 +1777,7 @@ stories:
         - src/ollama_llm_bench/backend/mode_visibility/tests/test_error_handling.py::test_self_check_raises_on_a_table_missing_one_cell
   STORY-025:
     title: Detect environment-availability drift between a run snapshot and the live configuration
-    status: ready
+    status: done
     spec_clauses:
     - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#3-outputs
     - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#61-check-1--provider-drift
@@ -1786,17 +1792,46 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-025-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_drift/tests/test_no_drift.py::test_satisfiable_environment_returns_empty_tuple
       STORY-025-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_drift/tests/test_provider_drift.py::test_env_var_missing_warning_never_carries_the_resolved_secret_value
+        - src/ollama_llm_bench/backend/run_drift/tests/test_provider_drift.py::test_live_catalog_field_edit_alone_produces_no_warning
+        - src/ollama_llm_bench/backend/run_drift/tests/test_provider_drift.py::test_pending_results_affected_counts_retryable_results_for_the_provider
+        - src/ollama_llm_bench/backend/run_drift/tests/test_provider_drift.py::test_provider_condition_maps_to_drift_kind[disabled]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_provider_drift.py::test_provider_condition_maps_to_drift_kind[env_var_missing]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_provider_drift.py::test_provider_condition_maps_to_drift_kind[removed]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_provider_drift.py::test_provider_condition_maps_to_drift_kind[unreachable]
       STORY-025-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_drift/tests/test_model_drift.py::test_model_check_skipped_when_provider_already_blocked
+        - src/ollama_llm_bench/backend/run_drift/tests/test_model_drift.py::test_test_model_gone_emits_blocking_warning_with_affected_count
       STORY-025-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_embedding_check_needed_but_no_embedding_entry_in_snapshot_emits_no_warning
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_embedding_check_reachability_recheck_downgrades_with_absent_readiness
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_embedding_check_respects_snapshot_flag[cosine_disabled_and_missing]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_embedding_check_respects_snapshot_flag[cosine_enabled_and_missing]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_embedding_check_respects_snapshot_flag[cosine_enabled_and_present]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_embedding_check_skipped_when_embedding_provider_already_blocked
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_embedding_check_treats_a_readiness_snapshot_with_no_matching_health_as_unreachable
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_judge_check_needed_but_no_judge_entry_in_snapshot_emits_no_warning
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_judge_check_respects_snapshot_flags[judge_run_analysis_enabled_and_missing]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_judge_check_respects_snapshot_flags[needed_and_present]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_judge_check_respects_snapshot_flags[not_needed_and_missing]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_judge_check_respects_snapshot_flags[phase_judge_enabled_and_missing]
+        - src/ollama_llm_bench/backend/run_drift/tests/test_gated_checks.py::test_judge_check_skipped_when_judge_provider_already_blocked
       STORY-025-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_drift/tests/test_not_drift.py::test_live_embedding_selection_change_is_not_drift
+        - src/ollama_llm_bench/backend/run_drift/tests/test_not_drift.py::test_settings_value_differing_from_current_default_is_not_drift
       STORY-025-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_drift/tests/test_ordering_and_downgrade.py::test_absent_readiness_downgrades_reachability_warning_to_warning_severity
+        - src/ollama_llm_bench/backend/run_drift/tests/test_ordering_and_downgrade.py::test_incomplete_run_snapshot_yields_single_blocking_provider_removed_warning
+        - src/ollama_llm_bench/backend/run_drift/tests/test_ordering_and_downgrade.py::test_ordering_is_blocking_before_warning_then_by_provider_id_then_model_name
+        - src/ollama_llm_bench/backend/run_drift/tests/test_ordering_and_downgrade.py::test_ordering_sorts_by_provider_id_then_model_name_within_same_severity
   STORY-026:
     title: Provide the model-name parser, embedding-model classifier, and capability service
     status: ready
