@@ -1,7 +1,7 @@
 ---
 id: STORY-026
 title: Provide the model-name parser, embedding-model classifier, and capability service
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#47-modelnameparser
   - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#48-modelcapabilityservice

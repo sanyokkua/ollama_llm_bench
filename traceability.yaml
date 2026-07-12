@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-12T13:31:39Z'
+generated_at: '2026-07-12T16:22:10Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -135,6 +135,7 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
@@ -214,6 +215,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
@@ -293,6 +295,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
@@ -1834,7 +1837,7 @@ stories:
         - src/ollama_llm_bench/backend/run_drift/tests/test_ordering_and_downgrade.py::test_ordering_sorts_by_provider_id_then_model_name_within_same_severity
   STORY-026:
     title: Provide the model-name parser, embedding-model classifier, and capability service
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#75-modelcapabilitiesstore
     - 11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#3-master-service-table
@@ -1846,15 +1849,45 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-026-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_model_name.py::test_parse_model_name_extracts_components[-expected3]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_model_name.py::test_parse_model_name_extracts_components[gpt-4o-mini-expected5]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_model_name.py::test_parse_model_name_extracts_components[llama3.1:70b-expected1]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_model_name.py::test_parse_model_name_extracts_components[mistral:7b-instruct-q8_0-expected4]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_model_name.py::test_parse_model_name_extracts_components[nomic-embed-text-expected2]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_model_name.py::test_parse_model_name_extracts_components[qwen3:8b-q4_K_M-expected0]
       STORY-026-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_model_name.py::test_parse_model_name_never_raises
       STORY-026-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[all-minilm-True]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[bge-m3-True]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[bge-m3:567m-True]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[claude-3-5-sonnet-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[e5-large-v2-True]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[gemini-1.5-pro-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[gpt-4o-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[gpt-4o-mini-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[gte-large-True]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[llama3.2:3b-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[mistral:7b-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[mxbai-embed-large-True]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[nomic-embed-text-True]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[phi3:14b-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[qwen3:8b-q4_K_M-False]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_classifier.py::test_is_embedding_model_classifies_name[text-embedding-3-small-True]
       STORY-026-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_capability_service.py::test_get_capabilities_and_streaming_reflect_store
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_capability_service.py::test_is_streaming_supported_false_for_non_supported_values[not_supported]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_capability_service.py::test_is_streaming_supported_false_for_non_supported_values[unknown]
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_capability_service.py::test_is_streaming_supported_false_when_no_record_exists
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_capability_service.py::test_is_streaming_supported_ignores_non_streaming_records
       STORY-026-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/model_helpers/tests/test_capability_service.py::test_record_capability_writes_one_upsert_through_store
 clauses:
   08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order:
     stories:
