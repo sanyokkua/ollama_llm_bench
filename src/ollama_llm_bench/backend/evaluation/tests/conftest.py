@@ -12,10 +12,14 @@ from ollama_llm_bench.backend.domain import (
     ChatRequest,
     ChatResponse,
     Difficulty,
+    InferenceTestResult,
+    ModelName,
+    ProviderHealth,
     RequiredTerms,
     TaskOrigin,
 )
 from ollama_llm_bench.backend.domain.models import Iso8601Utc
+from ollama_llm_bench.backend.provider_registry import ChatStream
 
 _DEFAULT_SETTING_VALUES: dict[str, str] = {
     "eval.sanity_min_chars": "2",
@@ -74,17 +78,55 @@ def make_snapshot(
 class FakeLLMClient:
     """A canned ``LLMClient`` stand-in for judge-evaluator tests.
 
-    Not a full ``LLMClient`` fake (no ``list_models``/``probe_health``/etc.) —
-    scoped to exactly what ``JudgeEvaluator`` calls: ``chat``.
+    Structurally satisfies the full ``LLMClient`` Protocol so it type-checks
+    against ``_JudgeEvaluatorImpl``'s ``llm_client: LLMClient`` dependency;
+    only ``chat`` is exercised by these tests, every other method raises
+    ``NotImplementedError`` (the same convention as
+    ``backend/provider_registry/tests/conftest.py``'s ``FakeLLMClient``).
     """
 
     def __init__(self, *, responses: Iterable[ChatResponse]) -> None:
         self._responses = list(responses)
         self.requests: list[ChatRequest] = []
 
+    def list_models(self) -> tuple[ModelName, ...]:
+        """Unused by these tests."""
+        raise NotImplementedError("list_models is not exercised by evaluation tests")
+
+    def probe_health(self) -> ProviderHealth:
+        """Unused by these tests."""
+        raise NotImplementedError("probe_health is not exercised by evaluation tests")
+
+    def test_inference(self, model_name: ModelName) -> InferenceTestResult:
+        """Unused by these tests."""
+        raise NotImplementedError("test_inference is not exercised by evaluation tests")
+
     def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse:
         self.requests.append(request)
         return self._responses.pop(0)
+
+    def chat_stream(self, request: ChatRequest, *, token: CancellationToken) -> ChatStream:
+        """Unused by these tests."""
+        raise NotImplementedError("chat_stream is not exercised by evaluation tests")
+
+    def embed(self, text: str) -> tuple[float, ...]:
+        """Unused by these tests."""
+        raise NotImplementedError("embed is not exercised by evaluation tests")
+
+    def supports_streaming(self) -> bool:
+        """Fixed capability answer; unused by these tests' assertions."""
+        return False
+
+    def supports_reasoning_effort(self) -> bool:
+        """Fixed capability answer; unused by these tests' assertions."""
+        return False
+
+    def supports_thinking(self) -> bool:
+        """Fixed capability answer; unused by these tests' assertions."""
+        return False
+
+    def close(self) -> None:
+        """Unused by these tests."""
 
 
 class FakeClock:
