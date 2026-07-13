@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-13T15:12:10Z'
+generated_at: '2026-07-13T15:29:52Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2116,6 +2116,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_batching.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_batching_drain.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_embedding_probe.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_lifecycle_containment.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_pause_stop.py]
@@ -2142,6 +2143,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_batching.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_batching_drain.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_embedding_probe.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_lifecycle_containment.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_pause_stop.py]
@@ -2168,6 +2170,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_batching.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_batching_drain.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_embedding_probe.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_lifecycle_containment.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_pause_stop.py]

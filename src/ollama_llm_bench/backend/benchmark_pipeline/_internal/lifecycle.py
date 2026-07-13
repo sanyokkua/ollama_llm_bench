@@ -60,7 +60,7 @@ from ollama_llm_bench.backend.domain.models import (
     RunStatusPatch,
 )
 from ollama_llm_bench.backend.embedding.protocols import EmbeddingService
-from ollama_llm_bench.backend.errors import ContractViolationError, TaskCancelledError
+from ollama_llm_bench.backend.errors import AppError, ContractViolationError, TaskCancelledError
 from ollama_llm_bench.backend.evaluation import (
     make_cosine_evaluator,
     make_judge_evaluator,
@@ -541,17 +541,44 @@ class _BenchmarkFlowApiImpl:
     ) -> None:
         """Run on the `pipeline-dispatcher` thread; never the GUI thread."""
         dispatch_start_ms = self._clock.monotonic_ms()
+        already_settled = False
         try:
-            self._run_phases(run=run, token=token)
+            already_settled = self._run_phases(
+                run=run, token=token, lease=lease, dispatch_start_ms=dispatch_start_ms
+            )
         except TaskCancelledError:
             pass  # the halt path below reads the token snapshot regardless of exit reason
         finally:
-            self._settle_run(run=run, token=token, lease=lease, dispatch_start_ms=dispatch_start_ms)
+            if not already_settled:
+                self._settle_run(
+                    run=run, token=token, lease=lease, dispatch_start_ms=dispatch_start_ms
+                )
 
-    def _run_phases(self, *, run: BenchmarkRun, token: CancellationToken) -> None:
-        """Construct this run's evaluators and drive the five-phase loop."""
+    def _run_phases(
+        self,
+        *,
+        run: BenchmarkRun,
+        token: CancellationToken,
+        lease: GateLease,
+        dispatch_start_ms: int,
+    ) -> bool:
+        """Construct this run's evaluators and drive the five-phase loop.
+
+        Returns:
+            `True` when this call already brought the run to a terminal,
+            persisted state itself (a construction-time `AppError` while
+            building evaluators, or a failed embedding probe) — the caller
+            must NOT call `_settle_run` again for that path (this method
+            already released the gate and cleared `_is_running` for it).
+            `False` when the run needs the normal DD-42 halt-outcome
+            resolution, still owned by the caller's `_settle_run`.
+        """
         toggles = self._resolve_phase_toggles(run)
-        evaluators = self._make_evaluators(run=run, judge_enabled=toggles.judge_enabled)
+        evaluators = self._make_evaluators_or_fail_run(
+            run=run, toggles=toggles, lease=lease, dispatch_start_ms=dispatch_start_ms
+        )
+        if evaluators is None:
+            return True
         tasks = self._tasks_store.list_tasks(run.run_id)
         tasks_by_id = {t.task_id: t for t in tasks}
         if self._probe_embeddings_if_needed(
@@ -559,8 +586,10 @@ class _BenchmarkFlowApiImpl:
             tasks=tasks,
             keyword_enabled=toggles.keyword_enabled,
             cosine_enabled=toggles.cosine_enabled,
+            lease=lease,
+            dispatch_start_ms=dispatch_start_ms,
         ):
-            return
+            return True
 
         def _unit_factory_for_phase(
             phase: Phase, result: BenchmarkResult
@@ -585,6 +614,7 @@ class _BenchmarkFlowApiImpl:
             results_store=self._results_store,
             unit_factory_for_phase=_unit_factory_for_phase,
         )
+        return False
 
     def _resolve_phase_toggles(self, run: BenchmarkRun) -> "_PhaseToggles":
         """Resolve this run's four `eval.*` grading toggles from its settings."""
@@ -603,23 +633,69 @@ class _BenchmarkFlowApiImpl:
             force_judge=force_judge,
         )
 
-    def _make_evaluators(self, *, run: BenchmarkRun, judge_enabled: bool) -> "_RunEvaluators":
-        """Construct this run's four evaluation-phase evaluators."""
-        return _RunEvaluators(
-            sanity_checker=make_sanity_checker(snapshot=run.settings_snapshot),
-            keyword_evaluator=make_keyword_evaluator(
-                embedding_service=self._embedding_service, snapshot=run.settings_snapshot
-            ),
-            cosine_evaluator=make_cosine_evaluator(embedding_service=self._embedding_service),
-            judge_evaluator=self._make_judge_evaluator_if_enabled(
-                run=run, judge_enabled=judge_enabled
-            ),
-        )
+    def _make_evaluators_or_fail_run(
+        self,
+        *,
+        run: BenchmarkRun,
+        toggles: "_PhaseToggles",
+        lease: GateLease,
+        dispatch_start_ms: int,
+    ) -> "_RunEvaluators | None":
+        """Construct this run's evaluators; on a construction-time `AppError`, fail the run.
+
+        `ProviderRegistry.get_client` (reached while resolving the judge
+        client) can raise `ConfigurationError` here just as easily as inside
+        a unit — this call happens before `run_all_phases` even starts, on
+        the dispatcher thread, so nothing contains it unless this method
+        does (DD-44). Rather than let it escape `_dispatch_run` uncaught,
+        or crash via `ContractViolationError`, this treats it exactly like
+        the embedding probe's own fail-fast path: the run settles `FAILED`
+        as data, never a raise, and the gate/`_is_running` are released here
+        since `_settle_run` will not run for this path (see `_run_phases`).
+
+        Returns:
+            The constructed `_RunEvaluators` on success; `None` once this
+            call has already persisted `RunStatus.FAILED`, emitted
+            `_run_failed`, and released the gate.
+        """
+        try:
+            return _RunEvaluators(
+                sanity_checker=make_sanity_checker(snapshot=run.settings_snapshot),
+                keyword_evaluator=make_keyword_evaluator(
+                    embedding_service=self._embedding_service, snapshot=run.settings_snapshot
+                ),
+                cosine_evaluator=make_cosine_evaluator(embedding_service=self._embedding_service),
+                judge_evaluator=self._make_judge_evaluator_if_enabled(
+                    run=run, judge_enabled=toggles.judge_enabled
+                ),
+            )
+        except AppError as exc:
+            if isinstance(exc, TaskCancelledError):
+                raise
+            self._fail_run(
+                run=run,
+                error_message=exc.message,
+                lease=lease,
+                dispatch_start_ms=dispatch_start_ms,
+            )
+            return None
 
     def _make_judge_evaluator_if_enabled(
         self, *, run: BenchmarkRun, judge_enabled: bool
     ) -> JudgeEvaluator | None:
-        """Construct the run's `JudgeEvaluator`, or `None` when the judge phase is off."""
+        """Construct the run's `JudgeEvaluator`, or `None` when the judge phase is off.
+
+        `judge_enabled and run.judge_provider_id is None` — the run's own
+        judge-configuration is internally inconsistent — is treated as the
+        same "not actually enabled" case, not an error: run-creation
+        validation that `judge_enabled ⟹ judge_provider_id present` is
+        explicitly out of this story's scope, so this method cannot assume
+        that invariant. `phase_applies(JUDGE_CHECK)` only ever consults
+        `judge_enabled`, so a caller relying on `judge_evaluator is None` to
+        infer "the phase is skipped" would be wrong here — see
+        `_build_judge_unit_for`'s defensive `ContractViolationError` for the
+        backstop this leaves in place.
+        """
         if not (judge_enabled and run.judge_provider_id is not None):
             return None
         judge_model_entry = next(m for m in run.models if m.role is ModelRole.JUDGE)
@@ -630,18 +706,24 @@ class _BenchmarkFlowApiImpl:
             snapshot=run.settings_snapshot,
         )
 
-    def _probe_embeddings_if_needed(
+    def _probe_embeddings_if_needed(  # noqa: PLR0913  # every argument is a distinct
+        # collaborator this fail-fast-or-continue check needs: the run/tasks/toggles it
+        # decides from, plus the lease/dispatch_start_ms it must forward to `_fail_run`
+        # on the failure path since `_settle_run` will not run for that path
         self,
         *,
         run: BenchmarkRun,
         tasks: tuple[BenchmarkTask, ...],
         keyword_enabled: bool,
         cosine_enabled: bool,
+        lease: GateLease,
+        dispatch_start_ms: int,
     ) -> bool:
         """Run the DD-48 fail-fast probe when needed; return `True` iff it failed.
 
-        On failure, persists `RunStatus.FAILED` and emits `_run_failed` before
-        any Phase-2 inference unit is submitted (STORY-029-AC-3).
+        On failure, persists `RunStatus.FAILED` (with `run_analysis` naming
+        the embedding pair), emits `_run_failed`, and releases the gate —
+        all before any Phase-2 inference unit is submitted (STORY-029-AC-3).
         """
         has_golden_answer_task = any(t.golden_answer is not None for t in tasks)
         has_semantic_terms_task = any(t.required_terms.semantic for t in tasks)
@@ -656,19 +738,49 @@ class _BenchmarkFlowApiImpl:
         probe_error = run_embedding_probe(embedding_service=self._embedding_service)
         if probe_error is None:
             return False
-        self._runs_store.update_run_status(run.run_id, RunStatusPatch(status=RunStatus.FAILED))
+        self._fail_run(
+            run=run, error_message=probe_error, lease=lease, dispatch_start_ms=dispatch_start_ms
+        )
+        return True
+
+    def _fail_run(
+        self, *, run: BenchmarkRun, error_message: str, lease: GateLease, dispatch_start_ms: int
+    ) -> None:
+        """Persist `RunStatus.FAILED`, emit `_run_failed`, and release the gate.
+
+        The single early-halt path shared by every construction-time/
+        pre-inference failure this lifecycle controller can hit outside the
+        normal DD-42 halt-outcome resolution (`_settle_run` itself, reached
+        only once `run_all_phases` has actually started). Both callers pass
+        `lease`/`dispatch_start_ms` because this method — not `_settle_run`
+        — owns releasing the gate and clearing `_is_running` for this path.
+        """
+        elapsed_ms = self._clock.monotonic_ms() - dispatch_start_ms
+        self._runs_store.update_run_status(
+            run.run_id,
+            RunStatusPatch(
+                status=RunStatus.FAILED, run_analysis=error_message, total_elapsed_ms=elapsed_ms
+            ),
+        )
         emit_run_failed(
             self._bus,
             RunFailedEvent(
                 run_id=run.run_id,
                 failed_at=self._clock.now_utc(),
                 error_kind=ErrorKind.OTHER,
-                error_message=probe_error,
+                error_message=error_message,
                 completed_tasks=0,
                 total_tasks=run.total_tasks,
             ),
         )
-        return True
+        self._release_gate_and_clear_running(lease)
+
+    def _release_gate_and_clear_running(self, lease: GateLease) -> None:
+        """Release the single-inference gate and clear `_is_running` (shared by
+        `_settle_run` and `_fail_run`'s early-halt path — see Fix 1's report)."""
+        self._inference_activity_store.release(lease)
+        with self._lock:
+            self._is_running = False
 
     def _build_unit(  # noqa: PLR0913  # each parameter is a distinct collaborator
         # this per-phase unit factory needs; the two dataclass bundles
@@ -745,7 +857,19 @@ class _BenchmarkFlowApiImpl:
         token: CancellationToken,
         toggles: "_PhaseToggles",
     ) -> Callable[[], ResultPatch]:
-        """Build the Phase-5 unit, resolving its fixed per-attempt timeout budget."""
+        """Build the Phase-5 unit, resolving its fixed per-attempt timeout budget.
+
+        `evaluators.judge_evaluator is None` here should be unreachable in
+        practice: `_make_judge_evaluator_if_enabled` only returns `None` when
+        `judge_enabled` is false or `judge_provider_id` is absent, and either
+        condition already makes `phase_applies(JUDGE_CHECK)` false, so
+        `run_all_phases` never dispatches a JUDGE_CHECK unit for this run at
+        all. The `ContractViolationError` below is kept only as a defensive
+        backstop for a future change that decouples those two checks — it is
+        not this story's primary handling for "judge enabled, no client":
+        that case is caught earlier, in `_make_evaluators_or_fail_run`,
+        which settles the run `FAILED` as data before dispatch ever starts.
+        """
         if evaluators.judge_evaluator is None:
             raise ContractViolationError(
                 message="unreachable: JUDGE_CHECK unit requested but judge_evaluator is "
@@ -795,9 +919,7 @@ class _BenchmarkFlowApiImpl:
             elapsed_ms=elapsed_ms,
             current_rows=current_rows,
         )
-        self._inference_activity_store.release(lease)
-        with self._lock:
-            self._is_running = False
+        self._release_gate_and_clear_running(lease)
 
     def _emit_settle_event(  # noqa: PLR0913  # one parameter per distinct input the
         # three mutually-exclusive terminal-event branches need

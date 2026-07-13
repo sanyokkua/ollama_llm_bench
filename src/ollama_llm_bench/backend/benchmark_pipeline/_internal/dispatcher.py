@@ -26,11 +26,8 @@ __all__: list[str] = [
 ]
 
 
-def run_phase(  # noqa: PLR0913  # every keyword-only argument is a distinct collaborator
-    # of the submit-await-persist-next loop (16_CONCURRENCY_MODEL.md §6.2); bundling them
-    # into a struct would only indirect the read without reducing real coupling
+def run_phase(
     *,
-    phase: Phase,
     groups: tuple[tuple[ProviderIdStr, ModelNameStr, tuple[BenchmarkResult, ...]], ...],
     runner: TaskRunner[ResultPatch],
     token: CancellationToken,
@@ -44,8 +41,6 @@ def run_phase(  # noqa: PLR0913  # every keyword-only argument is a distinct col
     (16_CONCURRENCY_MODEL.md §6.2).
 
     Args:
-        phase: The phase being run; used by callers to select `unit_factory`
-            behaviour and carried here only for documentation/logging intent.
         groups: The phase's eligible rows, provider-then-model grouped, in
             first-seen order (never alphabetized).
         runner: The `TaskRunner` port a single unit is submitted to.
@@ -58,7 +53,6 @@ def run_phase(  # noqa: PLR0913  # every keyword-only argument is a distinct col
         TaskCancelledError: The token was cancelled at a safe checkpoint
             before a unit's submission.
     """
-    del phase
     for _provider_id, _model_name, group_rows in groups:
         for result in group_rows:
             token.raise_if_cancelled()
@@ -115,7 +109,6 @@ def run_all_phases(  # noqa: PLR0913  # every keyword-only argument is a distinc
         eligible = eligible_for_phase(current_rows, phase=phase)
         groups = group_by_provider_and_model(eligible)
         run_phase(
-            phase=phase,
             groups=groups,
             runner=runner,
             token=token,

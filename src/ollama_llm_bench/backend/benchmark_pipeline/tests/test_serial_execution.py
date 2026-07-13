@@ -4,7 +4,6 @@ from collections.abc import Callable
 from concurrent.futures import Future
 
 from ollama_llm_bench.backend.benchmark_pipeline._internal.dispatcher import run_phase
-from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.benchmark_pipeline.testing import make_benchmark_result
 from ollama_llm_bench.backend.concurrency._internal.cancellation_token import CancellationToken
 from ollama_llm_bench.backend.domain.models import ResultId, ResultPatch, ResultStatus
@@ -54,7 +53,6 @@ def test_at_most_one_unit_in_flight_and_persist_before_next(fake_clock: Clock) -
     results_store.update_result = _tracking_update  # type: ignore[method-assign]
 
     run_phase(
-        phase=Phase.INFERENCE,
         groups=(("provider-1", "model-1", (row_one, row_two)),),
         runner=_InlineTaskRunner(),
         token=token,

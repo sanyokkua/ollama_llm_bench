@@ -445,7 +445,6 @@ def build_inference_unit(  # noqa: PLR0913  # each parameter is a distinct
     """
 
     def _run() -> ResultPatch:
-        client = provider_registry.get_client(result.provider_id)
         request = ChatRequest(
             model=result.model_name,
             messages=(ChatMessage(role=ChatRole.USER, content=task.question),),
@@ -466,6 +465,7 @@ def build_inference_unit(  # noqa: PLR0913  # each parameter is a distinct
             ),
         )
         try:
+            client = provider_registry.get_client(result.provider_id)
             chat_stream = client.chat_stream(request, token=token)
             response = emit_progress_during(
                 chat_stream,
