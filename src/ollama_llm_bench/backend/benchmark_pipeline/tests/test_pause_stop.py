@@ -184,6 +184,98 @@ def test_stop_on_idle_pipeline_is_a_no_op(  # noqa: PLR0913  # every fixture is 
     assert not pipeline.is_running()
 
 
+def test_shutdown_on_idle_pipeline_is_a_no_op(  # noqa: PLR0913  # every fixture is a
+    # distinct collaborator the composition-level factory call requires
+    fake_results_store: FakeResultsStore,
+    fake_runs_store: RunsStore,
+    fake_tasks_store: TasksStore,
+    fake_inference_activity_store: InferenceActivityStore,
+    inline_task_runner: object,
+    fake_event_bus: object,
+    fake_clock: Clock,
+    fake_embedding_service: EmbeddingService,
+    fake_provider_registry: ProviderRegistry,
+    fake_settings_service: SettingsService,
+    fake_run_snapshot_builder: RunSnapshotBuilder,
+) -> None:
+    """Proves: STORY-029-AC-4
+
+    `shutdown()` on a pipeline that has never started a run does not raise
+    and returns promptly (no dispatcher thread to join).
+    """
+    pipeline = _make_pipeline(
+        fake_results_store=fake_results_store,
+        fake_runs_store=fake_runs_store,
+        fake_tasks_store=fake_tasks_store,
+        fake_inference_activity_store=fake_inference_activity_store,
+        inline_task_runner=inline_task_runner,
+        fake_event_bus=fake_event_bus,
+        fake_clock=fake_clock,
+        fake_embedding_service=fake_embedding_service,
+        fake_provider_registry=fake_provider_registry,
+        fake_settings_service=fake_settings_service,
+        fake_run_snapshot_builder=fake_run_snapshot_builder,
+    )
+
+    pipeline.shutdown(1000)
+
+    assert not pipeline.is_running()
+
+
+def test_shutdown_mid_run_stops_and_joins_the_dispatcher_thread(  # noqa: PLR0913
+    fake_results_store: FakeResultsStore,
+    fake_runs_store: RunsStore,
+    fake_tasks_store: TasksStore,
+    fake_inference_activity_store: InferenceActivityStore,
+    inline_task_runner: object,
+    fake_event_bus: object,
+    fake_clock: Clock,
+    fake_embedding_service: EmbeddingService,
+    fake_provider_registry: ProviderRegistry,
+    fake_settings_service: SettingsService,
+    fake_run_snapshot_builder: RunSnapshotBuilder,
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-029-AC-4
+
+    `shutdown()` requests a hard stop and blocks until the dispatcher
+    thread settles (bounded by its `timeout_ms`) — `is_running()` is false
+    the instant `shutdown()` returns, with no separate poll needed.
+    """
+    task_one = make_task(task_id="task-1")
+    fake_tasks_store.list_tasks.return_value = (task_one,)  # type: ignore[attr-defined]
+
+    pipeline = _make_pipeline(
+        fake_results_store=fake_results_store,
+        fake_runs_store=fake_runs_store,
+        fake_tasks_store=fake_tasks_store,
+        fake_inference_activity_store=fake_inference_activity_store,
+        inline_task_runner=inline_task_runner,
+        fake_event_bus=fake_event_bus,
+        fake_clock=fake_clock,
+        fake_embedding_service=fake_embedding_service,
+        fake_provider_registry=fake_provider_registry,
+        fake_settings_service=fake_settings_service,
+        fake_run_snapshot_builder=fake_run_snapshot_builder,
+    )
+
+    def _chat_stream(request: object, *, token: object) -> ChatStream:
+        del request
+        pipeline.stop()
+        token.raise_if_cancelled()  # type: ignore[attr-defined]
+        raise AssertionError("unreachable: raise_if_cancelled must raise after stop()")
+
+    client = mocker.Mock()
+    client.chat_stream.side_effect = _chat_stream
+    fake_provider_registry.get_client.return_value = client  # type: ignore[attr-defined]
+
+    pipeline.start(_make_run_start_request())
+    pipeline.shutdown(2000)
+
+    assert not pipeline.is_running()
+    assert "_run_stopped" in fake_event_bus.emitted_signal_names()  # type: ignore[attr-defined]
+
+
 def test_start_with_gate_already_held_emits_start_failed_and_creates_no_run(  # noqa: PLR0913
     fake_results_store: FakeResultsStore,
     fake_runs_store: RunsStore,

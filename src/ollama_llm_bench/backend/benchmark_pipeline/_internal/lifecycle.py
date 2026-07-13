@@ -512,15 +512,19 @@ class _BenchmarkFlowApiImpl:
             token.cancel(reason=CancelReason.USER_STOP, hard=True)
 
     def shutdown(self, timeout_ms: int) -> None:
-        """Stop the active run; a minimal, honest behaviour ahead of Task 11.
+        """Stop the active run gracefully on quit; wait up to timeout_ms then return.
 
-        Task 11 completes this with a timeout-bounded wait for the
-        dispatcher thread to settle. Joining the dispatcher thread here
-        without that design risks a race this task did not analyze, so this
-        body only requests the hard stop and returns immediately.
+        Requests a hard stop (idle when no run is active) and joins the
+        dispatcher thread up to `timeout_ms`. `Thread.join` returns silently
+        on timeout without raising — a still-alive thread after the bound
+        elapses is surfaced only via `is_running()` still reporting `True`,
+        never as an exception (DD-44).
         """
-        del timeout_ms
         self.stop()
+        with self._lock:
+            thread = self._dispatcher_thread
+        if thread is not None:
+            thread.join(timeout=timeout_ms / 1000)
 
     def is_running(self) -> bool:
         """Whether a run is currently executing (including the paused state)."""
