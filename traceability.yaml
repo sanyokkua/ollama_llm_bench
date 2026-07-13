@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-12T21:06:57Z'
+generated_at: '2026-07-13T07:28:23Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1888,7 +1888,144 @@ stories:
       STORY-026-AC-5:
         tests:
         - src/ollama_llm_bench/backend/model_helpers/tests/test_capability_service.py::test_record_capability_writes_one_upsert_through_store
+  STORY-027:
+    title: Produce cached embeddings and the clamped Cosine Score over the embedding LLM client
+    status: draft
+    spec_clauses:
+    - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#62-producing-an-embedding
+    - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#63-the-cosine-similarity-formula
+    - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#64-the-comparison-and-the-single-threshold-dd-45
+    - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#65-embedding-cache
+    - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#7-configuration
+    - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#8-error-handling
+    - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#9-threading-and-concurrency
+    modules:
+    - backend/embedding/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-027-AC-1:
+        tests: []
+      STORY-027-AC-2:
+        tests: []
+      STORY-027-AC-3:
+        tests: []
+      STORY-027-AC-4:
+        tests: []
+      STORY-027-AC-5:
+        tests: []
+  STORY-028:
+    title: Grade a response through the sanity, keyword, cosine, and judge evaluators into one binary verdict
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-P_judge_protocol.md#4-the-judge-prompt
+    - 08_Cross_Cutting/08-P_judge_protocol.md#6-the-expected-response-json-schema
+    - 08_Cross_Cutting/08-P_judge_protocol.md#8-parsing-strategy
+    - 08_Cross_Cutting/08-P_judge_protocol.md#9-malformed-response-handling-and-retry
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#62-stage-1--sanity-pre-check
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#63-stage-2--keyword-phase
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#64-stage-3--cosine-phase
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#66-stage-5--verdict-combination
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#7-configuration
+    modules:
+    - backend/evaluation/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-028-AC-1:
+        tests: []
+      STORY-028-AC-2:
+        tests: []
+      STORY-028-AC-3:
+        tests: []
+      STORY-028-AC-4:
+        tests: []
+      STORY-028-AC-5:
+        tests: []
+      STORY-028-AC-6:
+        tests: []
+      STORY-028-AC-7:
+        tests: []
+  STORY-029:
+    title: Drive a run to a terminal status through the five-phase batched pipeline with pause, stop, and resume
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution
+    - 08_Cross_Cutting/08-B_benchmark_state_machine.md#3-the-five-phase-batched-pipeline
+    - 08_Cross_Cutting/08-B_benchmark_state_machine.md#4-provider-and-model-grouping
+    - 08_Cross_Cutting/08-B_benchmark_state_machine.md#5-per-task-result-lifecycle
+    - 08_Cross_Cutting/08-B_benchmark_state_machine.md#8-pause-resume-and-stop
+    - 08_Cross_Cutting/08-B_benchmark_state_machine.md#9-crash-recovery
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#11-benchmark-pipeline-flow-api
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#4-preconditions
+    - 11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#62-serial-execution-d-r-16
+    - 11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#68-pause-stop-and-resume-mechanics
+    modules:
+    - backend/benchmark_pipeline/
+    - backend/persistence/results/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-029-AC-1:
+        tests: []
+      STORY-029-AC-2:
+        tests: []
+      STORY-029-AC-3:
+        tests: []
+      STORY-029-AC-4:
+        tests: []
+      STORY-029-AC-5:
+        tests: []
+      STORY-029-AC-6:
+        tests: []
+      STORY-029-AC-7:
+        tests: []
+  STORY-030:
+    title: Orchestrate the judge phase with adaptive timeout, judge-model exclusion, and circuit-breaker consultation
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-B_benchmark_state_machine.md#6-adaptive-timeout-state-machine
+    - 08_Cross_Cutting/08-B_benchmark_state_machine.md#7-provider-circuit-breaker-state-machine
+    - 08_Cross_Cutting/08-J_event_bus_catalog.md#52-stage-and-progress
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#65-stage-4--judge-phase
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#8-error-handling
+    - 11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#66-batching-within-a-model-group
+    modules:
+    - backend/benchmark_pipeline/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-030-AC-1:
+        tests: []
+      STORY-030-AC-2:
+        tests: []
+      STORY-030-AC-3:
+        tests: []
+      STORY-030-AC-4:
+        tests: []
+      STORY-030-AC-5:
+        tests: []
 clauses:
+  08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution:
+    stories:
+    - STORY-029
+  08_Cross_Cutting/08-B_benchmark_state_machine.md#3-the-five-phase-batched-pipeline:
+    stories:
+    - STORY-029
+  08_Cross_Cutting/08-B_benchmark_state_machine.md#4-provider-and-model-grouping:
+    stories:
+    - STORY-029
+  08_Cross_Cutting/08-B_benchmark_state_machine.md#5-per-task-result-lifecycle:
+    stories:
+    - STORY-029
+  08_Cross_Cutting/08-B_benchmark_state_machine.md#6-adaptive-timeout-state-machine:
+    stories:
+    - STORY-030
+  08_Cross_Cutting/08-B_benchmark_state_machine.md#7-provider-circuit-breaker-state-machine:
+    stories:
+    - STORY-030
+  08_Cross_Cutting/08-B_benchmark_state_machine.md#8-pause-resume-and-stop:
+    stories:
+    - STORY-029
+  08_Cross_Cutting/08-B_benchmark_state_machine.md#9-crash-recovery:
+    stories:
+    - STORY-029
   08_Cross_Cutting/08-C_settings_hierarchy.md#2-resolution-order:
     stories:
     - STORY-014
@@ -1908,6 +2045,9 @@ clauses:
     - STORY-019
     - STORY-020
     - STORY-021
+  08_Cross_Cutting/08-E_interfaces_contracts.md#11-benchmark-pipeline-flow-api:
+    stories:
+    - STORY-029
   08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service:
     stories:
     - STORY-016
@@ -1987,6 +2127,9 @@ clauses:
   08_Cross_Cutting/08-J_event_bus_catalog.md#5-event-catalog:
     stories:
     - STORY-003
+  08_Cross_Cutting/08-J_event_bus_catalog.md#52-stage-and-progress:
+    stories:
+    - STORY-030
   08_Cross_Cutting/08-J_event_bus_catalog.md#7-event-to-payload-index:
     stories:
     - STORY-003
@@ -2002,6 +2145,18 @@ clauses:
   08_Cross_Cutting/08-O_persistence_schema.md#6-schema-versioning--additive-structural-steps-no-data-migration-dd-53:
     stories:
     - STORY-008
+  08_Cross_Cutting/08-P_judge_protocol.md#4-the-judge-prompt:
+    stories:
+    - STORY-028
+  08_Cross_Cutting/08-P_judge_protocol.md#6-the-expected-response-json-schema:
+    stories:
+    - STORY-028
+  08_Cross_Cutting/08-P_judge_protocol.md#8-parsing-strategy:
+    stories:
+    - STORY-028
+  08_Cross_Cutting/08-P_judge_protocol.md#9-malformed-response-handling-and-retry:
+    stories:
+    - STORY-028
   08_Cross_Cutting/08-Q_event_payload_schemas.md#1-conventions:
     stories:
     - STORY-003
@@ -2171,6 +2326,51 @@ clauses:
   11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md#9-threading-and-concurrency:
     stories:
     - STORY-017
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#4-preconditions:
+    stories:
+    - STORY-029
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#62-stage-1--sanity-pre-check:
+    stories:
+    - STORY-028
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#63-stage-2--keyword-phase:
+    stories:
+    - STORY-028
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#64-stage-3--cosine-phase:
+    stories:
+    - STORY-028
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#65-stage-4--judge-phase:
+    stories:
+    - STORY-030
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#66-stage-5--verdict-combination:
+    stories:
+    - STORY-028
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#7-configuration:
+    stories:
+    - STORY-028
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#8-error-handling:
+    stories:
+    - STORY-030
+  11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#62-producing-an-embedding:
+    stories:
+    - STORY-027
+  11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#63-the-cosine-similarity-formula:
+    stories:
+    - STORY-027
+  11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#64-the-comparison-and-the-single-threshold-dd-45:
+    stories:
+    - STORY-027
+  11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#65-embedding-cache:
+    stories:
+    - STORY-027
+  11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#7-configuration:
+    stories:
+    - STORY-027
+  11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#8-error-handling:
+    stories:
+    - STORY-027
+  11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#9-threading-and-concurrency:
+    stories:
+    - STORY-027
   11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#13-per-role-bucket-independence:
     stories:
     - STORY-022
@@ -2279,9 +2479,18 @@ clauses:
   11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#61-the-taskrunner-and-the-worker-pool:
     stories:
     - STORY-006
+  11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#62-serial-execution-d-r-16:
+    stories:
+    - STORY-029
   11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#63-the-single-cancellationtoken:
     stories:
     - STORY-006
+  11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#66-batching-within-a-model-group:
+    stories:
+    - STORY-030
+  11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#68-pause-stop-and-resume-mechanics:
+    stories:
+    - STORY-029
   11_Services_and_Algorithms/17_ERROR_TAXONOMY.md#62-the-hierarchy:
     stories:
     - STORY-002
@@ -2692,6 +2901,10 @@ modules:
   backend/adaptive_timeout/:
     stories:
     - STORY-022
+  backend/benchmark_pipeline/:
+    stories:
+    - STORY-029
+    - STORY-030
   backend/circuit_breaker/:
     stories:
     - STORY-023
@@ -2701,9 +2914,15 @@ modules:
   backend/domain/:
     stories:
     - STORY-001
+  backend/embedding/:
+    stories:
+    - STORY-027
   backend/errors/:
     stories:
     - STORY-002
+  backend/evaluation/:
+    stories:
+    - STORY-028
   backend/events/:
     stories:
     - STORY-003
@@ -2728,6 +2947,7 @@ modules:
   backend/persistence/results/:
     stories:
     - STORY-011
+    - STORY-029
   backend/persistence/runs/:
     stories:
     - STORY-009
