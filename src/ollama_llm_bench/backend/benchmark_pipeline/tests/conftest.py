@@ -2,6 +2,8 @@
 
 from datetime import UTC, datetime
 
+import pytest
+
 from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.domain.models import (
     BenchmarkTask,
@@ -10,6 +12,7 @@ from ollama_llm_bench.backend.domain.models import (
     RequiredTerms,
     TaskOrigin,
 )
+from ollama_llm_bench.backend.infra.protocols import Clock
 
 
 def make_task(  # noqa: PLR0913  # test builder must expose every unit-relevant field
@@ -54,3 +57,9 @@ class FakeClock:
 def make_cancellation_token() -> CancellationToken:
     """Build a fresh, uncancelled `CancellationToken` backed by a `FakeClock`."""
     return CancellationToken(clock=FakeClock())
+
+
+@pytest.fixture
+def fake_clock() -> Clock:
+    """A deterministic `Clock` fixture, fresh per test."""
+    return FakeClock()
