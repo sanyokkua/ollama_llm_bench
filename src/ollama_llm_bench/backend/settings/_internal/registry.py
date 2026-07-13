@@ -28,12 +28,21 @@ settings change mid-run never affects an already-running breaker — so
 instead of a hardcoded literal.
 
 ``PER_RUN_OVERRIDABLE`` is the exact set of keys frozen into a run's settings snapshot at
-run creation — 30 keys: every ``benchmark.*`` key except ``benchmark.last_mode`` (11),
-both ``feature.*`` keys (2), every ``eval.*`` key (14), and all three
+run creation — 31 keys: every ``benchmark.*`` key except ``benchmark.last_mode`` (11),
+both ``feature.*`` keys (2), every ``eval.*`` key (15), and all three
 ``circuit_breaker.*`` keys (3, STORY-023). No ``ui.*``, ``embedding.*``, ``logging.*``,
 ``task_editor.*``, or ``provider.*``/``readiness.*`` key is ever a member — this includes
 ``ui.stream_tokens_to_log``, which lives in the spec's §4 ``feature.*`` table but is a
 live UI/log preference, not a run input (`08-G` §4).
+
+``eval.embedding_cache_max_entries`` is documented in
+``11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md`` §7 but was not yet present in the
+``08-G`` registry document or this in-code table; it is added here (STORY-027) as a
+purely additive registry entry, **and** as a ``PER_RUN_OVERRIDABLE`` member — the
+embedding service reads it once from the run's frozen settings snapshot at construction
+(§7), bounding its in-memory LRU cache for the life of that run — so
+``backend/embedding/`` can resolve its cache bound through the run snapshot instead of a
+hardcoded literal.
 
 **Documented decisions (SPEC-110 / DD-30 scope notes for this story):**
 
@@ -73,7 +82,7 @@ DEFAULTS: dict[SettingKey, str] = {
     "feature.reasoning_effort_default": ReasoningEffort.DEFAULT.value,
     "feature.judge_run_analysis_enabled": "false",
     "ui.stream_tokens_to_log": "true",
-    # --- eval.* (`08-G` §5) — 14 keys, all per-run-overridable ---
+    # --- eval.* (`08-G` §5) — 15 keys, all per-run-overridable ---
     "eval.phase_keyword_enabled": "true",
     "eval.phase_cosine_enabled": "true",
     "eval.phase_judge_enabled": "true",
@@ -87,6 +96,7 @@ DEFAULTS: dict[SettingKey, str] = {
     "eval.embedding_timeout_seconds": "30",
     "eval.min_sample_size": "5",
     "eval.embedding_consecutive_failures_to_skip": "3",
+    "eval.embedding_cache_max_entries": "4096",
     "eval.min_cosine_coverage": "0.8",
     # --- embedding.* (`08-G` §6) — 4 keys, none per-run-overridable ---
     "embedding.selected_provider_name": "",
@@ -156,6 +166,7 @@ PER_RUN_OVERRIDABLE: frozenset[SettingKey] = frozenset(
         "eval.embedding_timeout_seconds",
         "eval.min_sample_size",
         "eval.embedding_consecutive_failures_to_skip",
+        "eval.embedding_cache_max_entries",
         "eval.min_cosine_coverage",
         # All three circuit_breaker.* keys (3, STORY-023)
         "circuit_breaker.enabled",
