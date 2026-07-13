@@ -7,9 +7,13 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.grouping import (
     group_by_provider_and_model,
     phase_applies,
 )
+from ollama_llm_bench.backend.benchmark_pipeline._internal.units import (
+    _complete_or_advance,
+    _next_status_after_phase,
+)
 from ollama_llm_bench.backend.benchmark_pipeline.models import PHASE_ORDER, Phase
 from ollama_llm_bench.backend.benchmark_pipeline.testing import make_benchmark_result
-from ollama_llm_bench.backend.domain.models import ResultStatus, RunMode
+from ollama_llm_bench.backend.domain.models import ResolutionLayer, ResultStatus, RunMode, Verdict
 
 
 def test_phase_order_is_the_five_phases_in_spec_order() -> None:
@@ -106,3 +110,139 @@ def test_group_by_provider_and_model_preserves_first_seen_order() -> None:
         ("22222222-2222-4222-8222-222222222222", "mistral"),
     ]
     assert groups[0][2] == (row_a, row_c)
+
+
+@pytest.mark.parametrize(
+    ("completed_phase", "keyword_enabled", "cosine_enabled", "judge_enabled", "expected"),
+    [
+        (
+            Phase.KEYWORD_CHECK,
+            True,
+            True,
+            True,
+            ResultStatus.AWAITING_COSINE_CHECK,
+        ),
+        (
+            Phase.KEYWORD_CHECK,
+            True,
+            False,
+            True,
+            ResultStatus.AWAITING_JUDGE_CHECK,
+        ),
+        (
+            Phase.KEYWORD_CHECK,
+            True,
+            False,
+            False,
+            None,
+        ),
+        (
+            Phase.JUDGE_CHECK,
+            True,
+            True,
+            True,
+            None,
+        ),
+        (
+            Phase.INFERENCE,
+            False,
+            False,
+            False,
+            None,
+        ),
+    ],
+)
+def test_next_status_after_phase_routes_per_08b_state_machine(
+    *,
+    completed_phase: Phase,
+    keyword_enabled: bool,
+    cosine_enabled: bool,
+    judge_enabled: bool,
+    expected: ResultStatus | None,
+) -> None:
+    """Proves: STORY-029-AC-1
+
+    08-B §5.1's state machine: a completed phase advances to the next
+    *enabled* grading phase's AWAITING_* status, skipping any disabled
+    phase, or returns None (route to COMPLETED) when no later grading
+    phase is enabled.
+    """
+    result = _next_status_after_phase(
+        completed_phase=completed_phase,
+        keyword_enabled=keyword_enabled,
+        cosine_enabled=cosine_enabled,
+        judge_enabled=judge_enabled,
+    )
+
+    assert result is expected
+
+
+def test_complete_or_advance_returns_next_awaiting_status_with_no_verdict() -> None:
+    """Proves: STORY-029-AC-1
+
+    When a later grading phase is enabled, the row advances without a
+    combined verdict — combine_verdict runs only on the terminal phase.
+    """
+    status, verdict, resolution_layer = _complete_or_advance(
+        completed_phase=Phase.KEYWORD_CHECK,
+        keyword_enabled=True,
+        cosine_enabled=True,
+        judge_enabled=True,
+        sanity_check_passed=True,
+        keyword_verdict=Verdict.PASS,
+        cosine_verdict=None,
+        judge_verdict=None,
+        force_judge_on_prior_failure=False,
+    )
+
+    assert status is ResultStatus.AWAITING_COSINE_CHECK
+    assert verdict is None
+    assert resolution_layer is None
+
+
+def test_complete_or_advance_combines_verdict_on_terminal_grading_phase() -> None:
+    """Proves: STORY-029-AC-1
+
+    On the row's actual terminal grading phase, combine_verdict runs
+    exactly once and its result is threaded onto the COMPLETED patch.
+    """
+    status, verdict, resolution_layer = _complete_or_advance(
+        completed_phase=Phase.KEYWORD_CHECK,
+        keyword_enabled=True,
+        cosine_enabled=False,
+        judge_enabled=False,
+        sanity_check_passed=True,
+        keyword_verdict=Verdict.PASS,
+        cosine_verdict=None,
+        judge_verdict=None,
+        force_judge_on_prior_failure=False,
+    )
+
+    assert status is ResultStatus.COMPLETED
+    assert verdict is Verdict.PASS
+    assert resolution_layer is ResolutionLayer.KEYWORD
+
+
+def test_complete_or_advance_skips_combine_verdict_when_all_grading_disabled() -> None:
+    """Proves: STORY-029-AC-1
+
+    A non-grading run (or an all-phases-disabled GRADED run) routes
+    straight to COMPLETED with verdict=None and resolution_layer=SKIP,
+    never calling combine_verdict (which would violate its own
+    icontract precondition on an all-None-verdict input).
+    """
+    status, verdict, resolution_layer = _complete_or_advance(
+        completed_phase=Phase.INFERENCE,
+        keyword_enabled=False,
+        cosine_enabled=False,
+        judge_enabled=False,
+        sanity_check_passed=True,
+        keyword_verdict=None,
+        cosine_verdict=None,
+        judge_verdict=None,
+        force_judge_on_prior_failure=False,
+    )
+
+    assert status is ResultStatus.COMPLETED
+    assert verdict is None
+    assert resolution_layer is ResolutionLayer.SKIP
