@@ -1,7 +1,7 @@
 ---
 id: STORY-029
 title: Drive a run to a terminal status through the five-phase batched pipeline with pause, stop, and resume
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-B_benchmark_state_machine.md#3-the-five-phase-batched-pipeline
   - 08_Cross_Cutting/08-B_benchmark_state_machine.md#4-provider-and-model-grouping
@@ -222,9 +222,9 @@ run-header data (never propagated to the caller); a `ProgrammerError` is not cau
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-029.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/benchmark_pipeline/`.
-- [ ] An architecture test confirms `backend/benchmark_pipeline/` imports no Qt, no `asyncio`,
+- [x] Every acceptance criterion has a passing test that names STORY-029.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/benchmark_pipeline/`.
+- [x] An architecture test confirms `backend/benchmark_pipeline/` imports no Qt, no `asyncio`,
   and no concrete provider adapter.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-029.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-029.
+- [x] The module inventory is unchanged.
