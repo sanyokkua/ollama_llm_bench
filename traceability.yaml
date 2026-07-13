@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-13T12:05:04Z'
+generated_at: '2026-07-13T12:06:50Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1944,7 +1944,7 @@ stories:
         - src/ollama_llm_bench/backend/embedding/tests/test_threshold_and_failure.py::test_threshold_lookup_returns_snapshot_value
   STORY-028:
     title: Grade a response through the sanity, keyword, cosine, and judge evaluators into one binary verdict
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-P_judge_protocol.md#4-the-judge-prompt
     - 08_Cross_Cutting/08-P_judge_protocol.md#6-the-expected-response-json-schema
