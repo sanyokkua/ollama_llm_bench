@@ -2,6 +2,8 @@
 eviction behaviour (§6.5)."""
 
 from ollama_llm_bench.backend.embedding._internal.cache import _EmbeddingCache
+from ollama_llm_bench.backend.embedding.api import make_embedding_service
+from ollama_llm_bench.backend.embedding.tests.conftest import FakeLLMClient, make_snapshot
 
 _PROVIDER = "p1"
 _MODEL = "model-a"
@@ -83,3 +85,23 @@ def test_lru_get_refreshes_recency_and_protects_from_eviction() -> None:
 
     assert evicted_b is None
     assert kept_a == (1.0,)
+
+
+def test_cache_hit_avoids_second_provider_call_and_normalises_whitespace() -> None:
+    """Proves: STORY-027-AC-2
+
+    A second request for the same (provider_id, model_name,
+    normalised_text) key is a cache hit — the underlying LLMClient.embed is
+    called exactly once across both requests — and text differing only by
+    surrounding whitespace normalises to the same cache key.
+    """
+    client = FakeLLMClient()
+    service = make_embedding_service(
+        client=client, provider_id=_PROVIDER, model_name=_MODEL, snapshot=make_snapshot()
+    )
+
+    first = service.embed("golden answer")
+    second = service.embed("  golden answer  \n")
+
+    assert first == second
+    assert len(client.calls) == 1

@@ -1,8 +1,20 @@
 """Shared test helpers for backend/embedding/tests/."""
 
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-from ollama_llm_bench.backend.domain import BenchmarkRunSettingEntry
+from ollama_llm_bench.backend.concurrency import CancellationToken
+from ollama_llm_bench.backend.domain import (
+    BenchmarkRunSettingEntry,
+    ChatRequest,
+    ChatResponse,
+    InferenceTestResult,
+    ModelName,
+    ProviderHealth,
+)
+
+if TYPE_CHECKING:
+    from ollama_llm_bench.backend.provider_registry import ChatStream
 
 __all__ = ["FakeLLMClient", "make_snapshot"]
 
@@ -36,7 +48,11 @@ def make_snapshot(
 
 
 class FakeLLMClient:
-    """A minimal ``LLMClient`` test double exposing only ``embed`` (§6.2, §9).
+    """A minimal ``LLMClient`` test double exercising only ``embed`` (§6.2, §9).
+
+    Every other ``LLMClient`` member is present (for structural-typing
+    compatibility with the Protocol) but raises ``NotImplementedError`` — the
+    embedding service under test never calls chat/list/probe surfaces.
 
     Args:
         embed_fn: Called for every ``embed(text)`` invocation; defaults to a
@@ -52,6 +68,42 @@ class FakeLLMClient:
         """Record the call and delegate to the configured ``embed_fn``."""
         self.calls.append(text)
         return self._embed_fn(text)
+
+    def list_models(self) -> tuple[ModelName, ...]:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def probe_health(self) -> ProviderHealth:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def test_inference(self, model_name: ModelName) -> InferenceTestResult:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def chat_stream(self, request: ChatRequest, *, token: CancellationToken) -> "ChatStream":
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def supports_streaming(self) -> bool:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def supports_reasoning_effort(self) -> bool:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def supports_thinking(self) -> bool:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def close(self) -> None:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
 
 
 def _default_embed(text: str) -> tuple[float, ...]:
