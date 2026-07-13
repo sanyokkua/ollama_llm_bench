@@ -35,7 +35,9 @@ def _is_echo(response: str, question: str) -> bool:
     response_cf, question_cf = response.casefold(), question.casefold()
     if response_cf not in question_cf and question_cf not in response_cf:
         return False
-    return response_cf in question_cf or question_cf in response_cf
+    longer = max(len(response), len(question))
+    length_diff_ratio = abs(len(response) - len(question)) / longer
+    return length_diff_ratio < _ECHO_LENGTH_DIFF_RATIO_THRESHOLD
 
 
 def _has_leading_error_marker(response: str, markers: tuple[str, ...]) -> bool:
