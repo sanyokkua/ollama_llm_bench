@@ -1,1 +1,9 @@
 """Five-phase batched orchestrator."""
+
+from ollama_llm_bench.backend.benchmark_pipeline.api import make_benchmark_pipeline
+from ollama_llm_bench.backend.benchmark_pipeline.protocols import BenchmarkFlowApi
+
+__all__: list[str] = [
+    "BenchmarkFlowApi",
+    "make_benchmark_pipeline",
+]
