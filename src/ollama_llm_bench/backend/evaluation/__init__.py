@@ -5,6 +5,20 @@ Grades one benchmark result into a binary PASS/FAIL verdict. See
 ``docs/v3_specification/08_Cross_Cutting/08-P_judge_protocol.md``.
 """
 
+from ollama_llm_bench.backend.evaluation.api import (
+    combine_verdict,
+    make_cosine_evaluator,
+    make_judge_evaluator,
+    make_keyword_evaluator,
+    make_sanity_checker,
+)
+from ollama_llm_bench.backend.evaluation.models import (
+    CombinedVerdict,
+    CosinePhaseResult,
+    JudgePhaseOutcome,
+    JudgePhaseResult,
+    KeywordPhaseResult,
+)
 from ollama_llm_bench.backend.evaluation.protocols import (
     CosineEvaluator,
     JudgeEvaluator,
@@ -13,8 +27,18 @@ from ollama_llm_bench.backend.evaluation.protocols import (
 )
 
 __all__: list[str] = [
+    "CombinedVerdict",
     "CosineEvaluator",
+    "CosinePhaseResult",
     "JudgeEvaluator",
+    "JudgePhaseOutcome",
+    "JudgePhaseResult",
     "KeywordEvaluator",
+    "KeywordPhaseResult",
     "SanityChecker",
+    "combine_verdict",
+    "make_cosine_evaluator",
+    "make_judge_evaluator",
+    "make_keyword_evaluator",
+    "make_sanity_checker",
 ]

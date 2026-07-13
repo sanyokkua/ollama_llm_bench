@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-13T09:21:00Z'
+generated_at: '2026-07-13T12:05:04Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -97,6 +97,10 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.RunStartRequest]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.RunStatusPatch]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.errors.models.ErrorContext]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.evaluation.models.CombinedVerdict]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.evaluation.models.CosinePhaseResult]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.evaluation.models.JudgePhaseResult]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.evaluation.models.KeywordPhaseResult]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.AppReadinessChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.AppSettingsChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.ChartDataChangedEvent]
@@ -177,6 +181,10 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.RunStartRequest]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.RunStatusPatch]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.errors.models.ErrorContext]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.evaluation.models.CombinedVerdict]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.evaluation.models.CosinePhaseResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.evaluation.models.JudgePhaseResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.evaluation.models.KeywordPhaseResult]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.AppReadinessChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.AppSettingsChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.ChartDataChangedEvent]
@@ -257,6 +265,10 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.RunStartRequest]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.RunStatusPatch]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.errors.models.ErrorContext]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.evaluation.models.CombinedVerdict]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.evaluation.models.CosinePhaseResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.evaluation.models.JudgePhaseResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.evaluation.models.KeywordPhaseResult]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.AppReadinessChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.AppSettingsChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.ChartDataChangedEvent]
@@ -1948,19 +1960,97 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-028-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[   -False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[0-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[1-True]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[2-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[FALSE-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[False-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[NO-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[No-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[TRUE-True]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[True-True]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[YES-True]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[Yes-True]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[false-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[garbage-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[maybe-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[no-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[true-True]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[truee-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_parses_force_judge_on_prior_failure_boolean[yes-True]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_reads_every_required_key
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_sanitizes_sanity_error_markers[   ,  , -expected_markers5]
+        - 'src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_sanitizes_sanity_error_markers[  ERROR:  , , , EXCEPTION: -expected_markers2]'
+        - 'src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_sanitizes_sanity_error_markers[  WARN  , ERROR: , FATAL -expected_markers7]'
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_sanitizes_sanity_error_markers[,-expected_markers4]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_sanitizes_sanity_error_markers[A,  B  ,C-expected_markers6]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_sanitizes_sanity_error_markers[ERROR:, ,EXCEPTION:,-expected_markers1]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_sanitizes_sanity_error_markers[ERROR:,EXCEPTION:-expected_markers0]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_parse_evaluation_parameters_sanitizes_sanity_error_markers[ERROR:-expected_markers3]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_parameters.py::test_required_evaluation_setting_keys_has_six_entries
+        - src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[   \n\t  -What is the capital of France?-file-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[-What is the capital of France?-file-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[42-What is the capital of France?-file-True]
+        - 'src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[ERROR: connection reset by peer while generating a response-What is the capital of France?-file-False]'
+        - src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[What is the capital city of France-What is the capital city of France, and what is its approximate population today?-file-True]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[What is the capital of France? Yes.-What is the capital of France?-file-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[What is the capital of France?-What is the capital of France?-file-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[a-What is the capital of France?-file-False]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_sanity.py::test_sanity_rules_flag_the_expected_responses[a-What is the capital of France?-synthetic-True]
       STORY-028-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/evaluation/tests/test_keyword.py::test_exact_term_match_is_case_insensitive_substring
+        - src/ollama_llm_bench/backend/evaluation/tests/test_keyword.py::test_missing_exact_term_fails_and_records_exact_missing
+        - src/ollama_llm_bench/backend/evaluation/tests/test_keyword.py::test_no_required_terms_yields_pass_with_no_terms
+        - src/ollama_llm_bench/backend/evaluation/tests/test_keyword.py::test_present_forbidden_term_fails_and_records_forbidden_found
+        - src/ollama_llm_bench/backend/evaluation/tests/test_keyword.py::test_semantic_term_at_or_above_threshold_passes
+        - src/ollama_llm_bench/backend/evaluation/tests/test_keyword.py::test_semantic_term_below_threshold_fails
       STORY-028-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/evaluation/tests/test_cosine_phase.py::test_cosine_disabled_skips_and_leaves_both_fields_none
+        - src/ollama_llm_bench/backend/evaluation/tests/test_cosine_phase.py::test_no_golden_answer_skips_and_leaves_both_fields_none
+        - src/ollama_llm_bench/backend/evaluation/tests/test_cosine_phase.py::test_score_at_or_above_threshold_passes
+        - src/ollama_llm_bench/backend/evaluation/tests/test_cosine_phase.py::test_score_below_threshold_fails
       STORY-028-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_prompt.py::test_judge_prompt_includes_present_optional_fields
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_prompt.py::test_judge_prompt_is_anonymous_and_omits_absent_fields
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_prompt.py::test_uncategorized_task_reads_uncategorized_in_area_line
       STORY-028-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_both_tokens_with_no_key_association_is_malformed[PASS FAIL]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_both_tokens_with_no_key_association_is_malformed[The result is PASS and also FAIL depending on interpretation.]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_clean_json_parses_strict_with_pass
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_context_length_error_propagates_uncaught
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_extra_fields_are_ignored
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_fenced_json_with_surrounding_prose_parses_leniently
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_key_adjacent_token_amid_prose_parses_leniently
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_lower_case_verdict_is_normalised
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_malformed_response_recovers_on_stricter_retry
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_missing_reasoning_defaults_to_the_documented_placeholder
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_prose_with_neither_token_is_malformed
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_transport_failure_reports_transport_failure_not_errored
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_prompt.py::test_retry_appends_the_stricter_corrective_instruction
       STORY-028-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_exhausted_parse_retries_reports_errored_and_is_retryable
+        - src/ollama_llm_bench/backend/evaluation/tests/test_judge_parsing.py::test_exhausted_retries_truncated_at_cap_reports_budget_exhausted_diagnostic
       STORY-028-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[False-pass-pass-True-pass-True-fail-keyword]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-fail-None-False-None-False-fail-keyword]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-fail-fail-True-pass-False-fail-keyword]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-fail-fail-True-pass-True-pass-judge]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-fail-pass-False-None-False-fail-keyword]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-pass-None-False-None-False-pass-keyword0]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-pass-None-False-None-False-pass-keyword1]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-pass-None-True-None-False-pass-keyword]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-pass-fail-False-None-False-fail-cosine]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-pass-fail-True-None-False-fail-cosine]
+        - src/ollama_llm_bench/backend/evaluation/tests/test_combination.py::test_verdict_combination_cascade[True-pass-pass-True-fail-False-fail-judge]
   STORY-029:
     title: Drive a run to a terminal status through the five-phase batched pipeline with pause, stop, and resume
     status: ready

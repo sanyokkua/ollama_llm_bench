@@ -15,7 +15,7 @@ import importlib
 import inspect
 from pathlib import Path
 from types import ModuleType, UnionType
-from typing import Annotated, TypeAliasType, get_args, get_origin
+from typing import Annotated, TypeAliasType, Union, get_args, get_origin
 
 import msgspec
 import pytest
@@ -194,7 +194,11 @@ def _placeholder_for_type(field_type: object) -> object:
     origin = get_origin(field_type)
     if origin is Annotated:
         return _placeholder_for_annotated(field_type)
-    if origin is UnionType:
+    if origin is UnionType or origin is Union:
+        # msgspec's field introspection normalises `Annotated[T, Meta] | None` to
+        # `typing.Optional[Annotated[T, Meta]]` (origin `typing.Union`), distinct from a
+        # bare `T | None` (origin `types.UnionType`) — both spellings need the same
+        # not-None-branch placeholder logic.
         return _placeholder_for_optional(field_type)
     if origin in _ORIGIN_PLACEHOLDER_BUILDERS:
         return _ORIGIN_PLACEHOLDER_BUILDERS[origin](field_type)  # type: ignore[operator]  # dispatch table
