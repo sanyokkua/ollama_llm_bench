@@ -28,8 +28,8 @@ settings change mid-run never affects an already-running breaker — so
 instead of a hardcoded literal.
 
 ``PER_RUN_OVERRIDABLE`` is the exact set of keys frozen into a run's settings snapshot at
-run creation — 31 keys: every ``benchmark.*`` key except ``benchmark.last_mode`` (11),
-both ``feature.*`` keys (2), every ``eval.*`` key (15), and all three
+run creation — 35 keys: every ``benchmark.*`` key except ``benchmark.last_mode`` (11),
+both ``feature.*`` keys (2), every ``eval.*`` key (19), and all three
 ``circuit_breaker.*`` keys (3, STORY-023). No ``ui.*``, ``embedding.*``, ``logging.*``,
 ``task_editor.*``, or ``provider.*``/``readiness.*`` key is ever a member — this includes
 ``ui.stream_tokens_to_log``, which lives in the spec's §4 ``feature.*`` table but is a
@@ -43,6 +43,18 @@ embedding service reads it once from the run's frozen settings snapshot at const
 (§7), bounding its in-memory LRU cache for the life of that run — so
 ``backend/embedding/`` can resolve its cache bound through the run snapshot instead of a
 hardcoded literal.
+
+``eval.sanity_min_chars``, ``eval.sanity_error_markers``,
+``eval.keyword_semantic_pass_threshold``, and ``eval.judge_max_parse_retries`` are documented
+in ``11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md`` §7 and
+``08_Cross_Cutting/08-P_judge_protocol.md`` §7/§9.2 but were not yet present in the ``08-G``
+registry document or this in-code table; they are added here (STORY-028) as purely additive
+registry entries, **and** as ``PER_RUN_OVERRIDABLE`` members — the evaluation module reads all
+four once from the run's frozen settings snapshot at construction, so ``backend/evaluation/``
+can resolve its sanity/keyword/judge-parse parameters through the run snapshot instead of a
+hardcoded literal. ``eval.sanity_error_markers`` stores its list as a comma-separated string,
+matching the existing ``embedding.additional_patterns`` convention (`08-G` §6) — none of the
+default markers contain a comma.
 
 **Documented decisions (SPEC-110 / DD-30 scope notes for this story):**
 
@@ -82,7 +94,7 @@ DEFAULTS: dict[SettingKey, str] = {
     "feature.reasoning_effort_default": ReasoningEffort.DEFAULT.value,
     "feature.judge_run_analysis_enabled": "false",
     "ui.stream_tokens_to_log": "true",
-    # --- eval.* (`08-G` §5) — 15 keys, all per-run-overridable ---
+    # --- eval.* (`08-G` §5) — 19 keys, all per-run-overridable ---
     "eval.phase_keyword_enabled": "true",
     "eval.phase_cosine_enabled": "true",
     "eval.phase_judge_enabled": "true",
@@ -98,6 +110,10 @@ DEFAULTS: dict[SettingKey, str] = {
     "eval.embedding_consecutive_failures_to_skip": "3",
     "eval.embedding_cache_max_entries": "4096",
     "eval.min_cosine_coverage": "0.8",
+    "eval.sanity_min_chars": "2",
+    "eval.sanity_error_markers": "ERROR:,EXCEPTION:,[ERROR]",
+    "eval.keyword_semantic_pass_threshold": "0.70",
+    "eval.judge_max_parse_retries": "2",
     # --- embedding.* (`08-G` §6) — 4 keys, none per-run-overridable ---
     "embedding.selected_provider_name": "",
     "embedding.selected_model_name": "",
@@ -152,7 +168,7 @@ PER_RUN_OVERRIDABLE: frozenset[SettingKey] = frozenset(
         # Both feature.* keys (2) — NOT ui.stream_tokens_to_log
         "feature.reasoning_effort_default",
         "feature.judge_run_analysis_enabled",
-        # Every eval.* key (14)
+        # Every eval.* key (19)
         "eval.phase_keyword_enabled",
         "eval.phase_cosine_enabled",
         "eval.phase_judge_enabled",
@@ -168,6 +184,10 @@ PER_RUN_OVERRIDABLE: frozenset[SettingKey] = frozenset(
         "eval.embedding_consecutive_failures_to_skip",
         "eval.embedding_cache_max_entries",
         "eval.min_cosine_coverage",
+        "eval.sanity_min_chars",
+        "eval.sanity_error_markers",
+        "eval.keyword_semantic_pass_threshold",
+        "eval.judge_max_parse_retries",
         # All three circuit_breaker.* keys (3, STORY-023)
         "circuit_breaker.enabled",
         "circuit_breaker.failure_threshold",
