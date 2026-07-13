@@ -1,0 +1,60 @@
+"""Shared test helpers for backend/embedding/tests/."""
+
+from collections.abc import Callable
+
+from ollama_llm_bench.backend.domain import BenchmarkRunSettingEntry
+
+__all__ = ["FakeLLMClient", "make_snapshot"]
+
+
+def make_snapshot(
+    *,
+    cosine_threshold: float = 0.85,
+    cache_max_entries: int = 4096,
+    consecutive_failures_to_skip: int = 3,
+) -> tuple[BenchmarkRunSettingEntry, ...]:
+    """Build a valid 3-key embedding-service snapshot (defaults per spec §7).
+
+    Args:
+        cosine_threshold: ``eval.cosine_threshold`` override.
+        cache_max_entries: ``eval.embedding_cache_max_entries`` override.
+        consecutive_failures_to_skip: ``eval.embedding_consecutive_failures_to_skip``
+            override.
+
+    Returns:
+        A tuple of 3 ``BenchmarkRunSettingEntry`` rows, one per embedding-service key.
+    """
+    values: dict[str, str] = {
+        "eval.cosine_threshold": str(cosine_threshold),
+        "eval.embedding_cache_max_entries": str(cache_max_entries),
+        "eval.embedding_consecutive_failures_to_skip": str(consecutive_failures_to_skip),
+    }
+    return tuple(
+        BenchmarkRunSettingEntry(setting_key=key, setting_value=value)
+        for key, value in values.items()
+    )
+
+
+class FakeLLMClient:
+    """A minimal ``LLMClient`` test double exposing only ``embed`` (§6.2, §9).
+
+    Args:
+        embed_fn: Called for every ``embed(text)`` invocation; defaults to a
+            deterministic hash-derived vector so identical texts always embed
+            identically and distinct texts (almost always) embed distinctly.
+    """
+
+    def __init__(self, *, embed_fn: Callable[[str], tuple[float, ...]] | None = None) -> None:
+        self._embed_fn = embed_fn if embed_fn is not None else _default_embed
+        self.calls: list[str] = []
+
+    def embed(self, text: str) -> tuple[float, ...]:
+        """Record the call and delegate to the configured ``embed_fn``."""
+        self.calls.append(text)
+        return self._embed_fn(text)
+
+
+def _default_embed(text: str) -> tuple[float, ...]:
+    """A deterministic, cheap stand-in vector derived from ``text``'s hash."""
+    seed = abs(hash(text))
+    return (float(seed % 97) + 1.0, float(seed % 53) + 1.0, float(seed % 17) + 1.0)
