@@ -21,6 +21,7 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.events import (
     emit_run_failed,
     emit_run_finished,
     emit_run_paused,
+    emit_run_resumed,
     emit_run_start_failed,
     emit_run_started,
     emit_run_stopped,
@@ -76,6 +77,7 @@ from ollama_llm_bench.backend.events.models import (
     RunFailedEvent,
     RunFinishedEvent,
     RunPausedEvent,
+    RunResumedEvent,
     RunStartedEvent,
     RunStartFailedEvent,
     RunStoppedEvent,
@@ -421,16 +423,66 @@ class _BenchmarkFlowApiImpl:
             ),
         )
 
-    def resume(self, run_id: RunId) -> None:
-        """Not yet implemented (STORY-029 Task 10 completes this).
+    def _emit_run_resumed(
+        self, run: BenchmarkRun, *, current_rows: tuple[BenchmarkResult, ...]
+    ) -> None:
+        """Emit `_run_resumed` after the dispatcher thread has already been launched."""
+        completed_count = sum(1 for row in current_rows if row.status not in _NON_TERMINAL_STATUSES)
+        emit_run_resumed(
+            self._bus,
+            RunResumedEvent(
+                run_id=run.run_id,
+                resumed_at=self._clock.now_utc(),
+                completed_tasks=completed_count,
+                total_tasks=run.total_tasks,
+            ),
+        )
 
-        Deliberately a no-op stub, not `NotImplementedError`, per DD-44
-        (`BenchmarkFlowApi` implementations never raise to the caller). Task
-        10 replaces this body with the real resume-from-crash-recovery flow
-        (fresh `CancellationToken`, `list_resumable_results` selection,
-        `RUNNING_INFERENCE -> PENDING` reset, frozen snapshot reuse).
+    def resume(self, run_id: RunId) -> None:
+        """Resume a `STOPPED`/`FAILED` run's unfinished rows (STORY-029-AC-6).
+
+        Admits under the single-inference gate first, exactly like `start`
+        (SPEC-036, DD-50); a held gate makes this call a silent no-op. Any
+        row still `RUNNING_INFERENCE` (an artefact of a crash mid-unit, since
+        `list_resumable_results` itself only selects `PENDING` and retryable
+        failure rows) is reset to `PENDING` before dispatch. The run's
+        already-persisted `settings_snapshot`/model/provider entries are
+        reused verbatim — this method never re-resolves live settings.
         """
-        del run_id
+        context = InferenceActivityContext(
+            activity=InferenceActivity.BENCHMARK_RUN, started_at=self._clock.monotonic_ms()
+        )
+        lease = self._inference_activity_store.try_acquire(InferenceActivity.BENCHMARK_RUN, context)
+        if lease is None:
+            return
+        run = self._runs_store.get_run(run_id)
+        # `list_resumable_results` selects PENDING + retryable-failure rows
+        # (its own docstring) — this call confirms that set per AC-6; the
+        # actual re-run selection is `run_all_phases`' own per-phase
+        # eligibility filter over `list_results`, which is why the return
+        # value itself is not threaded further here.
+        self._results_store.list_resumable_results(run_id)
+        current_rows = self._results_store.list_results(run_id)
+        stuck_ids = tuple(
+            row.result_id for row in current_rows if row.status is ResultStatus.RUNNING_INFERENCE
+        )
+        if stuck_ids:
+            self._results_store.reset_results(stuck_ids)
+        token = make_cancellation_token(clock=self._clock)
+        with self._lock:
+            self._token = token
+            self._current_run = run
+            self._is_running = True
+        thread = threading.Thread(
+            target=self._dispatch_run,
+            name=_DISPATCHER_THREAD_NAME,
+            kwargs={"run": run, "lease": lease, "token": token},
+            daemon=False,
+        )
+        with self._lock:
+            self._dispatcher_thread = thread
+        thread.start()
+        self._emit_run_resumed(run, current_rows=current_rows)
 
     def pause(self) -> None:
         """Request a cooperative soft cancel on the run's live token, if any."""
