@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-13T07:28:23Z'
+generated_at: '2026-07-13T09:21:00Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1890,7 +1890,7 @@ stories:
         - src/ollama_llm_bench/backend/model_helpers/tests/test_capability_service.py::test_record_capability_writes_one_upsert_through_store
   STORY-027:
     title: Produce cached embeddings and the clamped Cosine Score over the embedding LLM client
-    status: draft
+    status: done
     spec_clauses:
     - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#62-producing-an-embedding
     - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#63-the-cosine-similarity-formula
@@ -1904,18 +1904,35 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-027-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/embedding/tests/test_cosine.py::test_cosine_score_both_zero_norm_is_zero
+        - src/ollama_llm_bench/backend/embedding/tests/test_cosine.py::test_cosine_score_identity_is_one
+        - src/ollama_llm_bench/backend/embedding/tests/test_cosine.py::test_cosine_score_is_clamped_cosine
+        - src/ollama_llm_bench/backend/embedding/tests/test_cosine.py::test_cosine_score_orthogonal_is_zero
+        - src/ollama_llm_bench/backend/embedding/tests/test_cosine.py::test_cosine_score_rounding_above_one_clamps_to_one
+        - src/ollama_llm_bench/backend/embedding/tests/test_cosine.py::test_cosine_score_zero_norm_first_vector_is_zero
+        - src/ollama_llm_bench/backend/embedding/tests/test_cosine.py::test_cosine_score_zero_norm_second_vector_is_zero
       STORY-027-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/embedding/tests/test_cache.py::test_cache_hit_avoids_second_provider_call_and_normalises_whitespace
+        - src/ollama_llm_bench/backend/embedding/tests/test_cache.py::test_cache_hit_returns_cached_vector
+        - src/ollama_llm_bench/backend/embedding/tests/test_cache.py::test_cache_miss_returns_none
       STORY-027-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/embedding/tests/test_cache.py::test_lru_evicts_least_recently_used_on_overflow
+        - src/ollama_llm_bench/backend/embedding/tests/test_cache.py::test_lru_get_refreshes_recency_and_protects_from_eviction
       STORY-027-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/embedding/tests/test_short_circuit.py::test_consecutive_failure_short_circuit_and_success_resets_counter
+        - src/ollama_llm_bench/backend/embedding/tests/test_short_circuit.py::test_success_before_kth_failure_resets_consecutive_counter
       STORY-027-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/embedding/tests/test_threshold_and_failure.py::test_single_failed_embedding_degrades_without_raising
+        - src/ollama_llm_bench/backend/embedding/tests/test_threshold_and_failure.py::test_single_failed_embedding_in_cosine_yields_zero_score_without_raising
+        - src/ollama_llm_bench/backend/embedding/tests/test_threshold_and_failure.py::test_threshold_lookup_returns_snapshot_value
   STORY-028:
     title: Grade a response through the sanity, keyword, cosine, and judge evaluators into one binary verdict
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-P_judge_protocol.md#4-the-judge-prompt
     - 08_Cross_Cutting/08-P_judge_protocol.md#6-the-expected-response-json-schema
@@ -1946,7 +1963,7 @@ stories:
         tests: []
   STORY-029:
     title: Drive a run to a terminal status through the five-phase batched pipeline with pause, stop, and resume
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution
     - 08_Cross_Cutting/08-B_benchmark_state_machine.md#3-the-five-phase-batched-pipeline
@@ -1979,7 +1996,7 @@ stories:
         tests: []
   STORY-030:
     title: Orchestrate the judge phase with adaptive timeout, judge-model exclusion, and circuit-breaker consultation
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-B_benchmark_state_machine.md#6-adaptive-timeout-state-machine
     - 08_Cross_Cutting/08-B_benchmark_state_machine.md#7-provider-circuit-breaker-state-machine
