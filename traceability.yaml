@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-14T15:07:30Z'
+generated_at: '2026-07-14T16:40:08Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -151,6 +151,7 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.retry.models.RetryPolicy]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.run_analysis.models.RunAnalysisResult]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.run_drift.models.DriftWarning]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.task_files.models.FileValidationResult]
@@ -245,6 +246,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.retry.models.RetryPolicy]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.run_analysis.models.RunAnalysisResult]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.run_drift.models.DriftWarning]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.task_files.models.FileValidationResult]
@@ -339,6 +341,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_gemini.models.GeminiClientSettings]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_openai_compatible.models.OpenAICompatibleClientSettings]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.retry.models.RetryPolicy]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.run_analysis.models.RunAnalysisResult]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.run_drift.models.DriftWarning]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.task_files.models.FileValidationResult]
@@ -2136,7 +2139,6 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/lifecycle.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/outcome.py]
-        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/progress.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/units.py]
@@ -2171,7 +2173,6 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/lifecycle.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/outcome.py]
-        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/progress.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/units.py]
@@ -2206,7 +2207,6 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/lifecycle.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/outcome.py]
-        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/progress.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/units.py]
@@ -2605,21 +2605,102 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-035-AC-1:
-        tests: []
+        tests:
+        - 'src/ollama_llm_bench/backend/run_analysis/tests/test_outcome_invariants.py::test_result_field_invariant_per_outcome[failed-None-judge_timeout_exhausted: ...-True]'
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_outcome_invariants.py::test_result_field_invariant_per_outcome[failed-should not be here-reason-False]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_outcome_invariants.py::test_result_field_invariant_per_outcome[generated-# Overview\n...-None-True]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_outcome_invariants.py::test_result_field_invariant_per_outcome[generated-None-None-False]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_outcome_invariants.py::test_result_field_invariant_per_outcome[skipped-None-None-True]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_outcome_invariants.py::test_result_field_invariant_per_outcome[skipped-should not be here-None-False]
+        - tests/architecture/test_run_analysis_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[_internal/aggregation.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[_internal/prompt.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[_internal/service.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[_internal/timeout_cache.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[api.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[models.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[protocols.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[testing.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/conftest.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_aggregation.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_applicability_gate.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_facade.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_failure_handling.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_gate_acquire_release.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_gate_busy.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_outcome_invariants.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_progress_emission.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_prompt_framing.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_defines_no_async_function[tests/test_run_analysis_bucket.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[_internal/aggregation.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[_internal/prompt.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[_internal/service.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[_internal/timeout_cache.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[models.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[protocols.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[testing.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/conftest.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_aggregation.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_applicability_gate.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_facade.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_failure_handling.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_gate_acquire_release.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_gate_busy.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_outcome_invariants.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_progress_emission.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_prompt_framing.py]
+        - tests/architecture/test_run_analysis_module.py::test_run_analysis_module_imports_no_qt_or_asyncio[tests/test_run_analysis_bucket.py]
       STORY-035-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_applicability_gate.py::test_applicability_gate_branches[False-False-3-skipped]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_applicability_gate.py::test_applicability_gate_branches[False-True-3-None]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_applicability_gate.py::test_applicability_gate_branches[True-False-0-skipped]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_applicability_gate.py::test_applicability_gate_branches[True-False-3-None]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_applicability_gate.py::test_applicability_gate_branches[True-True-0-skipped]
       STORY-035-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_gate_busy.py::test_gate_busy_returns_failed_without_model_call
       STORY-035-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_gate_acquire_release.py::test_in_pipeline_skips_acquire_user_path_releases[False-False]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_gate_acquire_release.py::test_in_pipeline_skips_acquire_user_path_releases[False-True]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_gate_acquire_release.py::test_in_pipeline_skips_acquire_user_path_releases[True-False]
       STORY-035-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_run_analysis_bucket.py::test_run_analysis_bucket_is_independent_of_judge
       STORY-035-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_prompt_framing.py::test_mode_aware_framing_and_single_call[graded-pass rate]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_prompt_framing.py::test_mode_aware_framing_and_single_call[synthetic-input/output size]
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_prompt_framing.py::test_mode_aware_framing_and_single_call[tasks-throughput]
       STORY-035-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_failure_handling.py::test_empty_response_fails_as_a_single_attempt
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_failure_handling.py::test_non_timeout_error_fails_immediately_without_escalation
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_failure_handling.py::test_timeout_exhaustion_fails_with_no_exclusion_event
       STORY-035-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/run_analysis/tests/test_progress_emission.py::test_inference_progress_emitted_during_call
+        - tests/architecture/test_inference_progress_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_defines_no_async_function[_internal/emit.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_defines_no_async_function[api.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_defines_no_async_function[tests/test_emit_progress_during.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_imports_no_qt_or_asyncio[_internal/emit.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_imports_no_qt_or_asyncio[tests/test_emit_progress_during.py]
   STORY-036:
     title: Format a run-log event into a verbosity-selected one-line HTML fragment
     status: ready
