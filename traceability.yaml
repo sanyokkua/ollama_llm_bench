@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-14T11:39:04Z'
+generated_at: '2026-07-14T13:21:59Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2391,7 +2391,7 @@ stories:
         - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
   STORY-033:
     title: Compute the twelve chart aggregators with the five-filter pipeline and guards
-    status: ready
+    status: done
     spec_clauses:
     - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#12-test-cases
     - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#62-step-2--apply-the-global-filters
@@ -2403,28 +2403,129 @@ stories:
     - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#7-per-chart-catalog
     modules:
     - backend/charts/
+    - backend/domain/
     edge_cases:
     - EC-RES-1
     - EC-RES-4
     acceptance_criteria:
       STORY-033-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_cosine_by_model_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_time_per_model_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_tps_per_model_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_ttft_per_model_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_heatmap_task_by_model_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_pass_rate_by_model_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_per_category_bar_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_speed_vs_quality_scatter_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_success_failed_incomplete_stacked_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_time_vs_tokens_scatter_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_tokens_per_task_box_matches_fixture
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_verdict_counts_stacked_matches_fixture
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_cosine_by_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_time_per_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_tps_per_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_ttft_per_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-heatmap_task_by_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-pass_rate_by_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-per_category_bar]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-speed_vs_quality_scatter]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-success_failed_incomplete_stacked]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-time_vs_tokens_scatter]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-tokens_per_task_box]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-verdict_counts_stacked]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_cosine_by_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_time_per_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_tps_per_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_ttft_per_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-heatmap_task_by_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-pass_rate_by_model]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-per_category_bar]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-speed_vs_quality_scatter]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-success_failed_incomplete_stacked]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-time_vs_tokens_scatter]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-tokens_per_task_box]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-verdict_counts_stacked]
       STORY-033-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[all_filters_default_keeps_every_joined_row]
+        - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[category_filter_keeps_matching_category]
+        - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[difficulty_filter_keeps_matching_difficulty]
+        - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[models_filter_narrows_to_one_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[status_filter_excludes_non_matching_status]
+        - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[status_filter_keeps_matching_status]
+        - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[verdict_filter_keeps_pass_only]
+        - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[verdict_filter_keeps_ungraded_only]
       STORY-033-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_keeps_every_row_for_status_count_chart
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_cosine_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_time_per_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_tps_per_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_ttft_per_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[heatmap_task_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[pass_rate_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[per_category_bar]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[speed_vs_quality_scatter]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[time_vs_tokens_scatter]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[tokens_per_task_box]
+        - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[verdict_counts_stacked]
       STORY-033-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_heatmap_task_by_model_carries_no_sample_size_concept
+        - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_low_sample_group_is_flagged
+        - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_success_failed_incomplete_stacked_leaves_sample_sizes_empty
+        - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_time_vs_tokens_scatter_leaves_sample_sizes_empty
       STORY-033-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_box_plot_geometry_excludes_outlier_but_never_drops_it_from_group
+        - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_box_plot_outlier_toggle_off_emits_no_outlier_series
+        - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_iqr_outlier_dropped_when_toggle_on_box_plot_keeps[toggle_off_includes_outlier]
+        - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_iqr_outlier_dropped_when_toggle_on_box_plot_keeps[toggle_on_excludes_outlier]
       STORY-033-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-avg_cosine_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-heatmap_task_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-pass_rate_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-per_category_bar]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-speed_vs_quality_scatter]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-verdict_counts_stacked]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-avg_cosine_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-heatmap_task_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-pass_rate_by_model]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-per_category_bar]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-speed_vs_quality_scatter]
+        - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-verdict_counts_stacked]
       STORY-033-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_pareto_frontier.py::test_speed_vs_quality_pareto_frontier
+        - src/ollama_llm_bench/backend/charts/tests/test_pareto_frontier.py::test_speed_vs_quality_scatter_with_one_model_is_empty_state
       STORY-033-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[bool_option_wrong_type_logs_warning]
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[enum_option_out_of_domain_logs_warning]
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_uses_documented_default[bool_option_wrong_type_falls_back_to_true]
+        - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_uses_documented_default[enum_option_out_of_domain_falls_back_to_mean]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_cosine_no_scores]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_time_every_total_time_null]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_tps_every_tps_null]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_ttft_every_ttft_null]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[heatmap_no_completed_pairs]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[pass_rate_no_verdicts]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[per_category_bar_no_category]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[speed_vs_quality_fewer_than_two_models]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[success_failed_incomplete_no_rows]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[time_vs_tokens_every_field_null]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[tokens_per_task_box_every_field_null]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[verdict_counts_no_completed_rows]
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_no_row_survives_global_filters_is_empty_state
+        - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_out_of_domain_task_id_row_is_dropped_without_exception
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[fake]
+        - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[real]
       STORY-033-AC-9:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/charts/tests/test_determinism.py::test_aggregation_is_deterministic_and_snapshot_immutable
+        - src/ollama_llm_bench/backend/charts/tests/test_determinism.py::test_grading_chart_determinism_across_repeated_calls
   STORY-034:
     title: Expand a PerformanceConfig into a deterministic synthetic BenchmarkTask set
     status: ready
@@ -3633,7 +3734,107 @@ edge_cases:
   EC-RES-1:
     stories:
     - STORY-033
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[bool_option_wrong_type_logs_warning]
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[enum_option_out_of_domain_logs_warning]
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_uses_documented_default[bool_option_wrong_type_falls_back_to_true]
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_uses_documented_default[enum_option_out_of_domain_falls_back_to_mean]
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_cosine_by_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_time_per_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_tps_per_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_ttft_per_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_heatmap_task_by_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_pass_rate_by_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_per_category_bar_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_speed_vs_quality_scatter_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_success_failed_incomplete_stacked_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_time_vs_tokens_scatter_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_tokens_per_task_box_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_verdict_counts_stacked_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_determinism.py::test_aggregation_is_deterministic_and_snapshot_immutable
+    - src/ollama_llm_bench/backend/charts/tests/test_determinism.py::test_grading_chart_determinism_across_repeated_calls
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_cosine_no_scores]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_time_every_total_time_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_tps_every_tps_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_ttft_every_ttft_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[heatmap_no_completed_pairs]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[pass_rate_no_verdicts]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[per_category_bar_no_category]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[speed_vs_quality_fewer_than_two_models]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[success_failed_incomplete_no_rows]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[time_vs_tokens_every_field_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[tokens_per_task_box_every_field_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[verdict_counts_no_completed_rows]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_no_row_survives_global_filters_is_empty_state
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_out_of_domain_task_id_row_is_dropped_without_exception
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[all_filters_default_keeps_every_joined_row]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[category_filter_keeps_matching_category]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[difficulty_filter_keeps_matching_difficulty]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[models_filter_narrows_to_one_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[status_filter_excludes_non_matching_status]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[status_filter_keeps_matching_status]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[verdict_filter_keeps_pass_only]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[verdict_filter_keeps_ungraded_only]
+    - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_heatmap_task_by_model_carries_no_sample_size_concept
+    - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_low_sample_group_is_flagged
+    - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_success_failed_incomplete_stacked_leaves_sample_sizes_empty
+    - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_time_vs_tokens_scatter_leaves_sample_sizes_empty
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-avg_cosine_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-heatmap_task_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-pass_rate_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-per_category_bar]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-speed_vs_quality_scatter]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-verdict_counts_stacked]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-avg_cosine_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-heatmap_task_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-pass_rate_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-per_category_bar]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-speed_vs_quality_scatter]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-verdict_counts_stacked]
+    - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_box_plot_geometry_excludes_outlier_but_never_drops_it_from_group
+    - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_box_plot_outlier_toggle_off_emits_no_outlier_series
+    - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_iqr_outlier_dropped_when_toggle_on_box_plot_keeps[toggle_off_includes_outlier]
+    - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_iqr_outlier_dropped_when_toggle_on_box_plot_keeps[toggle_on_excludes_outlier]
+    - src/ollama_llm_bench/backend/charts/tests/test_pareto_frontier.py::test_speed_vs_quality_pareto_frontier
+    - src/ollama_llm_bench/backend/charts/tests/test_pareto_frontier.py::test_speed_vs_quality_scatter_with_one_model_is_empty_state
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_keeps_every_row_for_status_count_chart
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_cosine_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_time_per_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_tps_per_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_ttft_per_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[heatmap_task_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[pass_rate_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[per_category_bar]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[speed_vs_quality_scatter]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[time_vs_tokens_scatter]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[tokens_per_task_box]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[verdict_counts_stacked]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[fake]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[real]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_cosine_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_time_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_tps_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_ttft_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-heatmap_task_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-pass_rate_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-per_category_bar]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-speed_vs_quality_scatter]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-success_failed_incomplete_stacked]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-time_vs_tokens_scatter]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-tokens_per_task_box]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-verdict_counts_stacked]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_cosine_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_time_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_tps_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_ttft_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-heatmap_task_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-pass_rate_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-per_category_bar]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-speed_vs_quality_scatter]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-success_failed_incomplete_stacked]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-time_vs_tokens_scatter]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-tokens_per_task_box]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-verdict_counts_stacked]
   EC-RES-2:
     stories:
     - STORY-032
@@ -3649,7 +3850,107 @@ edge_cases:
   EC-RES-4:
     stories:
     - STORY-033
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[bool_option_wrong_type_logs_warning]
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[enum_option_out_of_domain_logs_warning]
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_uses_documented_default[bool_option_wrong_type_falls_back_to_true]
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_uses_documented_default[enum_option_out_of_domain_falls_back_to_mean]
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_cosine_by_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_time_per_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_tps_per_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_avg_ttft_per_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_heatmap_task_by_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_pass_rate_by_model_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_per_category_bar_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_speed_vs_quality_scatter_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_success_failed_incomplete_stacked_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_time_vs_tokens_scatter_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_tokens_per_task_box_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_chart_snapshots.py::test_verdict_counts_stacked_matches_fixture
+    - src/ollama_llm_bench/backend/charts/tests/test_determinism.py::test_aggregation_is_deterministic_and_snapshot_immutable
+    - src/ollama_llm_bench/backend/charts/tests/test_determinism.py::test_grading_chart_determinism_across_repeated_calls
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_cosine_no_scores]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_time_every_total_time_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_tps_every_tps_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[avg_ttft_every_ttft_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[heatmap_no_completed_pairs]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[pass_rate_no_verdicts]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[per_category_bar_no_category]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[speed_vs_quality_fewer_than_two_models]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[success_failed_incomplete_no_rows]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[time_vs_tokens_every_field_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[tokens_per_task_box_every_field_null]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_empty_state_message_per_kind[verdict_counts_no_completed_rows]
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_no_row_survives_global_filters_is_empty_state
+    - src/ollama_llm_bench/backend/charts/tests/test_empty_state.py::test_out_of_domain_task_id_row_is_dropped_without_exception
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[all_filters_default_keeps_every_joined_row]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[category_filter_keeps_matching_category]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[difficulty_filter_keeps_matching_difficulty]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[models_filter_narrows_to_one_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[status_filter_excludes_non_matching_status]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[status_filter_keeps_matching_status]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[verdict_filter_keeps_pass_only]
+    - src/ollama_llm_bench/backend/charts/tests/test_global_filters.py::test_each_global_filter_keeps_matching_rows[verdict_filter_keeps_ungraded_only]
+    - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_heatmap_task_by_model_carries_no_sample_size_concept
+    - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_low_sample_group_is_flagged
+    - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_success_failed_incomplete_stacked_leaves_sample_sizes_empty
+    - src/ollama_llm_bench/backend/charts/tests/test_min_sample_size.py::test_time_vs_tokens_scatter_leaves_sample_sizes_empty
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-avg_cosine_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-heatmap_task_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-pass_rate_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-per_category_bar]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-speed_vs_quality_scatter]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[synthetic-verdict_counts_stacked]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-avg_cosine_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-heatmap_task_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-pass_rate_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-per_category_bar]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-speed_vs_quality_scatter]
+    - src/ollama_llm_bench/backend/charts/tests/test_mode_gate.py::test_grading_chart_in_non_graded_mode_is_empty_state[tasks-verdict_counts_stacked]
+    - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_box_plot_geometry_excludes_outlier_but_never_drops_it_from_group
+    - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_box_plot_outlier_toggle_off_emits_no_outlier_series
+    - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_iqr_outlier_dropped_when_toggle_on_box_plot_keeps[toggle_off_includes_outlier]
+    - src/ollama_llm_bench/backend/charts/tests/test_outlier_handling.py::test_iqr_outlier_dropped_when_toggle_on_box_plot_keeps[toggle_on_excludes_outlier]
+    - src/ollama_llm_bench/backend/charts/tests/test_pareto_frontier.py::test_speed_vs_quality_pareto_frontier
+    - src/ollama_llm_bench/backend/charts/tests/test_pareto_frontier.py::test_speed_vs_quality_scatter_with_one_model_is_empty_state
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_keeps_every_row_for_status_count_chart
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_cosine_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_time_per_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_tps_per_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[avg_ttft_per_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[heatmap_task_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[pass_rate_by_model]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[per_category_bar]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[speed_vs_quality_scatter]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[time_vs_tokens_scatter]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[tokens_per_task_box]
+    - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[verdict_counts_stacked]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[fake]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[real]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_cosine_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_time_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_tps_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_ttft_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-heatmap_task_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-pass_rate_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-per_category_bar]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-speed_vs_quality_scatter]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-success_failed_incomplete_stacked]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-time_vs_tokens_scatter]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-tokens_per_task_box]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-verdict_counts_stacked]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_cosine_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_time_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_tps_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-avg_ttft_per_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-heatmap_task_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-pass_rate_by_model]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-per_category_bar]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-speed_vs_quality_scatter]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-success_failed_incomplete_stacked]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-time_vs_tokens_scatter]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-tokens_per_task_box]
+    - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-verdict_counts_stacked]
   EC-RUN-13:
     stories:
     - STORY-016
@@ -3738,6 +4039,7 @@ modules:
   backend/domain/:
     stories:
     - STORY-001
+    - STORY-033
   backend/embedding/:
     stories:
     - STORY-027

@@ -718,12 +718,33 @@ class GateLease(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 
 class ChartSeries(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """One named numeric vector plotted on a chart (§7.10)."""
+    """One named numeric vector plotted on a chart (§7.10).
+
+    ``sample_sizes`` and ``low_sample_flags`` are the per-value minimum-sample-size
+    guard outputs of the Chart Aggregators service (`13_CHART_AGGREGATORS.md`
+    §6.5a): ``sample_sizes`` carries each value's contributing completed-row count
+    ``n``, and ``low_sample_flags`` carries whether that ``n`` is below
+    ``eval.min_sample_size``. Both are parallel to ``values`` (same index, same
+    category/model) for a group-based aggregate, and empty for a row-level or
+    cell-level series where the guard does not apply.
+
+    ``estimated_flags`` and ``reasoning_flags`` are the per-value `AVG_TPS_PER_MODEL`
+    markers of §7.2: ``estimated_flags`` carries whether that value's group
+    includes any `tokens_estimated` row (SPEC-047, the UI's `≈` marker), and
+    ``reasoning_flags`` carries whether that value's group includes any
+    `has_thinking_block` row (MISS-08, SPEC-093, the UI's "⧉ includes reasoning
+    tokens" marker). Both are parallel to ``values`` and empty for every other
+    chart kind, where these markers do not apply.
+    """
 
     name: NonEmptyStr
     values: tuple[float | None, ...]
     color_hint: str | None = None
     result_ids: tuple[ResultId, ...] = ()
+    sample_sizes: tuple[NonNegativeInt, ...] = ()
+    low_sample_flags: tuple[bool, ...] = ()
+    estimated_flags: tuple[bool, ...] = ()
+    reasoning_flags: tuple[bool, ...] = ()
 
 
 class ChartData(msgspec.Struct, frozen=True, kw_only=True, gc=False):

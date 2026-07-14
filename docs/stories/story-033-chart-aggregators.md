@@ -1,7 +1,7 @@
 ---
 id: STORY-033
 title: Compute the twelve chart aggregators with the five-filter pipeline and guards
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#62-step-2--apply-the-global-filters
   - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#63-step-3--apply-the-per-chart-status-precondition
@@ -13,6 +13,7 @@ spec_clauses:
   - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#12-test-cases
 modules:
   - backend/charts/
+  - backend/domain/
 acceptance_criteria:
   - STORY-033-AC-1
   - STORY-033-AC-2
@@ -64,8 +65,14 @@ arithmetic.
   data only, with no Qt objects and no theme-resolved colours.
 - The chart chooser, per-chart option controls, and the 500 ms live-refresh debounce — owned by
   `ui/results/`.
-- Defining `ChartData`, `HeatmapData`, `ChartFilters`, `ChartSeries`, and `ChartKind` — consumed
-  from `backend/domain/` (STORY-001); this story computes them, it does not define them.
+- Defining `ChartData`, `HeatmapData`, `ChartFilters`, `ChartSeries`, and `ChartKind` — these
+  structures originate from `backend/domain/` (STORY-001); this story computes chart contents,
+  it does not design the DTO catalog. The one exception is `ChartSeries`: STORY-001 shipped it
+  without a per-group sample-size/low-sample carrier (needed by §6.5a) or a per-value flag
+  carrier (needed by §7.2's `≈`/`⧉` markers), so this story additively extends `ChartSeries`
+  with `sample_sizes`, `low_sample_flags`, and per-value flag fields, defaulted to `()` so every
+  other already-`done` consumer is unaffected. This is a minimal, spec-mandated extension of an
+  existing struct, not a new domain type.
 
 ## Spec inputs
 

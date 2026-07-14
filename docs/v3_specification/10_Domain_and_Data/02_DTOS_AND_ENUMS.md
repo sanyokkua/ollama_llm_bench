@@ -8,21 +8,21 @@
 
 This document is the master catalog of every data type in the application: every enumeration, every cross-boundary record, every type alias, and every reusable constrained type. All cross-boundary records are `msgspec.Struct` with `frozen=True, kw_only=True, gc=False`; all closed enumerations are `StrEnum`. The definitions here are the binding contract; the SQLite mapping for the persisted records is in `03_PERSISTENCE_SCHEMA.md`.
 
----
+______________________________________________________________________
 
 ## Table of Contents
 
 1. Conventions
-2. Type aliases
-3. Reusable constrained types
-4. Enumerations
-5. Domain records — catalog
-6. Domain records — run data
-7. Domain records — runtime and service DTOs
-8. Patch records
-9. Where-used summary
+1. Type aliases
+1. Reusable constrained types
+1. Enumerations
+1. Domain records — catalog
+1. Domain records — run data
+1. Domain records — runtime and service DTOs
+1. Patch records
+1. Where-used summary
 
----
+______________________________________________________________________
 
 ## 1. Conventions
 
@@ -32,7 +32,7 @@ This document is the master catalog of every data type in the application: every
 - **Timestamps.** Timestamps cross boundaries as ISO-8601 UTC strings (`str`). The persistence layer stores them verbatim.
 - **No implementation code.** This document defines structure, types, optionality, defaults, and constraints. It defines no function bodies.
 
----
+______________________________________________________________________
 
 ## 2. Type aliases
 
@@ -48,7 +48,7 @@ type Iso8601Utc = str          # ISO-8601 timestamp in UTC, e.g. "2026-05-22T14:
 
 A benchmark target is always the pair `(ProviderId, ModelName)`; the application never identifies a target by `ModelName` alone.
 
----
+______________________________________________________________________
 
 ## 3. Reusable constrained types
 
@@ -76,7 +76,7 @@ RepeatCount     = Annotated[int, msgspec.Meta(ge=1, le=50)]
 
 These names are referenced from the record definitions below. A constraint violation raises on construction (programmer error).
 
----
+______________________________________________________________________
 
 ## 4. Enumerations
 
@@ -91,11 +91,11 @@ class RunMode(StrEnum):
 
 The three — and only three — run modes.
 
-| Member | Meaning |
-|---|---|
-| `SYNTHETIC` | Runs synthetic tasks generated from an input/output size matrix; measures timing and throughput only; **no grading**. |
-| `TASKS` | Runs real tasks loaded from user task files; measures timing and throughput only; **no grading**. Task Benchmark never grades — it is identical to `SYNTHETIC` in every grading dimension; the only difference between them is the prompt source (user files vs synthetic size-matrix prompts). |
-| `GRADED` | Runs real tasks through the full evaluation pipeline (inference, keyword check, cosine check, judge check). The only mode that grades. |
+| Member      | Meaning                                                                                                                                                                                                                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SYNTHETIC` | Runs synthetic tasks generated from an input/output size matrix; measures timing and throughput only; **no grading**.                                                                                                                                                                           |
+| `TASKS`     | Runs real tasks loaded from user task files; measures timing and throughput only; **no grading**. Task Benchmark never grades — it is identical to `SYNTHETIC` in every grading dimension; the only difference between them is the prompt source (user files vs synthetic size-matrix prompts). |
+| `GRADED`    | Runs real tasks through the full evaluation pipeline (inference, keyword check, cosine check, judge check). The only mode that grades.                                                                                                                                                          |
 
 The grading-related fields on `BenchmarkResult` — `verdict`, the per-phase verdicts (`keyword_verdict`, `cosine_verdict`, `judge_verdict`), `cosine_similarity`, `resolution_layer`, and the per-term records — are populated only on `GRADED` runs. On every `TASKS` and every `SYNTHETIC` result those fields remain null/absent, identically.
 
@@ -113,12 +113,12 @@ class RunStatus(StrEnum):
 
 The four — and only four — **persisted** run statuses.
 
-| Member | Meaning |
-|---|---|
+| Member       | Meaning                                                                                                                                                                                                                                 |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `INCOMPLETE` | The run has been created and has results that have not all reached a terminal status. This is the status of a run that is created, that is in progress (the pipeline derives the finer in-memory state), or that crashed mid-execution. |
-| `COMPLETED` | Every result reached a terminal status and the run finished normally. |
-| `FAILED` | A fatal pipeline error halted the run. |
-| `STOPPED` | The user stopped the run before completion. |
+| `COMPLETED`  | Every result reached a terminal status and the run finished normally.                                                                                                                                                                   |
+| `FAILED`     | A fatal pipeline error halted the run.                                                                                                                                                                                                  |
+| `STOPPED`    | The user stopped the run before completion.                                                                                                                                                                                             |
 
 The transient states `RUNNING` and `PAUSED` are **in-memory-only** derived states maintained by the pipeline while it executes a run. They are never written to `benchmark_runs.status` and are not members of this enum.
 
@@ -145,24 +145,24 @@ The per-task lifecycle state of a single `BenchmarkResult`. Eleven members in tw
 
 **Pipeline-position states** (the first five) — non-terminal; the result is still moving through the pipeline:
 
-| Member | Meaning |
-|---|---|
-| `PENDING` | The result row has been created; the task has not started. The reset target for retry and crash recovery. |
-| `RUNNING_INFERENCE` | The inference call for this task is in progress. |
-| `AWAITING_KEYWORD_CHECK` | Inference is done; the result is queued for the keyword phase. |
-| `AWAITING_COSINE_CHECK` | The keyword phase is done; the result is queued for the cosine phase. |
-| `AWAITING_JUDGE_CHECK` | The cosine phase is done; the result is queued for the judge phase. |
+| Member                   | Meaning                                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `PENDING`                | The result row has been created; the task has not started. The reset target for retry and crash recovery. |
+| `RUNNING_INFERENCE`      | The inference call for this task is in progress.                                                          |
+| `AWAITING_KEYWORD_CHECK` | Inference is done; the result is queued for the keyword phase.                                            |
+| `AWAITING_COSINE_CHECK`  | The keyword phase is done; the result is queued for the cosine phase.                                     |
+| `AWAITING_JUDGE_CHECK`   | The cosine phase is done; the result is queued for the judge phase.                                       |
 
 **Terminal states** (the last six) — the result will not change further unless explicitly retried:
 
-| Member | Meaning | Retryable |
-|---|---|---|
-| `COMPLETED` | Every applicable phase ran; the result is final. The `verdict` field is set to `PASS` or `FAIL`. | No |
-| `FAILED_INFERENCE` | The inference call failed irrecoverably (model-side error). | Yes |
-| `FAILED_PROVIDER` | The provider was unavailable or rejected the request. | Yes |
-| `FAILED_TIMEOUT` | The inference exceeded its adaptive-timeout budget after all attempts (Phase 2 — test-role inference). | Yes |
-| `FAILED_JUDGE_TIMEOUT` | The per-task judge call exhausted its adaptive-timeout budget, OR the judge model was excluded for the remainder of the run after crossing the consecutive-max-timeout threshold (Phase 4 — judge). `verdict` stays `None`; the task is NOT marked `COMPLETED`. See `11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md` for the per-role escalation + exclusion algorithm. | Yes |
-| `ERRORED` | An unexpected error halted the task. | Yes |
+| Member                 | Meaning                                                                                                                                                                                                                                                                                                                                                                    | Retryable |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `COMPLETED`            | Every applicable phase ran; the result is final. The `verdict` field is set to `PASS` or `FAIL`.                                                                                                                                                                                                                                                                           | No        |
+| `FAILED_INFERENCE`     | The inference call failed irrecoverably (model-side error).                                                                                                                                                                                                                                                                                                                | Yes       |
+| `FAILED_PROVIDER`      | The provider was unavailable or rejected the request.                                                                                                                                                                                                                                                                                                                      | Yes       |
+| `FAILED_TIMEOUT`       | The inference exceeded its adaptive-timeout budget after all attempts (Phase 2 — test-role inference).                                                                                                                                                                                                                                                                     | Yes       |
+| `FAILED_JUDGE_TIMEOUT` | The per-task judge call exhausted its adaptive-timeout budget, OR the judge model was excluded for the remainder of the run after crossing the consecutive-max-timeout threshold (Phase 4 — judge). `verdict` stays `None`; the task is NOT marked `COMPLETED`. See `11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md` for the per-role escalation + exclusion algorithm. | Yes       |
+| `ERRORED`              | An unexpected error halted the task.                                                                                                                                                                                                                                                                                                                                       | Yes       |
 
 **Retryable terminal states:** `FAILED_INFERENCE`, `FAILED_PROVIDER`, `FAILED_TIMEOUT`, `FAILED_JUDGE_TIMEOUT`, `ERRORED`. Retry resets these rows **from their failed stage** (DD-66): a `FAILED_JUDGE_TIMEOUT` row (and a judge-stage `ERRORED` row with a response) resets to `AWAITING_JUDGE_CHECK` — the inference response, timing/token metrics, keyword verdict, and cosine score are **preserved** and only the judge re-runs against the same response; every other retryable status resets to `PENDING` for a whole-task re-run. `COMPLETED` is never retried automatically. The persistent JUDGE per-role adaptive-timeout bucket may carry escalated state from the original attempt; the in-run consecutive-timeout count is reset by Resume/Retry.
 
@@ -178,9 +178,9 @@ class Verdict(StrEnum):
 
 The strictly binary quality outcome of a graded result. There are exactly two members. There is **no** `UNKNOWN` verdict.
 
-| Member | Meaning |
-|---|---|
-| `PASS` | The graded result satisfied the deciding evaluation layer. |
+| Member | Meaning                                                          |
+| ------ | ---------------------------------------------------------------- |
+| `PASS` | The graded result satisfied the deciding evaluation layer.       |
 | `FAIL` | The graded result did not satisfy the deciding evaluation layer. |
 
 A verdict is null (unset) while a result is pending and is set only when `ResultStatus` reaches `COMPLETED`. A result that ends in a terminal-failure status carries no verdict.
@@ -199,12 +199,12 @@ class ResolutionLayer(StrEnum):
 
 Records which evaluation layer decided a result's combined `verdict`.
 
-| Member | Meaning |
-|---|---|
+| Member    | Meaning                                                                                                                                      |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `KEYWORD` | The keyword phase was the highest enabled grading phase and decided the verdict (or it produced a `FAIL` that short-circuited later phases). |
-| `COSINE` | The cosine phase decided the verdict. |
-| `JUDGE` | The judge phase decided the verdict. |
-| `SKIP` | The run mode did not grade; no verdict was produced. |
+| `COSINE`  | The cosine phase decided the verdict.                                                                                                        |
+| `JUDGE`   | The judge phase decided the verdict.                                                                                                         |
+| `SKIP`    | The run mode did not grade; no verdict was produced.                                                                                         |
 
 **Used by:** `BenchmarkResult.resolution_layer`. **Persisted in:** `benchmark_results.resolution_layer` (nullable until grading resolves).
 
@@ -240,11 +240,11 @@ class ProviderType(StrEnum):
 
 Selects the client implementation and the configuration field set for a provider.
 
-| Member | Meaning |
-|---|---|
+| Member              | Meaning                                                                                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `OPENAI_COMPATIBLE` | An OpenAI-protocol provider, reached over the OpenAI-compatible HTTP API. Includes Azure-hosted endpoints, which additionally use the `azure_*` fields. |
-| `ANTHROPIC` | An Anthropic Claude provider. |
-| `GEMINI` | A Google Gemini provider. |
+| `ANTHROPIC`         | An Anthropic Claude provider.                                                                                                                           |
+| `GEMINI`            | A Google Gemini provider.                                                                                                                               |
 
 **Used by:** `ProviderConfig.provider_type`, `BenchmarkRunProvider.provider_type`. **Persisted in:** `providers.provider_type`, `benchmark_run_providers.provider_type`.
 
@@ -262,14 +262,14 @@ class ProviderTestStatus(StrEnum):
 
 The outcome of the most recent provider test or readiness probe.
 
-| Member | Meaning |
-|---|---|
-| `UNTESTED` | The provider has never been tested. |
-| `READY` | The provider is reachable and exposes at least one model. |
-| `ZERO_MODELS` | The provider is reachable but exposes no models. |
-| `UNREACHABLE` | The provider could not be reached. |
+| Member        | Meaning                                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| `UNTESTED`    | The provider has never been tested.                                                                    |
+| `READY`       | The provider is reachable and exposes at least one model.                                              |
+| `ZERO_MODELS` | The provider is reachable but exposes no models.                                                       |
+| `UNREACHABLE` | The provider could not be reached.                                                                     |
 | `MISSING_ENV` | The environment variable named by the provider's api key is unset or empty in the process environment. |
-| `TESTING` | A test is currently in progress. |
+| `TESTING`     | A test is currently in progress.                                                                       |
 
 **Used by:** `ProviderConfig.last_probe_status` (the outcome of the most recent reachability + discovery probe — `LLMClient.probe_health`). **Persisted in:** `providers.last_probe_status`. The end-to-end inference test (`LLMClient.test_inference`) records its outcome in the distinct `InferenceTestOutcome` enum (§4.20) and the `ProviderConfig.last_inference_test_*` columns — the two test paths are deliberately independent.
 
@@ -284,10 +284,10 @@ class ModelRole(StrEnum):
 
 The role a model plays in a run.
 
-| Member | Meaning |
-|---|---|
-| `TEST` | A model under benchmark. A run has one or more. |
-| `JUDGE` | The model used for the judge evaluation phase. A run has at most one. |
+| Member      | Meaning                                                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `TEST`      | A model under benchmark. A run has one or more.                                                                  |
+| `JUDGE`     | The model used for the judge evaluation phase. A run has at most one.                                            |
 | `EMBEDDING` | The model used to produce embeddings for the cosine phase and for semantic keyword terms. A run has at most one. |
 
 **Used by:** `BenchmarkRunModel.role`. **Persisted in:** `benchmark_run_models.role`.
@@ -303,10 +303,10 @@ class AdaptiveTimeoutRole(StrEnum):
 
 Identifies the per-role bucket of the Adaptive Timeout Service. The service keys its persistent and in-run state on `(provider_id, model_name, role)` — a model used as both a test model AND a judge model carries two independent state buckets, and exclusion in one role does NOT affect the other. `RUN_ANALYSIS` is a third, independent bucket (DD-65): the longer run-analysis prompt escalates on its own ladder from its own min, never inheriting the per-task `JUDGE` bucket's learned (often maxed) budget.
 
-| Member | Meaning |
-|---|---|
-| `INFERENCE` | The Phase 2 per-task main inference call (test-role model). Uses the `benchmark.min_timeout_seconds` / `benchmark.max_timeout_seconds` / `benchmark.retry_count` / `benchmark.consecutive_max_timeouts_to_exclude` ladder. |
-| `JUDGE` | The Phase 4 per-task judge call AND the user-initiated run-analysis generation call (both consult the same `(provider_id, model_name, JUDGE)` bucket). Uses the `eval.judge_timeout_min_seconds` / `eval.judge_timeout_max_seconds` / `eval.judge_timeout_escalation_steps` / `eval.judge_timeout_consecutive_threshold` ladder. |
+| Member      | Meaning                                                                                                                                                                                                                                                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INFERENCE` | The Phase 2 per-task main inference call (test-role model). Uses the `benchmark.min_timeout_seconds` / `benchmark.max_timeout_seconds` / `benchmark.retry_count` / `benchmark.consecutive_max_timeouts_to_exclude` ladder.                                                                                                       |
+| `JUDGE`     | The Phase 4 per-task judge call AND the user-initiated run-analysis generation call (both consult the same `(provider_id, model_name, JUDGE)` bucket). Uses the `eval.judge_timeout_min_seconds` / `eval.judge_timeout_max_seconds` / `eval.judge_timeout_escalation_steps` / `eval.judge_timeout_consecutive_threshold` ladder. |
 
 **There is intentionally NO `EMBEDDING`, `PROVIDER_TEST`, or `READINESS` member.** Embedding calls use the FIXED `eval.embedding_timeout_seconds` budget — no adaptive escalation, no exclusion. The Test Inference path (`LLMClient.test_inference`) uses its own fixed 60 s deadline. The readiness probe (`LLMClient.probe_health`) uses its own fixed short deadline. None of those three surfaces consults the Adaptive Timeout Service.
 
@@ -322,9 +322,9 @@ class TaskOrigin(StrEnum):
 
 Where a frozen task came from.
 
-| Member | Meaning |
-|---|---|
-| `FILE` | The task was loaded from a YAML task file. |
+| Member      | Meaning                                                                        |
+| ----------- | ------------------------------------------------------------------------------ |
+| `FILE`      | The task was loaded from a YAML task file.                                     |
 | `SYNTHETIC` | The task was generated for `SYNTHETIC` mode from the input/output size matrix. |
 
 **Used by:** `BenchmarkTask.task_origin`. **Persisted in:** `benchmark_tasks.task_origin`.
@@ -340,11 +340,11 @@ class TaskTermKind(StrEnum):
 
 Classifies a keyword term declared by a task.
 
-| Member | Meaning |
-|---|---|
-| `EXACT` | The term must appear verbatim in the response. |
-| `SEMANTIC` | The concept must be present, checked by embedding similarity. |
-| `FORBIDDEN` | The term must not appear in the response. |
+| Member      | Meaning                                                       |
+| ----------- | ------------------------------------------------------------- |
+| `EXACT`     | The term must appear verbatim in the response.                |
+| `SEMANTIC`  | The concept must be present, checked by embedding similarity. |
+| `FORBIDDEN` | The term must not appear in the response.                     |
 
 **Used by:** `BenchmarkTaskTerm.term_kind`, `RequiredTerms`. **Persisted in:** `benchmark_task_terms.term_kind`.
 
@@ -359,11 +359,11 @@ class ResultTermKind(StrEnum):
 
 Classifies a per-term outcome recorded by the keyword phase.
 
-| Member | Meaning |
-|---|---|
-| `EXACT_MISSING` | A required exact term that was not found in the response. |
-| `FORBIDDEN_FOUND` | A forbidden term that was present in the response. |
-| `SEMANTIC` | A semantic term, recorded together with its embedding similarity score. |
+| Member            | Meaning                                                                 |
+| ----------------- | ----------------------------------------------------------------------- |
+| `EXACT_MISSING`   | A required exact term that was not found in the response.               |
+| `FORBIDDEN_FOUND` | A forbidden term that was present in the response.                      |
+| `SEMANTIC`        | A semantic term, recorded together with its embedding similarity score. |
 
 **Used by:** `BenchmarkResultTerm.term_kind`. **Persisted in:** `benchmark_result_terms.term_kind`.
 
@@ -378,11 +378,11 @@ class ModelCapability(StrEnum):
 
 A capability probed for a `(provider, model)` pair.
 
-| Member | Meaning |
-|---|---|
-| `STREAMING` | The provider's transport supports token streaming for this model; required for time-to-first-token measurement. |
-| `REASONING_EFFORT` | The model accepts a reasoning-effort parameter. |
-| `THINKING` | The model emits a reasoning/thinking block in its response. |
+| Member             | Meaning                                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `STREAMING`        | The provider's transport supports token streaming for this model; required for time-to-first-token measurement. |
+| `REASONING_EFFORT` | The model accepts a reasoning-effort parameter.                                                                 |
+| `THINKING`         | The model emits a reasoning/thinking block in its response.                                                     |
 
 **Used by:** `ModelCapabilityRecord.capability`. **Persisted in:** `model_capabilities.capability`.
 
@@ -397,11 +397,11 @@ class CapabilitySource(StrEnum):
 
 How a model capability was observed.
 
-| Member | Meaning |
-|---|---|
-| `PROBE` | A dedicated capability probe observed it. |
-| `INFERENCE` | A normal inference call revealed it. |
-| `MANUAL` | A user set it explicitly. |
+| Member      | Meaning                                   |
+| ----------- | ----------------------------------------- |
+| `PROBE`     | A dedicated capability probe observed it. |
+| `INFERENCE` | A normal inference call revealed it.      |
+| `MANUAL`    | A user set it explicitly.                 |
 
 **Used by:** `ModelCapabilityRecord.observed_via`. **Persisted in:** `model_capabilities.observed_via`.
 
@@ -418,13 +418,13 @@ class ErrorKind(StrEnum):
 
 Classifies a failure recorded on a result or an inference attempt.
 
-| Member | Meaning | Associated terminal status |
-|---|---|---|
-| `LLM` | An irrecoverable model-side error. | `FAILED_INFERENCE` |
-| `PROVIDER` | The provider was unavailable or rejected the request. | `FAILED_PROVIDER` |
-| `TIMEOUT` | An **inference** call (Phase 2, test-role) exceeded its adaptive-timeout budget, or the test model was excluded after consecutive max-budget timeouts. | `FAILED_TIMEOUT` |
-| `JUDGE_TIMEOUT` | A **judge** call (Phase 4, per-task judge, OR the run-analysis generation call) exceeded its adaptive-timeout budget, or the judge model was excluded for the run after consecutive max-budget timeouts at the judge role. | `FAILED_JUDGE_TIMEOUT` |
-| `OTHER` | Any other unexpected error. | `ERRORED` |
+| Member          | Meaning                                                                                                                                                                                                                    | Associated terminal status |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `LLM`           | An irrecoverable model-side error.                                                                                                                                                                                         | `FAILED_INFERENCE`         |
+| `PROVIDER`      | The provider was unavailable or rejected the request.                                                                                                                                                                      | `FAILED_PROVIDER`          |
+| `TIMEOUT`       | An **inference** call (Phase 2, test-role) exceeded its adaptive-timeout budget, or the test model was excluded after consecutive max-budget timeouts.                                                                     | `FAILED_TIMEOUT`           |
+| `JUDGE_TIMEOUT` | A **judge** call (Phase 4, per-task judge, OR the run-analysis generation call) exceeded its adaptive-timeout budget, or the judge model was excluded for the run after consecutive max-budget timeouts at the judge role. | `FAILED_JUDGE_TIMEOUT`     |
+| `OTHER`         | Any other unexpected error.                                                                                                                                                                                                | `ERRORED`                  |
 
 **Used by:** `BenchmarkResult.error_kind`, `BenchmarkResultAttempt.error_kind`. **Persisted in:** `benchmark_results.error_kind`, `benchmark_result_attempts.error_kind` (each nullable).
 
@@ -454,13 +454,13 @@ class InferenceActivity(StrEnum):
 
 The five — and only five — values describing which inference-using activity, if any, currently holds the application-wide single-inference gate. The gate enforces the rule that **at most one** inference-using activity is in flight at any moment across the whole application. The members map to the activities that may acquire it.
 
-| Member | Meaning |
-|---|---|
-| `IDLE` | No inference-using activity is in flight; the gate is free. |
-| `BENCHMARK_RUN` | The Benchmark Pipeline is executing a run. Held from run start through to a terminal status. |
-| `JUDGE_ANALYSIS` | The Run Analysis Service is generating or regenerating `BenchmarkRun.run_analysis`. Held from `generate()` entry through to its return. |
-| `PROVIDER_TEST` | The Provider Edit Test connection probe is calling a provider. Held for the duration of the test. |
-| `READINESS_PROBE` | The Readiness Service is running a provider or embedding probe. Held for the duration of a probe call. |
+| Member            | Meaning                                                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `IDLE`            | No inference-using activity is in flight; the gate is free.                                                                             |
+| `BENCHMARK_RUN`   | The Benchmark Pipeline is executing a run. Held from run start through to a terminal status.                                            |
+| `JUDGE_ANALYSIS`  | The Run Analysis Service is generating or regenerating `BenchmarkRun.run_analysis`. Held from `generate()` entry through to its return. |
+| `PROVIDER_TEST`   | The Provider Edit Test connection probe is calling a provider. Held for the duration of the test.                                       |
+| `READINESS_PROBE` | The Readiness Service is running a provider or embedding probe. Held for the duration of a probe call.                                  |
 
 **Used by:** `InferenceActivityContext.activity`, `InferenceActivityState.current`, `InferenceActivityStore` (see `08_Cross_Cutting/08-E_interfaces_contracts.md`). **Persisted in:** not persisted; the gate is runtime state only.
 
@@ -498,12 +498,12 @@ class InferenceContext(StrEnum):
 
 Classifies which user-visible LLM-call surface produced an `_inference_progress` event (`08_Cross_Cutting/08-J_event_bus_catalog.md` §5.3, payload `InferenceProgressEvent` — §7.7a below). The four members exhaust the surfaces that emit live progress feedback to the user.
 
-| Member | Meaning |
-|---|---|
-| `BENCHMARK_TASK` | A per-task main inference call inside a benchmark run. Rendered as the Progress widget Current-task "Inference progress" sub-row (`04_Progress_Widget/description.md` §7.1). |
-| `BENCHMARK_JUDGE` | A per-task judge call inside a benchmark run in `GRADED` with the per-task judge phase on. Rendered as the Progress widget Current-task "Judge progress" sub-row (`04_Progress_Widget/description.md` §7.1). |
-| `RUN_ANALYSIS` | A user-initiated run-analysis (re)generation issued through the Generate Analysis dialog (`07_Common_Dialogs/generate_analysis_dialog.md`). Rendered as the dialog's live progress line in place of the static "Generating…" spinner. |
-| `PROVIDER_TEST` | A user-initiated Test inference call issued from the Provider Edit sub-dialog (`06_Settings_Dialog/sub_dialogs/provider_edit.md` §8.2). Rendered as the inference-test panel's live indicator in place of the Run-button area. |
+| Member            | Meaning                                                                                                                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BENCHMARK_TASK`  | A per-task main inference call inside a benchmark run. Rendered as the Progress widget Current-task "Inference progress" sub-row (`04_Progress_Widget/description.md` §7.1).                                                          |
+| `BENCHMARK_JUDGE` | A per-task judge call inside a benchmark run in `GRADED` with the per-task judge phase on. Rendered as the Progress widget Current-task "Judge progress" sub-row (`04_Progress_Widget/description.md` §7.1).                          |
+| `RUN_ANALYSIS`    | A user-initiated run-analysis (re)generation issued through the Generate Analysis dialog (`07_Common_Dialogs/generate_analysis_dialog.md`). Rendered as the dialog's live progress line in place of the static "Generating…" spinner. |
+| `PROVIDER_TEST`   | A user-initiated Test inference call issued from the Provider Edit sub-dialog (`06_Settings_Dialog/sub_dialogs/provider_edit.md` §8.2). Rendered as the inference-test panel's live indicator in place of the Run-button area.        |
 
 **No `READINESS_PROBE` value exists.** Readiness probes (`LLMClient.probe_health()`, `11_Services_and_Algorithms/09_READINESS_PROBE.md`) are invisible background checks; they NEVER emit `_inference_progress` events and therefore never carry an `InferenceContext`. The enum deliberately excludes that surface so a future probe path cannot leak progress events onto the bus by reusing the type. The same exclusion holds for any other background check that does not surface a live indicator to the user.
 
@@ -524,15 +524,15 @@ class InferenceTestOutcome(StrEnum):
 
 The outcome of one user-initiated end-to-end inference test issued by `LLMClient.test_inference` (`08_Cross_Cutting/08-E_interfaces_contracts.md` §10; `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.8). The seven members exhaust the outcomes that the Provider Edit dialog can render inline.
 
-| Member | Meaning |
-|---|---|
-| `SUCCESS` | The provider returned a non-empty completion for the canned prompt; `latency_ms` is set and `response_excerpt` carries a redacted snippet. |
-| `REACHABILITY_FAILED` | The endpoint could not be reached at all (connection refused, DNS failure, TCP timeout). The call never produced a billable charge. |
-| `AUTH_FAILED` | The provider rejected the request because of an authentication problem (missing or invalid key, expired token). |
-| `MODEL_NOT_FOUND` | The provider reported that the requested model does not exist for this account/endpoint. |
-| `TIMEOUT` | The chat call exceeded the inference-test deadline (`latency_ms` reflects time spent before the deadline expired). |
-| `PROVIDER_ERROR` | Any other provider-side error (rate limit, server error, content-policy refusal returning no text). |
-| `GATE_BUSY` | The `InferenceActivityStore` gate (`PROVIDER_TEST`) was held by another activity; no provider call was issued. |
+| Member                | Meaning                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SUCCESS`             | The provider returned a non-empty completion for the canned prompt; `latency_ms` is set and `response_excerpt` carries a redacted snippet. |
+| `REACHABILITY_FAILED` | The endpoint could not be reached at all (connection refused, DNS failure, TCP timeout). The call never produced a billable charge.        |
+| `AUTH_FAILED`         | The provider rejected the request because of an authentication problem (missing or invalid key, expired token).                            |
+| `MODEL_NOT_FOUND`     | The provider reported that the requested model does not exist for this account/endpoint.                                                   |
+| `TIMEOUT`             | The chat call exceeded the inference-test deadline (`latency_ms` reflects time spent before the deadline expired).                         |
+| `PROVIDER_ERROR`      | Any other provider-side error (rate limit, server error, content-policy refusal returning no text).                                        |
+| `GATE_BUSY`           | The `InferenceActivityStore` gate (`PROVIDER_TEST`) was held by another activity; no provider call was issued.                             |
 
 **Used by:** `InferenceTestResult.outcome`, `ProviderConfig.last_inference_test_outcome`, the Provider Edit dialog inference-test panel. **Persisted in:** `providers.last_inference_test_outcome` (nullable; see §5.1).
 
@@ -576,16 +576,15 @@ reason is set under the token's lock together with the level; a `HARD` upgrade o
 previously recorded soft reason, and the first reason otherwise wins. `TaskCancelledError`
 carries the `CancelReason`.
 
-| Member | Level | Outcome it derives (see the outcome matrix, `11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md` §6.8) |
-|---|---|---|
-| `USER_PAUSE` | soft | Park as in-memory `PAUSED`; persisted status stays `INCOMPLETE`. |
-| `AUTO_PAUSE` | soft | Same as `USER_PAUSE` — an automatic boundary pause (model/provider/phase switch). |
-| `USER_STOP` | hard | Persist `STOPPED`; run resumable from the Resume widget. |
-| `APP_SHUTDOWN` | hard | Persist nothing terminal; run left `INCOMPLETE` for next-launch recovery (D-R-02). |
+| Member         | Level | Outcome it derives (see the outcome matrix, `11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md` §6.8) |
+| -------------- | ----- | ------------------------------------------------------------------------------------------------------ |
+| `USER_PAUSE`   | soft  | Park as in-memory `PAUSED`; persisted status stays `INCOMPLETE`.                                       |
+| `AUTO_PAUSE`   | soft  | Same as `USER_PAUSE` — an automatic boundary pause (model/provider/phase switch).                      |
+| `USER_STOP`    | hard  | Persist `STOPPED`; run resumable from the Resume widget.                                               |
+| `APP_SHUTDOWN` | hard  | Persist nothing terminal; run left `INCOMPLETE` for next-launch recovery (D-R-02).                     |
 
 **Used by:** `CancellationToken.cancel(reason=...)`, `CancellationToken.snapshot()`,
 `TaskCancelledError`. Never persisted.
-
 
 ## 5. Domain records — catalog
 
@@ -640,28 +639,28 @@ class ProviderConfigDraft(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     provider_order: NonNegativeInt = 0
 ```
 
-| Field | Type | Optional | Default | Constraint / meaning |
-|---|---|:--:|---|---|
-| `provider_id` | `ProviderIdStr` | no | — | INTERNAL primary key; UUID4 textual representation; auto-generated by `ProvidersStore` on insert; never displayed in the UI; never present in import/export YAML. |
-| `name` | `NonEmptyStr` | no | — | The user-entered unique display label; the only Provider field shown anywhere in the UI; uniqueness enforced by `UNIQUE (name)` and pre-checked via `ProvidersStore.get_by_name`. |
-| `provider_type` | `ProviderType` | no | — | Selects the client and field set. |
-| `enabled` | `bool` | no | — | Whether the provider participates in runs and readiness checks. |
-| `base_url` | `str \| None` | yes | `None` | API endpoint base URL. |
-| `api_key_raw` | `str \| None` | yes | `None` | The NAME of an environment variable (e.g. `OPENAI_API_KEY`), or empty/`None` for a keyless local provider; never a literal secret and never a resolved value. Resolved by reading that variable from the process environment at use time (D-R-18). |
-| `azure_endpoint_raw` | `str \| None` | yes | `None` | Azure endpoint URL — a plain literal config value (not a secret). |
-| `azure_deployment_raw` | `str \| None` | yes | `None` | Azure deployment name — a plain literal config value (not a secret). |
-| `azure_api_version_raw` | `str \| None` | yes | `None` | Azure API version — a plain literal config value (not a secret). |
-| `default_models` | `tuple[ModelNameStr, ...]` | yes | `()` | Manually-entered model names; maps to `provider_models` rows. Empty when the provider supports discovery. |
-| `last_probe_status` | `ProviderTestStatus` | yes | `UNTESTED` | Outcome of the most recent **reachability + discovery probe** (`LLMClient.probe_health`). Replaces the previously conflated `last_test_status` column. |
-| `last_probe_at` | `Iso8601Utc \| None` | yes | `None` | Time of the last reachability probe. |
-| `last_probe_reachable` | `bool \| None` | yes | `None` | Whether the endpoint answered the reachability handshake on the last probe. `None` before the first probe. |
-| `last_probe_model_count` | `int \| None` | yes | `None` | Number of models the discovery call returned on the last probe. `None` signals the provider does not support discovery, OR the probe never ran — `discovery_supported` on the live `ProviderHealth` (§7.1) disambiguates; `0` means discovery succeeded but returned zero models. |
-| `last_probe_message` | `str \| None` | yes | `None` | Human-readable probe detail (redacted). |
-| `last_inference_test_at` | `Iso8601Utc \| None` | yes | `None` | Time of the last user-initiated inference test (`LLMClient.test_inference`). |
-| `last_inference_test_outcome` | `InferenceTestOutcome \| None` | yes | `None` | Outcome of the last inference test. `None` before the first test ran. |
-| `last_inference_test_model` | `ModelNameStr \| None` | yes | `None` | The model name the last inference test was issued against. |
-| `last_inference_test_message` | `str \| None` | yes | `None` | Human-readable inference-test detail (the redacted response excerpt or the redacted error). |
-| `provider_order` | `NonNegativeInt` | yes | `0` | Display order in the Settings provider list. |
+| Field                         | Type                           | Optional | Default    | Constraint / meaning                                                                                                                                                                                                                                                              |
+| ----------------------------- | ------------------------------ | :------: | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider_id`                 | `ProviderIdStr`                |    no    | —          | INTERNAL primary key; UUID4 textual representation; auto-generated by `ProvidersStore` on insert; never displayed in the UI; never present in import/export YAML.                                                                                                                 |
+| `name`                        | `NonEmptyStr`                  |    no    | —          | The user-entered unique display label; the only Provider field shown anywhere in the UI; uniqueness enforced by `UNIQUE (name)` and pre-checked via `ProvidersStore.get_by_name`.                                                                                                 |
+| `provider_type`               | `ProviderType`                 |    no    | —          | Selects the client and field set.                                                                                                                                                                                                                                                 |
+| `enabled`                     | `bool`                         |    no    | —          | Whether the provider participates in runs and readiness checks.                                                                                                                                                                                                                   |
+| `base_url`                    | `str \| None`                  |   yes    | `None`     | API endpoint base URL.                                                                                                                                                                                                                                                            |
+| `api_key_raw`                 | `str \| None`                  |   yes    | `None`     | The NAME of an environment variable (e.g. `OPENAI_API_KEY`), or empty/`None` for a keyless local provider; never a literal secret and never a resolved value. Resolved by reading that variable from the process environment at use time (D-R-18).                                |
+| `azure_endpoint_raw`          | `str \| None`                  |   yes    | `None`     | Azure endpoint URL — a plain literal config value (not a secret).                                                                                                                                                                                                                 |
+| `azure_deployment_raw`        | `str \| None`                  |   yes    | `None`     | Azure deployment name — a plain literal config value (not a secret).                                                                                                                                                                                                              |
+| `azure_api_version_raw`       | `str \| None`                  |   yes    | `None`     | Azure API version — a plain literal config value (not a secret).                                                                                                                                                                                                                  |
+| `default_models`              | `tuple[ModelNameStr, ...]`     |   yes    | `()`       | Manually-entered model names; maps to `provider_models` rows. Empty when the provider supports discovery.                                                                                                                                                                         |
+| `last_probe_status`           | `ProviderTestStatus`           |   yes    | `UNTESTED` | Outcome of the most recent **reachability + discovery probe** (`LLMClient.probe_health`). Replaces the previously conflated `last_test_status` column.                                                                                                                            |
+| `last_probe_at`               | `Iso8601Utc \| None`           |   yes    | `None`     | Time of the last reachability probe.                                                                                                                                                                                                                                              |
+| `last_probe_reachable`        | `bool \| None`                 |   yes    | `None`     | Whether the endpoint answered the reachability handshake on the last probe. `None` before the first probe.                                                                                                                                                                        |
+| `last_probe_model_count`      | `int \| None`                  |   yes    | `None`     | Number of models the discovery call returned on the last probe. `None` signals the provider does not support discovery, OR the probe never ran — `discovery_supported` on the live `ProviderHealth` (§7.1) disambiguates; `0` means discovery succeeded but returned zero models. |
+| `last_probe_message`          | `str \| None`                  |   yes    | `None`     | Human-readable probe detail (redacted).                                                                                                                                                                                                                                           |
+| `last_inference_test_at`      | `Iso8601Utc \| None`           |   yes    | `None`     | Time of the last user-initiated inference test (`LLMClient.test_inference`).                                                                                                                                                                                                      |
+| `last_inference_test_outcome` | `InferenceTestOutcome \| None` |   yes    | `None`     | Outcome of the last inference test. `None` before the first test ran.                                                                                                                                                                                                             |
+| `last_inference_test_model`   | `ModelNameStr \| None`         |   yes    | `None`     | The model name the last inference test was issued against.                                                                                                                                                                                                                        |
+| `last_inference_test_message` | `str \| None`                  |   yes    | `None`     | Human-readable inference-test detail (the redacted response excerpt or the redacted error).                                                                                                                                                                                       |
+| `provider_order`              | `NonNegativeInt`               |   yes    | `0`        | Display order in the Settings provider list.                                                                                                                                                                                                                                      |
 
 The two sets of "last test" columns are deliberately independent. A reachability probe and an inference test report different things, run at different cadences (the probe is event-driven and cheap; the inference test is manual and may be billable), and the Provider Edit dialog must be able to display both on reopen without inferring one from the other. The previous single `last_test_*` triplet — which conflated the two — is removed and replaced by the `last_probe_*` set plus the `last_inference_test_*` set above.
 
@@ -693,15 +692,15 @@ class ModelCapabilityRecord(msgspec.Struct, frozen=True, kw_only=True, gc=False)
     detail: str | None = None
 ```
 
-| Field | Type | Optional | Default | Constraint / meaning |
-|---|---|:--:|---|---|
-| `provider_id` | `ProviderIdStr` | no | — | Owning provider. |
-| `model_name` | `ModelNameStr` | no | — | The model observed. |
-| `capability` | `ModelCapability` | no | — | Which capability this row records. |
-| `supported` | `int` | no | — | Tri-state: `1` supported, `0` not supported, `-1` unknown. |
-| `last_observed_at` | `Iso8601Utc` | no | — | Time of the last observation. |
-| `observed_via` | `CapabilitySource` | no | — | How the capability was observed. |
-| `detail` | `str \| None` | yes | `None` | Optional human-readable note. |
+| Field              | Type               | Optional | Default | Constraint / meaning                                       |
+| ------------------ | ------------------ | :------: | ------- | ---------------------------------------------------------- |
+| `provider_id`      | `ProviderIdStr`    |    no    | —       | Owning provider.                                           |
+| `model_name`       | `ModelNameStr`     |    no    | —       | The model observed.                                        |
+| `capability`       | `ModelCapability`  |    no    | —       | Which capability this row records.                         |
+| `supported`        | `int`              |    no    | —       | Tri-state: `1` supported, `0` not supported, `-1` unknown. |
+| `last_observed_at` | `Iso8601Utc`       |    no    | —       | Time of the last observation.                              |
+| `observed_via`     | `CapabilitySource` |    no    | —       | How the capability was observed.                           |
+| `detail`           | `str \| None`      |   yes    | `None`  | Optional human-readable note.                              |
 
 **Where used:** model-capability service, inference phase. **Persistence:** `model_capabilities` table.
 
@@ -714,11 +713,11 @@ class AppSettingRecord(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     updated_at: Iso8601Utc
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `setting_key` | `SettingKey` | no | — | Dotted setting key; primary key. |
-| `setting_value` | `str` | no | — | The value serialised to text (numbers and booleans stored as text). |
-| `updated_at` | `Iso8601Utc` | no | — | Time of the last write. |
+| Field           | Type         | Optional | Default | Meaning                                                             |
+| --------------- | ------------ | :------: | ------- | ------------------------------------------------------------------- |
+| `setting_key`   | `SettingKey` |    no    | —       | Dotted setting key; primary key.                                    |
+| `setting_value` | `str`        |    no    | —       | The value serialised to text (numbers and booleans stored as text). |
+| `updated_at`    | `Iso8601Utc` |    no    | —       | Time of the last write.                                             |
 
 **Where used:** settings service. **Persistence:** `app_settings` table.
 
@@ -734,7 +733,7 @@ The single-row schema marker. `id` is always `1` and is supplied by the persiste
 
 **Where used:** persistence layer startup check. **Persistence:** `app_meta` table (single row).
 
----
+______________________________________________________________________
 
 ## 6. Domain records — run data
 
@@ -790,27 +789,27 @@ class BenchmarkTask(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     task_order: NonNegativeInt = 0
 ```
 
-| Field | Type | Optional | Default | Constraint / meaning |
-|---|---|:--:|---|---|
-| `task_id` | `TaskIdStr` | no | — | Unique within the run. |
-| `task_origin` | `TaskOrigin` | no | — | `FILE` or `SYNTHETIC`. |
-| `cosine_enabled` | `bool` | yes | `True` | Task-level cosine opt-out (DD-46): cosine runs only when `True` **and** a `golden_answer` exists. Set `false` for tasks (e.g. code) where text similarity is not meaningful. |
-| `question` | `NonEmptyStr` | no | — | The prompt put to the model. |
-| `category` | `str` | yes | `""` | Task category; used by per-category charts and filters. |
-| `sub_category` | `str` | yes | `""` | Optional finer grouping. |
-| `golden_answer` | `str \| None` | yes | `None` | Reference answer; basis of the cosine check; absent for synthetic tasks. |
-| `pass_criteria` | `str` | yes | `""` | Free-text pass description given to the judge. |
-| `fail_criteria` | `str` | yes | `""` | Free-text fail description given to the judge. |
-| `difficulty` | `Difficulty` | yes | `MEDIUM` | Declared difficulty. |
-| `required_terms` | `RequiredTerms` | yes | empty | Keyword constraints; maps to `benchmark_task_terms`. |
-| `source_language` | `str \| None` | yes | `None` | Translation tasks — source language. |
-| `target_language` | `str \| None` | yes | `None` | Translation tasks — target language. |
-| `source_material` | `str \| None` | yes | `None` | Optional supporting material referenced by the question. |
-| `fail_example` | `str \| None` | yes | `None` | Optional example of a wrong answer, shown to the judge. |
-| `input_size_label` | `str \| None` | yes | `None` | Synthetic tasks — input-size bucket; absent for file tasks. |
-| `output_size_label` | `str \| None` | yes | `None` | Synthetic tasks — output-size bucket; absent for file tasks. |
-| `repeat_index` | `PositiveInt \| None` | yes | `None` | Synthetic tasks — which repeat (1..repeats); absent for file tasks. |
-| `task_order` | `NonNegativeInt` | yes | `0` | Stable display order within the run. |
+| Field               | Type                  | Optional | Default  | Constraint / meaning                                                                                                                                                         |
+| ------------------- | --------------------- | :------: | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task_id`           | `TaskIdStr`           |    no    | —        | Unique within the run.                                                                                                                                                       |
+| `task_origin`       | `TaskOrigin`          |    no    | —        | `FILE` or `SYNTHETIC`.                                                                                                                                                       |
+| `cosine_enabled`    | `bool`                |   yes    | `True`   | Task-level cosine opt-out (DD-46): cosine runs only when `True` **and** a `golden_answer` exists. Set `false` for tasks (e.g. code) where text similarity is not meaningful. |
+| `question`          | `NonEmptyStr`         |    no    | —        | The prompt put to the model.                                                                                                                                                 |
+| `category`          | `str`                 |   yes    | `""`     | Task category; used by per-category charts and filters.                                                                                                                      |
+| `sub_category`      | `str`                 |   yes    | `""`     | Optional finer grouping.                                                                                                                                                     |
+| `golden_answer`     | `str \| None`         |   yes    | `None`   | Reference answer; basis of the cosine check; absent for synthetic tasks.                                                                                                     |
+| `pass_criteria`     | `str`                 |   yes    | `""`     | Free-text pass description given to the judge.                                                                                                                               |
+| `fail_criteria`     | `str`                 |   yes    | `""`     | Free-text fail description given to the judge.                                                                                                                               |
+| `difficulty`        | `Difficulty`          |   yes    | `MEDIUM` | Declared difficulty.                                                                                                                                                         |
+| `required_terms`    | `RequiredTerms`       |   yes    | empty    | Keyword constraints; maps to `benchmark_task_terms`.                                                                                                                         |
+| `source_language`   | `str \| None`         |   yes    | `None`   | Translation tasks — source language.                                                                                                                                         |
+| `target_language`   | `str \| None`         |   yes    | `None`   | Translation tasks — target language.                                                                                                                                         |
+| `source_material`   | `str \| None`         |   yes    | `None`   | Optional supporting material referenced by the question.                                                                                                                     |
+| `fail_example`      | `str \| None`         |   yes    | `None`   | Optional example of a wrong answer, shown to the judge.                                                                                                                      |
+| `input_size_label`  | `str \| None`         |   yes    | `None`   | Synthetic tasks — input-size bucket; absent for file tasks.                                                                                                                  |
+| `output_size_label` | `str \| None`         |   yes    | `None`   | Synthetic tasks — output-size bucket; absent for file tasks.                                                                                                                 |
+| `repeat_index`      | `PositiveInt \| None` |   yes    | `None`   | Synthetic tasks — which repeat (1..repeats); absent for file tasks.                                                                                                          |
+| `task_order`        | `NonNegativeInt`      |   yes    | `0`      | Stable display order within the run.                                                                                                                                         |
 
 **Where used:** task file loader, run-creation use case, Result widget. **Persistence:** `benchmark_tasks` table + `benchmark_task_terms` table.
 
@@ -826,14 +825,14 @@ class BenchmarkRunModelEntry(msgspec.Struct, frozen=True, kw_only=True, gc=False
     quantization: str | None = None
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `role` | `ModelRole` | no | — | `TEST`, `JUDGE`, or `EMBEDDING`. |
-| `provider_id` | `ProviderIdStr` | no | — | The provider that serves the model. |
-| `model_name` | `ModelNameStr` | no | — | The model name. |
-| `model_family` | `str \| None` | yes | `None` | Parsed family (for example `qwen3`). |
-| `model_params_b` | `float \| None` | yes | `None` | Parsed parameter count in billions. |
-| `quantization` | `str \| None` | yes | `None` | Parsed quantization label (for example `q4_K_M`). |
+| Field            | Type            | Optional | Default | Meaning                                           |
+| ---------------- | --------------- | :------: | ------- | ------------------------------------------------- |
+| `role`           | `ModelRole`     |    no    | —       | `TEST`, `JUDGE`, or `EMBEDDING`.                  |
+| `provider_id`    | `ProviderIdStr` |    no    | —       | The provider that serves the model.               |
+| `model_name`     | `ModelNameStr`  |    no    | —       | The model name.                                   |
+| `model_family`   | `str \| None`   |   yes    | `None`  | Parsed family (for example `qwen3`).              |
+| `model_params_b` | `float \| None` |   yes    | `None`  | Parsed parameter count in billions.               |
+| `quantization`   | `str \| None`   |   yes    | `None`  | Parsed quantization label (for example `q4_K_M`). |
 
 **Where used:** run snapshot, family/quantization comparison. **Persistence:** `benchmark_run_models` table.
 
@@ -895,28 +894,28 @@ class BenchmarkRun(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 **Snapshot rendering rule (DD-33).** Historical UI surfaces — the Resume widget run list, the Result widget Summary / Details / Charts / Run Analysis tabs, every export, and the run-log file — display the snapshotted `judge_provider_name`, `embedding_provider_name`, and `embedding_model_name` (and `BenchmarkResult.provider_name`, §6.10). They NEVER re-look up the current name via `ProvidersStore` or the current embedding selection in `AppSettingsStore`. Live surfaces — the Settings provider table and the Progress widget for a currently in-flight run — render the CURRENT name. Renaming a Provider therefore changes the Settings table immediately but leaves every completed run row showing the original name.
 
-| Field | Type | Optional | Default | Constraint / meaning |
-|---|---|:--:|---|---|
-| `run_id` | `RunId` | no | — | Auto-incrementing primary key; always > 0. |
-| `run_name` | `str \| None` | no | — | User display-name override; when `None` the effective name is generated from `run_id`, `run_mode`, and `timestamp`. |
-| `timestamp` | `Iso8601Utc` | no | — | Creation time; basis of the generated name and default sort. |
-| `run_mode` | `RunMode` | no | — | Immutable for the run. |
-| `status` | `RunStatus` | no | — | One of the four persisted statuses. |
-| `total_tasks` | `NonNegativeInt` | no | — | Count of `benchmark_results` rows the run expects. |
-| `completed_tasks` | `NonNegativeInt` | no | — | Count of result rows in a terminal status; `<= total_tasks`. |
-| `total_elapsed_ms` | `DurationMs` | no | — | Cumulative measured **execution** time; survives stop/resume and restart. It is a **persisted** column, not shared memory (SPEC-099): the dispatcher accumulates it (single DB writer, DD-41) by adding only each unit's actual run delta — between unit start and unit settle — and the GUI reads it through a read-only WAL-snapshot query, so there is no unsynchronised cross-thread variable (the only consistency rule is the DB's). Because only running deltas are added, paused wall-time — and time lost to a crash during a pause — is **never** accumulated, so there is nothing to exclude after the fact. |
-| `run_analysis` | `str \| None` | yes | `None` | The single consolidated run-level analysis narrative. Populated when the run was started with the analysis toggle ON (`feature.judge_run_analysis_enabled = true` in the run's snapshot — default ON in `GRADED`, OFF in `SYNTHETIC` and `TASKS`, user-overridable in any mode). **May be null in any mode, including `GRADED`, when the user opted out at start.** The Run Analysis tab offers a post-run Generate action when this field is null (D-037). |
-| `judge_provider_id` | `ProviderIdStr \| None` | yes | `None` | FK linkage to the `providers` row of the judge provider; `None` when the run had no judge. Stable across rename. |
-| `judge_provider_name` | `str \| None` | yes | `None` | SNAPSHOT of the judge provider's display name at run start (DD-33). Historical UI surfaces render this value; renaming the provider later never rewrites it. `None` when the run had no judge. |
-| `embedding_provider_name` | `str \| None` | yes | `None` | SNAPSHOT of the selected embedding provider's name at run start (DD-33). Historical UI surfaces render this value; later selection changes never rewrite it. `None` when the run used no embedding. |
-| `embedding_model_name` | `str \| None` | yes | `None` | SNAPSHOT of the selected embedding model string at run start (DD-33). `None` when the run used no embedding. Both embedding fields are non-null together or null together. |
-| `schema_version` | `PositiveInt` | no | — | The schema generation that wrote the run. |
-| `created_at` | `Iso8601Utc` | no | — | Row creation time. |
-| `started_at` | `Iso8601Utc \| None` | yes | `None` | When inference first began. |
-| `finished_at` | `Iso8601Utc \| None` | yes | `None` | When the run reached a terminal status; when set, `started_at <= finished_at`. |
-| `models` | `tuple[BenchmarkRunModelEntry, ...]` | yes | `()` | The run's frozen model snapshot. |
-| `providers` | `tuple[BenchmarkRunProviderEntry, ...]` | yes | `()` | The run's frozen provider snapshot. |
-| `settings_snapshot` | `tuple[BenchmarkRunSettingEntry, ...]` | yes | `()` | The run's frozen settings snapshot. |
+| Field                     | Type                                    | Optional | Default | Constraint / meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------- | --------------------------------------- | :------: | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run_id`                  | `RunId`                                 |    no    | —       | Auto-incrementing primary key; always > 0.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `run_name`                | `str \| None`                           |    no    | —       | User display-name override; when `None` the effective name is generated from `run_id`, `run_mode`, and `timestamp`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `timestamp`               | `Iso8601Utc`                            |    no    | —       | Creation time; basis of the generated name and default sort.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `run_mode`                | `RunMode`                               |    no    | —       | Immutable for the run.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `status`                  | `RunStatus`                             |    no    | —       | One of the four persisted statuses.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `total_tasks`             | `NonNegativeInt`                        |    no    | —       | Count of `benchmark_results` rows the run expects.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `completed_tasks`         | `NonNegativeInt`                        |    no    | —       | Count of result rows in a terminal status; `<= total_tasks`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `total_elapsed_ms`        | `DurationMs`                            |    no    | —       | Cumulative measured **execution** time; survives stop/resume and restart. It is a **persisted** column, not shared memory (SPEC-099): the dispatcher accumulates it (single DB writer, DD-41) by adding only each unit's actual run delta — between unit start and unit settle — and the GUI reads it through a read-only WAL-snapshot query, so there is no unsynchronised cross-thread variable (the only consistency rule is the DB's). Because only running deltas are added, paused wall-time — and time lost to a crash during a pause — is **never** accumulated, so there is nothing to exclude after the fact. |
+| `run_analysis`            | `str \| None`                           |   yes    | `None`  | The single consolidated run-level analysis narrative. Populated when the run was started with the analysis toggle ON (`feature.judge_run_analysis_enabled = true` in the run's snapshot — default ON in `GRADED`, OFF in `SYNTHETIC` and `TASKS`, user-overridable in any mode). **May be null in any mode, including `GRADED`, when the user opted out at start.** The Run Analysis tab offers a post-run Generate action when this field is null (D-037).                                                                                                                                                             |
+| `judge_provider_id`       | `ProviderIdStr \| None`                 |   yes    | `None`  | FK linkage to the `providers` row of the judge provider; `None` when the run had no judge. Stable across rename.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `judge_provider_name`     | `str \| None`                           |   yes    | `None`  | SNAPSHOT of the judge provider's display name at run start (DD-33). Historical UI surfaces render this value; renaming the provider later never rewrites it. `None` when the run had no judge.                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `embedding_provider_name` | `str \| None`                           |   yes    | `None`  | SNAPSHOT of the selected embedding provider's name at run start (DD-33). Historical UI surfaces render this value; later selection changes never rewrite it. `None` when the run used no embedding.                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `embedding_model_name`    | `str \| None`                           |   yes    | `None`  | SNAPSHOT of the selected embedding model string at run start (DD-33). `None` when the run used no embedding. Both embedding fields are non-null together or null together.                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `schema_version`          | `PositiveInt`                           |    no    | —       | The schema generation that wrote the run.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `created_at`              | `Iso8601Utc`                            |    no    | —       | Row creation time.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `started_at`              | `Iso8601Utc \| None`                    |   yes    | `None`  | When inference first began.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `finished_at`             | `Iso8601Utc \| None`                    |   yes    | `None`  | When the run reached a terminal status; when set, `started_at <= finished_at`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `models`                  | `tuple[BenchmarkRunModelEntry, ...]`    |   yes    | `()`    | The run's frozen model snapshot.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `providers`               | `tuple[BenchmarkRunProviderEntry, ...]` |   yes    | `()`    | The run's frozen provider snapshot.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| `settings_snapshot`       | `tuple[BenchmarkRunSettingEntry, ...]`  |   yes    | `()`    | The run's frozen settings snapshot.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 The `models`, `providers`, and `settings_snapshot` collections are the in-memory assembly of the run's child tables; they do not persist as blobs — each persists as its own table. There is exactly one `run_analysis` field; there are no separate performance-analysis or judge-summary fields.
 
@@ -932,12 +931,12 @@ class BenchmarkResultTerm(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     similarity_score: CosineScore | None = None
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `term_kind` | `ResultTermKind` | no | — | `EXACT_MISSING`, `FORBIDDEN_FOUND`, or `SEMANTIC`. |
-| `term_order` | `NonNegativeInt` | no | — | Order within the kind. |
-| `term_text` | `NonEmptyStr` | no | — | The term concerned. |
-| `similarity_score` | `CosineScore \| None` | yes | `None` | Embedding similarity for a `SEMANTIC` term; `None` for the other kinds. |
+| Field              | Type                  | Optional | Default | Meaning                                                                 |
+| ------------------ | --------------------- | :------: | ------- | ----------------------------------------------------------------------- |
+| `term_kind`        | `ResultTermKind`      |    no    | —       | `EXACT_MISSING`, `FORBIDDEN_FOUND`, or `SEMANTIC`.                      |
+| `term_order`       | `NonNegativeInt`      |    no    | —       | Order within the kind.                                                  |
+| `term_text`        | `NonEmptyStr`         |    no    | —       | The term concerned.                                                     |
+| `similarity_score` | `CosineScore \| None` |   yes    | `None`  | Embedding similarity for a `SEMANTIC` term; `None` for the other kinds. |
 
 **Where used:** keyword evaluation phase, Result widget detail panel. **Persistence:** `benchmark_result_terms` table.
 
@@ -953,14 +952,14 @@ class BenchmarkResultAttempt(msgspec.Struct, frozen=True, kw_only=True, gc=False
     error_message: str | None = None
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `attempt_index` | `PositiveInt` | no | — | 1-based attempt number. |
-| `timeout_ms` | `DurationMs` | no | — | The adaptive-timeout budget used for this attempt. |
-| `duration_ms` | `DurationMs \| None` | yes | `None` | How long the attempt actually took. |
-| `outcome` | `AttemptOutcome` | no | — | `SUCCESS`, `TIMEOUT`, or `ERROR`. |
-| `error_kind` | `ErrorKind \| None` | yes | `None` | Failure classification; `None` on success. |
-| `error_message` | `str \| None` | yes | `None` | Failure detail; `None` on success. |
+| Field           | Type                 | Optional | Default | Meaning                                            |
+| --------------- | -------------------- | :------: | ------- | -------------------------------------------------- |
+| `attempt_index` | `PositiveInt`        |    no    | —       | 1-based attempt number.                            |
+| `timeout_ms`    | `DurationMs`         |    no    | —       | The adaptive-timeout budget used for this attempt. |
+| `duration_ms`   | `DurationMs \| None` |   yes    | `None`  | How long the attempt actually took.                |
+| `outcome`       | `AttemptOutcome`     |    no    | —       | `SUCCESS`, `TIMEOUT`, or `ERROR`.                  |
+| `error_kind`    | `ErrorKind \| None`  |   yes    | `None`  | Failure classification; `None` on success.         |
+| `error_message` | `str \| None`        |   yes    | `None`  | Failure detail; `None` on success.                 |
 
 **Where used:** inference phase, adaptive-timeout audit, Result widget detail panel. **Persistence:** `benchmark_result_attempts` table.
 
@@ -1006,44 +1005,44 @@ class BenchmarkResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     attempts: tuple[BenchmarkResultAttempt, ...] = ()
 ```
 
-| Field | Type | Optional | Default | Constraint / meaning |
-|---|---|:--:|---|---|
-| `result_id` | `ResultId` | no | — | Auto-incrementing primary key; always > 0. |
-| `run_id` | `RunId` | no | — | Owning run. |
-| `task_id` | `TaskIdStr` | no | — | The task executed; with `run_id` references `benchmark_tasks`. |
-| `provider_id` | `ProviderIdStr` | no | — | FK linkage to the `TEST`-role provider that ran the inference; internal UUID4; stable across rename. |
-| `provider_name` | `NonEmptyStr` | no | — | SNAPSHOT of the provider's display name at task start (DD-33). Historical UI surfaces render this value; renaming the provider later never rewrites it. |
-| `model_name` | `ModelNameStr` | no | — | The model under test. |
-| `status` | `ResultStatus` | no | — | The per-task lifecycle state. |
-| `verdict` | `Verdict \| None` | yes | `None` | Binary `PASS`/`FAIL`; `None` until `status == COMPLETED`. |
-| `created_at` | `Iso8601Utc` | no | — | Row creation time. |
-| `started_at` | `Iso8601Utc \| None` | yes | `None` | Inference start time. |
-| `finished_at` | `Iso8601Utc \| None` | yes | `None` | Time the result reached a terminal status. |
-| `system_prompt_sent` | `str \| None` | yes | `None` | The system message sent, if any. |
-| `user_prompt_sent` | `str \| None` | yes | `None` | The user message sent. |
-| `raw_response` | `str \| None` | yes | `None` | The model's response exactly as returned. |
-| `sanitized_response` | `str \| None` | yes | `None` | The response with reasoning blocks stripped; the graded text. |
-| `has_thinking_block` | `bool` | yes | `False` | Whether the raw response contained a reasoning block. |
-| `response_char_length` | `NonNegativeInt \| None` | yes | `None` | Character length of the sanitized response. |
-| `total_time_ms` | `DurationMs \| None` | yes | `None` | End-to-end inference duration. |
-| `ttft_ms` | `DurationMs \| None` | yes | `None` | Time to first token; `None` when transport streaming is unsupported. |
-| `prompt_tokens` | `NonNegativeInt \| None` | yes | `None` | Prompt token count reported by the provider. |
-| `completion_tokens` | `NonNegativeInt \| None` | yes | `None` | Completion token count. |
-| `tokens_per_second` | `float \| None` | yes | `None` | Generation throughput. When `tokens_estimated` is `True`, from a `ceil(len(raw_response)/4)` estimate (SPEC-047); else from provider `completion_tokens`. |
-| `tokens_estimated` | `bool` | yes | `False` | `True` when `tokens_per_second` is the char/4 estimate (provider reported no usage), not provider usage; surfaced with an `≈` marker in UI/exports (SPEC-047). |
-| `sanity_check_passed` | `bool \| None` | yes | `None` | Deterministic pre-check after inference (empty / echo / too short / error marker). |
-| `keyword_verdict` | `Verdict \| None` | yes | `None` | The keyword phase's own binary outcome; `None` if the phase did not run. |
-| `cosine_similarity` | `CosineScore \| None` | yes | `None` | The Cosine Score (`0.0`–`1.0`) — the single numeric quality value; `None` if no cosine check ran. |
-| `cosine_verdict` | `Verdict \| None` | yes | `None` | The cosine phase's own binary outcome; `None` if the phase did not run. |
-| `judge_verdict` | `Verdict \| None` | yes | `None` | The judge phase's own binary outcome; `None` if the phase did not run. The judge produces no numeric score. |
-| `judge_reasoning` | `str \| None` | yes | `None` | The judge's one-sentence explanation. |
-| `judge_time_ms` | `DurationMs \| None` | yes | `None` | Judge call duration. |
-| `judge_completion_tokens` | `NonNegativeInt \| None` | yes | `None` | Judge call completion tokens. |
-| `resolution_layer` | `ResolutionLayer \| None` | yes | `None` | Which layer decided the combined verdict; `None` until grading resolves. |
-| `error_kind` | `ErrorKind \| None` | yes | `None` | Failure classification; set only on a terminal-failure status. |
-| `error_message` | `str \| None` | yes | `None` | Human-readable failure detail. |
-| `terms` | `tuple[BenchmarkResultTerm, ...]` | yes | `()` | The keyword phase's per-term outcomes. |
-| `attempts` | `tuple[BenchmarkResultAttempt, ...]` | yes | `()` | The inference attempt history. |
+| Field                     | Type                                 | Optional | Default | Constraint / meaning                                                                                                                                           |
+| ------------------------- | ------------------------------------ | :------: | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result_id`               | `ResultId`                           |    no    | —       | Auto-incrementing primary key; always > 0.                                                                                                                     |
+| `run_id`                  | `RunId`                              |    no    | —       | Owning run.                                                                                                                                                    |
+| `task_id`                 | `TaskIdStr`                          |    no    | —       | The task executed; with `run_id` references `benchmark_tasks`.                                                                                                 |
+| `provider_id`             | `ProviderIdStr`                      |    no    | —       | FK linkage to the `TEST`-role provider that ran the inference; internal UUID4; stable across rename.                                                           |
+| `provider_name`           | `NonEmptyStr`                        |    no    | —       | SNAPSHOT of the provider's display name at task start (DD-33). Historical UI surfaces render this value; renaming the provider later never rewrites it.        |
+| `model_name`              | `ModelNameStr`                       |    no    | —       | The model under test.                                                                                                                                          |
+| `status`                  | `ResultStatus`                       |    no    | —       | The per-task lifecycle state.                                                                                                                                  |
+| `verdict`                 | `Verdict \| None`                    |   yes    | `None`  | Binary `PASS`/`FAIL`; `None` until `status == COMPLETED`.                                                                                                      |
+| `created_at`              | `Iso8601Utc`                         |    no    | —       | Row creation time.                                                                                                                                             |
+| `started_at`              | `Iso8601Utc \| None`                 |   yes    | `None`  | Inference start time.                                                                                                                                          |
+| `finished_at`             | `Iso8601Utc \| None`                 |   yes    | `None`  | Time the result reached a terminal status.                                                                                                                     |
+| `system_prompt_sent`      | `str \| None`                        |   yes    | `None`  | The system message sent, if any.                                                                                                                               |
+| `user_prompt_sent`        | `str \| None`                        |   yes    | `None`  | The user message sent.                                                                                                                                         |
+| `raw_response`            | `str \| None`                        |   yes    | `None`  | The model's response exactly as returned.                                                                                                                      |
+| `sanitized_response`      | `str \| None`                        |   yes    | `None`  | The response with reasoning blocks stripped; the graded text.                                                                                                  |
+| `has_thinking_block`      | `bool`                               |   yes    | `False` | Whether the raw response contained a reasoning block.                                                                                                          |
+| `response_char_length`    | `NonNegativeInt \| None`             |   yes    | `None`  | Character length of the sanitized response.                                                                                                                    |
+| `total_time_ms`           | `DurationMs \| None`                 |   yes    | `None`  | End-to-end inference duration.                                                                                                                                 |
+| `ttft_ms`                 | `DurationMs \| None`                 |   yes    | `None`  | Time to first token; `None` when transport streaming is unsupported.                                                                                           |
+| `prompt_tokens`           | `NonNegativeInt \| None`             |   yes    | `None`  | Prompt token count reported by the provider.                                                                                                                   |
+| `completion_tokens`       | `NonNegativeInt \| None`             |   yes    | `None`  | Completion token count.                                                                                                                                        |
+| `tokens_per_second`       | `float \| None`                      |   yes    | `None`  | Generation throughput. When `tokens_estimated` is `True`, from a `ceil(len(raw_response)/4)` estimate (SPEC-047); else from provider `completion_tokens`.      |
+| `tokens_estimated`        | `bool`                               |   yes    | `False` | `True` when `tokens_per_second` is the char/4 estimate (provider reported no usage), not provider usage; surfaced with an `≈` marker in UI/exports (SPEC-047). |
+| `sanity_check_passed`     | `bool \| None`                       |   yes    | `None`  | Deterministic pre-check after inference (empty / echo / too short / error marker).                                                                             |
+| `keyword_verdict`         | `Verdict \| None`                    |   yes    | `None`  | The keyword phase's own binary outcome; `None` if the phase did not run.                                                                                       |
+| `cosine_similarity`       | `CosineScore \| None`                |   yes    | `None`  | The Cosine Score (`0.0`–`1.0`) — the single numeric quality value; `None` if no cosine check ran.                                                              |
+| `cosine_verdict`          | `Verdict \| None`                    |   yes    | `None`  | The cosine phase's own binary outcome; `None` if the phase did not run.                                                                                        |
+| `judge_verdict`           | `Verdict \| None`                    |   yes    | `None`  | The judge phase's own binary outcome; `None` if the phase did not run. The judge produces no numeric score.                                                    |
+| `judge_reasoning`         | `str \| None`                        |   yes    | `None`  | The judge's one-sentence explanation.                                                                                                                          |
+| `judge_time_ms`           | `DurationMs \| None`                 |   yes    | `None`  | Judge call duration.                                                                                                                                           |
+| `judge_completion_tokens` | `NonNegativeInt \| None`             |   yes    | `None`  | Judge call completion tokens.                                                                                                                                  |
+| `resolution_layer`        | `ResolutionLayer \| None`            |   yes    | `None`  | Which layer decided the combined verdict; `None` until grading resolves.                                                                                       |
+| `error_kind`              | `ErrorKind \| None`                  |   yes    | `None`  | Failure classification; set only on a terminal-failure status.                                                                                                 |
+| `error_message`           | `str \| None`                        |   yes    | `None`  | Human-readable failure detail.                                                                                                                                 |
+| `terms`                   | `tuple[BenchmarkResultTerm, ...]`    |   yes    | `()`    | The keyword phase's per-term outcomes.                                                                                                                         |
+| `attempts`                | `tuple[BenchmarkResultAttempt, ...]` |   yes    | `()`    | The inference attempt history.                                                                                                                                 |
 
 The `terms` and `attempts` collections are the in-memory assembly of the result's child tables; they persist as `benchmark_result_terms` and `benchmark_result_attempts` rows, not as blobs.
 
@@ -1051,7 +1050,7 @@ The `terms` and `attempts` collections are the in-memory assembly of the result'
 
 **Where used:** the benchmark pipeline, the Result widget tables and charts, the export services. **Persistence:** `benchmark_results` table + `benchmark_result_terms` + `benchmark_result_attempts`.
 
----
+______________________________________________________________________
 
 ## 7. Domain records — runtime and service DTOs
 
@@ -1072,15 +1071,15 @@ class ProviderHealth(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 The result of a single provider reachability + conditional-discovery probe (`LLMClient.probe_health`; see `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.8). Rebuilt on every probe; never stored — the persisted "last probe" columns on `ProviderConfig` (§5.1) carry whatever the dialog needs to show on reopen.
 
-| Field | Type | Optional | Meaning |
-|---|---|:--:|---|
-| `provider_id` | `ProviderIdStr` | no | The provider probed. |
-| `reachable` | `bool` | no | Whether the configured endpoint answered the reachability handshake (DNS + TCP connect + basic auth handshake, if any). |
-| `discovery_supported` | `bool` | no | Whether the per-provider implementation supports model discovery. `True` for OpenAI-compatible (`GET /v1/models`) and Gemini (`models.list()`); `False` for providers whose API exposes no models-list endpoint (Anthropic). Consumers (notably the Readiness Service and the Settings dialog) MUST treat `False` as informational only; it is never a degraded or unhealthy signal. |
-| `model_count` | `int \| None` | yes | Number of models the discovery call returned. **`None` means discovery was not attempted at all** (either `discovery_supported == False`, or the reachability check failed before discovery could run). `0` means discovery succeeded and returned an empty list. The distinction matters: an Anthropic-style provider is healthy at `reachable=True, discovery_supported=False, model_count=None`. |
-| `last_probe_ms` | `DurationMs` | no | Elapsed wall time of the whole probe in milliseconds. |
-| `last_error` | `str \| None` | yes | Redacted error string when `reachable == False`; `None` on a successful probe. Never carries a secret. |
-| `probed_at` | `int` | no | Unix-millisecond UTC timestamp recorded by the `Clock` when the probe completed. |
+| Field                 | Type            | Optional | Meaning                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------- | --------------- | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `provider_id`         | `ProviderIdStr` |    no    | The provider probed.                                                                                                                                                                                                                                                                                                                                                                                |
+| `reachable`           | `bool`          |    no    | Whether the configured endpoint answered the reachability handshake (DNS + TCP connect + basic auth handshake, if any).                                                                                                                                                                                                                                                                             |
+| `discovery_supported` | `bool`          |    no    | Whether the per-provider implementation supports model discovery. `True` for OpenAI-compatible (`GET /v1/models`) and Gemini (`models.list()`); `False` for providers whose API exposes no models-list endpoint (Anthropic). Consumers (notably the Readiness Service and the Settings dialog) MUST treat `False` as informational only; it is never a degraded or unhealthy signal.                |
+| `model_count`         | `int \| None`   |   yes    | Number of models the discovery call returned. **`None` means discovery was not attempted at all** (either `discovery_supported == False`, or the reachability check failed before discovery could run). `0` means discovery succeeded and returned an empty list. The distinction matters: an Anthropic-style provider is healthy at `reachable=True, discovery_supported=False, model_count=None`. |
+| `last_probe_ms`       | `DurationMs`    |    no    | Elapsed wall time of the whole probe in milliseconds.                                                                                                                                                                                                                                                                                                                                               |
+| `last_error`          | `str \| None`   |   yes    | Redacted error string when `reachable == False`; `None` on a successful probe. Never carries a secret.                                                                                                                                                                                                                                                                                              |
+| `probed_at`           | `int`           |    no    | Unix-millisecond UTC timestamp recorded by the `Clock` when the probe completed.                                                                                                                                                                                                                                                                                                                    |
 
 `probe_health` never raises. A reachable provider whose implementation does not support discovery returns `reachable=True, discovery_supported=False, model_count=None` and is **healthy**: zero discovered models is not, and a missing discovery endpoint is not, a health-gating criterion. See `11_Services_and_Algorithms/09_READINESS_PROBE.md` §6.5 for the aggregation rule.
 
@@ -1101,15 +1100,15 @@ class InferenceTestResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 The result of one user-initiated end-to-end inference test (`LLMClient.test_inference`; see `08_Cross_Cutting/08-E_interfaces_contracts.md` §10 and `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.8). The call issues exactly one chat completion against the named model using a fixed canned prompt ("Reply with the single word: ok") and captures the outcome into this struct. The method never raises — every provider-side failure (auth, model not found, rate limit, timeout, transport failure) is captured here. The struct is runtime-only; the Provider Edit dialog persists a redacted summary of the fields on `ProviderConfig.last_inference_test_*` (§5.1).
 
-| Field | Type | Optional | Meaning |
-|---|---|:--:|---|
-| `outcome` | `InferenceTestOutcome` | no | The classified outcome of the call. |
-| `provider_id` | `ProviderIdStr` | no | The provider tested. |
-| `model_name` | `ModelNameStr` | no | The model the user selected or entered. |
-| `latency_ms` | `int \| None` | yes | Total wall time from request issue to response complete in milliseconds. `None` when the call never issued — for example when `outcome == GATE_BUSY`. On `TIMEOUT`, carries the elapsed time before the deadline expired. |
-| `response_excerpt` | `str \| None` | yes | The first ~200 characters of the response, written verbatim. The response is the user's own machine's output to a canned prompt; per `10_Domain_and_Data/08_REDACTION_PATTERNS.md` §1, the application does not redact user-machine model responses. `None` on every non-success outcome. |
-| `last_error` | `str \| None` | yes | Human-readable failure detail on a non-success outcome. For an SDK-originated failure the message has already been passed through `redact(text)` at the `LLMClient` adapter boundary (`10_Domain_and_Data/08_REDACTION_PATTERNS.md` surface 2) before being placed here, so the value is canonically safe. `None` on `SUCCESS`. |
-| `tested_at` | `int` | no | Unix-millisecond UTC timestamp recorded by the `Clock` when the test completed (or when the gate-busy refusal was observed). |
+| Field              | Type                   | Optional | Meaning                                                                                                                                                                                                                                                                                                                         |
+| ------------------ | ---------------------- | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `outcome`          | `InferenceTestOutcome` |    no    | The classified outcome of the call.                                                                                                                                                                                                                                                                                             |
+| `provider_id`      | `ProviderIdStr`        |    no    | The provider tested.                                                                                                                                                                                                                                                                                                            |
+| `model_name`       | `ModelNameStr`         |    no    | The model the user selected or entered.                                                                                                                                                                                                                                                                                         |
+| `latency_ms`       | `int \| None`          |   yes    | Total wall time from request issue to response complete in milliseconds. `None` when the call never issued — for example when `outcome == GATE_BUSY`. On `TIMEOUT`, carries the elapsed time before the deadline expired.                                                                                                       |
+| `response_excerpt` | `str \| None`          |   yes    | The first ~200 characters of the response, written verbatim. The response is the user's own machine's output to a canned prompt; per `10_Domain_and_Data/08_REDACTION_PATTERNS.md` §1, the application does not redact user-machine model responses. `None` on every non-success outcome.                                       |
+| `last_error`       | `str \| None`          |   yes    | Human-readable failure detail on a non-success outcome. For an SDK-originated failure the message has already been passed through `redact(text)` at the `LLMClient` adapter boundary (`10_Domain_and_Data/08_REDACTION_PATTERNS.md` surface 2) before being placed here, so the value is canonically safe. `None` on `SUCCESS`. |
+| `tested_at`        | `int`                  |    no    | Unix-millisecond UTC timestamp recorded by the `Clock` when the test completed (or when the gate-busy refusal was observed).                                                                                                                                                                                                    |
 
 The struct is the boundary value between `LLMClient.test_inference` and the Provider Edit dialog inline display. The Settings dialog also emits it on the `_provider_inference_test_completed` Event Bus signal (`08_Cross_Cutting/08-J_event_bus_catalog.md` §5.6, `08_Cross_Cutting/08-Q_event_payload_schemas.md`).
 
@@ -1150,16 +1149,16 @@ class RunStartRequest(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     setting_overrides: tuple[BenchmarkRunSettingEntry, ...] = ()
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `run_mode` | `RunMode` | no | — | The mode of the run to create. |
-| `test_models` | `tuple[ModelDescriptor, ...]` | no | — | One or more benchmark targets; may span providers. |
-| `judge_model` | `ModelDescriptor \| None` | yes | `None` | The judge model; required when the run grades. |
-| `embedding_model` | `ModelDescriptor \| None` | yes | `None` | The embedding model; required when the run runs a cosine check. |
-| `judge_analysis_enabled` | `bool` | yes | `False` | Whether to generate the consolidated run analysis. |
-| `task_paths` | `tuple[str, ...]` | yes | `()` | YAML task file paths; used for `TASKS` and `GRADED`. |
-| `performance_config` | `PerformanceConfig \| None` | yes | `None` | Required for `SYNTHETIC`; absent otherwise. |
-| `setting_overrides` | `tuple[BenchmarkRunSettingEntry, ...]` | yes | `()` | The user's **changed** Advanced Options values (DD-47): registry-keyed entries, every key a member of `PER_RUN_OVERRIDABLE` (validated at run creation); an absent key means the saved value applies. Per-run setting overrides applied before the snapshot is captured. |
+| Field                    | Type                                   | Optional | Default | Meaning                                                                                                                                                                                                                                                                  |
+| ------------------------ | -------------------------------------- | :------: | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `run_mode`               | `RunMode`                              |    no    | —       | The mode of the run to create.                                                                                                                                                                                                                                           |
+| `test_models`            | `tuple[ModelDescriptor, ...]`          |    no    | —       | One or more benchmark targets; may span providers.                                                                                                                                                                                                                       |
+| `judge_model`            | `ModelDescriptor \| None`              |   yes    | `None`  | The judge model; required when the run grades.                                                                                                                                                                                                                           |
+| `embedding_model`        | `ModelDescriptor \| None`              |   yes    | `None`  | The embedding model; required when the run runs a cosine check.                                                                                                                                                                                                          |
+| `judge_analysis_enabled` | `bool`                                 |   yes    | `False` | Whether to generate the consolidated run analysis.                                                                                                                                                                                                                       |
+| `task_paths`             | `tuple[str, ...]`                      |   yes    | `()`    | YAML task file paths; used for `TASKS` and `GRADED`.                                                                                                                                                                                                                     |
+| `performance_config`     | `PerformanceConfig \| None`            |   yes    | `None`  | Required for `SYNTHETIC`; absent otherwise.                                                                                                                                                                                                                              |
+| `setting_overrides`      | `tuple[BenchmarkRunSettingEntry, ...]` |   yes    | `()`    | The user's **changed** Advanced Options values (DD-47): registry-keyed entries, every key a member of `PER_RUN_OVERRIDABLE` (validated at run creation); an absent key means the saved value applies. Per-run setting overrides applied before the snapshot is captured. |
 
 **Where used:** New Benchmark widget, run-creation use case. The request is consumed at run creation; it is never persisted.
 
@@ -1244,10 +1243,10 @@ class ChatChunk(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     delta_tokens: int | None = None
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `content` | `str` | no | — | The text delta carried by this streaming chunk. May be the empty string for a role-only or metadata chunk. |
-| `delta_tokens` | `int \| None` | yes | `None` | The number of completion tokens contained in this chunk, when the provider reports it. `None` when the provider does not expose a per-chunk count; consumers must then fall back to the heuristic documented in `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.5 and `11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md` §6.x ("Live inference-progress emission"). |
+| Field          | Type          | Optional | Default | Meaning                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------- | ------------- | :------: | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`      | `str`         |    no    | —       | The text delta carried by this streaming chunk. May be the empty string for a role-only or metadata chunk.                                                                                                                                                                                                                                                                        |
+| `delta_tokens` | `int \| None` |   yes    | `None`  | The number of completion tokens contained in this chunk, when the provider reports it. `None` when the provider does not expose a per-chunk count; consumers must then fall back to the heuristic documented in `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.5 and `11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md` §6.x ("Live inference-progress emission"). |
 
 `ChatChunk` is the typed stream item produced by `LLMClient.chat_stream` and consumed internally by `LLMClient.chat`. **`ChatStream`** is the iterator contract `chat_stream` returns (DD-51): a synchronous iterator of `ChatChunk` plus `trailing_response() -> ChatResponse`; whether it is modelled as a small class or a tagged-union final item is implementation latitude (`11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.4). Its `delta_tokens` field exists so that consumers — notably the live inference-progress emitter — can build a running `tokens_received` counter without re-tokenising the text. The per-provider availability of `delta_tokens` is specified in `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.5.
 
@@ -1297,28 +1296,28 @@ class RunLogEvent(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     judge_reasoning: str | None = None
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `kind` | `RunLogEventKind` | no | — | The event kind; selects the colour tone and the field set. |
-| `timestamp` | `Iso8601Utc` | no | — | When the event occurred. |
-| `provider_id` | `ProviderIdStr \| None` | yes | `None` | The provider the event concerns. |
-| `model_name` | `ModelNameStr \| None` | yes | `None` | The model the event concerns. |
-| `task_id` | `TaskIdStr \| None` | yes | `None` | The task the event concerns. |
-| `stage` | `str \| None` | yes | `None` | The pipeline stage at the time of the event. |
-| `started_at` | `Iso8601Utc \| None` | yes | `None` | Task start time, when the kind carries it. |
-| `finished_at` | `Iso8601Utc \| None` | yes | `None` | Task end time, when the kind carries it. |
-| `total_time_ms` | `DurationMs \| None` | yes | `None` | End-to-end inference duration. |
-| `ttft_ms` | `DurationMs \| None` | yes | `None` | Time to first token. |
-| `tokens_per_second` | `float \| None` | yes | `None` | Generation throughput. |
-| `prompt_tokens` | `NonNegativeInt \| None` | yes | `None` | Prompt token count. |
-| `completion_tokens` | `NonNegativeInt \| None` | yes | `None` | Completion token count. |
-| `prompt_excerpt` | `str \| None` | yes | `None` | Truncated input-prompt text, for Verbose rendering. |
-| `response_excerpt` | `str \| None` | yes | `None` | Truncated model-output text, for Verbose rendering. |
-| `retry_attempt` | `PositiveInt \| None` | yes | `None` | 1-based retry attempt number on a `RETRY` event. |
-| `retry_reason` | `str \| None` | yes | `None` | The classified retry reason. |
-| `error_text` | `str \| None` | yes | `None` | Failure detail on a failing event. |
-| `judge_verdict` | `Verdict \| None` | yes | `None` | The judge's binary verdict on a `JUDGE` event. |
-| `judge_reasoning` | `str \| None` | yes | `None` | The judge's one-sentence explanation on a `JUDGE` event. |
+| Field               | Type                     | Optional | Default | Meaning                                                    |
+| ------------------- | ------------------------ | :------: | ------- | ---------------------------------------------------------- |
+| `kind`              | `RunLogEventKind`        |    no    | —       | The event kind; selects the colour tone and the field set. |
+| `timestamp`         | `Iso8601Utc`             |    no    | —       | When the event occurred.                                   |
+| `provider_id`       | `ProviderIdStr \| None`  |   yes    | `None`  | The provider the event concerns.                           |
+| `model_name`        | `ModelNameStr \| None`   |   yes    | `None`  | The model the event concerns.                              |
+| `task_id`           | `TaskIdStr \| None`      |   yes    | `None`  | The task the event concerns.                               |
+| `stage`             | `str \| None`            |   yes    | `None`  | The pipeline stage at the time of the event.               |
+| `started_at`        | `Iso8601Utc \| None`     |   yes    | `None`  | Task start time, when the kind carries it.                 |
+| `finished_at`       | `Iso8601Utc \| None`     |   yes    | `None`  | Task end time, when the kind carries it.                   |
+| `total_time_ms`     | `DurationMs \| None`     |   yes    | `None`  | End-to-end inference duration.                             |
+| `ttft_ms`           | `DurationMs \| None`     |   yes    | `None`  | Time to first token.                                       |
+| `tokens_per_second` | `float \| None`          |   yes    | `None`  | Generation throughput.                                     |
+| `prompt_tokens`     | `NonNegativeInt \| None` |   yes    | `None`  | Prompt token count.                                        |
+| `completion_tokens` | `NonNegativeInt \| None` |   yes    | `None`  | Completion token count.                                    |
+| `prompt_excerpt`    | `str \| None`            |   yes    | `None`  | Truncated input-prompt text, for Verbose rendering.        |
+| `response_excerpt`  | `str \| None`            |   yes    | `None`  | Truncated model-output text, for Verbose rendering.        |
+| `retry_attempt`     | `PositiveInt \| None`    |   yes    | `None`  | 1-based retry attempt number on a `RETRY` event.           |
+| `retry_reason`      | `str \| None`            |   yes    | `None`  | The classified retry reason.                               |
+| `error_text`        | `str \| None`            |   yes    | `None`  | Failure detail on a failing event.                         |
+| `judge_verdict`     | `Verdict \| None`        |   yes    | `None`  | The judge's binary verdict on a `JUDGE` event.             |
+| `judge_reasoning`   | `str \| None`            |   yes    | `None`  | The judge's one-sentence explanation on a `JUDGE` event.   |
 
 The run-log DTOs are runtime-only: a `RunLogEvent` is emitted by the pipeline, formatted by the log-formatting service, and cached in the Progress widget; it is never persisted as a row. `RunLogVerbosity` is sourced from the `ui.run_log_verbosity` setting.
 
@@ -1340,18 +1339,18 @@ class InferenceProgressEvent(msgspec.Struct, frozen=True, kw_only=True, gc=False
     timestamp_ms: int            # unix ms UTC when this snapshot was taken
 ```
 
-| Field | Type | Optional | Meaning |
-|---|---|:--:|---|
-| `context` | `InferenceContext` | no | Which user-visible LLM-call surface produced this event (§4.19a). Subscribers filter on this field to render only the events they care about. |
-| `run_id` | `RunId \| None` | yes | The run the call belongs to. **Required for** `BENCHMARK_TASK`, `BENCHMARK_JUDGE`, and `RUN_ANALYSIS`; **`None` for** `PROVIDER_TEST` (the Provider Edit test is not run-scoped). |
-| `result_id` | `ResultId \| None` | yes | The result row for the call. **Required for** `BENCHMARK_TASK` and `BENCHMARK_JUDGE` (both name a per-task result); **`None` for** `RUN_ANALYSIS` and `PROVIDER_TEST` (no per-task semantics). |
-| `task_id` | `TaskIdStr \| None` | yes | The task being inferred or judged. **Required for** `BENCHMARK_TASK` and `BENCHMARK_JUDGE`; **`None` for** `RUN_ANALYSIS` and `PROVIDER_TEST`. |
-| `provider_id` | `ProviderId` | no | Provider of the call's target. Always present — every emitter knows which provider it is calling. |
-| `model_name` | `ModelName` | no | Model of the call's target. Always present. |
-| `elapsed_ms` | `int` | no | Milliseconds since the `chat_stream` call for this surface started. Monotonically increases for the duration of the call. |
-| `tokens_received` | `int \| None` | yes | The running completion-token count for this in-flight call, computed from the provider's per-chunk `delta_tokens` field on `ChatChunk` when available, or from the assembled character count via the heuristic in `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.5 otherwise. `None` until `first_token_received` is `True`. |
-| `first_token_received` | `bool` | no | `True` once the first content-bearing chunk has arrived (the same instant `ttft_ms` is recorded). `False` while the call is still waiting on the first token. |
-| `timestamp_ms` | `int` | no | Unix-millisecond UTC timestamp recorded by the `Clock` when this snapshot was taken. |
+| Field                  | Type                | Optional | Meaning                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------- | ------------------- | :------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `context`              | `InferenceContext`  |    no    | Which user-visible LLM-call surface produced this event (§4.19a). Subscribers filter on this field to render only the events they care about.                                                                                                                                                                                           |
+| `run_id`               | `RunId \| None`     |   yes    | The run the call belongs to. **Required for** `BENCHMARK_TASK`, `BENCHMARK_JUDGE`, and `RUN_ANALYSIS`; **`None` for** `PROVIDER_TEST` (the Provider Edit test is not run-scoped).                                                                                                                                                       |
+| `result_id`            | `ResultId \| None`  |   yes    | The result row for the call. **Required for** `BENCHMARK_TASK` and `BENCHMARK_JUDGE` (both name a per-task result); **`None` for** `RUN_ANALYSIS` and `PROVIDER_TEST` (no per-task semantics).                                                                                                                                          |
+| `task_id`              | `TaskIdStr \| None` |   yes    | The task being inferred or judged. **Required for** `BENCHMARK_TASK` and `BENCHMARK_JUDGE`; **`None` for** `RUN_ANALYSIS` and `PROVIDER_TEST`.                                                                                                                                                                                          |
+| `provider_id`          | `ProviderId`        |    no    | Provider of the call's target. Always present — every emitter knows which provider it is calling.                                                                                                                                                                                                                                       |
+| `model_name`           | `ModelName`         |    no    | Model of the call's target. Always present.                                                                                                                                                                                                                                                                                             |
+| `elapsed_ms`           | `int`               |    no    | Milliseconds since the `chat_stream` call for this surface started. Monotonically increases for the duration of the call.                                                                                                                                                                                                               |
+| `tokens_received`      | `int \| None`       |   yes    | The running completion-token count for this in-flight call, computed from the provider's per-chunk `delta_tokens` field on `ChatChunk` when available, or from the assembled character count via the heuristic in `11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md` §6.5 otherwise. `None` until `first_token_received` is `True`. |
+| `first_token_received` | `bool`              |    no    | `True` once the first content-bearing chunk has arrived (the same instant `ttft_ms` is recorded). `False` while the call is still waiting on the first token.                                                                                                                                                                           |
+| `timestamp_ms`         | `int`               |    no    | Unix-millisecond UTC timestamp recorded by the `Clock` when this snapshot was taken.                                                                                                                                                                                                                                                    |
 
 `InferenceProgressEvent` is the typed payload of the `_inference_progress` event (`08_Cross_Cutting/08-J_event_bus_catalog.md` §5.3, `08_Cross_Cutting/08-Q_event_payload_schemas.md`). The event is emitted by **four user-visible LLM-call surfaces** — the benchmark pipeline's per-task main inference (`BENCHMARK_TASK`), the benchmark pipeline's per-task judge call (`BENCHMARK_JUDGE`), the Run Analysis Service (`RUN_ANALYSIS`), and the Provider Edit Test inference flow (`PROVIDER_TEST`) — through the shared emitter helper documented in `11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md` §6.9. Each surface emits at approximately one-hertz cadence for the duration of its `chat_stream` call and carries **counters only** — never any portion of the model's response text. The struct is runtime-only and never persisted. Readiness probes never emit this event (§4.19a).
 
@@ -1370,15 +1369,15 @@ class JudgeModelExcludedEvent(msgspec.Struct, frozen=True, kw_only=True, gc=Fals
     remaining_tasks_affected: NonNegativeInt
 ```
 
-| Field | Type | Optional | Meaning |
-|---|---|:--:|---|
-| `run_id` | `RunId` | no | The run whose judge model was just excluded. |
-| `provider_id` | `ProviderId` | no | The judge model's provider; internal UUID4. |
-| `model_name` | `ModelName` | no | The judge model that was excluded. |
-| `consecutive_timeouts` | `PositiveInt` | no | The count of consecutive max-budget judge timeouts that triggered exclusion. Equals `eval.judge_timeout_consecutive_threshold` at the moment of exclusion. |
-| `exclusion_reason` | `NonEmptyStr` | no | Human-readable reason; canonical form `"<N> consecutive max-budget judge timeouts"`. Subscribers may render verbatim or wrap. |
-| `excluded_at` | `int` | no | Unix-millisecond UTC timestamp recorded by the `Clock` when the threshold was crossed. |
-| `remaining_tasks_affected` | `NonNegativeInt` | no | Count of still-pending tasks in the run that would have entered the judge phase and will now settle to `FAILED_JUDGE_TIMEOUT` without the judge call being attempted. The Progress widget event-log entry surfaces this count to the user. |
+| Field                      | Type             | Optional | Meaning                                                                                                                                                                                                                                    |
+| -------------------------- | ---------------- | :------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `run_id`                   | `RunId`          |    no    | The run whose judge model was just excluded.                                                                                                                                                                                               |
+| `provider_id`              | `ProviderId`     |    no    | The judge model's provider; internal UUID4.                                                                                                                                                                                                |
+| `model_name`               | `ModelName`      |    no    | The judge model that was excluded.                                                                                                                                                                                                         |
+| `consecutive_timeouts`     | `PositiveInt`    |    no    | The count of consecutive max-budget judge timeouts that triggered exclusion. Equals `eval.judge_timeout_consecutive_threshold` at the moment of exclusion.                                                                                 |
+| `exclusion_reason`         | `NonEmptyStr`    |    no    | Human-readable reason; canonical form `"<N> consecutive max-budget judge timeouts"`. Subscribers may render verbatim or wrap.                                                                                                              |
+| `excluded_at`              | `int`            |    no    | Unix-millisecond UTC timestamp recorded by the `Clock` when the threshold was crossed.                                                                                                                                                     |
+| `remaining_tasks_affected` | `NonNegativeInt` |    no    | Count of still-pending tasks in the run that would have entered the judge phase and will now settle to `FAILED_JUDGE_TIMEOUT` without the judge call being attempted. The Progress widget event-log entry surfaces this count to the user. |
 
 `JudgeModelExcludedEvent` is the typed payload of the `_judge_model_excluded` event (`08_Cross_Cutting/08-J_event_bus_catalog.md` §5.2, `08_Cross_Cutting/08-Q_event_payload_schemas.md`). It mirrors the existing per-model exclusion signalling currently carried by `_model_stability_changed` for the inference (test-role) path; the dedicated `_judge_model_excluded` event exists because judge exclusion is a discrete one-shot fact (the threshold was crossed for THIS run) rather than a continuous stability tracker, and because subscribers — chiefly the Progress widget Event Log — surface it as a single human-facing warning that "the judge model has been excluded for the remainder of this run". The event fires **at most once per run**, on the transition from `not excluded` to `excluded` in the JUDGE per-role state bucket; subsequent judge attempts in the same run never re-emit it. The struct is runtime-only and never persisted.
 
@@ -1410,15 +1409,15 @@ class GateLease(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     acquired_at: int                      # unix milliseconds, UTC
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `InferenceActivityContext.activity` | `InferenceActivity` | no | — | Which activity holds the gate (matches the enclosing state's `current`). |
-| `InferenceActivityContext.started_at` | `int` | no | — | Unix milliseconds UTC at which the activity acquired the gate; used by the watchdog auto-release (`08_Cross_Cutting/08-I_edge_cases.md`). |
-| `InferenceActivityContext.run_id` | `RunId \| None` | yes | `None` | The run the activity belongs to, when relevant — set for `BENCHMARK_RUN` and `JUDGE_ANALYSIS`; `None` for `PROVIDER_TEST` and `READINESS_PROBE`. |
-| `InferenceActivityContext.provider_id` | `ProviderIdStr \| None` | yes | `None` | The provider the activity is calling, when applicable. |
-| `InferenceActivityContext.model_name` | `ModelNameStr \| None` | yes | `None` | The model the activity is calling, when applicable. |
-| `InferenceActivityState.current` | `InferenceActivity` | no | — | The activity currently holding the gate, or `IDLE` when the gate is free. |
-| `InferenceActivityState.context` | `InferenceActivityContext \| None` | yes | `None` | The context of the held activity; `None` while `current == IDLE`. |
+| Field                                  | Type                               | Optional | Default | Meaning                                                                                                                                          |
+| -------------------------------------- | ---------------------------------- | :------: | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `InferenceActivityContext.activity`    | `InferenceActivity`                |    no    | —       | Which activity holds the gate (matches the enclosing state's `current`).                                                                         |
+| `InferenceActivityContext.started_at`  | `int`                              |    no    | —       | Unix milliseconds UTC at which the activity acquired the gate; used by the watchdog auto-release (`08_Cross_Cutting/08-I_edge_cases.md`).        |
+| `InferenceActivityContext.run_id`      | `RunId \| None`                    |   yes    | `None`  | The run the activity belongs to, when relevant — set for `BENCHMARK_RUN` and `JUDGE_ANALYSIS`; `None` for `PROVIDER_TEST` and `READINESS_PROBE`. |
+| `InferenceActivityContext.provider_id` | `ProviderIdStr \| None`            |   yes    | `None`  | The provider the activity is calling, when applicable.                                                                                           |
+| `InferenceActivityContext.model_name`  | `ModelNameStr \| None`             |   yes    | `None`  | The model the activity is calling, when applicable.                                                                                              |
+| `InferenceActivityState.current`       | `InferenceActivity`                |    no    | —       | The activity currently holding the gate, or `IDLE` when the gate is free.                                                                        |
+| `InferenceActivityState.context`       | `InferenceActivityContext \| None` |   yes    | `None`  | The context of the held activity; `None` while `current == IDLE`.                                                                                |
 
 `InferenceActivityState` is the value the `InferenceActivityStore` (`08_Cross_Cutting/08-E_interfaces_contracts.md`) returns from `state()` and carries on the `_inference_activity_changed` bus event (the Protocol is method-only; no `psygnal.Signal` — D-R-06). Both records are runtime-only and never persisted: the single-inference gate is reconstructed at process start and lost at process end.
 
@@ -1457,15 +1456,15 @@ class DriftWarning(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     pending_results_affected: NonNegativeInt = 0
 ```
 
-| Field | Type | Optional | Default | Meaning |
-|---|---|:--:|---|---|
-| `kind` | `DriftKind` | no | — | Which drift condition was detected. |
-| `severity` | `DriftSeverity` | no | — | `BLOCKING`, `WARNING`, or `INFO`; drives the Resume Summary grouping and gating. |
-| `provider_id` | `ProviderIdStr \| None` | yes | `None` | The provider the warning attributes to, when applicable. |
-| `model_name` | `ModelNameStr \| None` | yes | `None` | The model the warning attributes to, when applicable. |
-| `headline` | `NonEmptyStr` | no | — | One-line message for the dialog row. |
-| `detail` | `str` | yes | `""` | Optional expanded explanation. |
-| `pending_results_affected` | `NonNegativeInt` | yes | `0` | Count of the run's still-retryable results the warned condition would touch. |
+| Field                      | Type                    | Optional | Default | Meaning                                                                          |
+| -------------------------- | ----------------------- | :------: | ------- | -------------------------------------------------------------------------------- |
+| `kind`                     | `DriftKind`             |    no    | —       | Which drift condition was detected.                                              |
+| `severity`                 | `DriftSeverity`         |    no    | —       | `BLOCKING`, `WARNING`, or `INFO`; drives the Resume Summary grouping and gating. |
+| `provider_id`              | `ProviderIdStr \| None` |   yes    | `None`  | The provider the warning attributes to, when applicable.                         |
+| `model_name`               | `ModelNameStr \| None`  |   yes    | `None`  | The model the warning attributes to, when applicable.                            |
+| `headline`                 | `NonEmptyStr`           |    no    | —       | One-line message for the dialog row.                                             |
+| `detail`                   | `str`                   |   yes    | `""`    | Optional expanded explanation.                                                   |
+| `pending_results_affected` | `NonNegativeInt`        |   yes    | `0`     | Count of the run's still-retryable results the warned condition would touch.     |
 
 The drift DTOs are runtime-only: a `DriftWarning` is produced fresh by the Run Drift Detector on every resume attempt and is never persisted.
 
@@ -1479,6 +1478,10 @@ class ChartSeries(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     values: tuple[float | None, ...]
     color_hint: str | None = None
     result_ids: tuple[ResultId, ...] = ()
+    sample_sizes: tuple[NonNegativeInt, ...] = ()
+    low_sample_flags: tuple[bool, ...] = ()
+    estimated_flags: tuple[bool, ...] = ()
+    reasoning_flags: tuple[bool, ...] = ()
 
 class ChartData(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     chart_kind: ChartKind
@@ -1505,31 +1508,35 @@ class ChartFilters(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     options: dict[str, str | bool] = msgspec.field(default_factory=dict)  # SPEC-086: per-instance default, not a shared {} ; holds only scalars (no cycles), so gc=False is safe
 ```
 
-| Record | Field | Type | Meaning |
-|---|---|---|---|
-| `ChartSeries` | `name` | `NonEmptyStr` | Series label shown in the legend. |
-| `ChartSeries` | `values` | `tuple[float \| None, ...]` | One value per category; `None` is a gap (no bar). |
-| `ChartSeries` | `color_hint` | `str \| None` | Optional grouping key the UI maps to a theme colour; never a resolved colour. |
-| `ChartSeries` | `result_ids` | `tuple[ResultId, ...]` | Per-point `BenchmarkResult` back-references for scatter drill-down. |
-| `ChartData` | `chart_kind` | `ChartKind` | Which chart this structure describes. |
-| `ChartData` | `categories` | `tuple[str, ...]` | x-axis tick labels (or scatter point labels). |
-| `ChartData` | `series` | `tuple[ChartSeries, ...]` | One or more named numeric vectors. |
-| `ChartData` | `x_axis_title` / `y_axis_title` | `str` | Axis titles. |
-| `ChartData` | `value_unit` | `str` | The unit of the plotted value (for example `ms`, `s`). |
-| `ChartData` | `pareto_points` | `tuple[tuple[float, float], ...]` | Auxiliary Pareto-frontier `(x, y)` points for `SPEED_VS_QUALITY_SCATTER`. |
-| `ChartData` | `empty_state_message` | `str \| None` | Set when no row survived; the UI renders the message instead of axes. |
-| `HeatmapData` | `row_labels` | `tuple[str, ...]` | Row labels — `task_id` values. |
-| `HeatmapData` | `column_labels` | `tuple[str, ...]` | Column labels — `(provider_id, model_name)` pairs. |
-| `HeatmapData` | `cells` | `tuple[tuple[float \| None, ...], ...]` | `rows x columns` value matrix; `None` is a no-data cell. |
-| `HeatmapData` | `empty_state_message` | `str \| None` | Set when no `(task, model)` pair has a completed result. |
-| `ChartFilters` | `models` … `difficulties` | various | The five global filters; an empty tuple means *no constraint*. |
-| `ChartFilters` | `options` | `dict[str, str \| bool]` | Per-chart options (unit selector, aggregation switch, outlier toggle, metric switches). |
+| Record         | Field                           | Type                                    | Meaning                                                                                                                                                                                          |
+| -------------- | ------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ChartSeries`  | `name`                          | `NonEmptyStr`                           | Series label shown in the legend.                                                                                                                                                                |
+| `ChartSeries`  | `values`                        | `tuple[float \| None, ...]`             | One value per category; `None` is a gap (no bar).                                                                                                                                                |
+| `ChartSeries`  | `color_hint`                    | `str \| None`                           | Optional grouping key the UI maps to a theme colour; never a resolved colour.                                                                                                                    |
+| `ChartSeries`  | `result_ids`                    | `tuple[ResultId, ...]`                  | Per-point `BenchmarkResult` back-references for scatter drill-down.                                                                                                                              |
+| `ChartSeries`  | `sample_sizes`                  | `tuple[NonNegativeInt, ...]`            | Per-value completed-row count `n` for a group-based aggregate (§6.5a); empty for a row-level/cell-level series.                                                                                  |
+| `ChartSeries`  | `low_sample_flags`              | `tuple[bool, ...]`                      | Per-value `low_sample` flag, `True` when the paired `sample_sizes` entry is below `eval.min_sample_size` (§6.5a); empty for a row-level/cell-level series.                                       |
+| `ChartSeries`  | `estimated_flags`               | `tuple[bool, ...]`                      | Per-value flag, `True` when that value's group includes any `tokens_estimated` row (§7.2, SPEC-047, the UI's `≈` marker); empty for every other chart kind.                                      |
+| `ChartSeries`  | `reasoning_flags`               | `tuple[bool, ...]`                      | Per-value flag, `True` when that value's group includes any `has_thinking_block` row (§7.2, MISS-08, SPEC-093, the UI's "⧉ includes reasoning tokens" marker); empty for every other chart kind. |
+| `ChartData`    | `chart_kind`                    | `ChartKind`                             | Which chart this structure describes.                                                                                                                                                            |
+| `ChartData`    | `categories`                    | `tuple[str, ...]`                       | x-axis tick labels (or scatter point labels).                                                                                                                                                    |
+| `ChartData`    | `series`                        | `tuple[ChartSeries, ...]`               | One or more named numeric vectors.                                                                                                                                                               |
+| `ChartData`    | `x_axis_title` / `y_axis_title` | `str`                                   | Axis titles.                                                                                                                                                                                     |
+| `ChartData`    | `value_unit`                    | `str`                                   | The unit of the plotted value (for example `ms`, `s`).                                                                                                                                           |
+| `ChartData`    | `pareto_points`                 | `tuple[tuple[float, float], ...]`       | Auxiliary Pareto-frontier `(x, y)` points for `SPEED_VS_QUALITY_SCATTER`.                                                                                                                        |
+| `ChartData`    | `empty_state_message`           | `str \| None`                           | Set when no row survived; the UI renders the message instead of axes.                                                                                                                            |
+| `HeatmapData`  | `row_labels`                    | `tuple[str, ...]`                       | Row labels — `task_id` values.                                                                                                                                                                   |
+| `HeatmapData`  | `column_labels`                 | `tuple[str, ...]`                       | Column labels — `(provider_id, model_name)` pairs.                                                                                                                                               |
+| `HeatmapData`  | `cells`                         | `tuple[tuple[float \| None, ...], ...]` | `rows x columns` value matrix; `None` is a no-data cell.                                                                                                                                         |
+| `HeatmapData`  | `empty_state_message`           | `str \| None`                           | Set when no `(task, model)` pair has a completed result.                                                                                                                                         |
+| `ChartFilters` | `models` … `difficulties`       | various                                 | The five global filters; an empty tuple means *no constraint*.                                                                                                                                   |
+| `ChartFilters` | `options`                       | `dict[str, str \| bool]`                | Per-chart options (unit selector, aggregation switch, outlier toggle, metric switches).                                                                                                          |
 
 The chart DTOs are runtime-only: they are computed by the chart-aggregation service from a result snapshot and consumed by the Result widget chart canvas; they are never persisted.
 
 **Where used:** the chart-aggregation service (produces), the Result widget charts tab, chart PNG/SVG export.
 
----
+______________________________________________________________________
 
 ## 8. Patch records
 
@@ -1590,64 +1597,64 @@ Carries the run-header columns the pipeline updates as a run progresses. `run_id
 
 **Where used:** the data store's run-update operation.
 
----
+______________________________________________________________________
 
 ## 9. Where-used summary
 
-| Enum | Persisted column(s) | Primary consumers |
-|---|---|---|
-| `RunMode` | `benchmark_runs.run_mode` | pipeline, mode-visibility policy, New Benchmark widget |
-| `RunStatus` | `benchmark_runs.status` | pipeline, Resume widget, crash recovery |
-| `ResultStatus` | `benchmark_results.status` | pipeline, Result widget, retry logic |
-| `Verdict` | `benchmark_results.verdict` / `.keyword_verdict` / `.cosine_verdict` / `.judge_verdict` | evaluation phases, Result widget, charts |
-| `ResolutionLayer` | `benchmark_results.resolution_layer` | evaluation phases, Result widget |
-| `Difficulty` | `benchmark_tasks.difficulty` | task loader, chart filters |
-| `ProviderType` | `providers.provider_type`, `benchmark_run_providers.provider_type` | Provider Registry, Settings dialog |
-| `ProviderTestStatus` | `providers.last_probe_status` | Settings dialog, readiness service |
-| `InferenceTestOutcome` | `providers.last_inference_test_outcome` | Settings dialog Provider Edit, `LLMClient.test_inference`, `_provider_inference_test_completed` event |
-| `ModelRole` | `benchmark_run_models.role` | run snapshot, pipeline |
-| `TaskOrigin` | `benchmark_tasks.task_origin` | run-creation use case |
-| `TaskTermKind` | `benchmark_task_terms.term_kind` | keyword phase |
-| `ResultTermKind` | `benchmark_result_terms.term_kind` | keyword phase, Result widget |
-| `ModelCapability` | `model_capabilities.capability` | model-capability service |
-| `CapabilitySource` | `model_capabilities.observed_via` | model-capability service |
-| `ErrorKind` | `benchmark_results.error_kind`, `benchmark_result_attempts.error_kind` | pipeline error handling |
-| `AttemptOutcome` | `benchmark_result_attempts.outcome` | inference phase |
-| `ChartKind` | not persisted | Result widget charts tab |
-| `InferenceContext` | not persisted | `InferenceProgressEvent.context`; Progress widget Current-task controller, Generate Analysis dialog, Provider Edit inference-test panel |
-| `AdaptiveTimeoutRole` | not persisted | `AdaptiveTimeoutService.next_budget` / `record_success` / `record_timeout` / `is_excluded`; per-role state buckets in `11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md` |
-| `InferenceActivity` | not persisted | `InferenceActivityStore`, Generate Analysis dialog, every UI surface that initiates an inference |
-| `ReadinessState` | not persisted | readiness service |
-| `ChatRole`, `ReasoningEffort`, `ResponseFormat` | not persisted | LLM client |
-| `RunLogVerbosity`, `RunLogEventKind` | not persisted | log-formatting service, Progress widget |
-| `DriftSeverity`, `DriftKind` | not persisted | Run Drift Detector, Resume Summary dialog |
+| Enum                                            | Persisted column(s)                                                                     | Primary consumers                                                                                                                                                         |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RunMode`                                       | `benchmark_runs.run_mode`                                                               | pipeline, mode-visibility policy, New Benchmark widget                                                                                                                    |
+| `RunStatus`                                     | `benchmark_runs.status`                                                                 | pipeline, Resume widget, crash recovery                                                                                                                                   |
+| `ResultStatus`                                  | `benchmark_results.status`                                                              | pipeline, Result widget, retry logic                                                                                                                                      |
+| `Verdict`                                       | `benchmark_results.verdict` / `.keyword_verdict` / `.cosine_verdict` / `.judge_verdict` | evaluation phases, Result widget, charts                                                                                                                                  |
+| `ResolutionLayer`                               | `benchmark_results.resolution_layer`                                                    | evaluation phases, Result widget                                                                                                                                          |
+| `Difficulty`                                    | `benchmark_tasks.difficulty`                                                            | task loader, chart filters                                                                                                                                                |
+| `ProviderType`                                  | `providers.provider_type`, `benchmark_run_providers.provider_type`                      | Provider Registry, Settings dialog                                                                                                                                        |
+| `ProviderTestStatus`                            | `providers.last_probe_status`                                                           | Settings dialog, readiness service                                                                                                                                        |
+| `InferenceTestOutcome`                          | `providers.last_inference_test_outcome`                                                 | Settings dialog Provider Edit, `LLMClient.test_inference`, `_provider_inference_test_completed` event                                                                     |
+| `ModelRole`                                     | `benchmark_run_models.role`                                                             | run snapshot, pipeline                                                                                                                                                    |
+| `TaskOrigin`                                    | `benchmark_tasks.task_origin`                                                           | run-creation use case                                                                                                                                                     |
+| `TaskTermKind`                                  | `benchmark_task_terms.term_kind`                                                        | keyword phase                                                                                                                                                             |
+| `ResultTermKind`                                | `benchmark_result_terms.term_kind`                                                      | keyword phase, Result widget                                                                                                                                              |
+| `ModelCapability`                               | `model_capabilities.capability`                                                         | model-capability service                                                                                                                                                  |
+| `CapabilitySource`                              | `model_capabilities.observed_via`                                                       | model-capability service                                                                                                                                                  |
+| `ErrorKind`                                     | `benchmark_results.error_kind`, `benchmark_result_attempts.error_kind`                  | pipeline error handling                                                                                                                                                   |
+| `AttemptOutcome`                                | `benchmark_result_attempts.outcome`                                                     | inference phase                                                                                                                                                           |
+| `ChartKind`                                     | not persisted                                                                           | Result widget charts tab                                                                                                                                                  |
+| `InferenceContext`                              | not persisted                                                                           | `InferenceProgressEvent.context`; Progress widget Current-task controller, Generate Analysis dialog, Provider Edit inference-test panel                                   |
+| `AdaptiveTimeoutRole`                           | not persisted                                                                           | `AdaptiveTimeoutService.next_budget` / `record_success` / `record_timeout` / `is_excluded`; per-role state buckets in `11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md` |
+| `InferenceActivity`                             | not persisted                                                                           | `InferenceActivityStore`, Generate Analysis dialog, every UI surface that initiates an inference                                                                          |
+| `ReadinessState`                                | not persisted                                                                           | readiness service                                                                                                                                                         |
+| `ChatRole`, `ReasoningEffort`, `ResponseFormat` | not persisted                                                                           | LLM client                                                                                                                                                                |
+| `RunLogVerbosity`, `RunLogEventKind`            | not persisted                                                                           | log-formatting service, Progress widget                                                                                                                                   |
+| `DriftSeverity`, `DriftKind`                    | not persisted                                                                           | Run Drift Detector, Resume Summary dialog                                                                                                                                 |
 
-| Record | Persisted table(s) | Persisted |
-|---|---|---|
-| `ProviderConfig` | `providers` + `provider_models` | yes |
-| `ModelCapabilityRecord` | `model_capabilities` | yes |
-| `AppSettingRecord` | `app_settings` | yes |
-| `AppMetaRecord` | `app_meta` | yes |
-| `BenchmarkRun` | `benchmark_runs` + 3 snapshot tables | yes |
-| `BenchmarkRunModelEntry` | `benchmark_run_models` | yes |
-| `BenchmarkRunProviderEntry` | `benchmark_run_providers` | yes |
-| `BenchmarkRunSettingEntry` | `benchmark_run_settings` | yes |
-| `BenchmarkTask` | `benchmark_tasks` + `benchmark_task_terms` | yes |
-| `RequiredTerms` | `benchmark_task_terms` | yes (decomposed) |
-| `BenchmarkResult` | `benchmark_results` + `benchmark_result_terms` + `benchmark_result_attempts` | yes |
-| `BenchmarkResultTerm` | `benchmark_result_terms` | yes |
-| `BenchmarkResultAttempt` | `benchmark_result_attempts` | yes |
-| `ModelDescriptor` | none | no |
-| `ProviderHealth` | none | no |
-| `InferenceTestResult` | none | no |
-| `AppReadinessSnapshot` | none | no |
-| `RunStartRequest` | none | no |
-| `PerformanceConfig` | none | no |
-| `ChatRequest`, `ChatMessage`, `ChatResponse` | none | no |
-| `RunLogEvent` | none | no |
-| `InferenceActivityContext` | none | no |
-| `InferenceActivityState` | none | no |
-| `DriftWarning` | none | no |
-| `ChartSeries`, `ChartData`, `HeatmapData`, `ChartFilters` | none | no |
-| `ResultPatch`, `RunStatusPatch` | none (carry partial updates) | no |
-| `JudgeModelExcludedEvent` | none | no (`_judge_model_excluded` event payload) |
+| Record                                                    | Persisted table(s)                                                           | Persisted                                  |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
+| `ProviderConfig`                                          | `providers` + `provider_models`                                              | yes                                        |
+| `ModelCapabilityRecord`                                   | `model_capabilities`                                                         | yes                                        |
+| `AppSettingRecord`                                        | `app_settings`                                                               | yes                                        |
+| `AppMetaRecord`                                           | `app_meta`                                                                   | yes                                        |
+| `BenchmarkRun`                                            | `benchmark_runs` + 3 snapshot tables                                         | yes                                        |
+| `BenchmarkRunModelEntry`                                  | `benchmark_run_models`                                                       | yes                                        |
+| `BenchmarkRunProviderEntry`                               | `benchmark_run_providers`                                                    | yes                                        |
+| `BenchmarkRunSettingEntry`                                | `benchmark_run_settings`                                                     | yes                                        |
+| `BenchmarkTask`                                           | `benchmark_tasks` + `benchmark_task_terms`                                   | yes                                        |
+| `RequiredTerms`                                           | `benchmark_task_terms`                                                       | yes (decomposed)                           |
+| `BenchmarkResult`                                         | `benchmark_results` + `benchmark_result_terms` + `benchmark_result_attempts` | yes                                        |
+| `BenchmarkResultTerm`                                     | `benchmark_result_terms`                                                     | yes                                        |
+| `BenchmarkResultAttempt`                                  | `benchmark_result_attempts`                                                  | yes                                        |
+| `ModelDescriptor`                                         | none                                                                         | no                                         |
+| `ProviderHealth`                                          | none                                                                         | no                                         |
+| `InferenceTestResult`                                     | none                                                                         | no                                         |
+| `AppReadinessSnapshot`                                    | none                                                                         | no                                         |
+| `RunStartRequest`                                         | none                                                                         | no                                         |
+| `PerformanceConfig`                                       | none                                                                         | no                                         |
+| `ChatRequest`, `ChatMessage`, `ChatResponse`              | none                                                                         | no                                         |
+| `RunLogEvent`                                             | none                                                                         | no                                         |
+| `InferenceActivityContext`                                | none                                                                         | no                                         |
+| `InferenceActivityState`                                  | none                                                                         | no                                         |
+| `DriftWarning`                                            | none                                                                         | no                                         |
+| `ChartSeries`, `ChartData`, `HeatmapData`, `ChartFilters` | none                                                                         | no                                         |
+| `ResultPatch`, `RunStatusPatch`                           | none (carry partial updates)                                                 | no                                         |
+| `JudgeModelExcludedEvent`                                 | none                                                                         | no (`_judge_model_excluded` event payload) |

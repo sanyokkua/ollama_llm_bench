@@ -111,6 +111,28 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (result, task, run_mode). Light/dark inline-style palette per §8. Pure, stateless apart from
   the recorded theme; GUI-thread-only by convention; Qt-free, asyncio-free; no I/O, no redaction
   per `11_Services_and_Algorithms/20_HTML_RENDERING.md`.
+- Chart aggregators for the Result widget's Charts tab (`backend/charts/`): the `ChartAggregator`
+  Protocol (single method `compute`) and factory `make_chart_aggregator()`, computing all twelve
+  `ChartKind` aggregations (average TTFT/TPS/time per model, success/failed/incomplete counts,
+  pass rate, average cosine, verdict counts, time-vs-tokens scatter, task-by-model heatmap,
+  per-category bar, speed-vs-quality Pareto scatter, tokens-per-task box plot) from a run's
+  `BenchmarkResult`/`BenchmarkTask` snapshot into ready-to-paint `ChartData`/`HeatmapData`
+  structures. Shared five-step pipeline: a mode gate restricting six grading-only chart kinds to
+  `RunMode.GRADED`, the five `ChartFilters` global filters (Models/Status/Verdict/Category/
+  Difficulty, each empty-means-all, with an unjoinable `task_id` dropped), a per-chart
+  `COMPLETED`-status pre-filter (kind `SUCCESS_FAILED_INCOMPLETE_STACKED` keeps every row),
+  out-of-domain per-chart-option fallback to its documented default with a one-time
+  `chart_option_out_of_domain` warning log, and per-model/per-`(category, model)` grouping with
+  a minimum-sample-size guard. IQR × 1.5 outlier handling (dropped before the mean for TTFT/time,
+  never dropped from the tokens-per-task box geometry). Strict-domination Pareto frontier for the
+  speed-vs-quality scatter. Every kind returns its own exact empty-state message rather than
+  raising. Pure, stateless, Qt-free, asyncio-free, no I/O, safe from any thread, per
+  `11_Services_and_Algorithms/13_CHART_AGGREGATORS.md`. Additively extends `backend/domain`'s
+  `ChartSeries` (STORY-001) with `sample_sizes`/`low_sample_flags` (the minimum-sample-size
+  guard) and `estimated_flags`/`reasoning_flags` (per-model `≈`/`⧉` markers on
+  `AVG_TPS_PER_MODEL`, since total generation throughput is not directly comparable across
+  estimated-throughput or reasoning-token-emitting models) — every other existing consumer of
+  `ChartSeries` is unaffected by the new defaulted fields.
 
 ### Added (Phase 0 continued)
 
