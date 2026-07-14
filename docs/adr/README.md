@@ -10,4 +10,4 @@ Index of all Architecture Decision Records (ADRs) for Ollama LLM Bench. Format a
 | [ADR-0003](0003-uv-build-and-unsigned-distribution.md)                | Use the uv build backend and distribute unsigned, checksum-verified binaries                       | accepted | —          | —             |
 | [ADR-0004](0004-single-db-writer-owned-by-app-settings-store.md)      | House the single-writer connection manager and schema lifecycle in app-settings                    | accepted | —          | —             |
 | [ADR-0005](0005-llmclient-chat-takes-mandatory-cancellation-token.md) | Thread the CancellationToken into LLMClient.chat/chat_stream as a mandatory keyword-only parameter | accepted | —          | —             |
-| </content>                                                            |                                                                                                    |          |            |               |
+| [ADR-0006](0006-shared-inference-progress-helper.md)                  | Extract the shared inference-progress helper into backend/inference_progress/                      | accepted | —          | —             |
