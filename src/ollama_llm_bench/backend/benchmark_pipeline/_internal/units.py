@@ -35,7 +35,6 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.events import (
     emit_judge_completed,
     emit_judge_started,
 )
-from ollama_llm_bench.backend.benchmark_pipeline._internal.progress import emit_progress_during
 from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.domain.models import (
@@ -70,6 +69,7 @@ from ollama_llm_bench.backend.events.models import (
     JudgeStartedEvent,
 )
 from ollama_llm_bench.backend.events.protocols import EventBus
+from ollama_llm_bench.backend.inference_progress import emit_progress_during
 from ollama_llm_bench.backend.infra.protocols import Clock
 from ollama_llm_bench.backend.provider_registry.protocols import ProviderRegistry
 
