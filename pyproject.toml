@@ -183,6 +183,7 @@ source_modules = [
   "ollama_llm_bench.backend.csv_export",
   "ollama_llm_bench.backend.html_rendering",
   "ollama_llm_bench.backend.run_analysis",
+  "ollama_llm_bench.backend.inference_progress",
   "ollama_llm_bench.backend.performance_task_generator",
   "ollama_llm_bench.backend.log_formatting",
   "ollama_llm_bench.backend.log_file_writer",
