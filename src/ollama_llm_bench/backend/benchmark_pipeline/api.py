@@ -34,7 +34,7 @@ def make_benchmark_pipeline(  # noqa: PLR0913  # every keyword-only argument is 
     runs_store: RunsStore,
     tasks_store: TasksStore,
     inference_activity_store: InferenceActivityStore,
-    task_runner: TaskRunner[ResultPatch],
+    task_runner: TaskRunner[object],
     bus: EventBus,
     clock: Clock,
     embedding_service: EmbeddingService,
@@ -50,6 +50,10 @@ def make_benchmark_pipeline(  # noqa: PLR0913  # every keyword-only argument is 
         tasks_store: The run's frozen task-snapshot store.
         inference_activity_store: The application-wide single-inference gate.
         task_runner: The scheduling port each phase's units are submitted to.
+            Typed `TaskRunner[object]` (mirroring `backend/readiness`) since
+            it serves every phase's distinct per-unit payload type — the
+            non-stability phases' own `ResultPatch` read is cast back
+            internally.
         bus: The application event bus run-domain and per-task events are emitted on.
         clock: The injected time source.
         embedding_service: The shared embedding + cosine-scoring facade.

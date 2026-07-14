@@ -1,9 +1,16 @@
 """Proves: STORY-029-AC-1
 
-Direct smoke tests for the four `build_*_unit` functions — the fuller
+Direct smoke tests for the four phase-unit builder families — the fuller
 end-to-end exercise happens via Task 6's dispatcher integration tests; these
 tests confirm each builder's own success-path `ResultPatch` shape in
 isolation, against `mocker.Mock(spec=...)` collaborators.
+
+`build_inference_attempt`/`finalize_inference_success` and
+`build_judge_attempt`/`finalize_judge_success` are the STORY-030 split of the
+pre-STORY-030 single-attempt `build_inference_unit`/`build_judge_unit` — each
+pair is exercised here as attempt-builder-then-finalize, mirroring exactly how
+`_internal.stability_dispatch.run_task_with_stability` drives them in
+production.
 """
 
 from collections.abc import Iterator
@@ -12,9 +19,12 @@ from pytest_mock import MockerFixture
 
 from ollama_llm_bench.backend.benchmark_pipeline._internal.units import (
     build_cosine_unit,
-    build_inference_unit,
-    build_judge_unit,
+    build_inference_attempt,
+    build_judge_attempt,
+    build_judge_timeout_exhausted_patch,
     build_keyword_unit,
+    finalize_inference_success,
+    finalize_judge_success,
 )
 from ollama_llm_bench.backend.benchmark_pipeline.testing import make_benchmark_result
 from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import (
@@ -26,6 +36,7 @@ from ollama_llm_bench.backend.domain.models import (
     BenchmarkResult,
     ChatChunk,
     ChatResponse,
+    ErrorKind,
     ResolutionLayer,
     ResultStatus,
     Verdict,
@@ -45,7 +56,9 @@ from ollama_llm_bench.backend.evaluation.protocols import (
 from ollama_llm_bench.backend.events.protocols import EventBus
 from ollama_llm_bench.backend.provider_registry.protocols import ChatStream, ProviderRegistry
 
-_JUDGE_UNIT_EMIT_COUNT = 2
+_JUDGE_STARTED_AND_COMPLETED_EMIT_COUNT = 2
+_JUDGE_PROVIDER_ID = "22222222-2222-4222-8222-222222222222"
+_JUDGE_MODEL_NAME = "judge-model"
 
 
 class _FakeChatStream:
@@ -126,11 +139,15 @@ def test_build_cosine_unit_completes_when_judge_disabled(mocker: MockerFixture) 
     assert patch.resolution_layer is ResolutionLayer.COSINE
 
 
-def test_build_judge_unit_completes_with_resolved_outcome(mocker: MockerFixture) -> None:
+def test_build_judge_attempt_then_finalize_completes_with_resolved_outcome(
+    mocker: MockerFixture,
+) -> None:
     """Proves: STORY-029-AC-1
 
     A resolved judge-phase evaluation always completes the row (the judge
-    phase is always the terminal grading phase when it runs).
+    phase is always the terminal grading phase when it runs) — driven
+    through the STORY-030 attempt-builder-then-finalize split exactly as
+    `run_task_with_stability` drives it in production.
     """
     result = BenchmarkResult(
         result_id=1,
@@ -153,25 +170,71 @@ def test_build_judge_unit_completes_with_resolved_outcome(mocker: MockerFixture)
     )
     bus = mocker.Mock(spec=EventBus)
 
-    unit = build_judge_unit(
+    build_attempt = build_judge_attempt(
         result=result,
         task=make_task(),
         evaluator=evaluator,
-        timeout_ms=30_000,
         token=make_cancellation_token(),
         bus=bus,
-        force_judge_on_prior_failure=False,
+        judge_provider_id=_JUDGE_PROVIDER_ID,
+        judge_model_name=_JUDGE_MODEL_NAME,
     )
-    patch = unit()
+    attempt = build_attempt(30_000)
+    raw = attempt()
+    finalize = finalize_judge_success(result=result, force_judge_on_prior_failure=False, bus=bus)
+    patch = finalize(raw)
 
     assert patch.status is ResultStatus.COMPLETED
     assert patch.judge_verdict is Verdict.PASS
     assert patch.verdict is Verdict.PASS
     assert patch.resolution_layer is ResolutionLayer.JUDGE
-    assert bus.emit.call_count == _JUDGE_UNIT_EMIT_COUNT  # _judge_started + _judge_completed
+    assert bus.emit.call_count == _JUDGE_STARTED_AND_COMPLETED_EMIT_COUNT
 
 
-def test_build_judge_unit_maps_transport_failure_to_generic_errored(
+def test_build_judge_attempt_emits_started_with_run_judge_target_not_row_test_model(
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-030 (Task 1 judge-target fix)
+
+    `JudgeStartedEvent.judge_provider_id`/`judge_model_name` equal the run's
+    resolved judge target passed to `build_judge_attempt`, not the row's own
+    `provider_id`/`model_name` (a different test model in this scenario) —
+    the mislabeling `build_judge_unit` had before this story's fix.
+    """
+    result = make_benchmark_result(
+        status=ResultStatus.AWAITING_JUDGE_CHECK,
+        provider_id="11111111-1111-4111-8111-111111111111",
+        model_name="llama3",
+    )
+    evaluator = mocker.Mock(spec=JudgeEvaluator)
+    evaluator.evaluate.return_value = JudgePhaseResult(
+        outcome=JudgePhaseOutcome.RESOLVED,
+        verdict=Verdict.PASS,
+        reasoning="ok",
+        time_ms=100,
+        completion_tokens=10,
+    )
+    bus = mocker.Mock(spec=EventBus)
+
+    build_judge_attempt(
+        result=result,
+        task=make_task(),
+        evaluator=evaluator,
+        token=make_cancellation_token(),
+        bus=bus,
+        judge_provider_id=_JUDGE_PROVIDER_ID,
+        judge_model_name=_JUDGE_MODEL_NAME,
+    )
+
+    started_call = bus.emit.call_args_list[0]
+    started_payload = started_call.args[1]
+    assert started_payload.judge_provider_id == _JUDGE_PROVIDER_ID
+    assert started_payload.judge_model_name == _JUDGE_MODEL_NAME
+    assert started_payload.judge_provider_id != result.provider_id
+    assert started_payload.judge_model_name != result.model_name
+
+
+def test_finalize_judge_success_maps_transport_failure_to_generic_errored(
     mocker: MockerFixture,
 ) -> None:
     """Proves: STORY-029-AC-1
@@ -180,8 +243,7 @@ def test_build_judge_unit_maps_transport_failure_to_generic_errored(
     STORY-030-owned FAILED_JUDGE_TIMEOUT status.
     """
     result = make_benchmark_result(status=ResultStatus.AWAITING_JUDGE_CHECK)
-    evaluator = mocker.Mock(spec=JudgeEvaluator)
-    evaluator.evaluate.return_value = JudgePhaseResult(
+    raw = JudgePhaseResult(
         outcome=JudgePhaseOutcome.TRANSPORT_FAILURE,
         verdict=None,
         reasoning="the provider connection failed",
@@ -190,27 +252,38 @@ def test_build_judge_unit_maps_transport_failure_to_generic_errored(
     )
     bus = mocker.Mock(spec=EventBus)
 
-    unit = build_judge_unit(
-        result=result,
-        task=make_task(),
-        evaluator=evaluator,
-        timeout_ms=30_000,
-        token=make_cancellation_token(),
-        bus=bus,
-        force_judge_on_prior_failure=False,
-    )
-    patch = unit()
+    finalize = finalize_judge_success(result=result, force_judge_on_prior_failure=False, bus=bus)
+    patch = finalize(raw)
 
     assert patch.status is ResultStatus.ERRORED
 
 
-def test_build_inference_unit_advances_to_completed_when_no_grading_enabled(
+def test_build_judge_timeout_exhausted_patch_settles_failed_judge_timeout() -> None:
+    """Proves: STORY-030-AC-3
+
+    The per-task judge-timeout-ladder exhaustion terminal patch settles
+    FAILED_JUDGE_TIMEOUT with error_kind=JUDGE_TIMEOUT and no combined
+    verdict — the combination step is not applied.
+    """
+    build_patch = build_judge_timeout_exhausted_patch()
+
+    patch = build_patch()
+
+    assert patch.status is ResultStatus.FAILED_JUDGE_TIMEOUT
+    assert patch.error_kind is ErrorKind.JUDGE_TIMEOUT
+    assert patch.verdict is None
+    assert patch.resolution_layer is None
+
+
+def test_build_inference_attempt_then_finalize_advances_to_completed(
     mocker: MockerFixture,
 ) -> None:
     """Proves: STORY-029-AC-1
 
     A successful inference call in a non-grading mode (every grading
-    toggle disabled) routes straight to COMPLETED with no verdict.
+    toggle disabled) routes straight to COMPLETED with no verdict — driven
+    through the STORY-030 attempt-builder-then-finalize split exactly as
+    `run_task_with_stability` drives it in production.
     """
     result = make_benchmark_result(status=ResultStatus.PENDING)
     chat_stream: ChatStream = _FakeChatStream(
@@ -226,21 +299,28 @@ def test_build_inference_unit_advances_to_completed_when_no_grading_enabled(
     sanity_checker = mocker.Mock(spec=SanityChecker)
     sanity_checker.check.return_value = True
     bus = mocker.Mock(spec=EventBus)
+    task = make_task()
 
-    unit = build_inference_unit(
+    build_attempt = build_inference_attempt(
         result=result,
-        task=make_task(),
+        task=task,
         provider_registry=provider_registry,
         sanity_checker=sanity_checker,
-        timeout_ms=30_000,
         clock=FakeClock(),
         bus=bus,
         token=make_cancellation_token(),
+    )
+    attempt = build_attempt(30_000)
+    outcome = attempt()
+    finalize = finalize_inference_success(
+        result=result,
+        task=task,
+        bus=bus,
         keyword_enabled=False,
         cosine_enabled=False,
         judge_enabled=False,
     )
-    patch = unit()
+    patch = finalize(outcome)
 
     assert patch.status is ResultStatus.COMPLETED
     assert patch.sanitized_response == "Paris."

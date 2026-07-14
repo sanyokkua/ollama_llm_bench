@@ -136,10 +136,12 @@ def fake_inference_activity_store(mocker: MockerFixture) -> InferenceActivitySto
 
 
 class _RecordingEventBus:
-    """A minimal `EventBus` double recording every emitted signal name, in order."""
+    """A minimal `EventBus` double recording every emitted signal name and
+    payload, in order."""
 
     def __init__(self) -> None:
         self._emitted: list[str] = []
+        self._payloads: list[object] = []
 
     def subscribe(
         self, signal_name: str, handler: Callable[[object], None], owner: object | None = None
@@ -147,12 +149,20 @@ class _RecordingEventBus:
         del signal_name, handler, owner  # unused: no test in this package subscribes
 
     def emit(self, signal_name: str, payload: object) -> None:
-        del payload
         self._emitted.append(signal_name)
+        self._payloads.append(payload)
 
     def emitted_signal_names(self) -> list[str]:
         """Return every emitted signal name, in emission order."""
         return list(self._emitted)
+
+    def emitted_payloads(self, signal_name: str) -> list[object]:
+        """Return every payload emitted under `signal_name`, in emission order."""
+        return [
+            payload
+            for name, payload in zip(self._emitted, self._payloads, strict=True)
+            if name == signal_name
+        ]
 
 
 @pytest.fixture
@@ -184,10 +194,38 @@ def fake_settings_service(mocker: MockerFixture) -> SettingsService:
     return cast("SettingsService", service)
 
 
+STABILITY_SETTING_ENTRIES: tuple[BenchmarkRunSettingEntry, ...] = (
+    # AdaptiveTimeoutService (STORY-022/STORY-030) — role=INFERENCE ladder.
+    BenchmarkRunSettingEntry(setting_key="benchmark.min_timeout_seconds", setting_value="5"),
+    BenchmarkRunSettingEntry(setting_key="benchmark.max_timeout_seconds", setting_value="30"),
+    BenchmarkRunSettingEntry(setting_key="benchmark.retry_count", setting_value="3"),
+    BenchmarkRunSettingEntry(
+        setting_key="benchmark.consecutive_max_timeouts_to_exclude", setting_value="3"
+    ),
+    # AdaptiveTimeoutService — role=JUDGE (+ role=RUN_ANALYSIS, DD-65) ladder.
+    BenchmarkRunSettingEntry(setting_key="eval.judge_timeout_min_seconds", setting_value="20"),
+    BenchmarkRunSettingEntry(setting_key="eval.judge_timeout_max_seconds", setting_value="120"),
+    BenchmarkRunSettingEntry(setting_key="eval.judge_timeout_escalation_steps", setting_value="2"),
+    BenchmarkRunSettingEntry(
+        setting_key="eval.judge_timeout_consecutive_threshold", setting_value="3"
+    ),
+    # ProviderCircuitBreaker (STORY-023).
+    BenchmarkRunSettingEntry(setting_key="circuit_breaker.enabled", setting_value="true"),
+    BenchmarkRunSettingEntry(setting_key="circuit_breaker.failure_threshold", setting_value="5"),
+    BenchmarkRunSettingEntry(setting_key="circuit_breaker.cooldown_seconds", setting_value="30"),
+)
+"""Every `AdaptiveTimeoutService`/`ProviderCircuitBreaker` required per-run-overridable
+key (STORY-030) — every `GRADED`/`TASKS`/`SYNTHETIC` run now constructs both services
+unconditionally in `_run_phases`, so any test driving `pipeline.start()`/`resume()`
+through a real dispatcher thread needs these present on the run's settings snapshot."""
+
+
 @pytest.fixture
 def fake_run_snapshot_builder(mocker: MockerFixture) -> RunSnapshotBuilder:
     """A `RunSnapshotBuilder` double carrying every `eval.*` key the evaluation
-    module's factories require present (`REQUIRED_EVALUATION_SETTING_KEYS`)."""
+    module's factories require present (`REQUIRED_EVALUATION_SETTING_KEYS`), plus
+    every `AdaptiveTimeoutService`/`ProviderCircuitBreaker` required key
+    (`STABILITY_SETTING_ENTRIES`, STORY-030)."""
     builder = mocker.Mock(spec=RunSnapshotBuilder)
     builder.build_snapshot.return_value = (
         BenchmarkRunSettingEntry(setting_key="eval.sanity_min_chars", setting_value="1"),
@@ -202,5 +240,6 @@ def fake_run_snapshot_builder(mocker: MockerFixture) -> RunSnapshotBuilder:
         BenchmarkRunSettingEntry(
             setting_key="eval.force_judge_on_prior_failure", setting_value="false"
         ),
+        *STABILITY_SETTING_ENTRIES,
     )
     return cast("RunSnapshotBuilder", builder)

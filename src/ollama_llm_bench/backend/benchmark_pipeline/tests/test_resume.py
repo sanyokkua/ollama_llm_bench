@@ -7,7 +7,10 @@ from pytest_mock import MockerFixture
 
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi, make_benchmark_pipeline
 from ollama_llm_bench.backend.benchmark_pipeline.testing import make_benchmark_result
-from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import make_task
+from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import (
+    STABILITY_SETTING_ENTRIES,
+    make_task,
+)
 from ollama_llm_bench.backend.domain.models import (
     BenchmarkRun,
     BenchmarkRunSettingEntry,
@@ -74,8 +77,10 @@ def _make_stopped_run() -> BenchmarkRun:
     """A minimal, previously-`STOPPED` run carrying a frozen settings snapshot.
 
     Carries every `eval.*` key `make_sanity_checker`'s own contract requires
-    (`REQUIRED_EVALUATION_SETTING_KEYS`) since `resume()` genuinely spawns
-    the `pipeline-dispatcher` thread, which constructs this run's evaluators
+    (`REQUIRED_EVALUATION_SETTING_KEYS`) plus every `AdaptiveTimeoutService`/
+    `ProviderCircuitBreaker` required key (`STABILITY_SETTING_ENTRIES`,
+    STORY-030), since `resume()` genuinely spawns the `pipeline-dispatcher`
+    thread, which constructs this run's evaluators and stability services
     from `run.settings_snapshot` exactly as `start()` would.
     """
     return BenchmarkRun(
@@ -102,6 +107,7 @@ def _make_stopped_run() -> BenchmarkRun:
             BenchmarkRunSettingEntry(
                 setting_key="eval.force_judge_on_prior_failure", setting_value="false"
             ),
+            *STABILITY_SETTING_ENTRIES,
         ),
     )
 

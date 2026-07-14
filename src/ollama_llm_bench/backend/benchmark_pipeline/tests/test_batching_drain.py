@@ -27,12 +27,15 @@ _NEXT_STATUS_BY_PHASE: dict[Phase, ResultStatus] = {
 
 
 class _InlineTaskRunner:
-    """Runs a unit synchronously on the calling thread — a test double only."""
+    """Runs a unit synchronously on the calling thread — a test double only.
 
-    def submit(
-        self, fn: Callable[[], ResultPatch], *, token: CancellationToken
-    ) -> Future[ResultPatch]:
-        future: Future[ResultPatch] = Future()
+    Typed `object` (not `ResultPatch`) to structurally satisfy `TaskRunner[object]`,
+    the same convention `backend/readiness` and this package's shared
+    `conftest.py` double already use — `run_all_phases` accepts `TaskRunner[object]`.
+    """
+
+    def submit(self, fn: Callable[[], object], *, token: CancellationToken) -> Future[object]:
+        future: Future[object] = Future()
         future.set_result(fn())
         return future
 

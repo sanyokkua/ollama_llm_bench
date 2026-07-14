@@ -1,7 +1,7 @@
 ---
 id: STORY-030
 title: Orchestrate the judge phase with adaptive timeout, judge-model exclusion, and circuit-breaker consultation
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#65-stage-4--judge-phase
   - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#8-error-handling
@@ -173,9 +173,35 @@ On retry, a row's re-entry is determined by its reset status per this table:
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-030.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/benchmark_pipeline/`.
-- [ ] An architecture test confirms the `AdaptiveTimeoutService` and `ProviderCircuitBreaker` are
-  touched only on the dispatcher thread (no worker-unit access).
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-030.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-030.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/benchmark_pipeline/`.
+- [x] An architecture test confirms the `AdaptiveTimeoutService` and `ProviderCircuitBreaker` are
+  touched only on the dispatcher thread (no worker-unit access) —
+  `tests/architecture/test_stability_dispatcher_thread_only.py`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-030.
+  (`just trace-check` still fails on three pre-existing, unrelated edge-case gaps —
+  `EC-PERSIST-6`, `EC-PROV-1a`, `EC-RUN-1a` — tracked as backlog before this story started; see
+  `docs/stories/` history / project memory `project_preexisting_gate_failures`.)
+- [x] The module inventory is unchanged.
+
+## Verification notes (fix-up pass)
+
+- `just check` initially failed `mypy --strict` on two colocated test doubles
+  (`test_serial_execution.py::_InlineTaskRunner`, `test_batching_drain.py::_InlineTaskRunner`)
+  typed `Callable[[], ResultPatch]`/`Future[ResultPatch]`, which no longer structurally satisfies
+  `run_phase`/`run_all_phases`'s `TaskRunner[object]` parameter. Retyped both to
+  `Callable[[], object]`/`Future[object]`, matching the convention already used by this
+  package's shared `conftest.py` double and by `backend/readiness`. No behavior change.
+- Added `src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_judge_target.py` (2 tests)
+  to directly cover `resolve_judge_target`'s both-branches (judge entry present / absent) —
+  the only real coverage gap left in a STORY-030-touched file (`judge_target.py` was 78%
+  covered, missing its `None`-return guard clause). Both AC-3 and AC-4 now additionally cite
+  these tests.
+- `just check` (lint, format-check, typecheck, import-check, arch-test, test): all green —
+  733 architecture tests, 749 in `tests/unit tests/integration src`.
+- `just coverage-layers`: backend layer 91% (>= 90% required). The UI-layer sub-gates still
+  fail with "No data to report" — pre-existing, documented backlog (no `ui/` controllers exist
+  yet at this phase of the rewrite), not a STORY-030 regression.
+- `just trace` / `just trace-check`: traceability.yaml regenerated; STORY-030's AC-1..AC-5 all
+  map to passing tests with zero gaps. The only `trace-check` failures are the three
+  pre-existing EC gaps noted above.

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-13T15:29:52Z'
+generated_at: '2026-07-13T20:54:40Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2091,10 +2091,10 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_phase_order_is_the_five_phases_in_spec_order
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching_drain.py::test_no_row_enters_a_later_phase_before_the_earlier_phase_fully_drains
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_cosine_unit_completes_when_judge_disabled
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_inference_unit_advances_to_completed_when_no_grading_enabled
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_judge_unit_completes_with_resolved_outcome
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_judge_unit_maps_transport_failure_to_generic_errored
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_inference_attempt_then_finalize_advances_to_completed
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_judge_attempt_then_finalize_completes_with_resolved_outcome
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_keyword_unit_advances_to_awaiting_cosine_check
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_finalize_judge_success_maps_transport_failure_to_generic_errored
         - tests/architecture/test_benchmark_pipeline_module.py::test_at_least_one_source_file_discovered
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/__init__.py]
@@ -2103,9 +2103,12 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/embedding_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/events.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/grouping.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/lifecycle.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/outcome.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/progress.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_dispatch.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[api.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[models.py]
@@ -2113,15 +2116,20 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[testing.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/conftest.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_adaptive_timeout_consumption.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_batching.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_batching_drain.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_circuit_breaker_consultation.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_embedding_probe.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_judge_target.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_judge_timeout.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_lifecycle_containment.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_pause_stop.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_resume.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_serial_execution.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stage_preserving_retry.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/__init__.py]
@@ -2130,9 +2138,12 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/embedding_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/events.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/grouping.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/lifecycle.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/outcome.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/progress.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_dispatch.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[api.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[models.py]
@@ -2140,15 +2151,20 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[testing.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/conftest.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_adaptive_timeout_consumption.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_batching.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_batching_drain.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_circuit_breaker_consultation.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_embedding_probe.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_judge_target.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_judge_timeout.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_lifecycle_containment.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_pause_stop.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_resume.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_serial_execution.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stage_preserving_retry.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/__init__.py]
@@ -2157,9 +2173,12 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/embedding_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/events.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/grouping.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/lifecycle.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/outcome.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/progress.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_dispatch.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[api.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[models.py]
@@ -2167,15 +2186,20 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[testing.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/conftest.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_adaptive_timeout_consumption.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_batching.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_batching_drain.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_circuit_breaker_consultation.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_embedding_probe.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_judge_target.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_judge_timeout.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_lifecycle_containment.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_pause_stop.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_resume.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_serial_execution.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stage_preserving_retry.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_units.py]
       STORY-029-AC-2:
         tests:
@@ -2214,7 +2238,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_never_raises.py::test_dd44_containment_uses_each_leafs_own_status_and_kind_mapping[exc2-errored]
   STORY-030:
     title: Orchestrate the judge phase with adaptive timeout, judge-model exclusion, and circuit-breaker consultation
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-B_benchmark_state_machine.md#6-adaptive-timeout-state-machine
     - 08_Cross_Cutting/08-B_benchmark_state_machine.md#7-provider-circuit-breaker-state-machine
@@ -2227,15 +2251,30 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-030-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_adaptive_timeout_consumption.py::test_cancelled_attempt_reports_no_outcome_to_adaptive_timeout
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_adaptive_timeout_consumption.py::test_inference_role_requests_budget_and_reports_success
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_adaptive_timeout_consumption.py::test_judge_role_requests_budget_and_reports_success
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_adaptive_timeout_consumption.py::test_timeout_then_success_reports_one_timeout_then_one_success
       STORY-030-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_circuit_breaker_consultation.py::test_cancelled_unit_reports_no_outcome_to_circuit_breaker
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_circuit_breaker_consultation.py::test_tripped_provider_settles_failed_provider_with_no_network_call
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_circuit_breaker_consultation.py::test_untripped_provider_calls_normally_and_records_one_success
       STORY-030-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_judge_target.py::test_resolve_judge_target_with_judge_entry_returns_its_provider_and_model
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_judge_timeout.py::test_per_task_judge_timeout_settles_failed_judge_timeout
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_judge_timeout_exhausted_patch_settles_failed_judge_timeout
       STORY-030-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_judge_target.py::test_resolve_judge_target_with_no_judge_entry_returns_none
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_judge_timeout.py::test_run_wide_judge_exclusion_skips_remaining_and_continues
       STORY-030-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stage_preserving_retry.py::test_failed_judge_timeout_retry_reruns_whole_task
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stage_preserving_retry.py::test_retry_re_entry_by_reset_status[awaiting_judge_check-0-1]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stage_preserving_retry.py::test_retry_re_entry_by_reset_status[pending-1-1]
 clauses:
   08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution:
     stories:

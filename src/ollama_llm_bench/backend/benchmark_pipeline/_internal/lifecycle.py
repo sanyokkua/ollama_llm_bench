@@ -12,6 +12,7 @@ import threading
 
 import msgspec
 
+from ollama_llm_bench.backend.adaptive_timeout import make_adaptive_timeout_service
 from ollama_llm_bench.backend.benchmark_pipeline._internal.dispatcher import run_all_phases
 from ollama_llm_bench.backend.benchmark_pipeline._internal.embedding_probe import (
     run_embedding_probe,
@@ -27,14 +28,18 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.events import (
     emit_run_stopped,
 )
 from ollama_llm_bench.backend.benchmark_pipeline._internal.outcome import resolve_halt_outcome
+from ollama_llm_bench.backend.benchmark_pipeline._internal.stability_phase import (
+    StabilityCollaborators,
+    StabilityRunState,
+    run_stability_phase,
+)
 from ollama_llm_bench.backend.benchmark_pipeline._internal.units import (
     build_cosine_unit,
-    build_inference_unit,
-    build_judge_unit,
     build_keyword_unit,
 )
 from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.benchmark_pipeline.protocols import BenchmarkFlowApi
+from ollama_llm_bench.backend.circuit_breaker import make_circuit_breaker
 from ollama_llm_bench.backend.concurrency import CancellationToken, make_cancellation_token
 from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
 from ollama_llm_bench.backend.domain.models import (
@@ -49,7 +54,9 @@ from ollama_llm_bench.backend.domain.models import (
     GateLease,
     InferenceActivity,
     InferenceActivityContext,
+    ModelNameStr,
     ModelRole,
+    ProviderIdStr,
     ResultId,
     ResultPatch,
     ResultStatus,
@@ -106,6 +113,7 @@ _NON_TERMINAL_STATUSES: frozenset[ResultStatus] = frozenset(
 plus `PENDING` — used only to compute `completed_tasks` at settle time."""
 
 _DISPATCHER_THREAD_NAME = "pipeline-dispatcher"
+_MS_PER_SECOND = 1000
 
 
 @dataclass(slots=True, frozen=True)
@@ -189,7 +197,7 @@ class _BenchmarkFlowApiImpl:
         runs_store: RunsStore,
         tasks_store: TasksStore,
         inference_activity_store: InferenceActivityStore,
-        task_runner: TaskRunner[ResultPatch],
+        task_runner: TaskRunner[object],
         bus: EventBus,
         clock: Clock,
         embedding_service: EmbeddingService,
@@ -213,6 +221,7 @@ class _BenchmarkFlowApiImpl:
         self._current_run: BenchmarkRun | None = None
         self._token: CancellationToken | None = None
         self._dispatcher_thread: threading.Thread | None = None
+        self._stability_state = StabilityRunState()
 
     def start(self, request: RunStartRequest) -> RunId:
         """Admit under the gate, create the run, and dispatch it (see class docstring)."""
@@ -599,8 +608,43 @@ class _BenchmarkFlowApiImpl:
                 result=result,
                 task=tasks_by_id[result.task_id],
                 evaluators=evaluators,
-                token=token,
                 toggles=toggles,
+            )
+
+        self._stability_state = StabilityRunState()
+        adaptive_timeout = make_adaptive_timeout_service(snapshot=run.settings_snapshot)
+        circuit_breaker = make_circuit_breaker(snapshot=run.settings_snapshot, clock=self._clock)
+        retry_count = self._settings_service.get_int("benchmark.retry_count", run=run)
+        collaborators = StabilityCollaborators(
+            bus=self._bus,
+            clock=self._clock,
+            provider_registry=self._provider_registry,
+            results_store=self._results_store,
+            settings_service=self._settings_service,
+            task_runner=self._task_runner,
+        )
+
+        def _stability_phase_runner(
+            phase: Phase,
+            groups: tuple[tuple[ProviderIdStr, ModelNameStr, tuple[BenchmarkResult, ...]], ...],
+        ) -> None:
+            run_stability_phase(
+                phase=phase,
+                groups=groups,
+                run=run,
+                tasks_by_id=tasks_by_id,
+                sanity_checker=evaluators.sanity_checker,
+                judge_evaluator=evaluators.judge_evaluator,
+                token=token,
+                keyword_enabled=toggles.keyword_enabled,
+                cosine_enabled=toggles.cosine_enabled,
+                judge_enabled=toggles.judge_enabled,
+                force_judge_on_prior_failure=toggles.force_judge,
+                collaborators=collaborators,
+                state=self._stability_state,
+                adaptive_timeout=adaptive_timeout,
+                circuit_breaker=circuit_breaker,
+                retry_count=retry_count,
             )
 
         run_all_phases(
@@ -613,6 +657,7 @@ class _BenchmarkFlowApiImpl:
             token=token,
             results_store=self._results_store,
             unit_factory_for_phase=_unit_factory_for_phase,
+            stability_phase_runner=_stability_phase_runner,
         )
         return False
 
@@ -782,24 +827,21 @@ class _BenchmarkFlowApiImpl:
         with self._lock:
             self._is_running = False
 
-    def _build_unit(  # noqa: PLR0913  # each parameter is a distinct collaborator
-        # this per-phase unit factory needs; the two dataclass bundles
-        # (_RunEvaluators, _PhaseToggles) already group everything groupable —
-        # phase/result/task/token are each independently varying per call
+    def _build_unit(
         self,
         *,
         phase: Phase,
         result: BenchmarkResult,
         task: BenchmarkTask,
         evaluators: "_RunEvaluators",
-        token: CancellationToken,
         toggles: "_PhaseToggles",
     ) -> Callable[[], ResultPatch]:
-        """Dispatch to the matching `build_*_unit` factory for one phase."""
-        if phase is Phase.INFERENCE:
-            return self._build_inference_unit_for(
-                result=result, task=task, evaluators=evaluators, token=token, toggles=toggles
-            )
+        """Dispatch to the matching `build_*_unit` factory for `KEYWORD_CHECK`/
+        `COSINE_CHECK` — the only two phases `run_all_phases` still routes
+        through `unit_factory_for_phase`/`run_phase` (STORY-030): `INFERENCE`
+        and `JUDGE_CHECK` are always routed through `stability_phase_runner`
+        instead (`_run_stability_phase`), never reaching this method.
+        """
         if phase is Phase.KEYWORD_CHECK:
             return build_keyword_unit(
                 result=result,
@@ -817,73 +859,10 @@ class _BenchmarkFlowApiImpl:
                 judge_enabled=toggles.judge_enabled,
                 force_judge_on_prior_failure=toggles.force_judge,
             )
-        if phase is Phase.JUDGE_CHECK:
-            return self._build_judge_unit_for(
-                result=result, task=task, evaluators=evaluators, token=token, toggles=toggles
-            )
-        raise ContractViolationError(message=f"unreachable phase {phase!r}")
-
-    def _build_inference_unit_for(
-        self,
-        *,
-        result: BenchmarkResult,
-        task: BenchmarkTask,
-        evaluators: "_RunEvaluators",
-        token: CancellationToken,
-        toggles: "_PhaseToggles",
-    ) -> Callable[[], ResultPatch]:
-        """Build the Phase-2 unit, resolving its fixed per-attempt timeout budget."""
-        timeout_ms = self._settings_service.get_int("benchmark.max_timeout_seconds") * 1000
-        return build_inference_unit(
-            result=result,
-            task=task,
-            provider_registry=self._provider_registry,
-            sanity_checker=evaluators.sanity_checker,
-            timeout_ms=timeout_ms,
-            clock=self._clock,
-            bus=self._bus,
-            token=token,
-            keyword_enabled=toggles.keyword_enabled,
-            cosine_enabled=toggles.cosine_enabled,
-            judge_enabled=toggles.judge_enabled,
-        )
-
-    def _build_judge_unit_for(
-        self,
-        *,
-        result: BenchmarkResult,
-        task: BenchmarkTask,
-        evaluators: "_RunEvaluators",
-        token: CancellationToken,
-        toggles: "_PhaseToggles",
-    ) -> Callable[[], ResultPatch]:
-        """Build the Phase-5 unit, resolving its fixed per-attempt timeout budget.
-
-        `evaluators.judge_evaluator is None` here should be unreachable in
-        practice: `_make_judge_evaluator_if_enabled` only returns `None` when
-        `judge_enabled` is false or `judge_provider_id` is absent, and either
-        condition already makes `phase_applies(JUDGE_CHECK)` false, so
-        `run_all_phases` never dispatches a JUDGE_CHECK unit for this run at
-        all. The `ContractViolationError` below is kept only as a defensive
-        backstop for a future change that decouples those two checks — it is
-        not this story's primary handling for "judge enabled, no client":
-        that case is caught earlier, in `_make_evaluators_or_fail_run`,
-        which settles the run `FAILED` as data before dispatch ever starts.
-        """
-        if evaluators.judge_evaluator is None:
-            raise ContractViolationError(
-                message="unreachable: JUDGE_CHECK unit requested but judge_evaluator is "
-                "None (phase_applies already guarantees judge_enabled implies this)"
-            )
-        timeout_ms = self._settings_service.get_int("eval.judge_timeout_max_seconds") * 1000
-        return build_judge_unit(
-            result=result,
-            task=task,
-            evaluator=evaluators.judge_evaluator,
-            timeout_ms=timeout_ms,
-            token=token,
-            bus=self._bus,
-            force_judge_on_prior_failure=toggles.force_judge,
+        raise ContractViolationError(
+            message=f"unreachable: _build_unit called with non-KEYWORD_CHECK/"
+            f"COSINE_CHECK phase {phase!r} — INFERENCE/JUDGE_CHECK always route "
+            "through stability_phase_runner"
         )
 
     def _settle_run(

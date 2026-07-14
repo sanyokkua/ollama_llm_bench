@@ -11,7 +11,9 @@ from ollama_llm_bench.backend.events.models import (
     SIGNAL_INFERENCE_PROGRESS,
     SIGNAL_INFERENCE_STARTED,
     SIGNAL_JUDGE_COMPLETED,
+    SIGNAL_JUDGE_MODEL_EXCLUDED,
     SIGNAL_JUDGE_STARTED,
+    SIGNAL_MODEL_STABILITY_CHANGED,
     SIGNAL_PROGRESS_UPDATED,
     SIGNAL_RUN_FAILED,
     SIGNAL_RUN_FINISHED,
@@ -26,7 +28,9 @@ from ollama_llm_bench.backend.events.models import (
     InferenceProgressEvent,
     InferenceStartedEvent,
     JudgeCompletedEvent,
+    JudgeModelExcludedEvent,
     JudgeStartedEvent,
+    ModelStabilityChangedEvent,
     ProgressUpdatedEvent,
     RunFailedEvent,
     RunFinishedEvent,
@@ -45,7 +49,9 @@ __all__: list[str] = [
     "emit_inference_progress",
     "emit_inference_started",
     "emit_judge_completed",
+    "emit_judge_model_excluded",
     "emit_judge_started",
+    "emit_model_stability_changed",
     "emit_progress_updated",
     "emit_run_failed",
     "emit_run_finished",
@@ -132,3 +138,13 @@ def emit_judge_started(bus: EventBus, payload: JudgeStartedEvent) -> None:
 def emit_judge_completed(bus: EventBus, payload: JudgeCompletedEvent) -> None:
     """Emit a judge-completed event when the judge finishes evaluating a task."""
     bus.emit(SIGNAL_JUDGE_COMPLETED, payload)
+
+
+def emit_judge_model_excluded(bus: EventBus, payload: JudgeModelExcludedEvent) -> None:
+    """Emit a judge-model-excluded event on the not-excluded -> excluded transition."""
+    bus.emit(SIGNAL_JUDGE_MODEL_EXCLUDED, payload)
+
+
+def emit_model_stability_changed(bus: EventBus, payload: ModelStabilityChangedEvent) -> None:
+    """Emit a model-stability-changed event on a genuine observable-state transition."""
+    bus.emit(SIGNAL_MODEL_STABILITY_CHANGED, payload)
