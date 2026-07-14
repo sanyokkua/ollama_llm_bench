@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-13T20:54:40Z'
+generated_at: '2026-07-14T08:17:06Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2275,6 +2275,243 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stage_preserving_retry.py::test_failed_judge_timeout_retry_reruns_whole_task
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stage_preserving_retry.py::test_retry_re_entry_by_reset_status[awaiting_judge_check-0-1]
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stage_preserving_retry.py::test_retry_re_entry_by_reset_status[pending-1-1]
+  STORY-031:
+    title: Load, validate, and comment-preservingly write YAML task files
+    status: ready
+    spec_clauses:
+    - 10_Domain_and_Data/04_YAML_TASK_FORMAT.md#3-top-level-file-structure
+    - 11_Services_and_Algorithms/12_YAML_FORMATTER.md#11-test-cases
+    - 11_Services_and_Algorithms/12_YAML_FORMATTER.md#63-canonical-field-order
+    - 11_Services_and_Algorithms/12_YAML_FORMATTER.md#65-comment-anchoring-and-preservation
+    - 11_Services_and_Algorithms/12_YAML_FORMATTER.md#66-atomic-save
+    - 11_Services_and_Algorithms/14_VALIDATION_CASCADE.md#63-the-three-severity-levels
+    - 11_Services_and_Algorithms/14_VALIDATION_CASCADE.md#64-severity-aggregation-up-the-cascade
+    modules:
+    - backend/task_files/
+    - backend/yaml_formatter/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-031-AC-1:
+        tests: []
+      STORY-031-AC-2:
+        tests: []
+      STORY-031-AC-3:
+        tests: []
+      STORY-031-AC-4:
+        tests: []
+      STORY-031-AC-5:
+        tests: []
+      STORY-031-AC-6:
+        tests: []
+  STORY-032:
+    title: Serialize result tables to CSV/Markdown and render result-detail and log HTML
+    status: ready
+    spec_clauses:
+    - 10_Domain_and_Data/05_EXPORT_FORMATS.md#21-canonical-pattern
+    - 10_Domain_and_Data/05_EXPORT_FORMATS.md#4-summary-table--csv
+    - 10_Domain_and_Data/05_EXPORT_FORMATS.md#6-details-table--csv
+    - 11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md#63-csv-serialization
+    - 11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md#64-markdown-serialization
+    - 11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md#66-column-order-invariant
+    - 11_Services_and_Algorithms/20_HTML_RENDERING.md#61-result-detail-rendering
+    - 11_Services_and_Algorithms/20_HTML_RENDERING.md#63-escaping-and-safety
+    modules:
+    - backend/csv_export/
+    - backend/html_rendering/
+    edge_cases:
+    - EC-EXP-1
+    - EC-EXP-2
+    - EC-RES-2
+    acceptance_criteria:
+      STORY-032-AC-1:
+        tests: []
+      STORY-032-AC-2:
+        tests: []
+      STORY-032-AC-3:
+        tests: []
+      STORY-032-AC-4:
+        tests: []
+      STORY-032-AC-5:
+        tests: []
+      STORY-032-AC-6:
+        tests: []
+  STORY-033:
+    title: Compute the twelve chart aggregators with the five-filter pipeline and guards
+    status: ready
+    spec_clauses:
+    - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#12-test-cases
+    - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#62-step-2--apply-the-global-filters
+    - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#63-step-3--apply-the-per-chart-status-precondition
+    - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#65-step-5--group-and-aggregate
+    - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#65a-minimum-sample-size-guard-d-r-04-miss-02
+    - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#66-outlier-handling
+    - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#67-empty-state-resolution
+    - 11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#7-per-chart-catalog
+    modules:
+    - backend/charts/
+    edge_cases:
+    - EC-RES-1
+    - EC-RES-4
+    acceptance_criteria:
+      STORY-033-AC-1:
+        tests: []
+      STORY-033-AC-2:
+        tests: []
+      STORY-033-AC-3:
+        tests: []
+      STORY-033-AC-4:
+        tests: []
+      STORY-033-AC-5:
+        tests: []
+      STORY-033-AC-6:
+        tests: []
+      STORY-033-AC-7:
+        tests: []
+      STORY-033-AC-8:
+        tests: []
+      STORY-033-AC-9:
+        tests: []
+  STORY-034:
+    title: Expand a PerformanceConfig into a deterministic synthetic BenchmarkTask set
+    status: ready
+    spec_clauses:
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#11-test-cases
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#3-outputs
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#5-postconditions
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#61-generation-steps
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#8-error-handling
+    modules:
+    - backend/performance_task_generator/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-034-AC-1:
+        tests: []
+      STORY-034-AC-2:
+        tests: []
+      STORY-034-AC-3:
+        tests: []
+      STORY-034-AC-4:
+        tests: []
+      STORY-034-AC-5:
+        tests: []
+  STORY-035:
+    title: Generate the consolidated mode-aware run-analysis narrative
+    status: ready
+    spec_clauses:
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#11-test-cases
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#61-applicability-gate
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#61a-acquire-the-single-inference-gate
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#62-aggregate-the-run
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#63-build-the-prompt
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#64-call-the-model-and-post-process
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#65-regeneration-behaviour
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#8-error-handling
+    modules:
+    - backend/run_analysis/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-035-AC-1:
+        tests: []
+      STORY-035-AC-2:
+        tests: []
+      STORY-035-AC-3:
+        tests: []
+      STORY-035-AC-4:
+        tests: []
+      STORY-035-AC-5:
+        tests: []
+      STORY-035-AC-6:
+        tests: []
+      STORY-035-AC-7:
+        tests: []
+      STORY-035-AC-8:
+        tests: []
+  STORY-036:
+    title: Format a run-log event into a verbosity-selected one-line HTML fragment
+    status: ready
+    spec_clauses:
+    - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#12-test-cases
+    - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#5-postconditions
+    - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#62-field-selection-per-verbosity
+    - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#63-colour-mapping-by-event-kind
+    - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#64-escaping-and-truncation
+    - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#9-error-handling
+    modules:
+    - backend/log_formatting/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-036-AC-1:
+        tests: []
+      STORY-036-AC-2:
+        tests: []
+      STORY-036-AC-3:
+        tests: []
+      STORY-036-AC-4:
+        tests: []
+      STORY-036-AC-5:
+        tests: []
+  STORY-037:
+    title: Write the rotating application log and the per-run log files
+    status: ready
+    spec_clauses:
+    - 10_Domain_and_Data/07_FILE_LAYOUT.md#41-applicationsystem-log
+    - 10_Domain_and_Data/07_FILE_LAYOUT.md#42-benchmark-run-event-log
+    - 10_Domain_and_Data/07_FILE_LAYOUT.md#81-application-log-rotation
+    - 10_Domain_and_Data/07_FILE_LAYOUT.md#82-run-log-cleanup
+    - 10_Domain_and_Data/07_FILE_LAYOUT.md#9-filesystem-permissions
+    - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#7-the-two-logging-streams
+    modules:
+    - backend/log_file_writer/
+    edge_cases:
+    - EC-FL-10
+    - EC-FL-9
+    acceptance_criteria:
+      STORY-037-AC-1:
+        tests: []
+      STORY-037-AC-2:
+        tests: []
+      STORY-037-AC-3:
+        tests: []
+      STORY-037-AC-4:
+        tests: []
+  STORY-038:
+    title: Parse, validate, preview, and apply settings and provider-config import/export
+    status: ready
+    spec_clauses:
+    - 10_Domain_and_Data/06_IMPORT_FORMATS.md#11-edge-cases
+    - 10_Domain_and_Data/06_IMPORT_FORMATS.md#2-common-rules-encoding-parsing-validation-severities
+    - 10_Domain_and_Data/06_IMPORT_FORMATS.md#5-api-key-value-form-environment-variable-name
+    - 10_Domain_and_Data/06_IMPORT_FORMATS.md#6-validation-on-import
+    - 10_Domain_and_Data/06_IMPORT_FORMATS.md#7-handling-unknown-keys-type-mismatches-missing-required-fields
+    - 10_Domain_and_Data/06_IMPORT_FORMATS.md#8-preview-before-apply
+    - 10_Domain_and_Data/06_IMPORT_FORMATS.md#9-round-trip-guarantee
+    modules:
+    - backend/import_export/
+    edge_cases:
+    - EC-IMP-1
+    - EC-IMP-10
+    - EC-IMP-13
+    - EC-IMP-2
+    - EC-IMP-3
+    - EC-IMP-6
+    - EC-IMP-7
+    - EC-IMP-8
+    - EC-IMP-9
+    acceptance_criteria:
+      STORY-038-AC-1:
+        tests: []
+      STORY-038-AC-2:
+        tests: []
+      STORY-038-AC-3:
+        tests: []
+      STORY-038-AC-4:
+        tests: []
+      STORY-038-AC-5:
+        tests: []
+      STORY-038-AC-6:
+        tests: []
+      STORY-038-AC-7:
+        tests: []
 clauses:
   08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution:
     stories:
@@ -2493,12 +2730,60 @@ clauses:
   10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#9-crash-recovery-sweep:
     stories:
     - STORY-011
+  10_Domain_and_Data/04_YAML_TASK_FORMAT.md#3-top-level-file-structure:
+    stories:
+    - STORY-031
+  10_Domain_and_Data/05_EXPORT_FORMATS.md#21-canonical-pattern:
+    stories:
+    - STORY-032
+  10_Domain_and_Data/05_EXPORT_FORMATS.md#4-summary-table--csv:
+    stories:
+    - STORY-032
+  10_Domain_and_Data/05_EXPORT_FORMATS.md#6-details-table--csv:
+    stories:
+    - STORY-032
+  10_Domain_and_Data/06_IMPORT_FORMATS.md#11-edge-cases:
+    stories:
+    - STORY-038
+  10_Domain_and_Data/06_IMPORT_FORMATS.md#2-common-rules-encoding-parsing-validation-severities:
+    stories:
+    - STORY-038
+  10_Domain_and_Data/06_IMPORT_FORMATS.md#5-api-key-value-form-environment-variable-name:
+    stories:
+    - STORY-038
+  10_Domain_and_Data/06_IMPORT_FORMATS.md#6-validation-on-import:
+    stories:
+    - STORY-038
+  10_Domain_and_Data/06_IMPORT_FORMATS.md#7-handling-unknown-keys-type-mismatches-missing-required-fields:
+    stories:
+    - STORY-038
+  10_Domain_and_Data/06_IMPORT_FORMATS.md#8-preview-before-apply:
+    stories:
+    - STORY-038
+  10_Domain_and_Data/06_IMPORT_FORMATS.md#9-round-trip-guarantee:
+    stories:
+    - STORY-038
   10_Domain_and_Data/07_FILE_LAYOUT.md#1-application-data-directory-per-operating-system:
     stories:
     - STORY-005
+  10_Domain_and_Data/07_FILE_LAYOUT.md#41-applicationsystem-log:
+    stories:
+    - STORY-037
+  10_Domain_and_Data/07_FILE_LAYOUT.md#42-benchmark-run-event-log:
+    stories:
+    - STORY-037
   10_Domain_and_Data/07_FILE_LAYOUT.md#8-rotation-and-cleanup-policies:
     stories:
     - STORY-004
+  10_Domain_and_Data/07_FILE_LAYOUT.md#81-application-log-rotation:
+    stories:
+    - STORY-037
+  10_Domain_and_Data/07_FILE_LAYOUT.md#82-run-log-cleanup:
+    stories:
+    - STORY-037
+  10_Domain_and_Data/07_FILE_LAYOUT.md#9-filesystem-permissions:
+    stories:
+    - STORY-037
   10_Domain_and_Data/08_REDACTION_PATTERNS.md#3-the-regex-denylist:
     stories:
     - STORY-002
@@ -2750,6 +3035,69 @@ clauses:
   11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#9-threading-and-concurrency:
     stories:
     - STORY-025
+  11_Services_and_Algorithms/12_YAML_FORMATTER.md#11-test-cases:
+    stories:
+    - STORY-031
+  11_Services_and_Algorithms/12_YAML_FORMATTER.md#63-canonical-field-order:
+    stories:
+    - STORY-031
+  11_Services_and_Algorithms/12_YAML_FORMATTER.md#65-comment-anchoring-and-preservation:
+    stories:
+    - STORY-031
+  11_Services_and_Algorithms/12_YAML_FORMATTER.md#66-atomic-save:
+    stories:
+    - STORY-031
+  11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#12-test-cases:
+    stories:
+    - STORY-033
+  11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#62-step-2--apply-the-global-filters:
+    stories:
+    - STORY-033
+  11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#63-step-3--apply-the-per-chart-status-precondition:
+    stories:
+    - STORY-033
+  11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#65-step-5--group-and-aggregate:
+    stories:
+    - STORY-033
+  11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#65a-minimum-sample-size-guard-d-r-04-miss-02:
+    stories:
+    - STORY-033
+  11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#66-outlier-handling:
+    stories:
+    - STORY-033
+  11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#67-empty-state-resolution:
+    stories:
+    - STORY-033
+  11_Services_and_Algorithms/13_CHART_AGGREGATORS.md#7-per-chart-catalog:
+    stories:
+    - STORY-033
+  11_Services_and_Algorithms/14_VALIDATION_CASCADE.md#63-the-three-severity-levels:
+    stories:
+    - STORY-031
+  11_Services_and_Algorithms/14_VALIDATION_CASCADE.md#64-severity-aggregation-up-the-cascade:
+    stories:
+    - STORY-031
+  11_Services_and_Algorithms/15_LOG_FORMATTING.md#12-test-cases:
+    stories:
+    - STORY-036
+  11_Services_and_Algorithms/15_LOG_FORMATTING.md#5-postconditions:
+    stories:
+    - STORY-036
+  11_Services_and_Algorithms/15_LOG_FORMATTING.md#62-field-selection-per-verbosity:
+    stories:
+    - STORY-036
+  11_Services_and_Algorithms/15_LOG_FORMATTING.md#63-colour-mapping-by-event-kind:
+    stories:
+    - STORY-036
+  11_Services_and_Algorithms/15_LOG_FORMATTING.md#64-escaping-and-truncation:
+    stories:
+    - STORY-036
+  11_Services_and_Algorithms/15_LOG_FORMATTING.md#7-the-two-logging-streams:
+    stories:
+    - STORY-037
+  11_Services_and_Algorithms/15_LOG_FORMATTING.md#9-error-handling:
+    stories:
+    - STORY-036
   11_Services_and_Algorithms/16_CONCURRENCY_MODEL.md#61-the-taskrunner-and-the-worker-pool:
     stories:
     - STORY-006
@@ -2789,6 +3137,60 @@ clauses:
   11_Services_and_Algorithms/18_RETRY_POLICY.md#65-respecting-cancellation:
     stories:
     - STORY-007
+  11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md#63-csv-serialization:
+    stories:
+    - STORY-032
+  11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md#64-markdown-serialization:
+    stories:
+    - STORY-032
+  11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md#66-column-order-invariant:
+    stories:
+    - STORY-032
+  11_Services_and_Algorithms/20_HTML_RENDERING.md#61-result-detail-rendering:
+    stories:
+    - STORY-032
+  11_Services_and_Algorithms/20_HTML_RENDERING.md#63-escaping-and-safety:
+    stories:
+    - STORY-032
+  11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#11-test-cases:
+    stories:
+    - STORY-034
+  11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#3-outputs:
+    stories:
+    - STORY-034
+  11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#5-postconditions:
+    stories:
+    - STORY-034
+  11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#61-generation-steps:
+    stories:
+    - STORY-034
+  11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#8-error-handling:
+    stories:
+    - STORY-034
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#11-test-cases:
+    stories:
+    - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#61-applicability-gate:
+    stories:
+    - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#61a-acquire-the-single-inference-gate:
+    stories:
+    - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#62-aggregate-the-run:
+    stories:
+    - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#63-build-the-prompt:
+    stories:
+    - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#64-call-the-model-and-post-process:
+    stories:
+    - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#65-regeneration-behaviour:
+    stories:
+    - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#8-error-handling:
+    stories:
+    - STORY-035
   12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep:
     stories:
     - STORY-011
@@ -2827,6 +3229,58 @@ clauses:
     stories:
     - STORY-004
 edge_cases:
+  EC-EXP-1:
+    stories:
+    - STORY-032
+    tests: []
+  EC-EXP-2:
+    stories:
+    - STORY-032
+    tests: []
+  EC-FL-10:
+    stories:
+    - STORY-037
+    tests: []
+  EC-FL-9:
+    stories:
+    - STORY-037
+    tests: []
+  EC-IMP-1:
+    stories:
+    - STORY-038
+    tests: []
+  EC-IMP-10:
+    stories:
+    - STORY-038
+    tests: []
+  EC-IMP-13:
+    stories:
+    - STORY-038
+    tests: []
+  EC-IMP-2:
+    stories:
+    - STORY-038
+    tests: []
+  EC-IMP-3:
+    stories:
+    - STORY-038
+    tests: []
+  EC-IMP-6:
+    stories:
+    - STORY-038
+    tests: []
+  EC-IMP-7:
+    stories:
+    - STORY-038
+    tests: []
+  EC-IMP-8:
+    stories:
+    - STORY-038
+    tests: []
+  EC-IMP-9:
+    stories:
+    - STORY-038
+    tests: []
   EC-PERSIST-1:
     stories:
     - STORY-008
@@ -3106,6 +3560,18 @@ edge_cases:
     - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[result_id]
     - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[run_id]
     - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[task_id]
+  EC-RES-1:
+    stories:
+    - STORY-033
+    tests: []
+  EC-RES-2:
+    stories:
+    - STORY-032
+    tests: []
+  EC-RES-4:
+    stories:
+    - STORY-033
+    tests: []
   EC-RUN-13:
     stories:
     - STORY-016
@@ -3179,12 +3645,18 @@ modules:
     stories:
     - STORY-029
     - STORY-030
+  backend/charts/:
+    stories:
+    - STORY-033
   backend/circuit_breaker/:
     stories:
     - STORY-023
   backend/concurrency/:
     stories:
     - STORY-006
+  backend/csv_export/:
+    stories:
+    - STORY-032
   backend/domain/:
     stories:
     - STORY-001
@@ -3200,15 +3672,30 @@ modules:
   backend/events/:
     stories:
     - STORY-003
+  backend/html_rendering/:
+    stories:
+    - STORY-032
+  backend/import_export/:
+    stories:
+    - STORY-038
   backend/infra/:
     stories:
     - STORY-004
+  backend/log_file_writer/:
+    stories:
+    - STORY-037
+  backend/log_formatting/:
+    stories:
+    - STORY-036
   backend/mode_visibility/:
     stories:
     - STORY-024
   backend/model_helpers/:
     stories:
     - STORY-026
+  backend/performance_task_generator/:
+    stories:
+    - STORY-034
   backend/persistence/app_settings/:
     stories:
     - STORY-008
@@ -3250,6 +3737,9 @@ modules:
   backend/retry/:
     stories:
     - STORY-007
+  backend/run_analysis/:
+    stories:
+    - STORY-035
   backend/run_drift/:
     stories:
     - STORY-025
@@ -3260,3 +3750,9 @@ modules:
   backend/stores/inference_activity/:
     stories:
     - STORY-015
+  backend/task_files/:
+    stories:
+    - STORY-031
+  backend/yaml_formatter/:
+    stories:
+    - STORY-031
