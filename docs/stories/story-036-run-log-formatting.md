@@ -1,7 +1,7 @@
 ---
 id: STORY-036
 title: Format a run-log event into a verbosity-selected one-line HTML fragment
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#62-field-selection-per-verbosity
   - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#63-colour-mapping-by-event-kind
@@ -9,8 +9,10 @@ spec_clauses:
   - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#5-postconditions
   - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#9-error-handling
   - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#12-test-cases
+  - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#77-runlogevent
 modules:
   - backend/log_formatting/
+  - backend/domain/
 acceptance_criteria:
   - STORY-036-AC-1
   - STORY-036-AC-2
@@ -55,8 +57,11 @@ Normal, and re-renders deterministically when the verbosity changes.
   class only.
 - Writing the run-log file on disk (which always records the full Verbose field set) — owned by
   `backend/log_file_writer/` (STORY-037); this service formats the on-screen line only.
-- Defining `RunLogEvent`, `RunLogEventKind`, and `RunLogVerbosity` — consumed from
-  `backend/domain/` (STORY-001) and `backend/events/` (STORY-003).
+- Defining the `LogFormatter` Protocol's neighbouring EventBus payload types
+  (`InferenceProgressEvent`, `JudgeModelExcludedEvent`, `DriftWarning`, `DriftSeverity`,
+  `DriftKind`) — those remain owned by `backend/events/` (STORY-003). `RunLogEvent`,
+  `RunLogEventKind`, and `RunLogVerbosity` are added to `backend/domain/` by this story — see
+  Notes.
 
 ## Spec inputs
 
@@ -127,6 +132,30 @@ Given an unrecognized `verbosity` value, it is treated as Normal and a line is s
 given an unrecognized event kind, it is rendered with the `info` tone and a generic tag; and given
 a selected field absent from the event payload, that field is omitted with no empty placeholder.
 
+## Notes
+
+STORY-001 and STORY-003 were both marked `done` without ever defining `RunLogEvent`,
+`RunLogEventKind`, or `RunLogVerbosity` (`10_Domain_and_Data/02_DTOS_AND_ENUMS.md` §7.7),
+despite each citing the other as the owner. This story folds in the missing addition as an
+approved first implementation step, ahead of its own `log_formatting` scope:
+
+- `RunLogVerbosity` and `RunLogEventKind` are added to `backend/domain/models.py` §4
+  (Enumerations).
+- `RunLogEvent` is added to `backend/domain/models.py` §7 (domain records — runtime and
+  service DTOs), matching the field list of §7.7 exactly.
+- `backend/domain/__init__.py`'s docstring and `__all__` are corrected to include the three
+  names; the genuine EventBus-payload exclusion (`InferenceProgressEvent`,
+  `JudgeModelExcludedEvent`, `DriftWarning`, `DriftSeverity`, `DriftKind`, owned by
+  STORY-003) is unchanged.
+
+**Addendum — spec-conformance review (2026-07-14).** An independent spec-conformance review
+found that §6.2 of `15_LOG_FORMATTING.md` describes three distinct text rows (system prompt /
+user prompt (task) / model response) while §7.7 of `02_DTOS_AND_ENUMS.md` (this story's own
+DTO) only provides two text fields (`prompt_excerpt`/`response_excerpt`); the implementation
+renders one collapsed `prompt` field from `prompt_excerpt`, which is the only interpretation
+the DTO supports, and this is flagged for spec-owner sign-off rather than resolved by this
+story.
+
 ## Test plan
 
 - STORY-036-AC-1 — unit, colocated
@@ -134,7 +163,10 @@ a selected field absent from the event payload, that field is omitted with no em
   `test_field_set_is_strictly_nested`. Covers LF-1, LF-2, LF-3, LF-4.
 - STORY-036-AC-2 — unit (table-driven over verbosities), colocated
   `src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py`,
-  `test_prompt_response_rendering_per_verbosity`. Covers LF-19, LF-20.
+  `test_prompt_response_rendering_per_verbosity`,
+  `test_prompt_response_rendering_with_token_counts_per_verbosity`,
+  `test_prompt_response_rendering_without_token_counts_falls_back_to_char_only`. Covers LF-19,
+  LF-20.
 - STORY-036-AC-3 — unit (table-driven over the eleven kinds), colocated
   `src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py`,
   `test_event_kind_maps_to_tone`. Covers LF-5..LF-10.
@@ -147,8 +179,8 @@ a selected field absent from the event payload, that field is omitted with no em
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-036.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/log_formatting/`.
-- [ ] An architecture test confirms the module imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-036.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-036.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/log_formatting/`.
+- [x] An architecture test confirms the module imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-036.
+- [x] The module inventory is unchanged.

@@ -4,8 +4,10 @@ This module is the base of the Phase 1 dependency graph. It defines every closed
 enumeration (`StrEnum`), every type alias, every reusable `msgspec.Meta`-constrained
 type, and every cross-boundary `msgspec.Struct` record catalogued in
 ``docs/v3_specification/10_Domain_and_Data/02_DTOS_AND_ENUMS.md`` sections 2, 3, 5, 6,
-and 7 (excluding the EventBus payload structs and their locally-scoped enums, which are
-owned by STORY-003).
+and 7 — including the runtime-only run-log DTOs (``RunLogEvent``, ``RunLogEventKind``,
+``RunLogVerbosity``, §7.7) — excluding the EventBus payload structs and their
+locally-scoped enums (``InferenceProgressEvent``, ``JudgeModelExcludedEvent``,
+``DriftWarning``, ``DriftSeverity``, ``DriftKind``), which are owned by STORY-003.
 
 This module imports nothing project-internal: standard library and ``msgspec`` only.
 """
@@ -328,6 +330,30 @@ class ResponseFormat(StrEnum):
 
     TEXT = "text"
     JSON = "json"
+
+
+class RunLogVerbosity(StrEnum):
+    """The three Run Log field-density levels (§7.7)."""
+
+    SHORT = "short"
+    NORMAL = "normal"
+    VERBOSE = "verbose"
+
+
+class RunLogEventKind(StrEnum):
+    """The eleven kinds of pipeline event rendered in the Run Log (§7.7)."""
+
+    STAGE = "stage"
+    SYSTEM = "system"
+    TASK_START = "task_start"
+    DONE = "done"
+    JUDGE = "judge"
+    RETRY = "retry"
+    PROVIDER_SWITCH = "provider_switch"
+    MODEL_SWITCH = "model_switch"
+    STOPPED = "stopped"
+    FINISHED = "finished"
+    FAILED = "failed"
 
 
 # ---------------------------------------------------------------------------------
@@ -782,6 +808,36 @@ class ChartFilters(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     categories: tuple[str, ...] = ()
     difficulties: tuple[Difficulty, ...] = ()
     options: dict[str, str | bool] = msgspec.field(default_factory=dict)
+
+
+class RunLogEvent(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One pipeline event rendered by the log-formatting service (§7.7).
+
+    Runtime-only: emitted by the pipeline, formatted by the log-formatting
+    service, and cached by the Progress widget's run-log panel; never
+    persisted as a row.
+    """
+
+    kind: RunLogEventKind
+    timestamp: Iso8601Utc
+    provider_id: ProviderIdStr | None = None
+    model_name: ModelNameStr | None = None
+    task_id: TaskIdStr | None = None
+    stage: str | None = None
+    started_at: Iso8601Utc | None = None
+    finished_at: Iso8601Utc | None = None
+    total_time_ms: DurationMs | None = None
+    ttft_ms: DurationMs | None = None
+    tokens_per_second: NonNegativeFloat | None = None
+    prompt_tokens: NonNegativeInt | None = None
+    completion_tokens: NonNegativeInt | None = None
+    prompt_excerpt: str | None = None
+    response_excerpt: str | None = None
+    retry_attempt: PositiveInt | None = None
+    retry_reason: str | None = None
+    error_text: str | None = None
+    judge_verdict: Verdict | None = None
+    judge_reasoning: str | None = None
 
 
 # ---------------------------------------------------------------------------------

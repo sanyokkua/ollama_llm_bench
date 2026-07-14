@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-14T16:40:08Z'
+generated_at: '2026-07-14T20:22:34Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -55,6 +55,8 @@ stories:
         - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ResponseFormat]
         - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ResultStatus]
         - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[ResultTermKind]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[RunLogEventKind]
+        - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[RunLogVerbosity]
         - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[RunMode]
         - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[RunStatus]
         - src/ollama_llm_bench/backend/domain/tests/test_enums.py::test_enum_members_and_values_are_total[TaskOrigin]
@@ -98,6 +100,7 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.ProviderHealth]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.RequiredTerms]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.ResultPatch]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.RunLogEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.RunStartRequest]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.RunStatusPatch]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.errors.models.ErrorContext]
@@ -193,6 +196,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.ProviderHealth]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.RequiredTerms]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.ResultPatch]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.RunLogEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.RunStartRequest]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.RunStatusPatch]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.errors.models.ErrorContext]
@@ -288,6 +292,7 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.ProviderHealth]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.RequiredTerms]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.ResultPatch]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.RunLogEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.RunStartRequest]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.RunStatusPatch]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.errors.models.ErrorContext]
@@ -2703,8 +2708,9 @@ stories:
         - tests/architecture/test_inference_progress_module.py::test_inference_progress_module_imports_no_qt_or_asyncio[tests/test_emit_progress_during.py]
   STORY-036:
     title: Format a run-log event into a verbosity-selected one-line HTML fragment
-    status: ready
+    status: done
     spec_clauses:
+    - 10_Domain_and_Data/02_DTOS_AND_ENUMS.md#77-runlogevent
     - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#12-test-cases
     - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#5-postconditions
     - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#62-field-selection-per-verbosity
@@ -2712,19 +2718,85 @@ stories:
     - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#64-escaping-and-truncation
     - 11_Services_and_Algorithms/15_LOG_FORMATTING.md#9-error-handling
     modules:
+    - backend/domain/
     - backend/log_formatting/
     edge_cases: []
     acceptance_criteria:
       STORY-036-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_field_nesting.py::test_field_set_is_strictly_nested
+        - tests/architecture/test_log_formatting_module.py::test_at_least_one_source_file_discovered
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[__init__.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[_internal/assembler.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[_internal/escaping.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[_internal/excerpt.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[_internal/fields.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[_internal/service.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[_internal/tone.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[api.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[protocols.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[testing.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/__init__.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_escaping.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_excerpt_rendering.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_facade.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_fallbacks.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_field_nesting.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_retry_judge_rendering.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_tone_mapping.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[__init__.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[_internal/assembler.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[_internal/escaping.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[_internal/excerpt.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[_internal/fields.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[_internal/service.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[_internal/tone.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[api.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[protocols.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[testing.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/__init__.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_escaping.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_excerpt_rendering.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_facade.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_fallbacks.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_field_nesting.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_retry_judge_rendering.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_tone_mapping.py]
       STORY-036-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py::test_prompt_response_rendering_per_verbosity[normal_truncated_excerpt]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py::test_prompt_response_rendering_per_verbosity[short_size_only]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py::test_prompt_response_rendering_per_verbosity[verbose_full_text]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py::test_prompt_response_rendering_with_token_counts_per_verbosity[normal_truncated_excerpt]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py::test_prompt_response_rendering_with_token_counts_per_verbosity[short_size_only]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py::test_prompt_response_rendering_with_token_counts_per_verbosity[verbose_full_text]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py::test_prompt_response_rendering_without_token_counts_falls_back_to_char_only
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_excerpt_rendering.py::test_truncation_never_splits_an_escaped_entity
       STORY-036-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[done_success]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[failed_error]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[finished_success]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[judge_warning]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[model_switch_info]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[provider_switch_info]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[retry_error]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[stage_info]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[stopped_muted]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[system_info]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_event_kind_maps_to_tone[task_start_primary]
       STORY-036-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_escaping.py::test_escaping_and_newline_normalization_one_line
       STORY-036-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_fallbacks.py::test_formatting_is_deterministic
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_fallbacks.py::test_input_event_is_not_mutated_by_formatting
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_fallbacks.py::test_unrecognized_and_absent_field_fallbacks[absent_field_omitted]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_fallbacks.py::test_unrecognized_and_absent_field_fallbacks[unrecognized_kind_info_tag]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_fallbacks.py::test_unrecognized_and_absent_field_fallbacks[unrecognized_verbosity_as_normal]
   STORY-037:
     title: Write the rotating application log and the per-run log files
     status: ready
@@ -2961,6 +3033,9 @@ clauses:
   10_Domain_and_Data/02_DTOS_AND_ENUMS.md#7-domain-records--runtime-and-service-dtos:
     stories:
     - STORY-001
+  10_Domain_and_Data/02_DTOS_AND_ENUMS.md#77-runlogevent:
+    stories:
+    - STORY-036
   10_Domain_and_Data/02_DTOS_AND_ENUMS.md#78-inferenceactivitycontext-and-inferenceactivitystate:
     stories:
     - STORY-015
@@ -4160,6 +4235,7 @@ modules:
     stories:
     - STORY-001
     - STORY-033
+    - STORY-036
   backend/embedding/:
     stories:
     - STORY-027

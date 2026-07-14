@@ -6,7 +6,9 @@ in-memory-only ``ProviderHealth``/``AppReadinessSnapshot`` and the runtime
 ``InferenceActivityContext``/``InferenceActivityState`` records), and the §8 patch records —
 plus the locally-scoped enums those §5-§7 records reference (``ReadinessState``, ``ChatRole``,
 ``ReasoningEffort``, ``ResponseFormat``). The four EventBus payload structs/enums are excluded
-(owned by STORY-003).
+(owned by STORY-003). STORY-036 adds the run-log DTOs (``RunLogVerbosity``, ``RunLogEventKind``,
+``RunLogEvent``, §7.7), folded into ``backend/domain/`` as an approved gap-fix ahead of its own
+``log_formatting`` scope.
 """
 
 import ollama_llm_bench.backend.domain as domain_package
@@ -74,6 +76,11 @@ _EXPECTED_RECORD_LOCAL_ENUMS = {
     "ResponseFormat",
 }
 
+_EXPECTED_RUN_LOG_ENUMS = {
+    "RunLogVerbosity",
+    "RunLogEventKind",
+}
+
 _EXPECTED_RECORDS = {
     # §5 — catalog records
     "ProviderConfig",
@@ -112,6 +119,8 @@ _EXPECTED_RECORDS = {
     # §8 — patch records
     "ResultPatch",
     "RunStatusPatch",
+    # §7.7 — run-log DTOs (STORY-036 gap-fix)
+    "RunLogEvent",
 }
 
 _EXPECTED_PUBLIC_SYMBOLS = (
@@ -119,6 +128,7 @@ _EXPECTED_PUBLIC_SYMBOLS = (
     | _EXPECTED_CONSTRAINED_TYPES
     | _EXPECTED_SPEC_4_ENUMS
     | _EXPECTED_RECORD_LOCAL_ENUMS
+    | _EXPECTED_RUN_LOG_ENUMS
     | _EXPECTED_RECORDS
 )
 

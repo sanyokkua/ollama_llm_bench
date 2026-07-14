@@ -1,9 +1,11 @@
 """Tests proving every ``StrEnum`` in §4 has exactly the members and values it declares.
 
-Table-driven across all 27 enums this story owns (the four EventBus-local enums —
-``RunLogVerbosity``, ``RunLogEventKind``, ``DriftSeverity``, ``DriftKind`` — are owned by
-STORY-003 and excluded here). Each row asserts the member count and the exact ordered
-``(name, value)`` pairs, verbatim against ``02_DTOS_AND_ENUMS.md`` §4.
+Table-driven across all 29 enums this story owns (the two EventBus-local enums —
+``DriftSeverity``, ``DriftKind`` — are owned by STORY-003 and excluded here).
+``RunLogVerbosity`` and ``RunLogEventKind`` (§7.7) are added by STORY-036, which folded the
+missing run-log DTOs into ``backend/domain/`` as an approved gap-fix ahead of its own
+``log_formatting`` scope. Each row asserts the member count and the exact ordered
+``(name, value)`` pairs, verbatim against ``02_DTOS_AND_ENUMS.md`` §4 / §7.7.
 """
 
 from enum import StrEnum
@@ -34,6 +36,8 @@ from ollama_llm_bench.backend.domain.models import (
     ResponseFormat,
     ResultStatus,
     ResultTermKind,
+    RunLogEventKind,
+    RunLogVerbosity,
     RunMode,
     RunStatus,
     TaskOrigin,
@@ -224,6 +228,26 @@ _CASES: tuple[tuple[type[StrEnum], tuple[tuple[str, str], ...]], ...] = (
         ),
     ),
     (ResponseFormat, (("TEXT", "text"), ("JSON", "json"))),
+    (
+        RunLogVerbosity,
+        (("SHORT", "short"), ("NORMAL", "normal"), ("VERBOSE", "verbose")),
+    ),
+    (
+        RunLogEventKind,
+        (
+            ("STAGE", "stage"),
+            ("SYSTEM", "system"),
+            ("TASK_START", "task_start"),
+            ("DONE", "done"),
+            ("JUDGE", "judge"),
+            ("RETRY", "retry"),
+            ("PROVIDER_SWITCH", "provider_switch"),
+            ("MODEL_SWITCH", "model_switch"),
+            ("STOPPED", "stopped"),
+            ("FINISHED", "finished"),
+            ("FAILED", "failed"),
+        ),
+    ),
 )
 
 _IDS = [enum_type.__name__ for enum_type, _ in _CASES]

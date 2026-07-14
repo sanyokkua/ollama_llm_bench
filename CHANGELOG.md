@@ -30,6 +30,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (including a watchdog auto-release) publishes `_inference_activity_changed` on the Qt-free
   `EventBus` per `08-E` §13, `11_Services_and_Algorithms/01_SERVICE_INVENTORY.md` §4.14, and
   `08-I` EC-RUN-14. No caller is wired to the gate yet — STORY-016 is the first consumer.
+
 - Settings service and run snapshot builder (`backend/settings/`): the `SettingsService`
   Protocol (typed read/write methods `get_str`/`get_bool`/`get_int`/`get_float`/`set`/`upsert`
   resolving through the three-layer cascade per-run snapshot → user-saved → default) and
@@ -40,6 +41,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (27 overridable keys), coercion-failure fallback with logged warning for user-saved values and
   hard crash for snapshot values (SPEC-110), and an `_app_settings_changed` event on every
   `set`/`upsert` per `08-C` §2–§5, `08-E` §8–§8a, and `08-G` §3–§9.
+
 - Readiness probe service (`backend/readiness/`): the `ReadinessService` Protocol with three
   methods — `snapshot()` (fast-synchronous cached read, returns `CHECKING` before the first
   probe), `probe(provider_id)` (blocking leaf probe of one provider), and `probe_all()`
@@ -52,6 +54,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   snapshot differs from the cached one. Consumes `ReadinessProviderRegistry` and
   `ReadinessEmbeddingSelector` Protocols, plus `SettingsService`, `InferenceActivityStore`,
   `EventBus`, `TaskRunner`, and `Clock`. Per `08-E` §12 and `11_Services_and_Algorithms/09_READINESS_PROBE.md`.
+
 - Persistence foundation layer (`backend/persistence/app_settings/`): the single-writer
   connection manager and schema lifecycle (ADR-0004) per DD-41 and DD-53, exposing
   `open_write_connection()` (writer + lock), `open_read_connection()` (read-only connection
@@ -60,6 +63,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `EXPECTED_SCHEMA_VERSION` and `DB_FILENAME`. Implements the four-branch startup logic (file
   absent → first-run DDL; schema version match → no-op; older same-major → additive evolution;
   newer or cross-major → hard error).
+
 - Benchmark run persistence (`backend/persistence/runs/`): the `RunsStore` Protocol (six
   methods: `create_run`, `get_run`, `list_runs`, `update_run_status`, `rename_run`, `delete_run`)
   and factory `create_runs_store(write_conn, lock, read_conn_factory)`. Atomically creates a
@@ -67,10 +71,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `benchmark_run_providers`, `benchmark_run_settings`), reads fully assembled runs newest-first,
   applies partial header updates leaving snapshots immutable, renames runs, and cascades delete
   across all eight dependent tables per `08-E` §7.1 and `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md`.
+
 - Benchmark task snapshot persistence (`backend/persistence/tasks/`): the `TasksStore` Protocol
   (two methods: `create_tasks`, `list_tasks`) and factory `create_tasks_store(write_conn, lock, read_conn_factory)`. Atomically inserts a run's frozen `benchmark_tasks` snapshot and its
   `benchmark_task_terms` child rows in one transaction, reads tasks in `task_order` with their
   keyword-term rows assembled per `08-E` §7.2 and `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md`.
+
 - Provider catalog persistence (`backend/persistence/providers/`): the `ProvidersStore` Protocol
   (six methods: `list_providers`, `get_by_name`, `add`, `update`, `delete`, `replace_providers`)
   and factories `create_providers_store(write_conn, lock, read_conn_factory)` and
@@ -80,10 +86,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (Ollama, LM Studio, llama.cpp) in one transaction, each with `enabled=1`, no API key, and
   `provider_order` 0/1/2, per `08-E` §7.4, `DD-33`, and
   `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §10.
+
 - Error taxonomy leaf `PersistenceError(PermanentError)` for storage failures raised by every
   method of the six per-aggregate persistence stores (`RunsStore`, `TasksStore`, `ResultsStore`,
   `ProvidersStore`, `ModelCapabilitiesStore`, `AppSettingsStore`) and the module's connection
   and schema-initialization functions per `08-E` §7.3.
+
 - CSV/Markdown table serializer (`backend/csv_export/`): the `TableSerializer` Protocol with four
   methods (`serialize_summary_csv`, `serialize_summary_markdown`, `serialize_details_csv`,
   `serialize_details_markdown`) and factory `make_table_serializer()`, serializing the Summary
@@ -98,6 +106,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   pipe/`<br>` escaping, empty-cell single-space rule. Pure, stateless, Qt-free, asyncio-free,
   no I/O, no redaction per `11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md`,
   `10_Domain_and_Data/05_EXPORT_FORMATS.md`.
+
 - HTML renderer for result details and log lines (`backend/html_rendering/`): the
   `ResultHtmlRenderer` Protocol with three methods (`render_result_detail`, `render_log_line`,
   `set_theme`) and factory `make_result_html_renderer(initial_theme)`, rendering a
@@ -111,6 +120,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (result, task, run_mode). Light/dark inline-style palette per §8. Pure, stateless apart from
   the recorded theme; GUI-thread-only by convention; Qt-free, asyncio-free; no I/O, no redaction
   per `11_Services_and_Algorithms/20_HTML_RENDERING.md`.
+
 - Chart aggregators for the Result widget's Charts tab (`backend/charts/`): the `ChartAggregator`
   Protocol (single method `compute`) and factory `make_chart_aggregator()`, computing all twelve
   `ChartKind` aggregations (average TTFT/TPS/time per model, success/failed/incomplete counts,
@@ -133,6 +143,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `AVG_TPS_PER_MODEL`, since total generation throughput is not directly comparable across
   estimated-throughput or reasoning-token-emitting models) — every other existing consumer of
   `ChartSeries` is unaffected by the new defaulted fields.
+
+- Run-log event formatter (`backend/log_formatting/`): the `LogFormatter` Protocol (single
+  method `format_event(event, verbosity)`) and factory `make_log_formatter()`, turning one
+  `RunLogEvent` into a single-line HTML fragment for the Progress widget's live event log.
+  Selects a strictly-nested Short ⊆ Normal ⊆ Verbose field set (§6.2), maps each of the eleven
+  `RunLogEventKind` values to a tone class — info/primary/success/warning/error/muted — never a
+  raw colour (§6.3), HTML-escapes every user- or model-supplied value and normalizes newlines to
+  spaces, and truncates prompt/response excerpts at Normal only after escaping so no entity is
+  ever split (§6.4). Prompt/response fields render as character-and-token counts only at Short,
+  a truncated excerpt plus counts at Normal, and the full text plus counts at Verbose. Never
+  raises to its caller: an unrecognized verbosity falls back to Normal (logged at warning level),
+  an unrecognized event kind renders with the `info` tone and a generic tag, and a selected field
+  absent from the event payload is simply omitted. Pure, stateless, Qt-free, asyncio-free, no
+  I/O, not redacted (the Run Log is an explicitly not-redacted surface) per
+  `11_Services_and_Algorithms/15_LOG_FORMATTING.md`. Also closes a gap left by STORY-001/STORY-003,
+  both marked done without ever defining the `RunLogEvent`/`RunLogEventKind`/`RunLogVerbosity`
+  domain types each had cited as the other's responsibility: adds all three to `backend/domain`
+  per `10_Domain_and_Data/02_DTOS_AND_ENUMS.md` §7.7.
 
 ### Added (Phase 0 continued)
 

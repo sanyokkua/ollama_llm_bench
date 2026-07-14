@@ -2,10 +2,11 @@
 
 Every enum, type alias, constrained type, and cross-boundary record catalogued in
 ``docs/v3_specification/10_Domain_and_Data/02_DTOS_AND_ENUMS.md`` §2, §3, §4, §5, §6,
-and §7 is re-exported here, with the exception of the EventBus payload Structs and
-their locally-scoped enums (``RunLogEvent``, ``InferenceProgressEvent``,
-``JudgeModelExcludedEvent``, ``DriftWarning``, ``RunLogVerbosity``, ``RunLogEventKind``,
-``DriftSeverity``, ``DriftKind``), which are owned by STORY-003.
+and §7 is re-exported here — including the runtime-only run-log DTOs (``RunLogEvent``,
+``RunLogEventKind``, ``RunLogVerbosity``, §7.7) — with the exception of the EventBus
+payload Structs and their locally-scoped enums (``InferenceProgressEvent``,
+``JudgeModelExcludedEvent``, ``DriftWarning``, ``DriftSeverity``, ``DriftKind``), which
+are owned by STORY-003.
 """
 
 from ollama_llm_bench.backend.domain.models import (
@@ -79,6 +80,9 @@ from ollama_llm_bench.backend.domain.models import (
     ResultTermKind,
     RetryCount,
     RunId,
+    RunLogEvent,
+    RunLogEventKind,
+    RunLogVerbosity,
     RunMode,
     RunStartRequest,
     RunStatus,
@@ -163,6 +167,9 @@ __all__: list[str] = [
     "ResultTermKind",
     "RetryCount",
     "RunId",
+    "RunLogEvent",
+    "RunLogEventKind",
+    "RunLogVerbosity",
     "RunMode",
     "RunStartRequest",
     "RunStatus",
