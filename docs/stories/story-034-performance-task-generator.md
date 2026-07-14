@@ -1,7 +1,7 @@
 ---
 id: STORY-034
 title: Expand a PerformanceConfig into a deterministic synthetic BenchmarkTask set
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#3-outputs
   - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#61-generation-steps
@@ -134,8 +134,8 @@ partial task list.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-034.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/performance_task_generator/`.
-- [ ] An architecture test confirms the module imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-034.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-034.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/performance_task_generator/`.
+- [x] An architecture test confirms the module imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-034.
+- [x] The module inventory is unchanged.
