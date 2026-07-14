@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-14T08:17:06Z'
+generated_at: '2026-07-14T10:15:19Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -147,6 +147,10 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.run_drift.models.DriftWarning]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.task_files.models.FileValidationResult]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.task_files.models.TaskValidationResult]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.task_files.models.ValidationIssue]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.yaml_formatter.models.SaveResult]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -231,6 +235,10 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.run_drift.models.DriftWarning]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.task_files.models.FileValidationResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.task_files.models.TaskValidationResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.task_files.models.ValidationIssue]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.yaml_formatter.models.SaveResult]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -315,6 +323,10 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.retry.models.RetryPolicy]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.run_drift.models.DriftWarning]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.run_drift.models.RunDriftDetectionInputs]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.task_files.models.FileValidationResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.task_files.models.TaskValidationResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.task_files.models.ValidationIssue]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.yaml_formatter.models.SaveResult]
       STORY-001-AC-4:
         tests:
         - src/ollama_llm_bench/backend/domain/tests/test_public_surface.py::test_domain_public_symbols_are_reexported
@@ -2277,7 +2289,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stage_preserving_retry.py::test_retry_re_entry_by_reset_status[pending-1-1]
   STORY-031:
     title: Load, validate, and comment-preservingly write YAML task files
-    status: ready
+    status: done
     spec_clauses:
     - 10_Domain_and_Data/04_YAML_TASK_FORMAT.md#3-top-level-file-structure
     - 11_Services_and_Algorithms/12_YAML_FORMATTER.md#11-test-cases
@@ -2292,17 +2304,33 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-031-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/yaml_formatter/tests/test_round_trip.py::test_load_serialize_load_is_identity_modulo_reorder
+        - src/ollama_llm_bench/backend/yaml_formatter/tests/test_round_trip.py::test_round_trip_is_deterministic_when_run_twice
       STORY-031-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/yaml_formatter/tests/test_field_order.py::test_formatter_emits_canonical_field_order
       STORY-031-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/yaml_formatter/tests/test_comment_preservation.py::test_comments_survive_reorder_and_token_count_matches
       STORY-031-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/yaml_formatter/tests/test_atomic_save.py::test_successful_save_replaces_target_and_leaves_no_temp[False]
+        - src/ollama_llm_bench/backend/yaml_formatter/tests/test_atomic_save.py::test_successful_save_replaces_target_and_leaves_no_temp[True]
+        - src/ollama_llm_bench/backend/yaml_formatter/tests/test_atomic_save.py::test_write_failure_leaves_target_unchanged_and_no_temp
       STORY-031-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/task_files/tests/test_loader.py::test_loader_falls_back_to_defaults_for_invalid_difficulty_and_cosine_enabled
+        - src/ollama_llm_bench/backend/task_files/tests/test_loader.py::test_loader_skips_malformed_tasks_and_returns_valid
       STORY-031-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/task_files/tests/test_validation_cascade.py::test_validator_assigns_severity_and_aggregates[duplicate_task_id]
+        - src/ollama_llm_bench/backend/task_files/tests/test_validation_cascade.py::test_validator_assigns_severity_and_aggregates[empty_category]
+        - src/ollama_llm_bench/backend/task_files/tests/test_validation_cascade.py::test_validator_assigns_severity_and_aggregates[empty_file]
+        - src/ollama_llm_bench/backend/task_files/tests/test_validation_cascade.py::test_validator_assigns_severity_and_aggregates[empty_question]
+        - src/ollama_llm_bench/backend/task_files/tests/test_validation_cascade.py::test_validator_assigns_severity_and_aggregates[invalid_extension]
+        - src/ollama_llm_bench/backend/task_files/tests/test_validation_cascade.py::test_validator_assigns_severity_and_aggregates[long_prompt]
+        - src/ollama_llm_bench/backend/task_files/tests/test_validation_cascade.py::test_validator_assigns_severity_and_aggregates[retired_task_type]
   STORY-032:
     title: Serialize result tables to CSV/Markdown and render result-detail and log HTML
     status: ready

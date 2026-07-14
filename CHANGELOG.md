@@ -141,3 +141,26 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   variable; rebuilds atomically on configuration change; and defers closing superseded clients
   until the single-inference gate is idle (SPEC-045) per `08-E` §9–§10 and
   `11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md`.
+- Task file loading and validation (`backend/task_files/`): the `TaskFileLoader` Protocol
+  (loader-tolerant `load(source_path) -> tuple[BenchmarkTask, ...]` skipping malformed
+  individual tasks without raising, raising `TaskFileError` only for whole-file rejection) and
+  `TaskFileValidator` Protocol (editor-strict `validate(source_path) -> FileValidationResult`
+  converting all content problems to file-level `ValidationIssue`s, raising `TaskFileError`
+  only for OS-level read failures), plus factories `make_task_file_loader()` and
+  `make_task_file_validator()`. Both use a shared three-level (field/task/file), three-severity
+  (clean/info/warning/error) validation cascade with `max_severity` aggregation, implementing
+  seven validation rules (non-`.yaml`/`.yml` extension, empty file, duplicate `task_id`, empty
+  `question`, empty `category`, overlong prompt, retired `task_type` key) so their verdicts
+  never diverge. Invalid `difficulty` and non-bool `cosine_enabled` fallback to struct defaults
+  rather than dropping tasks per `11_Services_and_Algorithms/14_VALIDATION_CASCADE.md`.
+- Comment-preserving YAML formatter (`backend/yaml_formatter/`): the `YamlFormatter` Protocol
+  (the sole task-file writer; `load_document(source_path) -> TaskFileDocument` round-tripping
+  via `ruamel.yaml` with comments; `save(*, document, target_path, format_on_save) -> SaveResult`
+  never raising on I/O failure), implementing canonical 14-key field ordering (absent keys not
+  inserted, unknown keys preserved after canonical set), comment preservation across reordering
+  (end-of-line, standalone, sequence-item, file-head/tail) guarded by `icontract` postcondition
+  on comment-token count (`FormatterDefect` on mismatch), atomic save (temp file with `fsync()`
+  and `os.replace()`; target untouched on failure), and Form B/C → Form A top-level normalization
+  via factory `make_yaml_formatter()` per `11_Services_and_Algorithms/12_YAML_FORMATTER.md`.
+  Testing fakes in `testing.py`. First use of `ruamel.yaml` and property-based round-trip
+  testing via Hypothesis.

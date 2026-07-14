@@ -1,7 +1,7 @@
 ---
 id: STORY-031
 title: Load, validate, and comment-preservingly write YAML task files
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/12_YAML_FORMATTER.md#63-canonical-field-order
   - 11_Services_and_Algorithms/12_YAML_FORMATTER.md#65-comment-anchoring-and-preservation
@@ -62,6 +62,13 @@ interrupted save never leaves a truncated file on disk.
 - The per-field rule catalog authored in `09_Task_Editor/field_reference.md` narrative form —
   this story implements the cascade algorithm that applies those rules and their fixed
   severities, not a re-derivation of each rule's prose.
+- Claiming `EC-TASK-1/2/3/5` in `edge_cases:` — `06_EDGE_CASE_TO_TEST_MAPPING.md` maps their
+  unit-test portion to `backend/task_files/`, and this story's test suite already exercises the
+  underlying behaviour (malformed-file rejection, duplicate `task_id`, missing required field,
+  invalid `difficulty` fallback), but the widget-facing half of each (`EC-TASK-1`/`EC-TASK-2`
+  also cite `ui/task_editor/`) isn't implemented yet. Deliberately left unclaimed rather than
+  claimed-and-partially-tested; the future `ui/task_editor/` story should claim all four once it
+  can prove the widget-facing half too.
 
 ## Spec inputs
 
@@ -167,9 +174,9 @@ cascade as `max(clean, info, warning, error)`, per this table:
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-031.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/task_files/` and
+- [x] Every acceptance criterion has a passing test that names STORY-031.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/task_files/` and
   `backend/yaml_formatter/`.
-- [ ] An architecture test confirms both modules import no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-031.
-- [ ] The module inventory is unchanged.
+- [x] An architecture test confirms both modules import no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-031.
+- [x] The module inventory is unchanged.
