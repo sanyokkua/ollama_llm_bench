@@ -84,6 +84,33 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   method of the six per-aggregate persistence stores (`RunsStore`, `TasksStore`, `ResultsStore`,
   `ProvidersStore`, `ModelCapabilitiesStore`, `AppSettingsStore`) and the module's connection
   and schema-initialization functions per `08-E` §7.3.
+- CSV/Markdown table serializer (`backend/csv_export/`): the `TableSerializer` Protocol with four
+  methods (`serialize_summary_csv`, `serialize_summary_markdown`, `serialize_details_csv`,
+  `serialize_details_markdown`) and factory `make_table_serializer()`, serializing the Summary
+  and Details result tables to RFC 4180 CSV and GitHub-flavoured Markdown with a single shared
+  column descriptor per table so the two formats never drift — fixed 13-column Summary, 17-column
+  Details. The `compose_export_filename(run_name, run_id, kind, ext)` function implements the
+  SPEC-064 path-traversal-safe filename composer: allowlist `[A-Za-z0-9._-]`, collapsed
+  underscores, no leading dot/underscore, 80-character run-name truncation, `Run_<run_id>`
+  fallback. Five DTOs: `ExportKind(StrEnum)` for Summary/Details, `RunExportContext`, `SummaryRow`
+  (including provider-name snapshot per DD-33), `SummarySerializationRequest`, `DetailsSerializationRequest`.
+  RFC 4180 quoting with **no formula-injection prefix** (verbatim content per spec), Markdown
+  pipe/`<br>` escaping, empty-cell single-space rule. Pure, stateless, Qt-free, asyncio-free,
+  no I/O, no redaction per `11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md`,
+  `10_Domain_and_Data/05_EXPORT_FORMATS.md`.
+- HTML renderer for result details and log lines (`backend/html_rendering/`): the
+  `ResultHtmlRenderer` Protocol with three methods (`render_result_detail`, `render_log_line`,
+  `set_theme`) and factory `make_result_html_renderer(initial_theme)`, rendering a
+  `BenchmarkResult`/`BenchmarkTask` pair into the ordered result-detail HTML fragment (§6.1) with
+  omit-empty-section semantics (e.g., SYNTHETIC-mode results omit the grading section), and a
+  `LogEntry` into a compact log-line fragment. Mandatory HTML escaping (`&`/`<`/`>`/`"`) of
+  every value sourced from a task file, model response, or provider message; structural safety
+  against `<script>`/`<style>`/`<iframe>`/`on*` attributes and network `href`/`src`. Four DTOs:
+  `UiTheme(StrEnum)` for light/dark, `LogSeverity(StrEnum)` for severity levels, `LogEntry`
+  (timestamp, severity, message, optional provider/model/task context), `ResultDetailRenderRequest`
+  (result, task, run_mode). Light/dark inline-style palette per §8. Pure, stateless apart from
+  the recorded theme; GUI-thread-only by convention; Qt-free, asyncio-free; no I/O, no redaction
+  per `11_Services_and_Algorithms/20_HTML_RENDERING.md`.
 
 ### Added (Phase 0 continued)
 

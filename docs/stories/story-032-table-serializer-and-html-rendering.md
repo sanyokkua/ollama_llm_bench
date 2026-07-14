@@ -1,7 +1,7 @@
 ---
 id: STORY-032
 title: Serialize result tables to CSV/Markdown and render result-detail and log HTML
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md#63-csv-serialization
   - 11_Services_and_Algorithms/19_TABLE_SERIALIZATION.md#64-markdown-serialization

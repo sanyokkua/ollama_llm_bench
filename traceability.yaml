@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-14T10:15:19Z'
+generated_at: '2026-07-14T11:39:04Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -63,6 +63,10 @@ stories:
       STORY-001-AC-3:
         tests:
         - tests/architecture/test_dtos.py::test_at_least_one_struct_discovered
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.csv_export.models.DetailsSerializationRequest]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.csv_export.models.RunExportContext]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.csv_export.models.SummaryRow]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.csv_export.models.SummarySerializationRequest]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -139,6 +143,8 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.html_rendering.models.LogEntry]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.html_rendering.models.ResultDetailRenderRequest]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
@@ -151,6 +157,10 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.task_files.models.TaskValidationResult]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.task_files.models.ValidationIssue]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.yaml_formatter.models.SaveResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.csv_export.models.DetailsSerializationRequest]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.csv_export.models.RunExportContext]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.csv_export.models.SummaryRow]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.csv_export.models.SummarySerializationRequest]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -227,6 +237,8 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.html_rendering.models.LogEntry]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.html_rendering.models.ResultDetailRenderRequest]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
@@ -239,6 +251,10 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.task_files.models.TaskValidationResult]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.task_files.models.ValidationIssue]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.yaml_formatter.models.SaveResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.csv_export.models.DetailsSerializationRequest]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.csv_export.models.RunExportContext]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.csv_export.models.SummaryRow]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.csv_export.models.SummarySerializationRequest]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppMetaRecord]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppReadinessSnapshot]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.domain.models.AppSettingRecord]
@@ -315,6 +331,8 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.TaskFileChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.TaskRetryEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.html_rendering.models.LogEntry]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.html_rendering.models.ResultDetailRenderRequest]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.platform.models.PlatformProfile]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.provider_anthropic.models.AnthropicClientSettings]
@@ -2333,7 +2351,7 @@ stories:
         - src/ollama_llm_bench/backend/task_files/tests/test_validation_cascade.py::test_validator_assigns_severity_and_aggregates[retired_task_type]
   STORY-032:
     title: Serialize result tables to CSV/Markdown and render result-detail and log HTML
-    status: ready
+    status: done
     spec_clauses:
     - 10_Domain_and_Data/05_EXPORT_FORMATS.md#21-canonical-pattern
     - 10_Domain_and_Data/05_EXPORT_FORMATS.md#4-summary-table--csv
@@ -2352,17 +2370,25 @@ stories:
     - EC-RES-2
     acceptance_criteria:
       STORY-032-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/csv_export/tests/test_summary_serialization.py::test_summary_csv_and_markdown_share_thirteen_columns
       STORY-032-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/csv_export/tests/test_details_escaping.py::test_details_cell_with_comma_quote_newline_and_pipe
       STORY-032-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_falls_back_when_sanitisation_yields_empty
+        - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_is_traversal_safe_and_bounded
       STORY-032-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
       STORY-032-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
       STORY-032-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_cell_content_is_verbatim_no_prefix
+        - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
   STORY-033:
     title: Compute the twelve chart aggregators with the five-filter pipeline and guards
     status: ready
@@ -3260,11 +3286,27 @@ edge_cases:
   EC-EXP-1:
     stories:
     - STORY-032
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_falls_back_when_sanitisation_yields_empty
+    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_is_traversal_safe_and_bounded
+    - src/ollama_llm_bench/backend/csv_export/tests/test_details_escaping.py::test_details_cell_with_comma_quote_newline_and_pipe
+    - src/ollama_llm_bench/backend/csv_export/tests/test_summary_serialization.py::test_summary_csv_and_markdown_share_thirteen_columns
+    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_cell_content_is_verbatim_no_prefix
+    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
+    - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
+    - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
   EC-EXP-2:
     stories:
     - STORY-032
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_falls_back_when_sanitisation_yields_empty
+    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_is_traversal_safe_and_bounded
+    - src/ollama_llm_bench/backend/csv_export/tests/test_details_escaping.py::test_details_cell_with_comma_quote_newline_and_pipe
+    - src/ollama_llm_bench/backend/csv_export/tests/test_summary_serialization.py::test_summary_csv_and_markdown_share_thirteen_columns
+    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_cell_content_is_verbatim_no_prefix
+    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
+    - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
+    - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
   EC-FL-10:
     stories:
     - STORY-037
@@ -3595,7 +3637,15 @@ edge_cases:
   EC-RES-2:
     stories:
     - STORY-032
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_falls_back_when_sanitisation_yields_empty
+    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_is_traversal_safe_and_bounded
+    - src/ollama_llm_bench/backend/csv_export/tests/test_details_escaping.py::test_details_cell_with_comma_quote_newline_and_pipe
+    - src/ollama_llm_bench/backend/csv_export/tests/test_summary_serialization.py::test_summary_csv_and_markdown_share_thirteen_columns
+    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_cell_content_is_verbatim_no_prefix
+    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
+    - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
+    - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
   EC-RES-4:
     stories:
     - STORY-033
