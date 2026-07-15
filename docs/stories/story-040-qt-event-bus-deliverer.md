@@ -1,7 +1,7 @@
 ---
 id: STORY-040
 title: Deliver the Qt-free event bus onto the Qt main thread via a queued-signal bridge
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#6-event-bus
   - 08_Cross_Cutting/08-J_event_bus_catalog.md#3-threading-model

@@ -17,6 +17,28 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Qt event bus deliverer (`adapters/qt_event_bus/`): the concrete `EventBus` implementation
+  `QtEventBusDeliverer` and factory `make_qt_event_bus_deliverer()` — the first Qt-binding
+  adapter in the codebase and the sole place `backend/events`' Qt-free bus is connected to Qt
+  signals. `emit(signal_name, payload)` is callable from any thread; delivery is always
+  re-marshalled onto the Qt GUI thread through one generic `Signal(str, object)` relay
+  connected with an explicit `Qt.ConnectionType.QueuedConnection` (never `AutoConnection`), so
+  every subscriber handler runs on the GUI thread regardless of which thread emitted, and even
+  a same-thread `emit()` round-trips through the event loop rather than dispatching
+  synchronously. `subscribe(signal_name, handler, owner=...)` rejects a missing `owner` via
+  `icontract` (a programming error per `08-J` §2) and auto-cancels when `owner` is destroyed —
+  a `QObject` owner via its `destroyed` signal, any other owner via `weakref.finalize`; the
+  returned `Subscription.cancel()` is idempotent from either path. A handler exception is
+  caught, logged (`app.qt_event_bus`), and isolated — it never breaks delivery to other
+  subscribers or raises back to the emitter. The relay signal lives on a private
+  `_RelayCarrier(QObject)` rather than directly on `QtEventBusDeliverer`, because PySide6
+  silently redirects `SignalInstance.emit()` through `QObject`'s legacy `emit(signal, *args)`
+  override once any attribute literally named `emit` exists on the same object. Per `08-E` §6,
+  `08-J` §3, and `04_CONCURRENCY_STANDARD.md` §§2, 8. Adds the `tests/conftest.py` Qt-parity
+  rig (autouse; fails a test emitting a Qt/PySide warning unless marked
+  `@pytest.mark.allow_qt_warnings`), the first infrastructure exercising a real
+  `QObject`/signal-slot connection in this test suite.
+
 - Application-wide single-inference gate (`backend/stores/inference_activity/`): the
   method-only `InferenceActivityStore` Protocol (`try_acquire`, `release`, `state`, `is_busy`,
   no `psygnal.Signal`) and factory `make_inference_activity_store(clock, event_bus)`, enforcing

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-15T12:03:09Z'
+generated_at: '2026-07-15T13:12:14Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3048,7 +3048,7 @@ stories:
         - tests/architecture/test_stores_module.py::test_stores_module_imports_no_qt_or_asyncio[tests/test_workspace_store.py]
   STORY-040:
     title: Deliver the Qt-free event bus onto the Qt main thread via a queued-signal bridge
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#6-event-bus
     - 08_Cross_Cutting/08-J_event_bus_catalog.md#3-threading-model
@@ -3059,13 +3059,17 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-040-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_qt_event_bus.py::test_emit_from_worker_thread_delivers_on_gui_thread
       STORY-040-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_qt_event_bus.py::test_owner_destruction_auto_cancels_subscription
       STORY-040-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_event_bus/tests/test_deliverer.py::test_faulty_handler_is_isolated_and_emit_never_raises
       STORY-040-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_event_bus/tests/test_deliverer.py::test_subscription_cancel_is_idempotent
   STORY-041:
     title: Implement the QThreadPool-backed TaskRunner with Future-completion on the worker thread
     status: ready

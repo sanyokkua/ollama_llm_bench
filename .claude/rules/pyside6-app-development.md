@@ -73,15 +73,15 @@ A UI controller may hold **only its own per-widget Gateway Protocol** from the a
 — it must never hold a backend Store/Service Protocol directly. Each top-level widget/dialog
 has exactly one Gateway that wraps every backend Store/Service it needs:
 
-| Widget | Gateway |
-|---|---|
-| Main Window | `MainWindowGateway` |
-| New Benchmark | `NewBenchmarkGateway` |
-| Resume Benchmark | `ResumeGateway` |
-| Progress | `ProgressGateway` |
-| Result | `ResultGateway` |
-| Settings Dialog | `SettingsGateway` |
-| Task Editor | `TaskEditorGateway` |
+| Widget           | Gateway               |
+| ---------------- | --------------------- |
+| Main Window      | `MainWindowGateway`   |
+| New Benchmark    | `NewBenchmarkGateway` |
+| Resume Benchmark | `ResumeGateway`       |
+| Progress         | `ProgressGateway`     |
+| Result           | `ResultGateway`       |
+| Settings Dialog  | `SettingsGateway`     |
+| Task Editor      | `TaskEditorGateway`   |
 
 ```python
 from typing import Protocol
@@ -157,6 +157,17 @@ self._bus.subscribe_to_run_progress(self._on_progress)
 - No `QWidget` method is ever called from a background thread; a worker result reaches the UI
   as a `Future` value or a typed event, marshalled onto the GUI thread via a queued
   signal/slot connection (`concurrency-standard.md`).
+- **Never declare a method literally named `emit` on the same `QObject` that owns a `Signal`.**
+  PySide6/Shiboken treats any attribute named `emit` — method, property, or instance attribute
+  — on a `QObject` as an override of the legacy per-object `QObject.emit(signal, *args)`
+  dispatch; once it exists, *every* `SignalInstance.emit()` call for *any* signal owned by that
+  object is silently redirected through the override instead of performing real Qt signal
+  activation (discovered in STORY-040 — `adapters/qt_event_bus/`). A `Protocol` requiring a
+  method named `emit` (e.g. `backend.events.EventBus`) is implemented by giving the `QObject`
+  a private helper `QObject` to hold the `Signal`, held as an instance attribute and never
+  exposed — see `adapters/qt_event_bus/_internal/deliverer.py`'s `_RelayCarrier` for the
+  pattern. This affects every future adapter connecting a Qt-free Protocol with an `emit`
+  method to a real Qt signal (`qt_inference_activity_bridge`, `store_qt_bridge`).
 
 ## Widgets, layouts, and forms
 
