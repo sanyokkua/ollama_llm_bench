@@ -1,7 +1,7 @@
 ---
 id: STORY-044
 title: Bridge the psygnal-driven reactive stores to Qt signals on the main thread
-status: ready
+status: done
 spec_clauses:
   - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#5-adapters-modules
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#19-workspace-controller

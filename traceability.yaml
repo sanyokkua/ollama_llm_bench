@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-15T20:26:33Z'
+generated_at: '2026-07-15T21:07:56Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3161,7 +3161,7 @@ stories:
         - tests/architecture/test_ui_gate_access.py::test_gate_observed_only_through_bridge_on_gui_thread
   STORY-044:
     title: Bridge the psygnal-driven reactive stores to Qt signals on the main thread
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#19-workspace-controller
     - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#5-adapters-modules
@@ -3171,11 +3171,14 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-044-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/store_qt_bridge/tests/test_bridge.py::test_run_registry_psygnal_reemits_as_qt_signal
       STORY-044-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_store_qt_bridge.py::test_workspace_change_from_worker_delivers_on_gui_thread
       STORY-044-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/store_qt_bridge/tests/test_bridge.py::test_dispose_unsubscribes_from_store_signals
   STORY-045:
     title: Coordinate workspace switching with lazy widget construction, focus hint, and theme reapply
     status: ready
