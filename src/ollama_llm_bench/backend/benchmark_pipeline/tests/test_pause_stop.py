@@ -1,6 +1,7 @@
 """Proves: STORY-029-AC-4"""
 
 from collections.abc import Callable, Iterator
+import threading
 import time
 
 from pytest_mock import MockerFixture
@@ -79,6 +80,36 @@ def _wait_until_idle(pipeline: BenchmarkFlowApi, timeout_s: float = _WAIT_TIMEOU
     assert not pipeline.is_running(), "pipeline did not settle within the timeout"
 
 
+class _ThreadedRunDispatcher:
+    """A minimal, test-only stand-in for genuine single-submission threading.
+
+    Distinct from `conftest.py`'s `inline_run_dispatcher` fixture (which runs
+    every submission synchronously, settling `start()` before it even
+    returns) and from the real, persistent `pipeline-dispatcher` thread
+    implementation (which lives in `adapters/qt_benchmark_flow/` — backend
+    tests must not import from `adapters/*`). `submit` spawns one
+    `threading.Thread` per call so `start()` returns promptly while the run
+    is still in flight on a genuine background thread; `shutdown` joins that
+    thread within `timeout_ms`, exactly the interleaving
+    `test_shutdown_mid_run_stops_and_joins_the_dispatcher_thread` needs to be
+    a meaningful proof rather than one already settled by the time
+    `shutdown()` is even called.
+    """
+
+    def __init__(self) -> None:
+        self._thread: threading.Thread | None = None
+
+    def submit(self, fn: Callable[[], None]) -> None:
+        thread = threading.Thread(target=fn, daemon=False)
+        self._thread = thread
+        thread.start()
+
+    def shutdown(self, timeout_ms: int) -> None:
+        thread = self._thread
+        if thread is not None:
+            thread.join(timeout=timeout_ms / 1000)
+
+
 def _make_pipeline(  # noqa: PLR0913  # test wiring must name every fixture collaborator
     *,
     fake_results_store: FakeResultsStore,
@@ -86,6 +117,7 @@ def _make_pipeline(  # noqa: PLR0913  # test wiring must name every fixture coll
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -99,6 +131,7 @@ def _make_pipeline(  # noqa: PLR0913  # test wiring must name every fixture coll
         tasks_store=fake_tasks_store,
         inference_activity_store=fake_inference_activity_store,
         task_runner=inline_task_runner,  # type: ignore[arg-type]  # fixture is TaskRunner[ResultPatch]
+        run_dispatcher=inline_run_dispatcher,  # type: ignore[arg-type]  # fixture is RunDispatcher
         bus=fake_event_bus,  # type: ignore[arg-type]  # fixture satisfies EventBus structurally
         clock=fake_clock,
         embedding_service=fake_embedding_service,
@@ -115,6 +148,7 @@ def test_pause_on_idle_pipeline_is_a_no_op(  # noqa: PLR0913  # every fixture is
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -133,6 +167,7 @@ def test_pause_on_idle_pipeline_is_a_no_op(  # noqa: PLR0913  # every fixture is
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=inline_run_dispatcher,
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,
@@ -153,6 +188,7 @@ def test_stop_on_idle_pipeline_is_a_no_op(  # noqa: PLR0913  # every fixture is 
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -171,6 +207,7 @@ def test_stop_on_idle_pipeline_is_a_no_op(  # noqa: PLR0913  # every fixture is 
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=inline_run_dispatcher,
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,
@@ -191,6 +228,7 @@ def test_shutdown_on_idle_pipeline_is_a_no_op(  # noqa: PLR0913  # every fixture
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -209,6 +247,7 @@ def test_shutdown_on_idle_pipeline_is_a_no_op(  # noqa: PLR0913  # every fixture
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=inline_run_dispatcher,
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,
@@ -241,6 +280,11 @@ def test_shutdown_mid_run_stops_and_joins_the_dispatcher_thread(  # noqa: PLR091
     `shutdown()` requests a hard stop and blocks until the dispatcher
     thread settles (bounded by its `timeout_ms`) — `is_running()` is false
     the instant `shutdown()` returns, with no separate poll needed.
+
+    Uses `_ThreadedRunDispatcher`, not the `inline_run_dispatcher` fixture:
+    an inline, synchronous dispatch would already have settled the run
+    before `start()` even returns, making `shutdown()`'s own join a no-op
+    and this test's proof vacuous.
     """
     task_one = make_task(task_id="task-1")
     fake_tasks_store.list_tasks.return_value = (task_one,)  # type: ignore[attr-defined]
@@ -251,6 +295,7 @@ def test_shutdown_mid_run_stops_and_joins_the_dispatcher_thread(  # noqa: PLR091
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=_ThreadedRunDispatcher(),
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,
@@ -282,6 +327,7 @@ def test_start_with_gate_already_held_emits_start_failed_and_creates_no_run(  # 
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -304,6 +350,7 @@ def test_start_with_gate_already_held_emits_start_failed_and_creates_no_run(  # 
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=inline_run_dispatcher,
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,
@@ -326,6 +373,7 @@ def test_pause_mid_run_finishes_in_flight_unit_and_leaves_run_incomplete(  # noq
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -361,6 +409,7 @@ def test_pause_mid_run_finishes_in_flight_unit_and_leaves_run_incomplete(  # noq
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=inline_run_dispatcher,
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,
@@ -410,6 +459,7 @@ def test_stop_mid_run_discards_in_flight_unit_and_settles_stopped(  # noqa: PLR0
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -439,6 +489,7 @@ def test_stop_mid_run_discards_in_flight_unit_and_settles_stopped(  # noqa: PLR0
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=inline_run_dispatcher,
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,

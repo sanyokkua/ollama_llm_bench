@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-15T14:29:05Z'
+generated_at: '2026-07-15T19:59:33Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -640,22 +640,26 @@ stories:
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[__init__.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[_internal/__init__.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[_internal/cancellation_token.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[_internal/inline_run_dispatcher.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[_internal/inline_task_runner.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[api.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[protocols.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/__init__.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/conftest.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/test_cancellation_token.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/test_run_dispatcher.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_defines_no_async_function[tests/test_task_runner.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[__init__.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[_internal/__init__.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[_internal/cancellation_token.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[_internal/inline_run_dispatcher.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[_internal/inline_task_runner.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[api.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[protocols.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/__init__.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/conftest.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/test_cancellation_token.py]
+        - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/test_run_dispatcher.py]
         - tests/architecture/test_concurrency_module.py::test_concurrency_module_imports_no_qt_or_asyncio[tests/test_task_runner.py]
       STORY-006-AC-2:
         tests:
@@ -3096,23 +3100,46 @@ stories:
         - src/ollama_llm_bench/adapters/qt_runnables/tests/test_runnable.py::test_pool_max_thread_count_is_four
   STORY-042:
     title: Provide the Qt-side benchmark flow facade over the pipeline and dispatcher thread
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#11-benchmark-pipeline-flow-api
     - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4-serial-execution-for-a-run-d-r-16
     - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4a-the-dispatcher-thread-dd-38
     modules:
     - adapters/qt_benchmark_flow/
+    - backend/benchmark_pipeline/
+    - backend/concurrency/
     edge_cases: []
     acceptance_criteria:
       STORY-042-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/concurrency/tests/test_run_dispatcher.py::test_inline_run_dispatcher_runs_submitted_fn_synchronously
+        - src/ollama_llm_bench/backend/concurrency/tests/test_run_dispatcher.py::test_run_dispatcher_protocol_declares_exactly_submit_and_shutdown
+        - tests/architecture/test_qt_benchmark_flow_module.py::test_qt_benchmark_flow_module_imports_no_asyncio[__init__.py]
+        - tests/architecture/test_qt_benchmark_flow_module.py::test_qt_benchmark_flow_module_imports_no_asyncio[_internal/__init__.py]
+        - tests/architecture/test_qt_benchmark_flow_module.py::test_qt_benchmark_flow_module_imports_no_asyncio[_internal/dispatcher_thread.py]
+        - tests/architecture/test_qt_benchmark_flow_module.py::test_qt_benchmark_flow_module_imports_no_asyncio[_internal/facade.py]
+        - tests/architecture/test_qt_benchmark_flow_module.py::test_qt_benchmark_flow_module_imports_no_asyncio[api.py]
+        - tests/integration/test_qt_benchmark_flow.py::test_second_run_reuses_the_same_persistent_dispatcher_thread
+        - tests/integration/test_qt_benchmark_flow.py::test_start_returns_promptly_and_hands_run_to_dispatcher
       STORY-042-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_control_and_query_calls_forward_to_backend[current_run]
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_control_and_query_calls_forward_to_backend[is_running]
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_control_and_query_calls_forward_to_backend[pause]
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_control_and_query_calls_forward_to_backend[resume]
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_control_and_query_calls_forward_to_backend[resume_paused]
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_control_and_query_calls_forward_to_backend[shutdown]
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_control_and_query_calls_forward_to_backend[start]
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_control_and_query_calls_forward_to_backend[stop]
+        - tests/architecture/test_qt_benchmark_flow_module.py::test_qt_benchmark_flow_facade_holds_only_forwarding_methods
       STORY-042-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/concurrency/tests/test_run_dispatcher.py::test_inline_run_dispatcher_shutdown_is_a_no_op
+        - tests/integration/test_qt_benchmark_flow.py::test_shutdown_cancels_waits_and_joins_dispatcher_thread
       STORY-042-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_benchmark_flow/tests/test_facade_forwarding.py::test_idle_pause_stop_are_noops_through_facade
   STORY-043:
     title: Bridge the inference-activity gate onto the Qt thread and expose the immediate-check gateway
     status: ready
@@ -5176,6 +5203,7 @@ modules:
     stories:
     - STORY-029
     - STORY-030
+    - STORY-042
   backend/charts/:
     stories:
     - STORY-033
@@ -5185,6 +5213,7 @@ modules:
   backend/concurrency/:
     stories:
     - STORY-006
+    - STORY-042
   backend/csv_export/:
     stories:
     - STORY-032

@@ -217,6 +217,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   §§2, 5–9, 11. No UI wiring yet — the Settings dialog's Import/Export actions and Import Preview
   dialog are a later `ui/settings_dialog/` story.
 
+- `RunDispatcher` port (`backend/concurrency/`) and its Qt-side facade (`adapters/qt_benchmark_flow/`):
+  the `RunDispatcher` Protocol (`submit(fn)`, `shutdown(timeout_ms)`) and inline test double
+  `make_inline_run_dispatcher()`, plus the real, persistent `pipeline-dispatcher` thread
+  factory `make_run_dispatcher()` and the thin forwarding facade `QtBenchmarkFlow`/
+  `make_qt_benchmark_flow(pipeline=...)`. Corrects a DD-38 conformance gap left by STORY-029:
+  `BenchmarkFlowApi.start()`/`.resume()` previously spawned a brand-new `threading.Thread` on
+  every call instead of reusing the single, process-lifetime dispatcher thread the
+  specification requires — `make_benchmark_pipeline` now takes an injected `run_dispatcher`
+  and hands its dispatch loop to it via `submit()` instead of constructing a thread inline.
+  `QtBenchmarkFlow` holds only the backend `BenchmarkFlowApi` (not a `TaskRunner` — see
+  `docs/stories/story-042-qt-benchmark-flow-facade.md`'s "Implementation notes" for why) and
+  forwards every control/query call (`start`, `resume`, `pause`, `resume_paused`, `stop`,
+  `shutdown`, `is_running`, `current_run`) unchanged. Per `08-E` §11 and
+  `16_Engineering_Standards/04_CONCURRENCY_STANDARD.md` §4a.
+
 ### Added (Phase 0 continued)
 
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest

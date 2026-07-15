@@ -41,7 +41,7 @@ from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.benchmark_pipeline.protocols import BenchmarkFlowApi
 from ollama_llm_bench.backend.circuit_breaker import make_circuit_breaker
 from ollama_llm_bench.backend.concurrency import CancellationToken, make_cancellation_token
-from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
+from ollama_llm_bench.backend.concurrency.protocols import RunDispatcher, TaskRunner
 from ollama_llm_bench.backend.domain.models import (
     BenchmarkResult,
     BenchmarkRun,
@@ -112,9 +112,6 @@ _NON_TERMINAL_STATUSES: frozenset[ResultStatus] = frozenset(
 """Statuses a row can still leave; mirrors `FakeResultsStore`'s `_IN_FLIGHT_STATUSES`
 plus `PENDING` — used only to compute `completed_tasks` at settle time."""
 
-_DISPATCHER_THREAD_NAME = "pipeline-dispatcher"
-_MS_PER_SECOND = 1000
-
 
 @dataclass(slots=True, frozen=True)
 class _PhaseToggles:
@@ -181,9 +178,10 @@ class _BenchmarkFlowApiImpl:
     """Concrete `BenchmarkFlowApi`: gate admission, dispatch, and halt handling.
 
     Owns a small locked state surface (`_is_running`, `_current_run`,
-    `_token`, `_dispatcher_thread`) read from the GUI thread while the
-    dispatcher thread runs the five-phase loop. Never raises to its caller
-    (DD-44) — every dependency failure becomes result-row or run-header data.
+    `_token`) read from the GUI thread while the adapter-owned dispatcher
+    thread (`_run_dispatcher`, DD-38) runs the five-phase loop. Never raises
+    to its caller (DD-44) — every dependency failure becomes result-row or
+    run-header data.
     """
 
     def __init__(  # noqa: PLR0913  # every keyword-only argument is a distinct,
@@ -198,6 +196,7 @@ class _BenchmarkFlowApiImpl:
         tasks_store: TasksStore,
         inference_activity_store: InferenceActivityStore,
         task_runner: TaskRunner[object],
+        run_dispatcher: RunDispatcher,
         bus: EventBus,
         clock: Clock,
         embedding_service: EmbeddingService,
@@ -210,6 +209,7 @@ class _BenchmarkFlowApiImpl:
         self._tasks_store = tasks_store
         self._inference_activity_store = inference_activity_store
         self._task_runner = task_runner
+        self._run_dispatcher = run_dispatcher
         self._bus = bus
         self._clock = clock
         self._embedding_service = embedding_service
@@ -220,7 +220,6 @@ class _BenchmarkFlowApiImpl:
         self._is_running = False
         self._current_run: BenchmarkRun | None = None
         self._token: CancellationToken | None = None
-        self._dispatcher_thread: threading.Thread | None = None
         self._stability_state = StabilityRunState()
 
     def start(self, request: RunStartRequest) -> RunId:
@@ -247,15 +246,7 @@ class _BenchmarkFlowApiImpl:
             self._token = token
             self._current_run = run
             self._is_running = True
-        thread = threading.Thread(
-            target=self._dispatch_run,
-            name=_DISPATCHER_THREAD_NAME,
-            kwargs={"run": run, "lease": lease, "token": token},
-            daemon=False,
-        )
-        with self._lock:
-            self._dispatcher_thread = thread
-        thread.start()
+        self._run_dispatcher.submit(lambda: self._dispatch_run(run=run, lease=lease, token=token))
         self._emit_run_started(run)
         return run.run_id
 
@@ -482,15 +473,7 @@ class _BenchmarkFlowApiImpl:
             self._token = token
             self._current_run = run
             self._is_running = True
-        thread = threading.Thread(
-            target=self._dispatch_run,
-            name=_DISPATCHER_THREAD_NAME,
-            kwargs={"run": run, "lease": lease, "token": token},
-            daemon=False,
-        )
-        with self._lock:
-            self._dispatcher_thread = thread
-        thread.start()
+        self._run_dispatcher.submit(lambda: self._dispatch_run(run=run, lease=lease, token=token))
         self._emit_run_resumed(run, current_rows=current_rows)
 
     def pause(self) -> None:
@@ -523,17 +506,15 @@ class _BenchmarkFlowApiImpl:
     def shutdown(self, timeout_ms: int) -> None:
         """Stop the active run gracefully on quit; wait up to timeout_ms then return.
 
-        Requests a hard stop (idle when no run is active) and joins the
-        dispatcher thread up to `timeout_ms`. `Thread.join` returns silently
-        on timeout without raising — a still-alive thread after the bound
-        elapses is surfaced only via `is_running()` still reporting `True`,
-        never as an exception (DD-44).
+        Requests a hard stop (idle when no run is active) and delegates to
+        the adapter-owned `RunDispatcher.shutdown` (DD-38), which waits up to
+        `timeout_ms` for any in-flight dispatch loop to settle and joins its
+        underlying thread. Never raises (DD-44) — a still-running dispatch
+        past the bound is surfaced only via `is_running()` still reporting
+        `True`, never as an exception.
         """
         self.stop()
-        with self._lock:
-            thread = self._dispatcher_thread
-        if thread is not None:
-            thread.join(timeout=timeout_ms / 1000)
+        self._run_dispatcher.shutdown(timeout_ms)
 
     def is_running(self) -> bool:
         """Whether a run is currently executing (including the paused state)."""

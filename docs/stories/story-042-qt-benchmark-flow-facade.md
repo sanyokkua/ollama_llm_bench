@@ -1,13 +1,15 @@
 ---
 id: STORY-042
 title: Provide the Qt-side benchmark flow facade over the pipeline and dispatcher thread
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#11-benchmark-pipeline-flow-api
   - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4-serial-execution-for-a-run-d-r-16
   - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4a-the-dispatcher-thread-dd-38
 modules:
   - adapters/qt_benchmark_flow/
+  - backend/benchmark_pipeline/
+  - backend/concurrency/
 acceptance_criteria:
   - STORY-042-AC-1
   - STORY-042-AC-2
@@ -18,10 +20,36 @@ depends_on:
   - STORY-030
   - STORY-041
 owner: coder
-estimate: M
+estimate: L
 ---
 
 # STORY-042 — Provide the Qt-side benchmark flow facade over the pipeline and dispatcher thread
+
+## Scope note (DD-38 conformance correction)
+
+This story's `modules:` and `estimate:` were widened beyond the originally-drafted single
+`adapters/qt_benchmark_flow/` module. Investigation found that STORY-029's already-`done`
+`_BenchmarkFlowApiImpl.start()`/`.resume()` spawned a **brand-new** `threading.Thread` on
+every call and joined whatever thread object `shutdown()` happened to find at that moment —
+a fresh, short-lived, per-run thread, not the single persistent, process-lifetime
+`pipeline-dispatcher` thread `04_CONCURRENCY_STANDARD.md` §4a (DD-38) and
+`16_CONCURRENCY_MODEL.md` §6.1a require ("One dispatcher thread exists per process...
+created once in the composition root... not an ad-hoc per-work thread"). STORY-029 itself
+explicitly disclaimed "dispatcher-thread construction" as out of its own scope, naming the
+adapter layer as the true owner — mirroring how that story documented its own scope
+boundaries inline (see its Task 9 note on `TasksStore`).
+
+Rather than ship a facade that enshrines that placeholder, this story also adds a small,
+well-scoped `RunDispatcher` seam to `backend/concurrency/` (Protocol + `InlineRunDispatcher`
+test double, mirroring the existing `TaskRunner`/`InlineTaskRunner` split exactly), threads
+it through `backend/benchmark_pipeline/`'s `make_benchmark_pipeline`/`_BenchmarkFlowApiImpl`
+in place of the raw `threading.Thread` calls, and constructs the real, persistent
+`_ThreadRunDispatcher` in `adapters/qt_benchmark_flow/` — the layer DD-38 always intended to
+own it. This is a conformance fix to an already-accepted spec clause (DD-38), not a new
+architectural decision, so no ADR was raised for it. `estimate` moved from `M` to `L`
+because this now spans three modules and adds four new public API symbols
+(`RunDispatcher`, `make_inline_run_dispatcher`, `make_run_dispatcher`,
+`make_qt_benchmark_flow`) rather than the one symbol an `M` story allows.
 
 ## Goal
 
@@ -33,9 +61,12 @@ facade carries no business logic; the pipeline owns all run behaviour.
 
 ## In scope
 
-- The `QtBenchmarkFlow` and its `make_qt_benchmark_flow` factory: a thin proxy that holds the
-  backend `BenchmarkFlowApi` Protocol and the `TaskRunner`, and owns the single, named
-  (`pipeline-dispatcher`), long-lived dispatcher thread created at construction.
+- The `QtBenchmarkFlow` and its `make_qt_benchmark_flow` factory: a thin proxy holding only the
+  backend `BenchmarkFlowApi` Protocol (see "Implementation notes" below for why it does not
+  also hold the `TaskRunner`/dispatcher thread).
+- The `make_run_dispatcher` factory: constructs the single, named (`pipeline-dispatcher`),
+  long-lived dispatcher thread (DD-38), wired into `make_benchmark_pipeline` by the
+  composition root before `make_qt_benchmark_flow` is ever called (see the scope note above).
 - Forwarding each `BenchmarkFlowApi` control/query method through to the backend pipeline,
   preserving the fast-synchronous-on-GUI-thread contract (`start`/`resume` enqueue a command to
   the dispatcher thread and return promptly).
@@ -71,6 +102,20 @@ facade carries no business logic; the pipeline owns all run behaviour.
   created once, joined at shutdown; not an ad-hoc per-work thread.
 - `start`/`resume` do not block on the run; they enqueue a command and return promptly.
 - No `asyncio`; the facade never adds a second parallel-inference path.
+
+## Implementation notes
+
+**Why the facade holds only `pipeline`, not the `TaskRunner`.** `QtTaskRunner.shutdown()`'s
+own docstring already states it is "called once by the composition root during application
+shutdown — after the dispatcher thread has been joined" — i.e. `compose.py` calls
+`task_runner.shutdown()` itself, directly, holding the concrete `QtTaskRunner` type (which is
+why that method isn't on the `TaskRunner` Protocol at all — a Protocol-typed reference can't
+call it). The facade doesn't need it either. This resolves this story's original "holds ...
+the `TaskRunner`" line by not carrying it forward into the concrete design: `QtBenchmarkFlow`
+holds only `self._pipeline: BenchmarkFlowApi`, and the pipeline itself already owns the
+dispatcher hand-off via its own `RunDispatcher` constructor dependency (see the scope note
+above) — `compose.py` wires `make_run_dispatcher()` into `make_benchmark_pipeline(...)`
+directly, before ever calling `make_qt_benchmark_flow`.
 
 ## Acceptance criteria
 
@@ -118,12 +163,24 @@ is preserved through the facade).
   `test_shutdown_cancels_waits_and_joins_dispatcher_thread`.
 - STORY-042-AC-4 — unit, same forwarding test file,
   `test_idle_pause_stop_are_noops_through_facade`.
+- STORY-042-AC-1 (DD-38 conformance proof) — integration, same integration file,
+  `test_second_run_reuses_the_same_persistent_dispatcher_thread` — asserts
+  `threading.enumerate()` shows exactly one `pipeline-dispatcher` thread, the same object
+  identity, across two sequential runs.
+- `backend/concurrency/tests/test_run_dispatcher.py` — unit tests for the `RunDispatcher`
+  Protocol and `InlineRunDispatcher` seam this scope correction added.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-042.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/qt_benchmark_flow/`.
-- [ ] An architecture test confirms the facade holds no business logic (forwards to the backend
+- [x] Every acceptance criterion has a passing test that names STORY-042.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/qt_benchmark_flow/`,
+  `backend/benchmark_pipeline/`, and `backend/concurrency/`.
+- [x] An architecture test confirms the facade holds no business logic (forwards to the backend
   pipeline) and imports no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] `threading.enumerate()` shows exactly one `pipeline-dispatcher` thread across two
+  sequential runs through the same facade (the concrete DD-38 conformance proof).
+- [x] The traceability record validates with no orphan clause and no orphan test for
+  STORY-042 itself; `just trace-check`'s three remaining failures
+  (`EC-PERSIST-6`/`EC-PROV-1a`/`EC-RUN-1a`) are pre-existing gaps unrelated to this story
+  (first seen at STORY-027, tracked as project-wide backlog).
+- [x] The module inventory is unchanged.

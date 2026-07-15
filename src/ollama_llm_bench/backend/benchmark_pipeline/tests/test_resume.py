@@ -119,6 +119,7 @@ def _make_pipeline(  # noqa: PLR0913  # test wiring must name every fixture coll
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -132,6 +133,7 @@ def _make_pipeline(  # noqa: PLR0913  # test wiring must name every fixture coll
         tasks_store=fake_tasks_store,
         inference_activity_store=fake_inference_activity_store,
         task_runner=inline_task_runner,  # type: ignore[arg-type]  # fixture is TaskRunner[ResultPatch]
+        run_dispatcher=inline_run_dispatcher,  # type: ignore[arg-type]  # fixture is RunDispatcher
         bus=fake_event_bus,  # type: ignore[arg-type]  # fixture satisfies EventBus structurally
         clock=fake_clock,
         embedding_service=fake_embedding_service,
@@ -148,6 +150,7 @@ def test_resume_selects_resumable_rows_and_reuses_snapshot(  # noqa: PLR0913  # 
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -193,6 +196,7 @@ def test_resume_selects_resumable_rows_and_reuses_snapshot(  # noqa: PLR0913  # 
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=inline_run_dispatcher,
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,
@@ -219,6 +223,7 @@ def test_resume_with_gate_already_held_is_a_no_op(  # noqa: PLR0913  # every fix
     fake_tasks_store: TasksStore,
     fake_inference_activity_store: InferenceActivityStore,
     inline_task_runner: object,
+    inline_run_dispatcher: object,
     fake_event_bus: object,
     fake_clock: Clock,
     fake_embedding_service: EmbeddingService,
@@ -244,6 +249,7 @@ def test_resume_with_gate_already_held_is_a_no_op(  # noqa: PLR0913  # every fix
         fake_tasks_store=fake_tasks_store,
         fake_inference_activity_store=fake_inference_activity_store,
         inline_task_runner=inline_task_runner,
+        inline_run_dispatcher=inline_run_dispatcher,
         fake_event_bus=fake_event_bus,
         fake_clock=fake_clock,
         fake_embedding_service=fake_embedding_service,

@@ -103,6 +103,30 @@ def inline_task_runner() -> _InlineTaskRunner:
     return _InlineTaskRunner()
 
 
+class _InlineRunDispatcher:
+    """Runs a submitted dispatch-loop callable synchronously — a shared test double.
+
+    Mirrors `_InlineTaskRunner` above (same "distinct from
+    `backend.concurrency`'s canonical fake" rationale — this module keeps its
+    own local copy so its colocated tests need no cross-module fixture
+    coupling): `submit(fn)` calls `fn()` immediately on the calling thread, so
+    `start()`/`resume()` settle before returning and no real
+    `pipeline-dispatcher` thread is ever spawned for these unit tests.
+    """
+
+    def submit(self, fn: Callable[[], None]) -> None:
+        fn()
+
+    def shutdown(self, timeout_ms: int) -> None:
+        del timeout_ms
+
+
+@pytest.fixture
+def inline_run_dispatcher() -> _InlineRunDispatcher:
+    """A `RunDispatcher` double that runs every submitted dispatch loop synchronously."""
+    return _InlineRunDispatcher()
+
+
 @pytest.fixture
 def fake_results_store() -> FakeResultsStore:
     """A fresh, empty `FakeResultsStore` per test."""

@@ -4,7 +4,7 @@ import icontract
 
 from ollama_llm_bench.backend.benchmark_pipeline._internal.lifecycle import _BenchmarkFlowApiImpl
 from ollama_llm_bench.backend.benchmark_pipeline.protocols import BenchmarkFlowApi
-from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
+from ollama_llm_bench.backend.concurrency.protocols import RunDispatcher, TaskRunner
 from ollama_llm_bench.backend.domain.models import ResultPatch
 from ollama_llm_bench.backend.embedding.protocols import EmbeddingService
 from ollama_llm_bench.backend.events.protocols import EventBus
@@ -35,6 +35,7 @@ def make_benchmark_pipeline(  # noqa: PLR0913  # every keyword-only argument is 
     tasks_store: TasksStore,
     inference_activity_store: InferenceActivityStore,
     task_runner: TaskRunner[object],
+    run_dispatcher: RunDispatcher,
     bus: EventBus,
     clock: Clock,
     embedding_service: EmbeddingService,
@@ -54,6 +55,10 @@ def make_benchmark_pipeline(  # noqa: PLR0913  # every keyword-only argument is 
             it serves every phase's distinct per-unit payload type — the
             non-stability phases' own `ResultPatch` read is cast back
             internally.
+        run_dispatcher: The single, persistent, adapter-owned execution
+            context (DD-38) `start()`/`resume()` hand this run's own dispatch
+            loop to; distinct from `task_runner`, which schedules the
+            individual units that loop submits.
         bus: The application event bus run-domain and per-task events are emitted on.
         clock: The injected time source.
         embedding_service: The shared embedding + cosine-scoring facade.
@@ -73,6 +78,7 @@ def make_benchmark_pipeline(  # noqa: PLR0913  # every keyword-only argument is 
         tasks_store=tasks_store,
         inference_activity_store=inference_activity_store,
         task_runner=task_runner,
+        run_dispatcher=run_dispatcher,
         bus=bus,
         clock=clock,
         embedding_service=embedding_service,

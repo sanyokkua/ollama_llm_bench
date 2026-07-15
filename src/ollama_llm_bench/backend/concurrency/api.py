@@ -10,15 +10,19 @@ import icontract
 from ollama_llm_bench.backend.concurrency._internal.cancellation_token import (
     CancellationToken,
 )
+from ollama_llm_bench.backend.concurrency._internal.inline_run_dispatcher import (
+    InlineRunDispatcher,
+)
 from ollama_llm_bench.backend.concurrency._internal.inline_task_runner import (
     InlineTaskRunner,
 )
-from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
+from ollama_llm_bench.backend.concurrency.protocols import RunDispatcher, TaskRunner
 from ollama_llm_bench.backend.infra.protocols import Clock
 
 __all__: list[str] = [
     "CancellationToken",
     "make_cancellation_token",
+    "make_inline_run_dispatcher",
     "make_inline_task_runner",
 ]
 
@@ -63,3 +67,22 @@ def make_inline_task_runner[T]() -> TaskRunner[T]:
         A ``TaskRunner`` that runs every submitted unit synchronously.
     """
     return InlineTaskRunner()
+
+
+@icontract.ensure(
+    lambda result: result is not None,
+    "make_inline_run_dispatcher must always return a usable dispatcher — a violation here "
+    "means this factory's own wiring is broken, not that a caller passed bad input",
+)
+def make_inline_run_dispatcher() -> RunDispatcher:
+    """Construct the inline, synchronous ``RunDispatcher`` implementation for tests.
+
+    Runs each submitted unit immediately on the calling thread — no threads,
+    no Qt, no ``asyncio``. The real, persistent ``pipeline-dispatcher`` thread
+    implementation lives in ``adapters/qt_benchmark_flow/`` (DD-38).
+
+    Returns:
+        A ``RunDispatcher`` that runs every submitted unit synchronously and
+        whose ``shutdown`` is a no-op.
+    """
+    return InlineRunDispatcher()
