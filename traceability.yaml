@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-15T13:12:14Z'
+generated_at: '2026-07-15T14:29:05Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3072,7 +3072,7 @@ stories:
         - src/ollama_llm_bench/adapters/qt_event_bus/tests/test_deliverer.py::test_subscription_cancel_is_idempotent
   STORY-041:
     title: Implement the QThreadPool-backed TaskRunner with Future-completion on the worker thread
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
     - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#3-the-taskrunner-port-and-the-qt-adapter
@@ -3083,13 +3083,17 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-041-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_qt_runnables.py::test_submit_completes_future_with_result_on_worker_thread
       STORY-041-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_qt_runnables.py::test_submit_propagates_worker_exception_via_future
       STORY-041-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_runnables/tests/test_runnable.py::test_cancellation_token_is_passed_into_callable_unchanged
       STORY-041-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_runnables/tests/test_runnable.py::test_pool_max_thread_count_is_four
   STORY-042:
     title: Provide the Qt-side benchmark flow facade over the pipeline and dispatcher thread
     status: ready

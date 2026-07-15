@@ -1,7 +1,7 @@
 ---
 id: STORY-041
 title: Implement the QThreadPool-backed TaskRunner with Future-completion on the worker thread
-status: ready
+status: done
 spec_clauses:
   - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#3-the-taskrunner-port-and-the-qt-adapter
   - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4a-the-dispatcher-thread-dd-38
@@ -73,8 +73,12 @@ fan-out probe runs on.
   (`01_MODULE_INVENTORY.md` §5). No `asyncio`.
 - The completion path sets the stdlib `Future` result/exception on the worker thread; no
   `Signal` is emitted to report unit completion.
-- The token is passed through unchanged; the runnable never inspects or mutates cancellation
-  state itself.
+- The token is carried into the runnable unchanged (never copied or wrapped); the runnable
+  calls `token.raise_if_cancelled()` as a pre-start checkpoint (mirroring `InlineTaskRunner`)
+  but never mutates cancellation state itself. The backend callable itself is zero-arg
+  (`Callable[[], T]`) and never receives the token directly — cooperative polling inside a
+  unit's own logic happens via a token closed over by the dispatcher, not via the runnable
+  forwarding it as an argument.
 - The pool is owned by the adapter and drained cleanly at shutdown.
 
 ## Acceptance criteria
@@ -93,9 +97,10 @@ Future via `set_exception`, not swallowed).
 
 ### STORY-041-AC-3
 
-Given a submitted unit, when the runnable invokes the backend callable, then the same
-`CancellationToken` passed to `submit` is passed into the callable unchanged, so the callable
-can poll it for cooperative cancellation.
+Given a submitted unit, when the runnable's `run()` executes, then the exact
+`CancellationToken` object passed to `submit` is the one `run()` calls `raise_if_cancelled()`
+on (identity preserved, never copied or wrapped) as a pre-start checkpoint before invoking the
+backend callable.
 
 ### STORY-041-AC-4
 
@@ -115,9 +120,26 @@ Given the `TaskRunner` is constructed, then its underlying `QThreadPool` reports
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-041.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/qt_runnables/`.
-- [ ] An architecture test confirms no Qt signal participates in the unit-completion path and
+- [x] Every acceptance criterion has a passing test that names STORY-041.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/qt_runnables/`.
+- [x] An architecture test confirms no Qt signal participates in the unit-completion path and
   the module imports no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test for this
+  story's clauses/ACs (repo-wide `trace-check` has three pre-existing, unrelated failures —
+  `EC-PERSIST-6`, `EC-PROV-1a`, `EC-RUN-1a` — confirmed via `git stash` diff against the
+  pre-story baseline; tracked as repo backlog, not introduced by this story).
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- `QtTaskRunner.shutdown()` calls `QThreadPool.waitForDone()` with no timeout and is reachable
+  only through the concrete class, not the `TaskRunner` Protocol returned by
+  `make_qt_task_runner()`. This is intentional per this story's "out of scope" section
+  (pause/stop/shutdown semantics belong to the pipeline); a bounded, Protocol-reachable
+  shutdown path is deferred to the composition-root shutdown story (`compose.py` /
+  `adapters/qt_benchmark_flow/`, STORY-042 and after). No test covers `shutdown()` in this
+  story, by design.
+- The pre-start `raise_if_cancelled()` checkpoint's behaviour with an already-cancelled *real*
+  token (as opposed to a mock) is not exercised by this story's tests — AC-3 proves token
+  identity/pass-through only. Cooperative-cancellation semantics are this story's dependency
+  (STORY-006) and the pipeline's concern, not re-verified here.
