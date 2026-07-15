@@ -1,7 +1,7 @@
 ---
 id: STORY-039
 title: Provide the RunRegistryStore and WorkspaceStore reactive state stores
-status: ready
+status: done
 spec_clauses:
   - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#42-settings-stores-and-readiness-modules
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#19-workspace-controller
