@@ -232,6 +232,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `shutdown`, `is_running`, `current_run`) unchanged. Per `08-E` §11 and
   `16_Engineering_Standards/04_CONCURRENCY_STANDARD.md` §4a.
 
+- Qt inference-activity bridge (`adapters/qt_inference_activity_bridge/`): the
+  `QtInferenceActivityBridge` class and factory `make_qt_inference_activity_bridge(*, store, event_bus)`,
+  forwarding the `InferenceActivityStore`'s `_inference_activity_changed` publications (already
+  marshalled onto the Qt GUI thread by `adapters/qt_event_bus/`) to typed subscribers as
+  `InferenceActivityChangedEvent` (no coalescing), and exposing the synchronous `is_inference_busy()`
+  gateway for immediate in-place checks. The UI observes the gate only through this bridge, never the
+  store directly — the sole UI-facing access point to the application-wide single-inference gate (D-R-06).
+  Per `08-E` §13 and `08-Q` §8.2.
+
 ### Added (Phase 0 continued)
 
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest

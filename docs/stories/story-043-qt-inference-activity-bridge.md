@@ -1,7 +1,7 @@
 ---
 id: STORY-043
 title: Bridge the inference-activity gate onto the Qt thread and expose the immediate-check gateway
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store
   - 08_Cross_Cutting/08-Q_event_payload_schemas.md#82-inferenceactivitychangedevent--_inference_activity_changed
