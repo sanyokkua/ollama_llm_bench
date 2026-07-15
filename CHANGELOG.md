@@ -178,6 +178,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `10_Domain_and_Data/07_FILE_LAYOUT.md` §4, §8, §9 and
   `11_Services_and_Algorithms/15_LOG_FORMATTING.md` §7.
 
+- Settings and provider-config import/export service (`backend/import_export/`): the
+  `ImportExportService` Protocol (`build_settings_import_preview`, `apply_settings_import`,
+  `build_provider_import_preview`, `apply_provider_import`, `export_settings`,
+  `export_providers`) and factory `make_import_export_service(providers_store, app_settings_store, event_bus)`. Parses a settings-or-provider-config YAML file in safe-load
+  mode under the three-severity model (hard error / soft warning / soft info) fully before any
+  store write, building an Added/Changed/Unchanged/Skipped preview; applying merges settings
+  keys but replaces the provider registry wholesale (DD-55). Enforces the environment-variable-
+  name-only `api_key` rule (D-R-18) — a literal secret is a hard error for that entry and is
+  never persisted — plus a `base_url` syntactic-validity check mirroring the provider-edit
+  dialog's own rule, the retired `id:`-field soft-info handling (DD-33), and the `name`-based
+  (never `id`) collision pre-check via `ProvidersStore.get_by_name`. `provider_id` is
+  intentionally never round-tripped — a fresh UUID4 is generated on every applied import. Qt-free,
+  asyncio-free, imports only `ruamel.yaml`, `backend/domain`, `backend/errors`, `backend/events`,
+  and the `ProvidersStore`/`AppSettingsStore` Protocols, per `10_Domain_and_Data/06_IMPORT_FORMATS.md`
+  §§2, 5–9, 11. No UI wiring yet — the Settings dialog's Import/Export actions and Import Preview
+  dialog are a later `ui/settings_dialog/` story.
+
 ### Added (Phase 0 continued)
 
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest

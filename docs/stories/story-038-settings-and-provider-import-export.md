@@ -1,7 +1,7 @@
 ---
 id: STORY-038
 title: Parse, validate, preview, and apply settings and provider-config import/export
-status: ready
+status: done
 spec_clauses:
   - 10_Domain_and_Data/06_IMPORT_FORMATS.md#2-common-rules-encoding-parsing-validation-severities
   - 10_Domain_and_Data/06_IMPORT_FORMATS.md#5-api-key-value-form-environment-variable-name

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-15T08:20:38Z'
+generated_at: '2026-07-15T10:57:37Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -148,6 +148,13 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.html_rendering.models.LogEntry]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.html_rendering.models.ResultDetailRenderRequest]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.ImportFinding]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.ProviderImportItem]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.ProviderImportPreview]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.ProviderImportResult]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.SettingsImportItem]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.SettingsImportPreview]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.SettingsImportResult]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.log_file_writer.models.WriteOutcome]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.platform.models.PlatformProfile]
@@ -245,6 +252,13 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.html_rendering.models.LogEntry]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.html_rendering.models.ResultDetailRenderRequest]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.ImportFinding]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.ProviderImportItem]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.ProviderImportPreview]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.ProviderImportResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.SettingsImportItem]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.SettingsImportPreview]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.SettingsImportResult]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.log_file_writer.models.WriteOutcome]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.platform.models.PlatformProfile]
@@ -342,6 +356,13 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.events.models.WorkspaceChangedEvent]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.html_rendering.models.LogEntry]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.html_rendering.models.ResultDetailRenderRequest]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.ImportFinding]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.ProviderImportItem]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.ProviderImportPreview]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.ProviderImportResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.SettingsImportItem]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.SettingsImportPreview]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.SettingsImportResult]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.log_file_writer.models.WriteOutcome]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.platform.models.PlatformProfile]
@@ -2845,7 +2866,7 @@ stories:
         - src/ollama_llm_bench/backend/log_file_writer/tests/test_safe_append.py::test_append_creates_new_file_with_owner_only_permissions
   STORY-038:
     title: Parse, validate, preview, and apply settings and provider-config import/export
-    status: ready
+    status: done
     spec_clauses:
     - 10_Domain_and_Data/06_IMPORT_FORMATS.md#11-edge-cases
     - 10_Domain_and_Data/06_IMPORT_FORMATS.md#2-common-rules-encoding-parsing-validation-severities
@@ -2868,19 +2889,69 @@ stories:
     - EC-IMP-9
     acceptance_criteria:
       STORY-038-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+        - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
       STORY-038-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
       STORY-038-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+        - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
       STORY-038-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+        - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
       STORY-038-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+        - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+        - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
       STORY-038-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+        - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+        - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
       STORY-038-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+        - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
 clauses:
   08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution:
     stories:
@@ -3674,39 +3745,489 @@ edge_cases:
   EC-IMP-1:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-IMP-10:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-IMP-13:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-IMP-2:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-IMP-3:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-IMP-6:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-IMP-7:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-IMP-8:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-IMP-9:
     stories:
     - STORY-038
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/import_export/tests/test_api_key_rule.py::test_literal_secret_is_hard_error_and_not_persisted
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_provider_import_apply_replaces_registry_wholesale
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_merges_only_present_keys
+    - src/ollama_llm_bench/backend/import_export/tests/test_apply.py::test_settings_import_apply_with_no_resolved_values_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_renders_blank_allowed_float_as_empty_string
+    - src/ollama_llm_bench/backend/import_export/tests/test_export_assembly.py::test_export_settings_skips_keys_not_in_the_catalog
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[extension_not_yaml_or_yml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[kind_wrong_for_action]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[malformed_yaml]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[root_not_a_mapping]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_file_level_condition_severity[schema_version_newer_than_build]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_absent_produces_no_file_level_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_less_than_one]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_schema_version_soft_conditions_treated_as_one[schema_version_non_integer]
+    - src/ollama_llm_bench/backend/import_export/tests/test_file_level_validation.py::test_unreadable_file_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_hard_error_or_cancel_writes_nothing
+    - src/ollama_llm_bench/backend/import_export/tests/test_no_partial_apply.py::test_unconfirmed_preview_leaves_state_unchanged
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_field_omitted_is_treated_as_keyless
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_api_key_non_string_value_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_dropping_the_last_entry_aborts_the_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_duplicate_name_in_file_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_embedding_provider_name_mismatch_aborts_whole_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_currently_set_has_no_finding
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_env_var_name_unset_is_soft_warning_and_imported_as_is
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_existing_name_collision_is_soft_warning_and_excluded
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_non_dict_provider_entry_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_not_syntactically_valid]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[base_url_wrong_scheme]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_name]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[missing_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[openai_compatible_missing_base_url]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_provider_condition_severity[type_not_one_of_the_three_allowed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_providers_missing_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_retired_id_field_is_soft_info_and_entry_still_added
+    - src/ollama_llm_bench/backend/import_export/tests/test_provider_validation.py::test_schema_version_soft_warning_on_provider_import
+    - src/ollama_llm_bench/backend/import_export/tests/test_round_trip.py::test_export_import_is_value_preserving
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[bool_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[enum_not_a_member]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[float_not_a_number]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_above_maximum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[int_below_minimum]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_coercion_invalid_values_skipped[string_wrong_type]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_allows_blank_value_for_allow_blank_float
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[different_value_is_changed]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[no_current_value_is_added]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
+    - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
   EC-PERSIST-1:
     stories:
     - STORY-008
