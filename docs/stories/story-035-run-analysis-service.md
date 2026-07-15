@@ -1,7 +1,7 @@
 ---
 id: STORY-035
 title: Generate the consolidated mode-aware run-analysis narrative
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#61-applicability-gate
   - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#61a-acquire-the-single-inference-gate
@@ -197,9 +197,9 @@ afterwards.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-035.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/run_analysis/`.
-- [ ] An architecture test confirms the module imports no Qt and no `asyncio`.
-- [ ] The `RUN_ANALYSIS` adaptive-timeout bucket wiring is reviewed against RA-22/RA-24/RA-25.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-035.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-035.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/run_analysis/`.
+- [x] An architecture test confirms the module imports no Qt and no `asyncio`.
+- [x] The `RUN_ANALYSIS` adaptive-timeout bucket wiring is reviewed against RA-22/RA-24/RA-25.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-035.
+- [x] The module inventory is unchanged.
