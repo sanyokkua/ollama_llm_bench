@@ -162,6 +162,22 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   domain types each had cited as the other's responsibility: adds all three to `backend/domain`
   per `10_Domain_and_Data/02_DTOS_AND_ENUMS.md` §7.7.
 
+- Rotating application-log and per-run event-log file writers (`backend/log_file_writer/`):
+  factories `make_app_log_writer()` (targets `<app-data>/logs/app/app.log`, rotating at a 10 MB
+  trigger with 5 retained backups — `app.log` -> `.1`, each `.N` -> `.N+1`, the oldest backup
+  discarded) and `make_run_log_writer(run_id, unix_ts)` (targets
+  `<app-data>/logs/run/run_<run_id>_<unix_ts>.log`, never rotated, always rendering the full
+  Verbose `RunLogEvent` field set regardless of the on-screen `ui.run_log_verbosity`), plus
+  `cleanup_run_logs()` — the startup count-based prune of `logs/run/` to 200 files, oldest
+  embedded-timestamp first (only the count rule; the age and orphan rules are out of scope).
+  Every write returns a typed `WriteOutcome` instead of raising, goes through a shared
+  atomic-append primitive that creates each file at owner-only `0600` permissions atomically at
+  creation (never a follow-up `chmod`) and truncates back to the pre-write size on a mid-write
+  failure so a disk-full condition never leaves a partial line on disk. Qt-free, asyncio-free,
+  imports only `backend/infra` and `backend/domain`, per
+  `10_Domain_and_Data/07_FILE_LAYOUT.md` §4, §8, §9 and
+  `11_Services_and_Algorithms/15_LOG_FORMATTING.md` §7.
+
 ### Added (Phase 0 continued)
 
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest

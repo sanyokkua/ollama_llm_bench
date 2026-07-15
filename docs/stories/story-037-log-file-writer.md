@@ -1,7 +1,7 @@
 ---
 id: STORY-037
 title: Write the rotating application log and the per-run log files
-status: ready
+status: done
 spec_clauses:
   - 10_Domain_and_Data/07_FILE_LAYOUT.md#41-applicationsystem-log
   - 10_Domain_and_Data/07_FILE_LAYOUT.md#42-benchmark-run-event-log
@@ -131,9 +131,26 @@ Given any log file the writer creates, when it is created, then its filesystem p
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-037.
-- [ ] EC-FL-9 and EC-FL-10 have passing tests.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/log_file_writer/`.
-- [ ] An architecture test confirms the module imports no Qt and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-037.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-037.
+- [x] EC-FL-9 and EC-FL-10 have passing tests.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/log_file_writer/`.
+- [x] An architecture test confirms the module imports no Qt and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-037
+  (remaining `just trace-check` failures are pre-existing, unrelated to this story — see
+  Notes below).
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- `just trace-check` reports pre-existing failures unrelated to this story: dangling
+  `EC-PERSIST-6`, unmapped `EC-PROV-1a`/`EC-RUN-1a`, and `EC-IMP-*` edge cases named by the
+  still-unimplemented `STORY-038` (`backend/import_export/`). Verified by stashing this story's
+  changes and re-running `just trace-check`: the identical failure set reproduces on the
+  pre-existing tree. STORY-037's own acceptance criteria and edge cases (EC-FL-9, EC-FL-10)
+  resolve cleanly with no orphans.
+- `just coverage-layers`' UI-layer coverage steps report "No data to report" because no `ui/*`
+  code exists yet in this phase — pre-existing, unrelated to this story. The backend-layer gate
+  (`>=90%`) passes at 91%, and `backend/log_file_writer/`'s own implementation files are at
+  100% statement+branch coverage (only `protocols.py`'s `...` stub bodies and `testing.py`'s
+  fakes — exercised only by downstream consumers, not yet written — read below 100%, matching
+  every sibling module's own pattern).
