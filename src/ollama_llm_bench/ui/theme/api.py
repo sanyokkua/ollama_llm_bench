@@ -3,12 +3,14 @@ generator, and the QPalette builder (08-D_color_palette_and_typography.md).
 """
 
 import icontract
+from PySide6.QtGui import QPalette
 
 from ollama_llm_bench.ui.theme._internal.color_resolution import resolve_color_value
 from ollama_llm_bench.ui.theme._internal.factory import (
     assemble_dark_theme_tokens,
     assemble_light_theme_tokens,
 )
+from ollama_llm_bench.ui.theme._internal.palette_builder import render_palette
 from ollama_llm_bench.ui.theme._internal.stylesheet_builder import render_stylesheet
 from ollama_llm_bench.ui.theme._internal.verdict_health import (
     health_color_value,
@@ -67,3 +69,11 @@ def resolve_health_color(tokens: ThemeTokens, state: HealthDisplayState) -> str:
 def build_stylesheet(tokens: ThemeTokens) -> str:
     """Compile a token container into the application-level Qt stylesheet (08-D §16)."""
     return render_stylesheet(tokens)
+
+
+@icontract.ensure(
+    lambda result, tokens: result.color(QPalette.ColorRole.Window).name() == tokens.colors.bg_window
+)
+def build_palette(tokens: ThemeTokens) -> QPalette:
+    """Build the QPalette matching a token container's core roles (08-D §16, AC-6)."""
+    return render_palette(tokens)
