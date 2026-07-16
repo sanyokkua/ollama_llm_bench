@@ -2,6 +2,7 @@
 
 from PySide6.QtWidgets import QStatusBar, QWidget
 import pytest
+from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.adapters.notification_service import make_notification_service
@@ -41,3 +42,29 @@ def test_info_and_warning_show_transient_toast(
     # Assert
     assert result is None
     assert status_bar.currentMessage() == "Hello notification"
+
+
+def test_show_error_blocking_flag_selects_modal_or_toast(
+    mocker: MockerFixture, status_bar: QStatusBar, parent_widget: QWidget
+) -> None:
+    """Proves: STORY-047-AC-2
+
+    show_error(text, blocking=True) shows a modal error dialog carrying that
+    text; show_error(text, blocking=False) shows a transient error toast
+    instead -- the blocking flag selects modal vs. toast.
+    """
+    # Arrange
+    service = make_notification_service(status_bar=status_bar, parent=parent_widget)
+    critical_mock = mocker.patch(
+        "ollama_llm_bench.adapters.notification_service._internal.qt_notification_service"
+        ".QMessageBox.critical"
+    )
+
+    # Act
+    service.show_error("Toast error", blocking=False)
+    toast_message = status_bar.currentMessage()
+    service.show_error("Modal error", blocking=True)
+
+    # Assert
+    assert toast_message == "Toast error"
+    critical_mock.assert_called_once_with(parent_widget, "Error", "Modal error")
