@@ -1,7 +1,7 @@
 ---
 id: STORY-045
 title: Coordinate workspace switching with lazy widget construction, focus hint, and theme reapply
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#19-workspace-controller
   - 08_Cross_Cutting/08-Q_event_payload_schemas.md#91-workspacechangedevent--_workspace_changed

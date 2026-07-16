@@ -241,6 +241,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   store directly — the sole UI-facing access point to the application-wide single-inference gate (D-R-06).
   Per `08-E` §13 and `08-Q` §8.2.
 
+- Workspace controller (`adapters/workspace_controller/`): the `WorkspaceController` Protocol
+  (`active() -> str`, `switch_to(name, hint=None) -> None`) and factory
+  `make_workspace_controller(*, workspace_store, event_bus, container, workspace_factories)`, coordinating
+  switches between the `"benchmark"` and `"task_editor"` workspaces. Lazily constructs each workspace's
+  widget via an injected factory on first switch and retains it thereafter, writes the active workspace
+  to the `WorkspaceStore` (STORY-039), reapplies the theme, applies optional focus/pre-open-path hints,
+  and emits `_workspace_changed` on an actual workspace change (same-workspace switches are no-ops).
+  A same-workspace `switch_to` is a no-op (no rebuild, no event). Invalid workspace names raise
+  `ContractViolationError` (programmer error). The `WorkspaceHint` contract-local struct carries
+  `open_paths: tuple[str, ...]` and `focus_widget: str | None`. Per `08-E` §19 and `08-Q` §9.1.
+
 ### Added (Phase 0 continued)
 
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest
