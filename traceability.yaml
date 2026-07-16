@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T13:02:42Z'
+generated_at: '2026-07-16T14:39:47Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3308,6 +3308,114 @@ stories:
         - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_integration_failure_raises_os_adapter_error[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getExistingDirectory-<lambda>]
         - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_integration_failure_raises_os_adapter_error[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getOpenFileName-<lambda>]
         - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_integration_failure_raises_os_adapter_error[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getSaveFileName-<lambda>]
+  STORY-049:
+    title: Provide the design-token containers, stylesheet generator, and palette builder for the theme module
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#1-token-system-and-non-negotiable-rules
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#10-radius-tokens
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#11-border-and-focus-tokens
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#12-shadow-and-motion-tokens
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#3-dark-theme-colour-tokens
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#4-light-theme-colour-tokens
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#5-verdict-palette
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#6-health-palette
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#7-font-chains
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#8-font-size-tokens
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#9-spacing-tokens
+    modules:
+    - ui/theme/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-049-AC-1:
+        tests: []
+      STORY-049-AC-2:
+        tests: []
+      STORY-049-AC-3:
+        tests: []
+      STORY-049-AC-4:
+        tests: []
+      STORY-049-AC-5:
+        tests: []
+      STORY-049-AC-6:
+        tests: []
+      STORY-049-AC-7:
+        tests: []
+  STORY-050:
+    title: Switch themes live and satisfy the accessibility floor in the theme module
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#12-shadow-and-motion-tokens
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#14-wcag-aa-contrast-matrix
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#15-accessibility-rules
+    - 08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling
+    modules:
+    - ui/theme/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-050-AC-1:
+        tests: []
+      STORY-050-AC-2:
+        tests: []
+      STORY-050-AC-3:
+        tests: []
+      STORY-050-AC-4:
+        tests: []
+      STORY-050-AC-5:
+        tests: []
+      STORY-050-AC-6:
+        tests: []
+  STORY-051:
+    title: Provide the shared visual primitives that render status by theme role plus text or glyph
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#5-verdict-palette
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#6-health-palette
+    - 08_Cross_Cutting/08-L_ui_standardization.md#6-button-styles
+    - 08_Cross_Cutting/08-L_ui_standardization.md#8-verdict-and-status-colours
+    - 08_Cross_Cutting/08-L_ui_standardization.md#9-iconography
+    modules:
+    - ui/shared/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-051-AC-1:
+        tests: []
+      STORY-051-AC-2:
+        tests: []
+      STORY-051-AC-3:
+        tests: []
+      STORY-051-AC-4:
+        tests: []
+  STORY-052:
+    title: Provide the reusable provider and model dropdown sub-packages
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#11-border-and-focus-tokens
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#9-provider-registry
+    - 08_Cross_Cutting/08-J_event_bus_catalog.md#56-settings-and-providers-changed
+    - 08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling
+    modules:
+    - ui/shared/model_dropdown/
+    - ui/shared/provider_dropdown/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-052-AC-1:
+        tests: []
+      STORY-052-AC-2:
+        tests: []
+      STORY-052-AC-3:
+        tests: []
+      STORY-052-AC-4:
+        tests: []
+      STORY-052-AC-5:
+        tests: []
+      STORY-052-AC-6:
+        tests: []
 clauses:
   01_Main_Window/implementation_structure.md#8-stores-fanout:
     stories:
@@ -3352,6 +3460,57 @@ clauses:
   08_Cross_Cutting/08-C_settings_hierarchy.md#5-creating-the-per-run-snapshot:
     stories:
     - STORY-014
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#1-token-system-and-non-negotiable-rules:
+    stories:
+    - STORY-049
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#10-radius-tokens:
+    stories:
+    - STORY-049
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#11-border-and-focus-tokens:
+    stories:
+    - STORY-049
+    - STORY-052
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#12-shadow-and-motion-tokens:
+    stories:
+    - STORY-049
+    - STORY-050
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching:
+    stories:
+    - STORY-050
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#14-wcag-aa-contrast-matrix:
+    stories:
+    - STORY-050
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#15-accessibility-rules:
+    stories:
+    - STORY-050
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract:
+    stories:
+    - STORY-049
+    - STORY-051
+    - STORY-052
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#3-dark-theme-colour-tokens:
+    stories:
+    - STORY-049
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#4-light-theme-colour-tokens:
+    stories:
+    - STORY-049
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#5-verdict-palette:
+    stories:
+    - STORY-049
+    - STORY-051
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#6-health-palette:
+    stories:
+    - STORY-049
+    - STORY-051
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#7-font-chains:
+    stories:
+    - STORY-049
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#8-font-size-tokens:
+    stories:
+    - STORY-049
+  08_Cross_Cutting/08-D_color_palette_and_typography.md#9-spacing-tokens:
+    stories:
+    - STORY-049
   08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client:
     stories:
     - STORY-017
@@ -3359,6 +3518,7 @@ clauses:
     - STORY-019
     - STORY-020
     - STORY-021
+    - STORY-052
   08_Cross_Cutting/08-E_interfaces_contracts.md#11-benchmark-pipeline-flow-api:
     stories:
     - STORY-029
@@ -3434,6 +3594,7 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#9-provider-registry:
     stories:
     - STORY-017
+    - STORY-052
   08_Cross_Cutting/08-G_feature_flags.md#3-benchmark--benchmark-behaviour:
     stories:
     - STORY-014
@@ -3471,6 +3632,9 @@ clauses:
   08_Cross_Cutting/08-J_event_bus_catalog.md#52-stage-and-progress:
     stories:
     - STORY-030
+  08_Cross_Cutting/08-J_event_bus_catalog.md#56-settings-and-providers-changed:
+    stories:
+    - STORY-052
   08_Cross_Cutting/08-J_event_bus_catalog.md#7-event-to-payload-index:
     stories:
     - STORY-003
@@ -3483,6 +3647,19 @@ clauses:
   08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system:
     stories:
     - STORY-005
+  08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling:
+    stories:
+    - STORY-050
+    - STORY-052
+  08_Cross_Cutting/08-L_ui_standardization.md#6-button-styles:
+    stories:
+    - STORY-051
+  08_Cross_Cutting/08-L_ui_standardization.md#8-verdict-and-status-colours:
+    stories:
+    - STORY-051
+  08_Cross_Cutting/08-L_ui_standardization.md#9-iconography:
+    stories:
+    - STORY-051
   08_Cross_Cutting/08-O_persistence_schema.md#6-schema-versioning--additive-structural-steps-no-data-migration-dd-53:
     stories:
     - STORY-008
@@ -5380,3 +5557,16 @@ modules:
   backend/yaml_formatter/:
     stories:
     - STORY-031
+  ui/shared/:
+    stories:
+    - STORY-051
+  ui/shared/model_dropdown/:
+    stories:
+    - STORY-052
+  ui/shared/provider_dropdown/:
+    stories:
+    - STORY-052
+  ui/theme/:
+    stories:
+    - STORY-049
+    - STORY-050
