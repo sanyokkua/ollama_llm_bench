@@ -1,7 +1,7 @@
 ---
 id: STORY-049
 title: Provide the design-token containers, stylesheet generator, and palette builder for the theme module
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#1-token-system-and-non-negotiable-rules
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#3-dark-theme-colour-tokens
@@ -173,9 +173,9 @@ role resolves in one theme and is absent in the other.
 
 - **AC-1's "23 colour roles" vs. the 30-row §3/§4 tables.** This story's AC-1 text (and the two
   other "23 colour roles" mentions above) undercounts the specification. `08-D §3` (Dark) and
-  `08-D §4` (Light) each enumerate 30 colour roles per theme — 23 "base" roles plus the six
-  `.fill` variants (`success.fill`, `warning.fill`, `error.fill`, `info.fill`, `muted.fill`, and
-  the implicit sixth) plus `shadow`/`overlay`. AC-1's own operative clause — "table-driven,
+  `08-D §4` (Light) each enumerate 30 colour roles per theme — 23 "base" roles plus the five
+  `.fill` variants (`success.fill`, `warning.fill`, `error.fill`, `info.fill`, `muted.fill`)
+  plus `shadow`/`overlay` (23 + 5 + 2 = 30). AC-1's own operative clause — "table-driven,
   total over the §3 and §4 role tables" — is the authoritative instruction, so the
   implementation defines, resolves, and tests all 30 roles per theme (not a truncated 23), to
   avoid silently under-covering the spec. `ColorTokens` in
@@ -186,10 +186,11 @@ role resolves in one theme and is absent in the other.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-049.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/theme/`.
-- [ ] An architecture test confirms `ui/theme/` is the only module referencing `setStyleSheet`,
+- [x] Every acceptance criterion has a passing test that names STORY-049.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/theme/`.
+- [x] An architecture test confirms `ui/theme/` is the only module referencing `setStyleSheet`,
   that the token containers are frozen `msgspec.Struct`, and that the module imports no
   `asyncio` and does no `QFontDatabase` per-family probing.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test (for
+  STORY-049 — the record has 3 unrelated pre-existing gaps from other stories).
+- [x] The module inventory is unchanged.

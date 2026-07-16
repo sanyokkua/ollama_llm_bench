@@ -308,6 +308,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `backend/*` and no `asyncio`. No `testing.py` fakes in this story (UI consumers deferred). Per
   `08-E` §21c.
 
+- Design tokens and stylesheet generator (`ui/theme/`): the immutable frozen token containers
+  `ThemeTokens` (carrying all 30 colour roles, verdict/health palettes, typography, spacing,
+  radius, border, focus, shadow, and motion tokens per platform), factories
+  `make_dark_theme_tokens(*, platform_kind)` and `make_light_theme_tokens(*, platform_kind)`
+  assembling the Dark and Light theme containers, and the stylesheet/palette builders
+  `build_stylesheet(tokens)` and `build_palette(tokens)` that compile tokens into the
+  application-level Qt stylesheet (targeting dynamic-property role selectors) and `QPalette`.
+  Exports colour-resolution accessors `resolve_color(tokens, role)`, `resolve_verdict_color(tokens, state)`,
+  and `resolve_health_color(tokens, state)` for use by charts, badges, and status indicators.
+  Also exports the enums `PlatformKind`, `VerdictDisplayState`, and `HealthDisplayState` (all
+  types importable from `ollama_llm_bench.ui.theme`). The module is the single styling authority
+  (ADR-0001, 08-D §16): the only code permitted to call `setStyleSheet()` and the only code
+  permitted to assemble stylesheets from raw design tokens. No `asyncio`. Per `08-D` §1–§16.
+
 ### Added (Phase 0 continued)
 
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest
