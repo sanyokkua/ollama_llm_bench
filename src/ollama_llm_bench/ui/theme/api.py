@@ -9,6 +9,7 @@ from ollama_llm_bench.ui.theme._internal.factory import (
     assemble_dark_theme_tokens,
     assemble_light_theme_tokens,
 )
+from ollama_llm_bench.ui.theme._internal.stylesheet_builder import render_stylesheet
 from ollama_llm_bench.ui.theme._internal.verdict_health import (
     health_color_value,
     verdict_color_value,
@@ -60,3 +61,9 @@ def resolve_verdict_color(tokens: ThemeTokens, state: VerdictDisplayState) -> st
 def resolve_health_color(tokens: ThemeTokens, state: HealthDisplayState) -> str:
     """Resolve a health display state to its base colour role's value (08-D §6)."""
     return health_color_value(tokens, state)
+
+
+@icontract.ensure(lambda result: 'role="primary-button"' in result)
+def build_stylesheet(tokens: ThemeTokens) -> str:
+    """Compile a token container into the application-level Qt stylesheet (08-D §16)."""
+    return render_stylesheet(tokens)
