@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-15T21:50:07Z'
+generated_at: '2026-07-16T08:25:27Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3214,11 +3214,34 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-046-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[details-0-0]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[details-0-1]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[details-1-0]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[details-1-1]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[providers-0-0]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[providers-0-1]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[providers-0-2]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[providers-0-3]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[providers-0-4]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[providers-0-5]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[summary-0-0]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[summary-0-1]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[summary-0-2]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[summary-1-0]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[summary-1-1]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_cell_data_matches_row_field[summary-1-2]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_row_and_column_counts_per_model[details]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_row_and_column_counts_per_model[providers]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_row_and_column_counts_per_model[summary]
       STORY-046-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_each_model_satisfies_qt_model_contract[details]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_each_model_satisfies_qt_model_contract[providers]
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_each_model_satisfies_qt_model_contract[summary]
       STORY-046-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_set_rows_performs_atomic_model_reset
   STORY-047:
     title: Provide the Qt notification surface for status-bar toasts and modal error dialogs
     status: ready
