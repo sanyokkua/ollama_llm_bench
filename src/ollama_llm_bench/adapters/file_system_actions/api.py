@@ -1,7 +1,5 @@
 """Public factory for the per-OS ``FileSystemActions`` (08-E §21c)."""
 
-import sys
-
 import icontract
 from PySide6.QtCore import QCoreApplication, QThread
 
@@ -28,4 +26,4 @@ def make_file_system_actions() -> FileSystemActions:
     Returns:
         A FileSystemActions revealing paths in this host's real file manager.
     """
-    return QtFileSystemActions(platform_identifier=sys.platform)
+    return QtFileSystemActions()

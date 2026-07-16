@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import subprocess
+import sys
 
 from ollama_llm_bench.backend.errors import OsAdapterError
 from ollama_llm_bench.backend.platform import PlatformKind
@@ -51,13 +52,16 @@ class QtFileSystemActions:
     process could not be launched -- never leaks the raw ``OSError``.
     """
 
-    def __init__(self, *, platform_identifier: str) -> None:
+    def __init__(self, *, platform_identifier: str | None = None) -> None:
         """Construct the adapter bound to an injected platform identifier.
 
         Args:
             platform_identifier: A ``sys.platform``-shaped string classified
-                into a ``PlatformKind`` to select the reveal command.
+                into a ``PlatformKind`` to select the reveal command. If not
+                provided, defaults to the host platform via ``sys.platform``.
         """
+        if platform_identifier is None:
+            platform_identifier = sys.platform
         self._kind = _classify(platform_identifier)
 
     def open_in_file_manager(self, path: str) -> None:
