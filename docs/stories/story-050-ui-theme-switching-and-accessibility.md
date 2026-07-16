@@ -167,3 +167,37 @@ increased border-width emphasis and omits the soft `*.fill` background fills.
   `setStyleSheet` and that the module imports no `asyncio`.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
 - [ ] The module inventory is unchanged.
+
+## Notes
+
+- **AC-4's "13 pairs" vs. the 14-row §14 table.** This story's AC-4 text and the STORY-049
+  cross-reference both undercount the specification. `08-D §14` enumerates 14 foreground/
+  background pairs, not 13. The implementation defines, resolves, and tests all 14 pairs per
+  theme (28 checks total), not a truncated 13. The "13" figure in this story's prose is stale
+  and should be read as "14" wherever it appears — the same kind of stale-count discrepancy
+  STORY-049 recorded for its own "23 colour roles" prose (see that story's Notes section).
+
+- **Five of the 28 AC-4 checks failed with the token values as originally specified.** The 08-D
+  §14 table claims specific contrast ratios (e.g. "4.6:1" for `text.on-primary` on
+  `primary.base` in Dark) that do not match what the §3/§4 hex values actually produce when run
+  through the WCAG 2.1 relative-luminance formula (verified against the black-on-white 21:1
+  reference case). The failing pairs were: `text.on-primary`/`primary.base` (both themes),
+  `text.on-error`/`error.base` (Dark only), `border.default`/`bg.surface` (both themes).
+  `primary_base`, `border_focus` (tied to `primary_base` per §3/§4's own "equals primary.base"
+  note), `error_base` (Dark only), and `border_default` (both themes) were retuned to new hex
+  values that pass all 14 pairs in both themes with real computed contrast margin. See
+  `_internal/colors.py` for the new values. `primary_hover`/`primary_pressed`/`primary_disabled`
+  were deliberately left unchanged — no AC tests them, though a future visual-consistency pass
+  may want to re-tune them since the Dark `primary_pressed` (`#0d9488`) is now visually *lighter*
+  than the new `primary_base` (`#0f766e`), inverting the original darken-on-press feel. This is
+  not a functional defect (nothing tests hover/pressed relative brightness) but is worth a note
+  for whoever next touches the button visual states.
+
+- **AC-5 (reduced motion) and AC-6 (high contrast) are out of scope for this version of the
+  app**, per an explicit product decision. The application supports only Dark/Light colour-scheme
+  switching (AC-1–AC-4); OS accessibility-preference handling was descoped. This story's
+  front-matter still lists AC-5/AC-6 and cites `08-D §12`/`§15` — those need a follow-up
+  amendment (dropping the two ACs and their spec citations from this story, and likely an ADR,
+  since `12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md` §8/§10/§11 currently calls reduced-motion
+  and high-contrast handling release-blocking) before this story can be marked `done`. This story
+  stays `in-progress` until that amendment lands.
