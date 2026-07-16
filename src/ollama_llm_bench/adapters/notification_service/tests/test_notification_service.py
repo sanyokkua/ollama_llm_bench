@@ -1,9 +1,10 @@
 """Tests for adapters/notification_service (STORY-047)."""
 
-from PySide6.QtWidgets import QStatusBar, QWidget
+from PySide6.QtWidgets import QApplication, QStatusBar, QWidget
 import pytest
 from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
+import shiboken6
 
 from ollama_llm_bench.adapters.notification_service import make_notification_service
 
@@ -68,3 +69,35 @@ def test_show_error_blocking_flag_selects_modal_or_toast(
     # Assert
     assert toast_message == "Toast error"
     critical_mock.assert_called_once_with(parent_widget, "Error", "Modal error")
+
+
+@pytest.mark.parametrize(
+    ("method_name", "args"),
+    [
+        ("show_info", ("Info text",)),
+        ("show_warning", ("Warning text",)),
+        ("show_error", ("Error text",)),
+    ],
+)
+def test_all_methods_are_synchronous_and_never_raise(
+    qapp: QApplication, method_name: str, args: tuple[str, ...]
+) -> None:
+    """Proves: STORY-047-AC-3
+
+    When any of show_info, show_warning, or show_error is called, the call is
+    synchronous and returns without raising to the caller (the never-raises
+    contract holds) -- even when the underlying Qt widget has already been
+    destroyed.
+    """
+    # Arrange
+    status_bar = QStatusBar()
+    parent_widget = QWidget()
+    service = make_notification_service(status_bar=status_bar, parent=parent_widget)
+    shiboken6.delete(status_bar)
+    shiboken6.delete(parent_widget)
+
+    # Act
+    result = getattr(service, method_name)(*args)
+
+    # Assert
+    assert result is None
