@@ -45,6 +45,36 @@ class HealthDisplayState(StrEnum):
     CHECKING = "checking"
 
 
+# --- 2a. Theme-switching enums (08-D §13, STORY-050) ---
+
+
+class ThemeSetting(StrEnum):
+    """The three values of the `ui.theme` setting this module consumes (08-D §13).
+
+    This module never reads or parses the raw `ui.theme` setting string itself (owned by
+    the settings service, STORY-014) — the caller resolves the string to this enum before
+    calling into ui/theme.
+    """
+
+    SYSTEM = "system"
+    DARK = "dark"
+    LIGHT = "light"
+
+
+class OsColorScheme(StrEnum):
+    """The OS-reported colour-scheme preference (08-D §13), read via Qt QStyleHints."""
+
+    DARK = "dark"
+    LIGHT = "light"
+
+
+class ActiveThemeKind(StrEnum):
+    """Which token container is currently selected (08-D §13 AC-1)."""
+
+    DARK = "dark"
+    LIGHT = "light"
+
+
 # --- 3. Colour tokens (08-D §3 Dark / §4 Light) ---
 
 

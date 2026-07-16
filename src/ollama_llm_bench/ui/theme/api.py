@@ -12,13 +12,17 @@ from ollama_llm_bench.ui.theme._internal.factory import (
 )
 from ollama_llm_bench.ui.theme._internal.palette_builder import render_palette
 from ollama_llm_bench.ui.theme._internal.stylesheet_builder import render_stylesheet
+from ollama_llm_bench.ui.theme._internal.theme_selection import resolve_active_theme_kind
 from ollama_llm_bench.ui.theme._internal.verdict_health import (
     health_color_value,
     verdict_color_value,
 )
 from ollama_llm_bench.ui.theme.models import (
+    ActiveThemeKind,
     HealthDisplayState,
+    OsColorScheme,
     PlatformKind,
+    ThemeSetting,
     ThemeTokens,
     VerdictDisplayState,
 )
@@ -63,6 +67,22 @@ def resolve_verdict_color(tokens: ThemeTokens, state: VerdictDisplayState) -> st
 def resolve_health_color(tokens: ThemeTokens, state: HealthDisplayState) -> str:
     """Resolve a health display state to its base colour role's value (08-D §6)."""
     return health_color_value(tokens, state)
+
+
+@icontract.require(
+    lambda theme_setting: isinstance(theme_setting, ThemeSetting),
+    "theme_setting must be a ThemeSetting member",
+)
+@icontract.require(
+    lambda os_color_scheme: isinstance(os_color_scheme, OsColorScheme),
+    "os_color_scheme must be an OsColorScheme member",
+)
+@icontract.ensure(lambda result: isinstance(result, ActiveThemeKind))
+def select_active_theme_kind(
+    *, theme_setting: ThemeSetting, os_color_scheme: OsColorScheme
+) -> ActiveThemeKind:
+    """Select which container (Dark/Light) applies for this setting + OS scheme (08-D §13)."""
+    return resolve_active_theme_kind(theme_setting=theme_setting, os_color_scheme=os_color_scheme)
 
 
 @icontract.ensure(lambda result: 'role="primary-button"' in result)

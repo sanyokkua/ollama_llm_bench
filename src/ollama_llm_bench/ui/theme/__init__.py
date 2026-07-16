@@ -13,17 +13,24 @@ from ollama_llm_bench.ui.theme.api import (
     resolve_color,
     resolve_health_color,
     resolve_verdict_color,
+    select_active_theme_kind,
 )
 from ollama_llm_bench.ui.theme.models import (
+    ActiveThemeKind,
     HealthDisplayState,
+    OsColorScheme,
     PlatformKind,
+    ThemeSetting,
     ThemeTokens,
     VerdictDisplayState,
 )
 
 __all__: list[str] = [
+    "ActiveThemeKind",
     "HealthDisplayState",
+    "OsColorScheme",
     "PlatformKind",
+    "ThemeSetting",
     "ThemeTokens",
     "VerdictDisplayState",
     "build_palette",
@@ -33,4 +40,5 @@ __all__: list[str] = [
     "resolve_color",
     "resolve_health_color",
     "resolve_verdict_color",
+    "select_active_theme_kind",
 ]
