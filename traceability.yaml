@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T08:49:45Z'
+generated_at: '2026-07-16T11:18:46Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3254,11 +3254,17 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-047-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/notification_service/tests/test_notification_service.py::test_info_and_warning_show_transient_toast[show_info]
+        - src/ollama_llm_bench/adapters/notification_service/tests/test_notification_service.py::test_info_and_warning_show_transient_toast[show_warning]
       STORY-047-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/notification_service/tests/test_notification_service.py::test_show_error_blocking_flag_selects_modal_or_toast
       STORY-047-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/notification_service/tests/test_notification_service.py::test_all_methods_are_synchronous_and_never_raise[show_error-args2]
+        - src/ollama_llm_bench/adapters/notification_service/tests/test_notification_service.py::test_all_methods_are_synchronous_and_never_raise[show_info-args0]
+        - src/ollama_llm_bench/adapters/notification_service/tests/test_notification_service.py::test_all_methods_are_synchronous_and_never_raise[show_warning-args1]
   STORY-048:
     title: Provide the native picker, clipboard, and file-manager OS integration adapters
     status: ready

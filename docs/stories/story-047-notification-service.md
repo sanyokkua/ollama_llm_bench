@@ -91,8 +91,8 @@ call is synchronous and returns without raising to the caller (the never-raises 
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-047.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/notification_service/`.
-- [ ] An architecture test confirms the module imports no backend Protocol and no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-047.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/notification_service/`.
+- [x] An architecture test confirms the module imports no backend Protocol and no `asyncio`.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
