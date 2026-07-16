@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T12:30:01Z'
+generated_at: '2026-07-16T12:58:09Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3298,9 +3298,11 @@ stories:
         - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_invokes_reveal_for_existing_path[darwin-expected_command_template0]
         - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_invokes_reveal_for_existing_path[linux-expected_command_template2]
         - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_invokes_reveal_for_existing_path[win32-expected_command_template1]
+        - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_linux_folder_target_passes_folder_unchanged
       STORY-048-AC-5:
         tests:
         - src/ollama_llm_bench/adapters/clipboard/tests/test_clipboard.py::test_integration_failure_raises_os_adapter_error
+        - src/ollama_llm_bench/adapters/clipboard/tests/test_clipboard.py::test_unavailable_clipboard_raises_os_adapter_error
         - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_integration_failure_raises_os_adapter_error
         - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_raises_for_nonexistent_path
         - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_integration_failure_raises_os_adapter_error[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getExistingDirectory-<lambda>]
