@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T08:25:27Z'
+generated_at: '2026-07-16T08:40:34Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3234,6 +3234,7 @@ stories:
         - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_row_and_column_counts_per_model[details]
         - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_row_and_column_counts_per_model[providers]
         - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_row_and_column_counts_per_model[summary]
+        - tests/architecture/test_qt_table_models_boundaries.py::test_qt_table_models_holds_no_backend_protocol_or_asyncio
       STORY-046-AC-2:
         tests:
         - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_each_model_satisfies_qt_model_contract[details]
