@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T08:40:34Z'
+generated_at: '2026-07-16T08:49:45Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3204,7 +3204,7 @@ stories:
         - src/ollama_llm_bench/adapters/workspace_controller/tests/test_controller.py::test_same_workspace_switch_is_noop
   STORY-046:
     title: Provide QAbstractTableModel adapters for the summary, details, and providers tables
-    status: ready
+    status: done
     spec_clauses:
     - 05_Result_Widget/implementation_structure.md#6-view-model-structs
     - 08_Cross_Cutting/08-Q_event_payload_schemas.md#6-table-and-chart-data-payloads

@@ -252,6 +252,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `ContractViolationError` (programmer error). The `WorkspaceHint` contract-local struct carries
   `open_paths: tuple[str, ...]` and `focus_widget: str | None`. Per `08-E` §19 and `08-Q` §9.1.
 
+- QAbstractTableModel adapters for result tables (`adapters/qt_table_models/`): the factories
+  `make_summary_table_model()`, `make_details_table_model()`, and `make_providers_table_model()`,
+  each returning a `QAbstractTableModel`, plus the frozen row DTOs `SummaryTableRow`,
+  `DetailsTableRow`, `ProviderTableRow`. Models read only frozen rows, hold no backend Protocol,
+  and perform no I/O; mutations are always atomic whole-model resets via `set_rows()` using
+  `beginResetModel()`/`endResetModel()` cycles. Each model conforms to Qt's
+  `QAbstractTableModel` contract and is validated with `QAbstractItemModelTester`. Per
+  `01_MODULE_INVENTORY.md` §5, `05_Result_Widget/implementation_structure.md` §6, and
+  `08_Cross_Cutting/08-Q_event_payload_schemas.md` §6.
+
 ### Added (Phase 0 continued)
 
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest

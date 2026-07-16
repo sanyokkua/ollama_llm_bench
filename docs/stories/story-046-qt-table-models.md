@@ -1,7 +1,7 @@
 ---
 id: STORY-046
 title: Provide QAbstractTableModel adapters for the summary, details, and providers tables
-status: ready
+status: done
 spec_clauses:
   - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#5-adapters-modules
   - 05_Result_Widget/implementation_structure.md#6-view-model-structs
