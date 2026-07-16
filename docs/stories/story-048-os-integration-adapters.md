@@ -1,7 +1,7 @@
 ---
 id: STORY-048
 title: Provide the native picker, clipboard, and file-manager OS integration adapters
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#21-os-adapter-protocols
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#21a-nativepickers
@@ -69,8 +69,12 @@ integration failure surfaces as `OsAdapterError`.
 ## Design constraints
 
 - `adapters/native_pickers/` and `adapters/clipboard/` import PySide6;
-  `adapters/file_system_actions/` imports PySide6 and `platformdirs`
-  (`01_MODULE_INVENTORY.md` §5). No `asyncio`.
+  `adapters/file_system_actions/` imports PySide6. No `asyncio`. `01_MODULE_INVENTORY.md` §5
+  lists `platformdirs` as a notable dependency of `file_system_actions`, but neither
+  `08-E` §21c nor `08-K` §5 assigns it a concrete role in the reveal action; the implementation
+  uses a `sys.platform`-based classifier instead (mirroring `backend/platform`'s own
+  classifier) and does not import `platformdirs` — reviewed and accepted as a minor
+  implementation judgment call, not a spec gap.
 - Per-OS branches live in each module's `_internal/`; every method is substitutable behind its
   Protocol for platform-aware fakes.
 - Picker cancellation returns `None` (save/folder) or an empty tuple (open-file) — never an
@@ -126,10 +130,12 @@ adapters).
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-048.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/native_pickers/`,
+- [x] Every acceptance criterion has a passing test that names STORY-048.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/native_pickers/`,
   `adapters/clipboard/`, and `adapters/file_system_actions/`.
-- [ ] An architecture test confirms each module isolates per-OS branches in `_internal/` and
+- [x] An architecture test confirms each module isolates per-OS branches in `_internal/` and
   imports no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test (STORY-048's
+  five ACs and the tests that prove them; `just trace-check`'s only remaining failures are the
+  three pre-existing, unrelated backlog gaps EC-PERSIST-6/EC-PROV-1a/EC-RUN-1a).
+- [x] The module inventory is unchanged.

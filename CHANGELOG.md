@@ -276,6 +276,38 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `01_MODULE_INVENTORY.md` §5, `05_Result_Widget/implementation_structure.md` §6, and
   `08_Cross_Cutting/08-Q_event_payload_schemas.md` §6.
 
+- Native file and folder picker dialogs (`adapters/native_pickers/`): the `NativePickers`
+  Protocol (`save_file`, `open_file`, `open_folder`) and factory `make_native_pickers()` —
+  native save/open-file/open-folder dialogs wrapping `QFileDialog` statics. Cancellation returns
+  `None` (save_file/open_folder) or an empty tuple (open_file), never raises. Three contract-local
+  options structs: `SavePickerOptions`, `FilePickerOptions`, `FolderPickerOptions` (with
+  `allow_multiple: bool` selecting `getOpenFileName` vs. `getOpenFileNames`). Every method is
+  synchronous, callable only on the Qt main thread (enforced by `icontract` preconditions on the
+  factory guarding programmer invariants only), and raises `OsAdapterError` on dialog-subsystem
+  failure with a fixed hand-written message, never leaking the raw platform exception. Imports
+  PySide6 only — no `backend/*` and no `asyncio`. No `testing.py` fakes added in this story (UI
+  consumers deferred to later UI stories). Per `08-E` §21a.
+
+- System clipboard access (`adapters/clipboard/`): the `Clipboard` Protocol (`copy_text(text: str) -> None`) and factory `make_clipboard()` — writes to the system clipboard via
+  `QGuiApplication.clipboard()`. Applies no redaction — clipboard content is user-owned data
+  (per `08-E` §22), placed on the system clipboard unchanged. Synchronous, main-thread-only
+  (enforced by `icontract` preconditions on the factory guarding programmer invariants),
+  raises `OsAdapterError` if the clipboard is unavailable with a fixed message and chained
+  cause. Imports PySide6 only — no `backend/*` and no `asyncio`. No `testing.py` fakes in this
+  story (deferred to later UI stories). Per `08-E` §21b.
+
+- File manager reveal actions (`adapters/file_system_actions/`): the `FileSystemActions`
+  Protocol (`open_in_file_manager(path: str) -> None`) and factory `make_file_system_actions()` —
+  reveals a file or folder in the OS file manager via per-OS `subprocess` commands (macOS:
+  `open -R`; Windows: `explorer /select,`; Linux: `xdg-open` the containing folder for a file,
+  or the folder itself for a folder target). Per-OS branches isolated in `_internal/`. Synchronous,
+  main-thread-only (enforced by `icontract` preconditions on the factory guarding programmer
+  invariants), raises `OsAdapterError` if the path does not exist or the file manager cannot
+  launch, with a fixed message and chained cause. Uses `subprocess.run(..., check=False)` since
+  `explorer.exe` on Windows often exits non-zero despite success. Imports PySide6 only — no
+  `backend/*` and no `asyncio`. No `testing.py` fakes in this story (UI consumers deferred). Per
+  `08-E` §21c.
+
 ### Added (Phase 0 continued)
 
 - Repository scaffold for the v3 rewrite: `pyproject.toml` (uv/ruff/mypy/import-linter/pytest

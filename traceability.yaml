@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T12:58:09Z'
+generated_at: '2026-07-16T13:02:42Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3267,7 +3267,7 @@ stories:
         - src/ollama_llm_bench/adapters/notification_service/tests/test_notification_service.py::test_all_methods_are_synchronous_and_never_raise[show_warning-args1]
   STORY-048:
     title: Provide the native picker, clipboard, and file-manager OS integration adapters
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#21-os-adapter-protocols
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#21a-nativepickers
