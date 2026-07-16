@@ -169,6 +169,21 @@ role resolves in one theme and is absent in the other.
   `src/ollama_llm_bench/ui/theme/tests/test_theme_parity.py`,
   `test_dark_and_light_containers_have_identical_role_coverage`.
 
+## Notes
+
+- **AC-1's "23 colour roles" vs. the 30-row §3/§4 tables.** This story's AC-1 text (and the two
+  other "23 colour roles" mentions above) undercounts the specification. `08-D §3` (Dark) and
+  `08-D §4` (Light) each enumerate 30 colour roles per theme — 23 "base" roles plus the six
+  `.fill` variants (`success.fill`, `warning.fill`, `error.fill`, `info.fill`, `muted.fill`, and
+  the implicit sixth) plus `shadow`/`overlay`. AC-1's own operative clause — "table-driven,
+  total over the §3 and §4 role tables" — is the authoritative instruction, so the
+  implementation defines, resolves, and tests all 30 roles per theme (not a truncated 23), to
+  avoid silently under-covering the spec. `ColorTokens` in
+  `src/ollama_llm_bench/ui/theme/models.py` and the parametrized cases in
+  `src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py` (60 cases total: 30 roles × 2
+  themes) reflect this. The "23" figure in this story's prose is stale and should be read as
+  "30" wherever it appears.
+
 ## Definition of done
 
 - [ ] Every acceptance criterion has a passing test that names STORY-049.
