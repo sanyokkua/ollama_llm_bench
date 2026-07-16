@@ -36,10 +36,12 @@ def _reveal_command(kind: PlatformKind, path: str) -> list[str]:
         return ["open", "-R", path]
     if kind is PlatformKind.WINDOWS:
         return ["explorer", f"/select,{path}"]
-    # LINUX and the UNKNOWN fallback both use the desktop-portal opener; xdg-open
-    # opens the containing folder but cannot select a specific file (08-K §5:
-    # "where the platform supports selection").
-    return ["xdg-open", path]
+    # LINUX and the UNKNOWN fallback both use the desktop-portal opener. Linux has no
+    # universal reveal-and-select mechanism, so a file target is opened via its
+    # containing folder instead (08-K §5: "where the platform supports selection" --
+    # macOS/Windows do, Linux does not); a folder target is opened directly.
+    target = path if Path(path).is_dir() else str(Path(path).parent)
+    return ["xdg-open", target]
 
 
 class QtFileSystemActions:

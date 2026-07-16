@@ -18,7 +18,7 @@ _INTERNAL = "ollama_llm_bench.adapters.file_system_actions._internal.qt_file_sys
     [
         ("darwin", ["open", "-R", "{path}"]),
         ("win32", ["explorer", "/select,{path}"]),
-        ("linux", ["xdg-open", "{path}"]),
+        ("linux", ["xdg-open", "{parent}"]),
     ],
 )
 def test_open_in_file_manager_invokes_reveal_for_existing_path(
@@ -29,19 +29,43 @@ def test_open_in_file_manager_invokes_reveal_for_existing_path(
 ) -> None:
     """Proves: STORY-048-AC-4
 
-    Invokes the platform-correct reveal command for an existing path and
-    returns without raising (table-driven over macOS/Windows/Linux).
+    Invokes the platform-correct reveal command for an existing FILE path and
+    returns without raising (table-driven over macOS/Windows/Linux). Linux has
+    no reveal-and-select mechanism, so its expected command targets the file's
+    containing folder rather than the file itself.
     """
     # Arrange
     target = tmp_path / "result.csv"
     target.write_text("data")
     run_mock = mocker.patch(f"{_INTERNAL}.subprocess.run")
     actions = QtFileSystemActions(platform_identifier=platform_identifier)
-    expected_command = [part.format(path=str(target)) for part in expected_command_template]
+    expected_command = [
+        part.format(path=str(target), parent=str(target.parent))
+        for part in expected_command_template
+    ]
     # Act
     actions.open_in_file_manager(str(target))
     # Assert
     run_mock.assert_called_once_with(expected_command, check=False)
+
+
+def test_open_in_file_manager_linux_folder_target_passes_folder_unchanged(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-048-AC-4
+
+    A Linux FOLDER target is passed to xdg-open unchanged -- not its parent --
+    distinguishing folder targets from file targets in the Linux fallback.
+    """
+    # Arrange
+    target = tmp_path / "results_folder"
+    target.mkdir()
+    run_mock = mocker.patch(f"{_INTERNAL}.subprocess.run")
+    actions = QtFileSystemActions(platform_identifier="linux")
+    # Act
+    actions.open_in_file_manager(str(target))
+    # Assert
+    run_mock.assert_called_once_with(["xdg-open", str(target)], check=False)
 
 
 def test_open_in_file_manager_raises_for_nonexistent_path(tmp_path: Path) -> None:
