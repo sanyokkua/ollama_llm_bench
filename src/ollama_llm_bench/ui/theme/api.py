@@ -4,6 +4,7 @@ generator, and the QPalette builder (08-D_color_palette_and_typography.md).
 
 import icontract
 from PySide6.QtGui import QPalette
+from PySide6.QtWidgets import QApplication
 
 from ollama_llm_bench.ui.theme._internal.color_resolution import resolve_color_value
 from ollama_llm_bench.ui.theme._internal.factory import (
@@ -12,6 +13,7 @@ from ollama_llm_bench.ui.theme._internal.factory import (
 )
 from ollama_llm_bench.ui.theme._internal.palette_builder import render_palette
 from ollama_llm_bench.ui.theme._internal.stylesheet_builder import render_stylesheet
+from ollama_llm_bench.ui.theme._internal.theme_manager import ThemeManager
 from ollama_llm_bench.ui.theme._internal.theme_selection import resolve_active_theme_kind
 from ollama_llm_bench.ui.theme._internal.verdict_health import (
     health_color_value,
@@ -26,6 +28,19 @@ from ollama_llm_bench.ui.theme.models import (
     ThemeTokens,
     VerdictDisplayState,
 )
+
+__all__: list[str] = [
+    "ThemeManager",
+    "build_palette",
+    "build_stylesheet",
+    "make_dark_theme_tokens",
+    "make_light_theme_tokens",
+    "make_theme_manager",
+    "resolve_color",
+    "resolve_health_color",
+    "resolve_verdict_color",
+    "select_active_theme_kind",
+]
 
 
 @icontract.require(
@@ -97,3 +112,19 @@ def build_stylesheet(tokens: ThemeTokens) -> str:
 def build_palette(tokens: ThemeTokens) -> QPalette:
     """Build the QPalette matching a token container's core roles (08-D §16, AC-6)."""
     return render_palette(tokens)
+
+
+@icontract.require(
+    lambda theme_setting: isinstance(theme_setting, ThemeSetting),
+    "theme_setting must be a ThemeSetting member",
+)
+@icontract.require(
+    lambda platform_kind: isinstance(platform_kind, PlatformKind),
+    "platform_kind must be a PlatformKind member",
+)
+@icontract.ensure(lambda result: isinstance(result.active_theme_kind, ActiveThemeKind))
+def make_theme_manager(
+    *, app: QApplication, theme_setting: ThemeSetting, platform_kind: PlatformKind
+) -> ThemeManager:
+    """Construct the live theme switcher: applies the initial theme, tracks OS changes (08-D §13)."""
+    return ThemeManager(app=app, theme_setting=theme_setting, platform_kind=platform_kind)

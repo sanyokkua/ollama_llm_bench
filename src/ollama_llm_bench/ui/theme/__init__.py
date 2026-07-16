@@ -6,10 +6,12 @@ may call setStyleSheet().
 """
 
 from ollama_llm_bench.ui.theme.api import (
+    ThemeManager,
     build_palette,
     build_stylesheet,
     make_dark_theme_tokens,
     make_light_theme_tokens,
+    make_theme_manager,
     resolve_color,
     resolve_health_color,
     resolve_verdict_color,
@@ -30,6 +32,7 @@ __all__: list[str] = [
     "HealthDisplayState",
     "OsColorScheme",
     "PlatformKind",
+    "ThemeManager",
     "ThemeSetting",
     "ThemeTokens",
     "VerdictDisplayState",
@@ -37,6 +40,7 @@ __all__: list[str] = [
     "build_stylesheet",
     "make_dark_theme_tokens",
     "make_light_theme_tokens",
+    "make_theme_manager",
     "resolve_color",
     "resolve_health_color",
     "resolve_verdict_color",
