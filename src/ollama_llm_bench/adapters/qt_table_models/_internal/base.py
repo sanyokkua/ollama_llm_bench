@@ -85,6 +85,9 @@ class _FrozenRowTableModel[RowT](QAbstractTableModel):
         Args:
             headers: The new column headers, in display order.
             rows: The new row collection; replaces the current one wholesale.
+                The caller is responsible for keeping each row's cell count in
+                sync with ``len(headers)``, mirroring the arity invariant
+                ``api.py``'s factories enforce at construction time.
         """
         self.beginResetModel()
         self._headers = headers

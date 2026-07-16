@@ -13,6 +13,8 @@ def test_qt_table_models_holds_no_backend_protocol_or_asyncio() -> None:
         archrule("qt-table-models-is-domain-only")
         .match("ollama_llm_bench.adapters.qt_table_models*")
         .should_not_import("asyncio")
+        .should_not_import("anyio")
+        .should_not_import("qasync")
         .should_not_import("ollama_llm_bench.backend.persistence.*")
         .should_not_import("ollama_llm_bench.backend.stores.*")
         .should_not_import("ollama_llm_bench.backend.benchmark_pipeline*")

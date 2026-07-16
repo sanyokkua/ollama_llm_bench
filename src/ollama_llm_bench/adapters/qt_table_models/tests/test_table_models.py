@@ -144,8 +144,9 @@ def test_set_rows_performs_atomic_model_reset(qtbot: QtBot) -> None:
     """
     # Arrange
     # cast: the public factory intentionally returns the opaque QAbstractTableModel
-    # type (project-structure.md's public-surface rule); set_rows is this module's
-    # documented reset method, defined on the concrete _FrozenRowTableModel subclass.
+    # type (project-structure.md's public-surface rule); set_rows is defined on the
+    # _FrozenRowTableModel base class and inherited by _SummaryTableModel (the
+    # concrete subclass being cast to here).
     model = cast(
         "_SummaryTableModel",
         make_summary_table_model(headers=_SUMMARY_HEADERS, rows=_SUMMARY_ROWS),
