@@ -2,7 +2,7 @@
 
 from PySide6.QtWidgets import QFileDialog
 
-from ollama_llm_bench.adapters.native_pickers.protocols import (
+from ollama_llm_bench.adapters.native_pickers.models import (
     FilePickerOptions,
     FolderPickerOptions,
     SavePickerOptions,

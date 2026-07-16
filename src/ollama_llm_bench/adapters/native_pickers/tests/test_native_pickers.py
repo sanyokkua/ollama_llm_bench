@@ -98,6 +98,26 @@ def test_selection_returns_chosen_paths_per_picker(  # noqa: PLR0913
     assert result == expected
 
 
+def test_open_file_with_allow_multiple_returns_chosen_paths(qtbot: Any, mocker: Any) -> None:
+    """Proves: STORY-048-AC-2
+
+    With ``allow_multiple=True`` and the user selecting multiple files,
+    ``open_file`` uses the plural ``getOpenFileNames`` path and returns the
+    chosen paths unchanged.
+    """
+    # Arrange
+    mocker.patch(
+        f"{_INTERNAL}.QFileDialog.getOpenFileNames",
+        return_value=(["/tmp/a.yaml", "/tmp/b.yaml"], "YAML (*.yaml)"),  # noqa: S108
+    )
+    options = FilePickerOptions(title="Open", allow_multiple=True)
+    pickers = make_native_pickers()
+    # Act
+    result = pickers.open_file(options)
+    # Assert
+    assert result == ("/tmp/a.yaml", "/tmp/b.yaml")  # noqa: S108
+
+
 @pytest.mark.parametrize(
     ("qt_target", "call"),
     [

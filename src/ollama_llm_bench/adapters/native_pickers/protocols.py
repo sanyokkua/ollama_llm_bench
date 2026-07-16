@@ -1,40 +1,14 @@
-"""``NativePickers`` Protocol and its contract-local options structs (08-E §21a)."""
+"""``NativePickers`` Protocol (08-E §21a)."""
 
 from typing import Protocol
 
-import msgspec
+from ollama_llm_bench.adapters.native_pickers.models import (
+    FilePickerOptions,
+    FolderPickerOptions,
+    SavePickerOptions,
+)
 
-__all__: list[str] = [
-    "FilePickerOptions",
-    "FolderPickerOptions",
-    "NativePickers",
-    "SavePickerOptions",
-]
-
-
-class SavePickerOptions(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Options for a native save-file dialog (08-E §21a)."""
-
-    title: str
-    suggested_name: str
-    start_dir: str | None = None
-    filters: tuple[str, ...] = ()
-
-
-class FilePickerOptions(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Options for a native open-file dialog (08-E §21a)."""
-
-    title: str
-    start_dir: str | None = None
-    filters: tuple[str, ...] = ()
-    allow_multiple: bool = False
-
-
-class FolderPickerOptions(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Options for a native open-folder dialog (08-E §21a)."""
-
-    title: str
-    start_dir: str | None = None
+__all__: list[str] = ["NativePickers"]
 
 
 class NativePickers(Protocol):
