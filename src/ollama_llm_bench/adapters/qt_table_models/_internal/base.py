@@ -43,7 +43,7 @@ class _FrozenRowTableModel[RowT](QAbstractTableModel):
     @override
     def rowCount(
         self,
-        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008  # Qt virtual method
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008  # QModelIndex() is Qt's stateless "no parent" sentinel value, not a mutable default — safe to construct fresh each call
     ) -> int:
         if parent.isValid():
             return 0
@@ -52,7 +52,7 @@ class _FrozenRowTableModel[RowT](QAbstractTableModel):
     @override
     def columnCount(
         self,
-        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008  # Qt virtual method
+        parent: QModelIndex | QPersistentModelIndex = QModelIndex(),  # noqa: B008  # QModelIndex() is Qt's stateless "no parent" sentinel value, not a mutable default — safe to construct fresh each call
     ) -> int:
         if parent.isValid():
             return 0
