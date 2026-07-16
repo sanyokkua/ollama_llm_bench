@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T11:18:46Z'
+generated_at: '2026-07-16T11:23:02Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3245,7 +3245,7 @@ stories:
         - src/ollama_llm_bench/adapters/qt_table_models/tests/test_table_models.py::test_set_rows_performs_atomic_model_reset
   STORY-047:
     title: Provide the Qt notification surface for status-bar toasts and modal error dialogs
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#20-notification-service
     - 08_Cross_Cutting/08-Q_event_payload_schemas.md#83-globalmessageevent--_global_message

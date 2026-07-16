@@ -1,7 +1,7 @@
 ---
 id: STORY-047
 title: Provide the Qt notification surface for status-bar toasts and modal error dialogs
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#20-notification-service
   - 08_Cross_Cutting/08-Q_event_payload_schemas.md#83-globalmessageevent--_global_message

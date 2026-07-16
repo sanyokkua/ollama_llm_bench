@@ -17,6 +17,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Qt notification surface (`adapters/notification_service/`): the `NotificationService` Protocol
+  (`show_info(text, duration_ms=5000)`, `show_warning(text, duration_ms=5000)`,
+  `show_error(text, *, blocking=False)`) and factory
+  `make_notification_service(*, status_bar, parent)` — the sanctioned surface for a controller
+  to raise a user-visible status-bar toast or, for `show_error(blocking=True)`, a modal
+  `QMessageBox`. Every method is synchronous, callable only on the Qt main thread (enforced by
+  `icontract` preconditions on the factory), and never raises to the caller — a Qt-layer failure
+  (e.g. an already-destroyed underlying widget) is caught, logged, and swallowed rather than
+  propagated. `blocking` is keyword-only per this project's boolean-flag convention, a stricter
+  but backward-compatible narrowing of the spec's literal signature. Applies no redaction of its
+  own — callers must redact `text` before calling. Ships a `testing.py` `FakeNotificationService`
+  in-memory recorder for future widget-controller tests. Imports PySide6 only — no `backend/*`
+  and no `asyncio`. Per `08-E` §20 and `08-Q` §8.3.
+
 - Qt event bus deliverer (`adapters/qt_event_bus/`): the concrete `EventBus` implementation
   `QtEventBusDeliverer` and factory `make_qt_event_bus_deliverer()` — the first Qt-binding
   adapter in the codebase and the sole place `backend/events`' Qt-free bus is connected to Qt
