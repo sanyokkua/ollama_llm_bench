@@ -22,6 +22,24 @@ def test_copy_text_places_exact_text_on_clipboard(qtbot: QtBot) -> None:
     assert QGuiApplication.clipboard().text() == "hello ollama_llm_bench"
 
 
+def test_unavailable_clipboard_raises_os_adapter_error(qtbot: QtBot, mocker: MockerFixture) -> None:
+    """Proves: STORY-048-AC-5
+
+    A ``None`` system clipboard (the clipboard subsystem is unavailable, per
+    08-E §21b) raises OsAdapterError with the exact unavailability message.
+    """
+    # Arrange
+    mocker.patch(
+        "ollama_llm_bench.adapters.clipboard._internal.qt_clipboard.QGuiApplication.clipboard",
+        return_value=None,
+    )
+    clipboard = make_clipboard()
+    # Act / Assert
+    with pytest.raises(OsAdapterError) as exc_info:
+        clipboard.copy_text("some text")
+    assert exc_info.value.message == "the system clipboard is unavailable"
+
+
 def test_integration_failure_raises_os_adapter_error(qtbot: QtBot, mocker: MockerFixture) -> None:
     """Proves: STORY-048-AC-5
 
