@@ -45,7 +45,9 @@ def test_contrast_pair_meets_minimum_in_both_themes(
     theme, the contrast ratio computed from the resolved token values meets or exceeds that
     pair's minimum required ratio.
     """
-    tokens = theme_maker(platform_kind=PlatformKind.LINUX)  # type: ignore[call-arg]
+    tokens = theme_maker(
+        platform_kind=PlatformKind.LINUX  # type: ignore[call-arg]  # Callable erases kw-only param name
+    )
     foreground_hex = resolve_color(tokens, foreground_role)
     background_hex = resolve_color(tokens, background_role)
 
