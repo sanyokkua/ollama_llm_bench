@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T14:39:47Z'
+generated_at: '2026-07-16T18:11:49Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3329,19 +3329,132 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-049-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:bg.context-strip]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:bg.input]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:bg.raised]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:bg.selected]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:bg.surface]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:bg.window]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:border.default]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:border.focus]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:border.strong]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:error.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:error.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:info.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:info.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:muted.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:muted.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:overlay]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:primary.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:primary.disabled]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:primary.hover]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:primary.pressed]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:shadow]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:success.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:success.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:text.disabled]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:text.on-error]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:text.on-primary]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:text.primary]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:text.secondary]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:warning.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[dark:warning.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:bg.context-strip]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:bg.input]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:bg.raised]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:bg.selected]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:bg.surface]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:bg.window]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:border.default]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:border.focus]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:border.strong]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:error.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:error.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:info.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:info.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:muted.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:muted.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:overlay]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:primary.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:primary.disabled]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:primary.hover]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:primary.pressed]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:shadow]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:success.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:success.fill]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:text.disabled]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:text.on-error]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:text.on-primary]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:text.primary]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:text.secondary]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:warning.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_colour_role_resolves_to_spec_value_per_theme[light:warning.fill]
       STORY-049-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:checking]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:down]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:fail]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:failed_state]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:live]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:not_tested]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:pass]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:pending]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[dark:reachable_no_models]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:checking]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:down]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:fail]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:failed_state]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:live]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:not_tested]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:pass]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:pending]
+        - src/ollama_llm_bench/ui/theme/tests/test_color_tokens.py::test_verdict_and_health_states_map_to_spec_base_role[light:reachable_no_models]
       STORY-049-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_font_chains.py::test_font_chain_matches_spec_per_platform[linux]
+        - src/ollama_llm_bench/ui/theme/tests/test_font_chains.py::test_font_chain_matches_spec_per_platform[macos]
+        - src/ollama_llm_bench/ui/theme/tests/test_font_chains.py::test_font_chain_matches_spec_per_platform[unknown]
+        - src/ollama_llm_bench/ui/theme/tests/test_font_chains.py::test_font_chain_matches_spec_per_platform[windows]
       STORY-049-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[border.width.active]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[border.width]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[focus.ring.inner_glow_opacity]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[focus.ring.inner_glow_width]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[focus.ring.outer_width]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[font_size.base]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[font_size.lg]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[font_size.md]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[font_size.sm]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[font_size.xl]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[font_size.xs]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[font_weight.regular]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[font_weight.semibold]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[motion.fast]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[motion.standard]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[radius.lg]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[radius.md]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[radius.sm]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[shadow.modal_blur]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[shadow.modal_offset_y]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[shadow.popover_blur]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[shadow.popover_offset_y]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[spacing.2xl]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[spacing.lg]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[spacing.md]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[spacing.sm]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[spacing.xl]
+        - src/ollama_llm_bench/ui/theme/tests/test_scalar_tokens.py::test_scalar_token_resolves_to_spec_value[spacing.xs]
       STORY-049-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_build_stylesheet.py::test_stylesheet_targets_role_selectors_with_resolved_values
       STORY-049-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_build_palette.py::test_palette_maps_core_roles_to_resolved_values
       STORY-049-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_theme_parity.py::test_dark_and_light_containers_have_identical_role_coverage
   STORY-050:
     title: Switch themes live and satisfy the accessibility floor in the theme module
     status: ready
