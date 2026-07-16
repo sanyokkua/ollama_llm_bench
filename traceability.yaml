@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T11:23:02Z'
+generated_at: '2026-07-16T12:30:01Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3280,15 +3280,32 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-048-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_cancel_returns_none_or_empty_per_picker[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getExistingDirectory--<lambda>-None]
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_cancel_returns_none_or_empty_per_picker[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getOpenFileName-qt_return1-<lambda>-expected1]
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_cancel_returns_none_or_empty_per_picker[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getSaveFileName-qt_return0-<lambda>-None]
       STORY-048-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_open_file_with_allow_multiple_returns_chosen_paths
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_selection_returns_chosen_paths_per_picker[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getExistingDirectory-/tmp/folder-<lambda>-/tmp/folder]
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_selection_returns_chosen_paths_per_picker[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getOpenFileName-qt_return1-<lambda>-expected1]
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_selection_returns_chosen_paths_per_picker[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getSaveFileName-qt_return0-<lambda>-/tmp/out.csv]
       STORY-048-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/clipboard/tests/test_clipboard.py::test_copy_text_places_exact_text_on_clipboard
       STORY-048-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_invokes_reveal_for_existing_path[darwin-expected_command_template0]
+        - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_invokes_reveal_for_existing_path[linux-expected_command_template2]
+        - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_invokes_reveal_for_existing_path[win32-expected_command_template1]
       STORY-048-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/clipboard/tests/test_clipboard.py::test_integration_failure_raises_os_adapter_error
+        - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_integration_failure_raises_os_adapter_error
+        - src/ollama_llm_bench/adapters/file_system_actions/tests/test_file_system_actions.py::test_open_in_file_manager_raises_for_nonexistent_path
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_integration_failure_raises_os_adapter_error[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getExistingDirectory-<lambda>]
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_integration_failure_raises_os_adapter_error[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getOpenFileName-<lambda>]
+        - src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py::test_integration_failure_raises_os_adapter_error[ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers.QFileDialog.getSaveFileName-<lambda>]
 clauses:
   01_Main_Window/implementation_structure.md#8-stores-fanout:
     stories:
