@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-17T19:59:01Z'
+generated_at: '2026-07-17T20:49:18Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3565,17 +3565,23 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-052-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/provider_dropdown/tests/test_provider_dropdown.py::test_populates_from_list_enabled_showing_names
       STORY-052-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/provider_dropdown/tests/test_provider_dropdown.py::test_selection_emits_provider_changed_with_provider_id
       STORY-052-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/provider_dropdown/tests/test_provider_dropdown.py::test_filter_restricts_visible_providers
       STORY-052-AC-4:
-        tests: []
+        tests:
+        - tests/integration/test_provider_dropdown_reload.py::test_rebuilds_items_on_provider_registry_reloaded
       STORY-052-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/model_dropdown/tests/test_model_dropdown.py::test_set_provider_populates_from_list_models_with_filter
       STORY-052-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/model_dropdown/tests/test_model_dropdown.py::test_selection_emits_model_changed_with_model_name
 clauses:
   01_Main_Window/implementation_structure.md#8-stores-fanout:
     stories:
