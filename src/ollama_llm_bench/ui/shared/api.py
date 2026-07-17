@@ -5,10 +5,13 @@ from PySide6.QtWidgets import QWidget
 
 from ollama_llm_bench.ui.shared._internal.badge_label import BadgeLabelWidget
 from ollama_llm_bench.ui.shared._internal.health_dot import HealthDotWidget
+from ollama_llm_bench.ui.shared._internal.multi_check_filter_button import (
+    MultiCheckFilterButtonWidget,
+)
 from ollama_llm_bench.ui.shared.models import BadgeStatus
 from ollama_llm_bench.ui.theme import HealthDisplayState, PlatformKind, ThemeManager
 
-__all__: list[str] = ["make_badge_label", "make_health_dot"]
+__all__: list[str] = ["make_badge_label", "make_health_dot", "make_multi_check_filter_button"]
 
 
 @icontract.require(
@@ -41,3 +44,10 @@ def make_health_dot(
     return HealthDotWidget(
         state=state, text=text, theme_manager=theme_manager, platform_kind=platform_kind
     )
+
+
+@icontract.require(lambda options: len(options) > 0, "options must be non-empty")
+@icontract.ensure(lambda result: isinstance(result, QWidget))
+def make_multi_check_filter_button(*, label: str, options: tuple[str, ...]) -> QWidget:
+    """Build a checkable multi-select filter button (08-L §6)."""
+    return MultiCheckFilterButtonWidget(label=label, options=options)
