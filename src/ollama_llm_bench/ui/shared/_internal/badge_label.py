@@ -1,5 +1,7 @@
 """BadgeLabel: a colour-role pill rendering a semantic status + text (08-L §8, 08-D §5)."""
 
+from typing import override
+
 from PySide6.QtCore import QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QPainter, QPaintEvent
 from PySide6.QtWidgets import QWidget
@@ -64,6 +66,7 @@ class BadgeLabelWidget(QWidget):
         )
         return resolve_color(tokens, _FILL_ROLE[self._status])
 
+    @override
     def sizeHint(self) -> QSize:  # Qt override signature
         metrics = self.fontMetrics()
         text_width = metrics.horizontalAdvance(self._text)
@@ -72,7 +75,8 @@ class BadgeLabelWidget(QWidget):
     def _on_theme_changed(self) -> None:
         self.update()
 
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: ARG002  # Qt override
+    @override
+    def paintEvent(self, event: QPaintEvent) -> None:  # Qt override
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setBrush(QColor(self.current_fill_color_hex()))
