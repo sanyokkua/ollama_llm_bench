@@ -72,3 +72,23 @@ def test_ui_shared_does_not_import_asyncio_or_qasync() -> None:
         .should_not_import("qasync")
         .check("ollama_llm_bench")
     )
+
+
+def test_provider_dropdown_and_model_dropdown_do_not_import_each_other() -> None:
+    """Proves: STORY-052 Definition of Done
+
+    ui/shared/provider_dropdown/ and ui/shared/model_dropdown/ are independent sibling
+    sub-packages with no coupling between them (01_MODULE_INVENTORY.md §6).
+    """
+    (
+        archrule("provider-dropdown-does-not-import-model-dropdown")
+        .match("ollama_llm_bench.ui.shared.provider_dropdown*")
+        .should_not_import("ollama_llm_bench.ui.shared.model_dropdown")
+        .check("ollama_llm_bench")
+    )
+    (
+        archrule("model-dropdown-does-not-import-provider-dropdown")
+        .match("ollama_llm_bench.ui.shared.model_dropdown*")
+        .should_not_import("ollama_llm_bench.ui.shared.provider_dropdown")
+        .check("ollama_llm_bench")
+    )
