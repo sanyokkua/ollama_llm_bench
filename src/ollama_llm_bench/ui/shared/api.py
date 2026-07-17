@@ -1,0 +1,23 @@
+"""Public factories for ui/shared's reusable visual primitives (08-L §6, §8, §9; 08-D §5, §6)."""
+
+import icontract
+from PySide6.QtWidgets import QWidget
+
+from ollama_llm_bench.ui.shared._internal.badge_label import BadgeLabelWidget
+from ollama_llm_bench.ui.shared.models import BadgeStatus
+from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
+
+__all__: list[str] = ["make_badge_label"]
+
+
+@icontract.require(
+    lambda status: isinstance(status, BadgeStatus), "status must be a BadgeStatus member"
+)
+@icontract.ensure(lambda result: isinstance(result, QWidget))
+def make_badge_label(
+    *, status: BadgeStatus, text: str, theme_manager: ThemeManager, platform_kind: PlatformKind
+) -> QWidget:
+    """Build a badge pill rendering `status`'s colour role and `text` (08-L §8, 08-D §5)."""
+    return BadgeLabelWidget(
+        status=status, text=text, theme_manager=theme_manager, platform_kind=platform_kind
+    )
