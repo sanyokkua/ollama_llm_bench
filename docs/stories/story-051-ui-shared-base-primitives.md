@@ -149,9 +149,21 @@ custom-painted surface follows the theme switch.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-051.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/shared/`.
-- [ ] An architecture test confirms no `ui/shared/` primitive references `setStyleSheet` or
+- [x] Every acceptance criterion has a passing test that names STORY-051.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/shared/`.
+- [x] An architecture test confirms no `ui/shared/` primitive references `setStyleSheet` or
   embeds a colour literal, and that the module imports no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- Reduced-motion gating for the `checking`-state pulse was **not implemented** — it mirrors
+  STORY-050's own descope of AC-5/AC-6 (reduced-motion/high-contrast), confirmed with the user
+  during this story's planning session. The pulse in `_HealthDotGlyph._start_pulse` runs
+  unconditionally at `motion.standard_ms`. If STORY-050 is later amended to reinstate
+  reduced-motion support, this story needs a follow-up to gate the pulse on it.
+- `MultiCheckFilterButtonWidget` sets `role="outlined-muted-button"`, but `ui/theme`'s
+  `build_stylesheet` (STORY-049) currently only defines a `primary-button` QSS selector — the
+  outlined-muted style has no visual effect yet until a future `ui/theme` story adds that
+  selector. This is a pre-existing STORY-049 gap, not a STORY-051 regression.

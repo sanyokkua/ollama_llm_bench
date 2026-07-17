@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-16T18:26:15Z'
+generated_at: '2026-07-17T19:59:01Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3469,13 +3469,48 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-050-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_active_container_matches_setting_and_os_scheme[dark-dark-dark]
+        - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_active_container_matches_setting_and_os_scheme[dark-light-dark]
+        - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_active_container_matches_setting_and_os_scheme[light-dark-light]
+        - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_active_container_matches_setting_and_os_scheme[light-light-light]
+        - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_active_container_matches_setting_and_os_scheme[system-dark-dark]
+        - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_active_container_matches_setting_and_os_scheme[system-light-light]
       STORY-050-AC-2:
         tests: []
       STORY-050-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_explicit_override_ignores_live_os_change
       STORY-050-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[border.default-bg.surface-3.0-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[border.default-bg.surface-3.0-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[border.focus-bg.window-3.0-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[border.focus-bg.window-3.0-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[error.base-bg.surface-3.0-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[error.base-bg.surface-3.0-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[info.base-bg.surface-3.0-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[info.base-bg.surface-3.0-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[muted.base-bg.surface-3.0-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[muted.base-bg.surface-3.0-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[success.base-bg.surface-3.0-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[success.base-bg.surface-3.0-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.on-error-error.base-4.5-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.on-error-error.base-4.5-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.on-primary-primary.base-4.5-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.on-primary-primary.base-4.5-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.primary-bg.raised-4.5-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.primary-bg.raised-4.5-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.primary-bg.surface-4.5-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.primary-bg.surface-4.5-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.primary-bg.window-4.5-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.primary-bg.window-4.5-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.secondary-bg.raised-4.5-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.secondary-bg.raised-4.5-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.secondary-bg.surface-4.5-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.secondary-bg.surface-4.5-make_light_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[warning.base-bg.surface-3.0-make_dark_theme_tokens]
+        - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[warning.base-bg.surface-3.0-make_light_theme_tokens]
       STORY-050-AC-5:
         tests: []
       STORY-050-AC-6:
@@ -3495,13 +3530,25 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-051-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/tests/test_badge_label.py::test_badge_sets_role_and_shows_text_per_status[fail-error.base]
+        - src/ollama_llm_bench/ui/shared/tests/test_badge_label.py::test_badge_sets_role_and_shows_text_per_status[info-info.base]
+        - src/ollama_llm_bench/ui/shared/tests/test_badge_label.py::test_badge_sets_role_and_shows_text_per_status[neutral-muted.base]
+        - src/ollama_llm_bench/ui/shared/tests/test_badge_label.py::test_badge_sets_role_and_shows_text_per_status[pass-success.base]
+        - src/ollama_llm_bench/ui/shared/tests/test_badge_label.py::test_badge_sets_role_and_shows_text_per_status[warning-warning.base]
       STORY-051-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/tests/test_health_dot.py::test_health_dot_resolves_role_and_pulses_per_state[checking-muted.base-True]
+        - src/ollama_llm_bench/ui/shared/tests/test_health_dot.py::test_health_dot_resolves_role_and_pulses_per_state[down-error.base-False]
+        - src/ollama_llm_bench/ui/shared/tests/test_health_dot.py::test_health_dot_resolves_role_and_pulses_per_state[live-success.base-False]
+        - src/ollama_llm_bench/ui/shared/tests/test_health_dot.py::test_health_dot_resolves_role_and_pulses_per_state[not_tested-muted.base-False]
+        - src/ollama_llm_bench/ui/shared/tests/test_health_dot.py::test_health_dot_resolves_role_and_pulses_per_state[reachable_no_models-warning.base-False]
       STORY-051-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/tests/test_multi_check_filter_button.py::test_toggle_updates_count_label_and_emits_selection
       STORY-051-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/shared/tests/test_health_dot.py::test_health_dot_repaints_on_theme_change
   STORY-052:
     title: Provide the reusable provider and model dropdown sub-packages
     status: ready
