@@ -132,6 +132,16 @@ class TestModelsSectionWidget(QWidget):
         self._on_hide_embedding_changed(checked)
         self._refresh_available_models()
 
+    @property
+    def browsed_provider_id(self) -> str | None:
+        """The provider id currently browsed in the available-models list, if any."""
+        return self._browsed_provider_id
+
+    @property
+    def hide_embedding_models(self) -> bool:
+        """The current state of the hide-embedding-models checkbox."""
+        return self._hide_embedding_models
+
     def _current_provider_config(self) -> ProviderConfig | None:
         if self._browsed_provider_id is None:
             return None
