@@ -195,17 +195,24 @@ no exception is raised, the widget reports `isVisible()`, and no `error`/`critic
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-054.
-- [ ] EC-TASK-1, EC-TASK-3, and EC-TASK-8 each have a passing test.
+- [x] Every acceptance criterion has a passing test that names STORY-054.
+- [x] EC-TASK-1, EC-TASK-3, and EC-TASK-8 each have a passing test.
 - [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises every state in the Test
-  Models and Task Files sub-machines of `02_New_Benchmark_Widget/state_machine.md`.
-- [ ] An architecture test confirms the controller depends only on `NewBenchmarkGateway` (plus
+  Models and Task Files sub-machines of `02_New_Benchmark_Widget/state_machine.md`. Coverage
+  itself clears the bar (`view.py` 100%, the controller/view-model-select group 96% —
+  `just coverage-layers` passes), but two sub-machine transitions have no test reaching them:
+  Task Files' `Populated -> EmptyDropZone` (no test ever removes a row back to zero — only
+  `_on_remove_clicked` exists, with no `remove_for_test`/equivalent hook exercised) and Test
+  Models' `SomeChecked -> Empty` / `MultiProvider -> Empty` (every selection-store test that
+  clears leaves at least one pair behind; none drains the store to empty). Left unchecked
+  pending a follow-up test addition.
+- [x] An architecture test confirms the controller depends only on `NewBenchmarkGateway` (plus
   the declared non-store helpers), that section visibility is resolved via
   `ModeVisibilityPolicy`, and that the module references no `setStyleSheet`, embeds no
   colour literal, and imports no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/new_benchmark/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/new_benchmark/`.
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan
   clause and no orphan test for STORY-054.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
