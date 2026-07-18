@@ -1,7 +1,7 @@
 ---
 id: STORY-052
 title: Provide the reusable provider and model dropdown sub-packages
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#9-provider-registry
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
@@ -156,10 +156,24 @@ Given a populated model dropdown, when the user selects a model, then the widget
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-052.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/shared/provider_dropdown/` and
+- [x] Every acceptance criterion has a passing test that names STORY-052.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/shared/provider_dropdown/` and
   `ui/shared/model_dropdown/`.
-- [ ] An architecture test confirms neither sub-package references `setStyleSheet` or embeds a
+- [x] An architecture test confirms neither sub-package references `setStyleSheet` or embeds a
   colour literal, that they do not import each other, and that they import no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- AC-4's test (`tests/integration/test_provider_dropdown_reload.py::test_rebuilds_items_on_provider_registry_reloaded`)
+  passed in isolation but flaked in a full-suite run: Qt lazily populates its font-family-alias
+  cache once per process and logs a one-time diagnostic naming whichever font family first
+  triggers it, which the root `_qt_parity_rig` fixture (`tests/conftest.py`) then attributed to
+  whichever unrelated test happened to run first in `pytest-randomly` order. Root-caused and
+  fixed at the test-infrastructure level (not this story's production code, and not a
+  per-test suppression): a session-scoped warm-up fixture forces the one-time font-alias
+  population before any test's parity-rig window opens, and a new autouse fixture restores the
+  shared `QApplication`'s stylesheet/palette after every test so a theme applied by one test
+  (e.g. `make_theme_manager` in the theme module's own tests) never leaks into a later test's
+  font resolution. See `tests/conftest.py` and `src/ollama_llm_bench/ui/conftest.py`.

@@ -1,12 +1,10 @@
 ---
 id: STORY-050
 title: Switch themes live and satisfy the accessibility floor in the theme module
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#14-wcag-aa-contrast-matrix
-  - 08_Cross_Cutting/08-D_color_palette_and_typography.md#15-accessibility-rules
-  - 08_Cross_Cutting/08-D_color_palette_and_typography.md#12-shadow-and-motion-tokens
   - 08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling
 modules:
   - ui/theme/
@@ -15,12 +13,11 @@ acceptance_criteria:
   - STORY-050-AC-2
   - STORY-050-AC-3
   - STORY-050-AC-4
-  - STORY-050-AC-5
-  - STORY-050-AC-6
 depends_on:
   - STORY-049
 adrs:
   - ADR-0001
+  - ADR-0008
 owner: coder
 estimate: M
 ---
@@ -31,10 +28,11 @@ estimate: M
 
 Make the theme module select, apply, and live-switch the active theme per the `ui.theme`
 setting, re-applying styling and notifying custom-painted surfaces without a restart or loss of
-unsaved input, and prove that both delivered themes meet the accessibility floor: the full WCAG
-AA contrast matrix, reduced-motion handling, and high-contrast handling. This closes the Phase 9
-theme gate — after this story a live OS light/dark switch repaints the whole app correctly and
-both themes are verified against every contrast pair.
+unsaved input, and prove that both delivered themes meet the full WCAG AA contrast matrix. This
+closes the Phase 9 theme gate — after this story a live OS light/dark switch repaints the whole
+app correctly and both themes are verified against every contrast pair. Reduced-motion and
+high-contrast OS-preference handling are permanently out of scope for this application (see
+ADR-0008); this story does not claim any part of that floor requirement.
 
 ## In scope
 
@@ -45,11 +43,11 @@ both themes are verified against every contrast pair.
   `QPalette` to the `QApplication`, and emit a theme-changed notification custom-painted surfaces
   subscribe to.
 - The full 13-pair WCAG AA contrast verification across both themes.
-- Reduced-motion handling (instant repaint, no health-dot pulse) and high-contrast handling
-  (increased border-width emphasis, soft `*.fill` backgrounds replaced by solid borders).
 
 ## Out of scope
 
+- Reduced-motion and high-contrast OS-accessibility-preference handling — permanently excluded
+  from this application's scope, per ADR-0008. Not deferred, not a gap to close later.
 - The token values, the QSS generator, and the `QPalette` builder — owned by STORY-049; this
   story drives them through the switch sequence.
 - The custom-painted surfaces that repaint on the notification (charts, badges, dots) —
@@ -69,10 +67,6 @@ both themes are verified against every contrast pair.
   icons, no restart, no discarded input, cross-fade over `motion.standard`).
 - `08-D §14 (#14-wcag-aa-contrast-matrix)` — the 13 foreground/background pairs and each pair's
   minimum required ratio, which both themes must satisfy.
-- `08-D §15 (#15-accessibility-rules)` — the contrast, reduced-motion, high-contrast, and
-  focus-visibility rules the module enforces.
-- `08-D §12 (#12-shadow-and-motion-tokens)` — the `motion.standard` cross-fade duration and the
-  rule that a reduced-motion preference disables all transitions and the health-dot pulse.
 - `08-L §11 (#11-theme-handling)` — the corroborating standardization rule: `system` tracks live
   OS changes, a runtime change re-applies tokens and repaints every surface without restart or
   loss of unsaved input.
@@ -85,13 +79,8 @@ both themes are verified against every contrast pair.
   bus event. `ui/theme/` is the foundational styling authority that every widget imports directly
   without a gateway, so its change notification is a local Qt signal a custom-painted surface
   connects to — keeping the module free of a backend Protocol dependency.
-- **Design decision (recorded here):** high-contrast emphasis values (the increased
-  `border.width` and the removal of soft `*.fill` backgrounds) are qualitative in 08-D §15; the
-  concrete pixel emphasis is an implementation judgment. The generator increases border width and
-  drops the `*.fill` backgrounds to solid borders when high-contrast is reported; the exact
-  emphasis is chosen for visible distinctness, not read literally from the spec.
-- The live OS colour-scheme preference and the reduced-motion / high-contrast preferences are
-  read through the OS surface (Qt `QStyleHints`); no `QFontDatabase` probing, no `asyncio`.
+- The live OS colour-scheme preference is read through the OS surface (Qt `QStyleHints`); no
+  `QFontDatabase` probing, no `asyncio`.
 - A theme switch never triggers an application restart and never discards unsaved user input.
 
 ## Acceptance criteria
@@ -127,18 +116,6 @@ For each foreground/background pair in the 08-D §14 contrast matrix, in both th
 Light theme, the contrast ratio computed from the resolved token values is greater than or equal
 to that pair's minimum required ratio (table-driven, total over the 13 pairs in both themes).
 
-### STORY-050-AC-5
-
-Given the OS reports a reduced-motion preference, when the theme is re-applied, then the repaint
-applies instantly (no cross-fade) and the health-dot pulse is disabled, rather than transitioning
-over `motion.standard`.
-
-### STORY-050-AC-6
-
-Given the OS reports a high-contrast preference, when `build_stylesheet` runs for the active
-container, then the generated stylesheet renders component boundaries as solid borders with
-increased border-width emphasis and omits the soft `*.fill` background fills.
-
 ## Test plan
 
 - STORY-050-AC-1 — table-driven unit, colocated
@@ -152,21 +129,15 @@ increased border-width emphasis and omits the soft `*.fill` background fills.
 - STORY-050-AC-4 — table-driven unit, colocated
   `src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py`,
   `test_contrast_pair_meets_minimum_in_both_themes`.
-- STORY-050-AC-5 — unit (`pytest-qt`), colocated
-  `src/ollama_llm_bench/ui/theme/tests/test_reduced_motion.py`,
-  `test_reduced_motion_applies_theme_instantly`.
-- STORY-050-AC-6 — unit, colocated
-  `src/ollama_llm_bench/ui/theme/tests/test_high_contrast.py`,
-  `test_high_contrast_uses_solid_borders_without_soft_fills`.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-050.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/theme/`.
-- [ ] An architecture test confirms `ui/theme/` remains the only module referencing
+- [x] Every acceptance criterion has a passing test that names STORY-050.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/theme/`.
+- [x] An architecture test confirms `ui/theme/` remains the only module referencing
   `setStyleSheet` and that the module imports no `asyncio`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
 
 ## Notes
 
@@ -193,11 +164,11 @@ increased border-width emphasis and omits the soft `*.fill` background fills.
   not a functional defect (nothing tests hover/pressed relative brightness) but is worth a note
   for whoever next touches the button visual states.
 
-- **AC-5 (reduced motion) and AC-6 (high contrast) are out of scope for this version of the
-  app**, per an explicit product decision. The application supports only Dark/Light colour-scheme
-  switching (AC-1–AC-4); OS accessibility-preference handling was descoped. This story's
-  front-matter still lists AC-5/AC-6 and cites `08-D §12`/`§15` — those need a follow-up
-  amendment (dropping the two ACs and their spec citations from this story, and likely an ADR,
-  since `12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md` §8/§10/§11 currently calls reduced-motion
-  and high-contrast handling release-blocking) before this story can be marked `done`. This story
-  stays `in-progress` until that amendment lands.
+- **Reduced-motion (formerly AC-5) and high-contrast (formerly AC-6) handling are permanently out
+  of scope for this application.** This is a deliberate, permanent product descope recorded in
+  ADR-0008, not an open gap awaiting a follow-up. `12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md`
+  §8/§11 still calls both requirements release-blocking; ADR-0008 records the conscious decision
+  to ship without them and why. This story only ever claims Dark/Light colour-scheme switching
+  (AC-1–AC-4) and the WCAG AA contrast matrix. No future story should re-propose implementing
+  reduced-motion or high-contrast handling under this story's scope — a new story plus a
+  superseding ADR would be required to reverse this decision.

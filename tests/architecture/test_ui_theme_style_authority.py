@@ -13,7 +13,16 @@ _THEME_ROOT = _SRC_ROOT / "ui" / "theme"
 
 
 def _iter_python_files(root: Path) -> list[Path]:
-    return sorted(root.rglob("*.py"))
+    # Excludes "tests" path components (matches test_ui_shared_style_authority.py's
+    # _iter_non_test_python_files convention) and conftest.py fixture modules (which may sit
+    # above a "tests" directory rather than inside one): a pytest fixture that restores
+    # QApplication styling for test isolation is not "a module outside ui/theme/ assembling
+    # application styling" — the DoD this test proves targets production modules.
+    return sorted(
+        path
+        for path in root.rglob("*.py")
+        if "tests" not in path.parts and path.name != "conftest.py"
+    )
 
 
 def _calls_setstylesheet(tree: ast.AST) -> bool:

@@ -1,7 +1,7 @@
 ---
 id: STORY-051
 title: Provide the shared visual primitives that render status by theme role plus text or glyph
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-L_ui_standardization.md#8-verdict-and-status-colours
   - 08_Cross_Cutting/08-L_ui_standardization.md#9-iconography
@@ -21,6 +21,7 @@ depends_on:
   - STORY-050
 adrs:
   - ADR-0001
+  - ADR-0008
 owner: coder
 estimate: M
 ---

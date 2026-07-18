@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-17T20:49:18Z'
+generated_at: '2026-07-18T08:16:20Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3457,12 +3457,10 @@ stories:
         - src/ollama_llm_bench/ui/theme/tests/test_theme_parity.py::test_dark_and_light_containers_have_identical_role_coverage
   STORY-050:
     title: Switch themes live and satisfy the accessibility floor in the theme module
-    status: ready
+    status: done
     spec_clauses:
-    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#12-shadow-and-motion-tokens
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#14-wcag-aa-contrast-matrix
-    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#15-accessibility-rules
     - 08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling
     modules:
     - ui/theme/
@@ -3477,7 +3475,8 @@ stories:
         - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_active_container_matches_setting_and_os_scheme[system-dark-dark]
         - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_active_container_matches_setting_and_os_scheme[system-light-light]
       STORY-050-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_theme_switching.py::test_system_theme_reapplies_and_notifies_on_os_change
       STORY-050-AC-3:
         tests:
         - src/ollama_llm_bench/ui/theme/tests/test_theme_selection.py::test_explicit_override_ignores_live_os_change
@@ -3511,13 +3510,9 @@ stories:
         - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[text.secondary-bg.surface-4.5-make_light_theme_tokens]
         - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[warning.base-bg.surface-3.0-make_dark_theme_tokens]
         - src/ollama_llm_bench/ui/theme/tests/test_wcag_contrast.py::test_contrast_pair_meets_minimum_in_both_themes[warning.base-bg.surface-3.0-make_light_theme_tokens]
-      STORY-050-AC-5:
-        tests: []
-      STORY-050-AC-6:
-        tests: []
   STORY-051:
     title: Provide the shared visual primitives that render status by theme role plus text or glyph
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#5-verdict-palette
@@ -3551,7 +3546,7 @@ stories:
         - src/ollama_llm_bench/ui/shared/tests/test_health_dot.py::test_health_dot_repaints_on_theme_change
   STORY-052:
     title: Provide the reusable provider and model dropdown sub-packages
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#11-border-and-focus-tokens
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
@@ -3639,14 +3634,10 @@ clauses:
   08_Cross_Cutting/08-D_color_palette_and_typography.md#12-shadow-and-motion-tokens:
     stories:
     - STORY-049
-    - STORY-050
   08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching:
     stories:
     - STORY-050
   08_Cross_Cutting/08-D_color_palette_and_typography.md#14-wcag-aa-contrast-matrix:
-    stories:
-    - STORY-050
-  08_Cross_Cutting/08-D_color_palette_and_typography.md#15-accessibility-rules:
     stories:
     - STORY-050
   08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract:
