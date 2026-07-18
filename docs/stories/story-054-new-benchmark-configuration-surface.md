@@ -197,15 +197,17 @@ no exception is raised, the widget reports `isVisible()`, and no `error`/`critic
 
 - [x] Every acceptance criterion has a passing test that names STORY-054.
 - [x] EC-TASK-1, EC-TASK-3, and EC-TASK-8 each have a passing test.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises every state in the Test
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises every state in the Test
   Models and Task Files sub-machines of `02_New_Benchmark_Widget/state_machine.md`. Coverage
   itself clears the bar (`view.py` 100%, the controller/view-model-select group 96% —
-  `just coverage-layers` passes), but two sub-machine transitions have no test reaching them:
-  Task Files' `Populated -> EmptyDropZone` (no test ever removes a row back to zero — only
-  `_on_remove_clicked` exists, with no `remove_for_test`/equivalent hook exercised) and Test
-  Models' `SomeChecked -> Empty` / `MultiProvider -> Empty` (every selection-store test that
-  clears leaves at least one pair behind; none drains the store to empty). Left unchecked
-  pending a follow-up test addition.
+  `just coverage-layers` passes). The two previously-uncovered sub-machine transitions are now
+  each proven by a dedicated test: Task Files' `Populated -> EmptyDropZone` by
+  `test_task_files.py::test_removing_the_only_file_returns_to_empty_drop_zone` (adds one row,
+  selects it in `_list`, clicks `_remove_button`, asserts `widget.rows == ()`) and Test Models'
+  `SomeChecked/MultiProvider -> Empty` by
+  `test_test_models_section.py::test_clearing_all_providers_drains_selection_to_empty` (selects
+  pairs from both providers, clicks Clear All while browsing each in turn, asserts
+  `widget.selection.pairs == ()`).
 - [x] An architecture test confirms the controller depends only on `NewBenchmarkGateway` (plus
   the declared non-store helpers), that section visibility is resolved via
   `ModeVisibilityPolicy`, and that the module references no `setStyleSheet`, embeds no

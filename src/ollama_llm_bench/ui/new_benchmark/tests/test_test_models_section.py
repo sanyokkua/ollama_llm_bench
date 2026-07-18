@@ -81,3 +81,29 @@ def test_clear_all_scopes_to_browsed_provider_via_widget(qtbot: QtBot) -> None:
     widget.click_clear_all_for_test()
     # Assert
     assert widget.selection.pairs == ((_PROVIDER_B.provider_id, "gpt-4o-mini"),)
+
+
+def test_clearing_all_providers_drains_selection_to_empty(qtbot: QtBot) -> None:
+    """Proves: STORY-054 Definition of done
+
+    Covers: state_machine.md §3 (Test Models sub-machine)
+    SomeChecked/MultiProvider -> Empty
+
+    Given pairs are selected from two providers (MultiProvider), clicking
+    Clear All while browsing each provider in turn drains the selection store
+    back to zero pairs -- the fully-empty end state, not merely a
+    single-provider-scoped clear.
+    """
+    # Arrange
+    widget = _make_widget()
+    qtbot.addWidget(widget)
+    widget.set_browsed_provider_for_test(_PROVIDER_A.provider_id)
+    widget.toggle_model_for_test("llama3")
+    widget.set_browsed_provider_for_test(_PROVIDER_B.provider_id)
+    widget.toggle_model_for_test("gpt-4o-mini")
+    # Act
+    widget.click_clear_all_for_test()
+    widget.set_browsed_provider_for_test(_PROVIDER_A.provider_id)
+    widget.click_clear_all_for_test()
+    # Assert
+    assert widget.selection.pairs == ()

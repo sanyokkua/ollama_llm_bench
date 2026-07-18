@@ -1,6 +1,7 @@
 """Unit tests for ``_internal.task_files.TaskFilesSectionWidget``
 (STORY-054-AC-4, AC-6; EC-TASK-1, EC-TASK-3, EC-TASK-8)."""
 
+from PySide6.QtCore import Qt
 from pytestqt.qtbot import QtBot
 import structlog
 
@@ -71,6 +72,31 @@ def test_whole_file_parse_error_adds_no_row(qtbot: QtBot) -> None:
     assert widget.rows == ()
     assert widget.last_inline_error == "not a YAML file"
     assert not any(entry["log_level"] in {"error", "critical"} for entry in logs)
+
+
+def test_removing_the_only_file_returns_to_empty_drop_zone(qtbot: QtBot) -> None:
+    """Proves: STORY-054 Definition of done
+
+    Covers: state_machine.md §4 (Task Files sub-machine) Populated -> EmptyDropZone
+
+    Given the sole row is selected in the list and Remove is clicked, the widget
+    drains back to zero rows -- the EmptyDropZone state -- not merely a
+    decremented-but-nonzero row count.
+    """
+    # Arrange
+    widget, loader = _make_widget()
+    qtbot.addWidget(widget)
+    loader.set_tasks("/tasks/a.yaml", (_TASK,))
+    widget.add_files_for_test(("/tasks/a.yaml",))
+    assert widget.rows[0].file_name == "a.yaml"
+    widget._list.item(0).setSelected(True)
+    # Act
+    with qtbot.waitSignal(widget.rows_changed, timeout=1000):
+        qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
+            widget._remove_button, Qt.MouseButton.LeftButton
+        )
+    # Assert
+    assert widget.rows == ()
 
 
 def test_empty_folder_adds_no_row(qtbot: QtBot) -> None:
