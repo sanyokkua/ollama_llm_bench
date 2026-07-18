@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-18T16:05:37Z'
+generated_at: '2026-07-18T16:19:30Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3659,6 +3659,7 @@ stories:
     acceptance_criteria:
       STORY-054-AC-1:
         tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_controller.py::test_mode_selector_restores_and_persists_last_mode_via_gateway
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
       STORY-054-AC-2:
@@ -6824,6 +6825,7 @@ edge_cases:
     stories:
     - STORY-054
     tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_controller.py::test_mode_selector_restores_and_persists_last_mode_via_gateway
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
@@ -6848,6 +6850,7 @@ edge_cases:
     stories:
     - STORY-054
     tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_controller.py::test_mode_selector_restores_and_persists_last_mode_via_gateway
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
@@ -6868,6 +6871,7 @@ edge_cases:
     stories:
     - STORY-054
     tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_controller.py::test_mode_selector_restores_and_persists_last_mode_via_gateway
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]

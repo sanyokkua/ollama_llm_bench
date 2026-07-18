@@ -72,6 +72,7 @@ class TaskFilesSectionWidget(QWidget):
         self._rows: dict[str, TaskFileRowViewModel] = {}
         self.last_inline_error: str | None = None
         self.last_toast_message: str | None = None
+        # TODO: drag-and-drop acceptance is not yet wired to a dragEnterEvent/dropEvent handler
         self.setAcceptDrops(True)
         self._build_ui()
 
@@ -176,12 +177,13 @@ class TaskFilesSectionWidget(QWidget):
             item = QListWidgetItem(row.file_name)
             item.setData(Qt.ItemDataRole.UserRole, row.source_path)
             self._list.addItem(item)
+            task_word = "task" if row.task_count == 1 else "tasks"
             if self._theme_manager is None:
-                item.setText(f"{row.file_name}  ({row.task_count} tasks)")
+                item.setText(f"{row.file_name}  ({row.task_count} {task_word})")
                 continue
             badge = make_badge_label(
                 status=BadgeStatus.INFO,
-                text=f"({row.task_count} tasks)",
+                text=f"({row.task_count} {task_word})",
                 theme_manager=self._theme_manager,
                 platform_kind=self._platform_kind,
             )

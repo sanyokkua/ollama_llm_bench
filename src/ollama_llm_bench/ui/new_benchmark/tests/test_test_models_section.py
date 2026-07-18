@@ -40,7 +40,7 @@ def test_toggling_a_model_adds_it_to_the_selection_store(qtbot: QtBot) -> None:
     # Arrange
     widget = _make_widget()
     qtbot.addWidget(widget)
-    widget.set_browsed_provider_for_test(_PROVIDER_A.provider_id)
+    widget._on_browsed_provider_changed(_PROVIDER_A.provider_id)
     # Act
     widget.toggle_model_for_test("llama3")
     # Assert
@@ -57,7 +57,7 @@ def test_hide_embedding_models_filters_available_list(qtbot: QtBot) -> None:
     widget = _make_widget()
     qtbot.addWidget(widget)
     # Act
-    widget.set_browsed_provider_for_test(_PROVIDER_A.provider_id)
+    widget._on_browsed_provider_changed(_PROVIDER_A.provider_id)
     # Assert
     assert "nomic-embed-text" not in widget.available_model_names_for_test()
     assert "llama3" in widget.available_model_names_for_test()
@@ -72,13 +72,13 @@ def test_clear_all_scopes_to_browsed_provider_via_widget(qtbot: QtBot) -> None:
     # Arrange
     widget = _make_widget()
     qtbot.addWidget(widget)
-    widget.set_browsed_provider_for_test(_PROVIDER_A.provider_id)
+    widget._on_browsed_provider_changed(_PROVIDER_A.provider_id)
     widget.toggle_model_for_test("llama3")
-    widget.set_browsed_provider_for_test(_PROVIDER_B.provider_id)
+    widget._on_browsed_provider_changed(_PROVIDER_B.provider_id)
     widget.toggle_model_for_test("gpt-4o-mini")
-    widget.set_browsed_provider_for_test(_PROVIDER_A.provider_id)
+    widget._on_browsed_provider_changed(_PROVIDER_A.provider_id)
     # Act
-    widget.click_clear_all_for_test()
+    widget._on_clear_all_clicked()
     # Assert
     assert widget.selection.pairs == ((_PROVIDER_B.provider_id, "gpt-4o-mini"),)
 
@@ -97,13 +97,13 @@ def test_clearing_all_providers_drains_selection_to_empty(qtbot: QtBot) -> None:
     # Arrange
     widget = _make_widget()
     qtbot.addWidget(widget)
-    widget.set_browsed_provider_for_test(_PROVIDER_A.provider_id)
+    widget._on_browsed_provider_changed(_PROVIDER_A.provider_id)
     widget.toggle_model_for_test("llama3")
-    widget.set_browsed_provider_for_test(_PROVIDER_B.provider_id)
+    widget._on_browsed_provider_changed(_PROVIDER_B.provider_id)
     widget.toggle_model_for_test("gpt-4o-mini")
     # Act
-    widget.click_clear_all_for_test()
-    widget.set_browsed_provider_for_test(_PROVIDER_A.provider_id)
-    widget.click_clear_all_for_test()
+    widget._on_clear_all_clicked()
+    widget._on_browsed_provider_changed(_PROVIDER_A.provider_id)
+    widget._on_clear_all_clicked()
     # Assert
     assert widget.selection.pairs == ()

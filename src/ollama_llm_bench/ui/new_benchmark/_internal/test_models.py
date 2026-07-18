@@ -58,6 +58,8 @@ class _GatewayBackedProviderListSource:
 class TestModelsSectionWidget(QWidget):
     """The Test Models section: hide-embedding toggle, provider browse, model toggles."""
 
+    __test__ = False  # not a pytest test class -- name matches the spec's "Test Models" section
+
     selection_changed = Signal()
 
     def __init__(
@@ -101,7 +103,7 @@ class TestModelsSectionWidget(QWidget):
             )
             provider_dropdown.setObjectName("new_benchmark.test_models.provider_dropdown")
             cast("_ProviderChangedEmitter", provider_dropdown).provider_changed.connect(
-                self.set_browsed_provider_for_test
+                self._on_browsed_provider_changed
             )
             layout.addWidget(provider_dropdown)
 
@@ -113,10 +115,10 @@ class TestModelsSectionWidget(QWidget):
         select_row = QHBoxLayout()
         self._select_all_button = QPushButton("Select All")
         self._select_all_button.setProperty("role", "outlined-muted-button")
-        self._select_all_button.clicked.connect(self.click_select_all_for_test)
+        self._select_all_button.clicked.connect(self._on_select_all_clicked)
         self._clear_all_button = QPushButton("Clear All")
         self._clear_all_button.setProperty("role", "outlined-muted-button")
-        self._clear_all_button.clicked.connect(self.click_clear_all_for_test)
+        self._clear_all_button.clicked.connect(self._on_clear_all_clicked)
         select_row.addWidget(self._select_all_button)
         select_row.addWidget(self._clear_all_button)
         layout.addLayout(select_row)
@@ -164,8 +166,8 @@ class TestModelsSectionWidget(QWidget):
             names = tuple(n for n in names if not is_embedding_model(n))
         return names
 
-    def set_browsed_provider_for_test(self, provider_id: str) -> None:
-        """Test helper / signal target: switch the browsed provider and refresh the list."""
+    def _on_browsed_provider_changed(self, provider_id: str) -> None:
+        """Signal target: switch the browsed provider and refresh the list."""
         self._browsed_provider_id = provider_id
         self._refresh_available_models()
 
@@ -203,7 +205,7 @@ class TestModelsSectionWidget(QWidget):
                 return
         raise AssertionError(f"{model_name!r} is not in the available-models list")
 
-    def click_select_all_for_test(self) -> None:
+    def _on_select_all_clicked(self) -> None:
         """Select every currently-available model for the browsed provider."""
         if self._browsed_provider_id is None:
             return
@@ -213,7 +215,7 @@ class TestModelsSectionWidget(QWidget):
         self._refresh_summary()
         self.selection_changed.emit()
 
-    def click_clear_all_for_test(self) -> None:
+    def _on_clear_all_clicked(self) -> None:
         """Clear every selected pair for the browsed provider only (AC-5)."""
         if self._browsed_provider_id is None:
             return

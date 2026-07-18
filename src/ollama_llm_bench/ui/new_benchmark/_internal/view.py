@@ -15,20 +15,6 @@ from ollama_llm_bench.ui.new_benchmark.models import NewBenchmarkViewModel
 
 __all__: list[str] = ["NewBenchmarkView"]
 
-_STUB_TITLES: dict[ConfigSection, str] = {
-    ConfigSection.INPUT_SIZES: "Performance Matrix",
-    ConfigSection.JUDGE_MODEL_PICKER: "Judge",
-    ConfigSection.EMBEDDING_MODEL_INFO: "Embedding status",
-    ConfigSection.ADVANCED_OPTIONS: "Advanced Options",
-}
-# INPUT_SIZES/OUTPUT_SIZES/REPEATS share one "Performance Matrix" container; only
-# INPUT_SIZES is used as the dict key below to avoid rendering the stub three times.
-_PERFORMANCE_MATRIX_MEMBERS = (
-    ConfigSection.INPUT_SIZES,
-    ConfigSection.OUTPUT_SIZES,
-    ConfigSection.REPEATS,
-)
-
 
 class NewBenchmarkView(QWidget):
     """Assembles the mode selector, stub sections, Task Files, and Test Models."""
