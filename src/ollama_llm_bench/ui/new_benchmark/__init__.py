@@ -4,10 +4,14 @@ visibility, selection store, Task Files, Test Models. Judge/Advanced/Start
 are stubbed.
 
 Source of truth: ``docs/v3_specification/02_New_Benchmark_Widget/``. Public
-surface is exactly one symbol -- ``make_new_benchmark_widget`` -- assembling the
-widget from its ``_internal/`` pieces.
+surface is ``make_new_benchmark_widget`` plus the ``NewBenchmarkCollaborators``
+bundle a caller must construct to call it -- assembling the widget from its
+``_internal/`` pieces.
 """
 
-from ollama_llm_bench.ui.new_benchmark.api import make_new_benchmark_widget
+from ollama_llm_bench.ui.new_benchmark.api import (
+    NewBenchmarkCollaborators,
+    make_new_benchmark_widget,
+)
 
-__all__: list[str] = ["make_new_benchmark_widget"]
+__all__: list[str] = ["NewBenchmarkCollaborators", "make_new_benchmark_widget"]

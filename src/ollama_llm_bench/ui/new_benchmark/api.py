@@ -7,6 +7,7 @@ this factory only declares the collaborators a later composition-root story wire
 """
 
 import icontract
+import msgspec
 from PySide6.QtWidgets import QWidget
 
 from ollama_llm_bench.adapters.native_pickers import NativePickers
@@ -21,48 +22,14 @@ from ollama_llm_bench.ui.new_benchmark._internal.view import NewBenchmarkView
 from ollama_llm_bench.ui.new_benchmark.protocols import ModeVisibilityPolicy, NewBenchmarkGateway
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
-__all__: list[str] = ["make_new_benchmark_widget"]
+__all__: list[str] = ["NewBenchmarkCollaborators", "make_new_benchmark_widget"]
 
 
-@icontract.require(
-    lambda gateway, event_bus, task_file_loader, mode_visibility_policy, native_pickers, workspace: (
-        all(
-            collaborator is not None
-            for collaborator in (
-                gateway,
-                event_bus,
-                task_file_loader,
-                mode_visibility_policy,
-                native_pickers,
-                workspace,
-            )
-        )
-    ),
-    "every collaborator is required, wired by a later composition-root story",
-)
-@icontract.ensure(lambda result: isinstance(result, QWidget))
-def make_new_benchmark_widget(  # noqa: PLR0913  # six distinct required collaborators per the
-    # approved STORY-054 design (docs/stories/story-054-new-benchmark-configuration-surface.md
-    # Design constraints); each is an independently-faked test seam, not groupable into one
-    # struct without losing that (matching the ui.main_window.api precedent)
-    *,
-    gateway: NewBenchmarkGateway,
-    event_bus: EventBus,
-    task_file_loader: TaskFileLoader,
-    mode_visibility_policy: ModeVisibilityPolicy,
-    native_pickers: NativePickers,
-    workspace: WorkspaceController,
-    theme_manager: ThemeManager,
-    platform_kind: PlatformKind,
-) -> QWidget:
-    """Construct the mountable New Benchmark widget.
+class NewBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Bundles ``make_new_benchmark_widget``'s collaborators (coding-style.md's
+    4-parameter hard maximum -- the factory would otherwise take 8 keyword arguments).
 
-    Judge, Advanced Options, embedding status row, and Start-flow behaviour are
-    stubbed (STORY-055); Performance Matrix content is stubbed (a new,
-    not-yet-drafted future story) -- both still participate in section
-    visibility via ``mode_visibility_policy``.
-
-    Args:
+    Attributes:
         gateway: The adapter gateway exposing settings/provider-list/readiness/
             start-run (D-R-06).
         event_bus: The bus this widget rebuilds its provider cache from on
@@ -74,28 +41,66 @@ def make_new_benchmark_widget(  # noqa: PLR0913  # six distinct required collabo
         theme_manager: Resolves theme roles for badges and section styling.
         platform_kind: The host platform classification passed alongside
             ``theme_manager`` to every themed custom-painted primitive.
+    """
+
+    gateway: NewBenchmarkGateway
+    event_bus: EventBus
+    task_file_loader: TaskFileLoader
+    mode_visibility_policy: ModeVisibilityPolicy
+    native_pickers: NativePickers
+    workspace: WorkspaceController
+    theme_manager: ThemeManager
+    platform_kind: PlatformKind
+
+
+@icontract.require(
+    lambda collaborators: all(
+        c is not None
+        for c in (
+            collaborators.gateway,
+            collaborators.event_bus,
+            collaborators.task_file_loader,
+            collaborators.mode_visibility_policy,
+            collaborators.native_pickers,
+            collaborators.workspace,
+        )
+    ),
+    "every collaborator is required, wired by a later composition-root story",
+)
+@icontract.ensure(lambda result: isinstance(result, QWidget))
+def make_new_benchmark_widget(*, collaborators: NewBenchmarkCollaborators) -> QWidget:
+    """Construct the mountable New Benchmark widget.
+
+    Judge, Advanced Options, embedding status row, and Start-flow behaviour are
+    stubbed (STORY-055); Performance Matrix content is stubbed (a new,
+    not-yet-drafted future story) -- both still participate in section
+    visibility via ``mode_visibility_policy``.
+
+    Args:
+        collaborators: Every collaborator this widget and its controller need,
+            bundled per coding-style.md's 4-parameter hard maximum.
 
     Returns:
         The fully wired, mountable ``QWidget``, ready to be added to a parent layout.
     """
     mode_selector = ModeSelectorWidget()
     task_files_section = TaskFilesSectionWidget(
-        task_file_loader=task_file_loader,
-        native_pickers=native_pickers,
-        workspace=workspace,
-        theme_manager=theme_manager,
-        platform_kind=platform_kind,
+        task_file_loader=collaborators.task_file_loader,
+        native_pickers=collaborators.native_pickers,
+        workspace=collaborators.workspace,
+        theme_manager=collaborators.theme_manager,
+        platform_kind=collaborators.platform_kind,
     )
     test_models_section = TestModelsSectionWidget(
-        provider_configs_source=gateway.provider_list,
+        provider_configs_source=collaborators.gateway.provider_list,
         hide_embedding_models_initial=(
-            gateway.get_setting("embedding.hide_from_test_models") or "true"
+            collaborators.gateway.get_setting("embedding.hide_from_test_models") or "true"
         )
         == "true",
-        on_hide_embedding_changed=lambda value: gateway.set_setting(
+        on_hide_embedding_changed=lambda value: collaborators.gateway.set_setting(
             "embedding.hide_from_test_models", "true" if value else "false"
         ),
-        event_bus=event_bus,
+        event_bus=collaborators.event_bus,
     )
     view = NewBenchmarkView(
         mode_selector=mode_selector,
@@ -103,9 +108,9 @@ def make_new_benchmark_widget(  # noqa: PLR0913  # six distinct required collabo
         test_models_section=test_models_section,
     )
     controller = NewBenchmarkController(
-        gateway=gateway,
-        event_bus=event_bus,
-        mode_visibility_policy=mode_visibility_policy,
+        gateway=collaborators.gateway,
+        event_bus=collaborators.event_bus,
+        mode_visibility_policy=collaborators.mode_visibility_policy,
         view=view,
     )
     controller.bind()
