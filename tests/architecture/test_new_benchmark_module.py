@@ -10,6 +10,7 @@ backend Store/Service Protocol beyond those (D-R-06).
 import ast
 import inspect
 from pathlib import Path
+import re
 
 import ollama_llm_bench
 
@@ -24,24 +25,46 @@ _ALLOWED_CONTROLLER_BACKEND_IMPORTS = {
     "ollama_llm_bench.backend.events",
     "ollama_llm_bench.ui.new_benchmark.protocols",
 }
+_HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 
 
 def _iter_source_files() -> list[Path]:
     return sorted(_MODULE_ROOT.rglob("*.py"))
 
 
+def _imported_modules(tree: ast.AST) -> set[str]:
+    """Collect fully-dotted module names from both ``import x.y`` and ``from x.y import z``.
+
+    Walking only ``ast.ImportFrom`` misses a bare ``import ollama_llm_bench.backend.X``
+    followed by attribute access (e.g. ``X.foo()``); both node types are collected here so
+    namespace-style imports (sanctioned by coding-style.md once 4+ names are needed from one
+    module) are caught with the same rigor as ``from``-imports.
+    """
+    imported_modules: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported_modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module is not None:
+            imported_modules.add(node.module)
+    return imported_modules
+
+
 def _imports_setstylesheet_or_forbidden_concurrency(tree: ast.AST) -> tuple[bool, bool]:
     calls_setstylesheet = any(
         isinstance(node, ast.Attribute) and node.attr == "setStyleSheet" for node in ast.walk(tree)
     )
-    imported_roots: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imported_roots.update(alias.name.split(".")[0] for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module is not None:
-            imported_roots.add(node.module.split(".")[0])
+    imported_roots = {module.split(".")[0] for module in _imported_modules(tree)}
     imports_forbidden_concurrency = not imported_roots.isdisjoint(_FORBIDDEN_CONCURRENCY_ROOTS)
     return calls_setstylesheet, imports_forbidden_concurrency
+
+
+def _embeds_colour_literal(tree: ast.AST) -> bool:
+    return any(
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and _HEX_COLOR_RE.match(node.value)
+        for node in ast.walk(tree)
+    )
 
 
 def test_at_least_one_source_file_discovered() -> None:
@@ -77,11 +100,7 @@ def test_view_imports_no_backend_service_symbol() -> None:
     """
     # Arrange
     tree = ast.parse(_VIEW_FILE.read_text(encoding="utf-8"), filename=str(_VIEW_FILE))
-    imported_modules = {
-        node.module
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom) and node.module is not None
-    }
+    imported_modules = _imported_modules(tree)
     # Act
     backend_service_imports = {
         m
@@ -102,13 +121,28 @@ def test_controller_depends_only_on_declared_collaborators() -> None:
     """
     # Arrange
     tree = ast.parse(_CONTROLLER_FILE.read_text(encoding="utf-8"), filename=str(_CONTROLLER_FILE))
-    imported_modules = {
-        node.module
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom) and node.module is not None
-    }
+    imported_modules = _imported_modules(tree)
     # Act
     backend_imports = {m for m in imported_modules if m.startswith("ollama_llm_bench.backend.")}
     disallowed = backend_imports - _ALLOWED_CONTROLLER_BACKEND_IMPORTS
     # Assert
     assert disallowed == set()
+
+
+def test_new_benchmark_embeds_no_colour_literal() -> None:
+    """Proves: STORY-054 Definition of done
+
+    No file in ``ui/new_benchmark/`` embeds a literal colour value (hex triplet,
+    6-digit, or 8-digit-with-alpha); colours are resolved from ``ui/theme``'s role
+    accessors only (08-D §2, §16).
+    """
+    # Arrange / Act
+    offenders = [
+        str(source_file.relative_to(_PACKAGE_ROOT))
+        for source_file in _iter_source_files()
+        if _embeds_colour_literal(
+            ast.parse(source_file.read_text(encoding="utf-8"), filename=str(source_file))
+        )
+    ]
+    # Assert
+    assert offenders == []
