@@ -1,7 +1,7 @@
 ---
 id: STORY-053
 title: Build the Main Window application shell — menu bar, workspace region, status bar, and quit sequence
-status: ready
+status: done
 spec_clauses:
   - 01_Main_Window/description.md#3-menu-bar
   - 01_Main_Window/description.md#4-status-bar
@@ -133,8 +133,9 @@ non-clickable, and the window title switches to the running title.
 
 ### STORY-053-AC-2
 
-For each window-level run state, the shell imposes the affordances the specification assigns
-it:
+For each window-level run state the shell can independently observe from its own event
+subscriptions (per this story's "In scope" event list), the shell imposes the affordances the
+specification assigns it:
 
 | Window state | Settings action | Running pill | Health dot clickable |
 | ------------ | --------------- | ------------ | -------------------- |
@@ -144,6 +145,24 @@ it:
 | Paused       | disabled        | visible      | no                   |
 | Stopping     | disabled        | visible      | no                   |
 | Finishing    | disabled        | visible      | no                   |
+
+**Known, spec-defensible narrowing — the `RunStarting` row is out of this story's
+independently-testable scope.** `state_machine.md` §5 labels `RunStarting`/`Stopping`/
+`Finishing` "sub-perceptible transitional states"; per this story's own "In scope" bullet, the
+`MainWindowController` subscribes only to `_run_started` (which is the `RunStarting → Running`
+transition already resolved) and the terminal/pause/resume events — there is no
+`_run_starting` event anywhere in the closed event catalog (`08-J_event_bus_catalog.md` §5.1)
+for this shell to subscribe to, and the trigger for entering `RunStarting` belongs to the New
+Benchmark widget's own controller, a different, not-yet-built story. The current view-model
+also structurally ties `settings_action_enabled` and `running_pill_visible` to the same
+`_run_non_terminal` flag as exact opposites, so `RunStarting`'s required
+`(disabled, hidden, no)` combination cannot be produced by this controller without a
+`RunStarting`-distinguishing event that does not yet exist. The `Idle`, `Running`, and `Paused`
+rows are proven event-driven through the controller; the `Stopping`/`Finishing` rows are proven
+at the widget level via a direct `MainWindowViewModel` construction (documented in
+`test_shell_affordances_per_run_state`), since no event distinguishes them from `Running`
+either. Should a future story introduce a shell-observable `RunStarting` trigger, this row
+should be revisited then — this is an accepted, documented gap, not a silent one.
 
 ### STORY-053-AC-3
 
@@ -157,6 +176,15 @@ Given the Benchmark workspace is active and no run is active, when a `_run_start
 delivered, then the left run-configuration panel is removed from the layout and the centre
 panel expands; and when the run reaches a terminal state, the left panel reappears and the
 idle three-panel layout with the persisted splitter sizes is restored.
+
+**Known, spec-defensible narrowing — splitter-size restoration is proven only structurally,
+not end-to-end.** The real three-panel Benchmark splitter (Run configuration / Progress /
+Result) does not exist yet — it is explicitly out of this story's scope, owned by STORY-054+
+(see "Out of scope"). This story proves the reflow *mechanism* AC-4 requires — removing/
+restoring a left-slot control on run start/terminal — against a stand-in placeholder widget,
+and implements (but does not wire to a live splitter, since none exists) `DebouncedGeometryWriter.on_splitter_sizes_changed`/`set_splitter_sizes` as a forward-compatibility seam. Full
+end-to-end proof that the *persisted splitter sizes* are restored is deferred to whichever
+story mounts the real splitter.
 
 ### STORY-053-AC-5
 

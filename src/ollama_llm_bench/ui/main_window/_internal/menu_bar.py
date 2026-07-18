@@ -1,0 +1,121 @@
+"""``MenuBarWidget`` -- the minimal in-window menu bar (STORY-053).
+
+Source of truth: ``docs/v3_specification/01_Main_Window/description.md`` §3. Deliberately
+has no ``QMenuBar``/dropdown menus (the spec forbids File/Edit/View/Help). A passive view:
+``apply_view_model(view_model)`` is its only state-changing entry point; it imports no
+Gateway, no ``EventBus``, and no backend symbol.
+"""
+
+from typing import Final
+
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QButtonGroup, QHBoxLayout, QLabel, QPushButton, QWidget
+
+from ollama_llm_bench.ui.main_window.models import MainWindowViewModel
+
+__all__: list[str] = ["MenuBarWidget"]
+
+_MENU_BAR_HEIGHT = 32
+_DISABLED_SETTINGS_TOOLTIP: Final = "Disabled - a benchmark is in progress."
+
+
+class _WorkspaceSwitcherWidget(QWidget):
+    """The two-segment ``Benchmark`` / ``Task Editor`` switcher (§3.3)."""
+
+    segment_activated = Signal(str)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setObjectName("workspace_switcher")
+        self._benchmark_button = QPushButton("Benchmark")
+        self._benchmark_button.setObjectName("workspace_switcher_benchmark")
+        self._benchmark_button.setCheckable(True)
+        self._benchmark_button.setProperty("role", "segmented-control")
+        self._task_editor_button = QPushButton("Task Editor")
+        self._task_editor_button.setObjectName("workspace_switcher_task_editor")
+        self._task_editor_button.setCheckable(True)
+        self._task_editor_button.setProperty("role", "segmented-control")
+        self._group = QButtonGroup(self)
+        self._group.setExclusive(True)
+        self._group.addButton(self._benchmark_button)
+        self._group.addButton(self._task_editor_button)
+        self._benchmark_button.setChecked(True)
+        self._benchmark_button.clicked.connect(self._on_benchmark_clicked)
+        self._task_editor_button.clicked.connect(self._on_task_editor_clicked)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self._benchmark_button)
+        layout.addWidget(self._task_editor_button)
+
+    def set_active(self, name: str) -> None:
+        """Reflect ``name`` as the checked segment, without emitting a signal."""
+        if name == "task_editor":
+            self._task_editor_button.setChecked(True)
+        else:
+            self._benchmark_button.setChecked(True)
+
+    def _on_benchmark_clicked(self) -> None:
+        self.segment_activated.emit("benchmark")
+
+    def _on_task_editor_clicked(self) -> None:
+        self.segment_activated.emit("task_editor")
+
+
+class MenuBarWidget(QWidget):
+    """The Main Window's in-window menu bar: Settings, About, switcher, pill, version."""
+
+    settings_requested = Signal()
+    about_requested = Signal()
+    workspace_switch_requested = Signal(str)
+    running_pill_clicked = Signal()
+
+    def __init__(self, *, app_version: str) -> None:
+        """Build the menu bar's fixed left-to-right layout (§3).
+
+        Args:
+            app_version: The version string shown in the trailing version label.
+        """
+        super().__init__()
+        self.setObjectName("menu_bar")
+        self.setFixedHeight(_MENU_BAR_HEIGHT)
+        self._settings_action = QPushButton("Settings")
+        self._settings_action.setObjectName("settings_action")
+        self._settings_action.setProperty("role", "menu-action")
+        self._settings_action.clicked.connect(self.settings_requested)
+        self._about_action = QPushButton("About")
+        self._about_action.setObjectName("about_action")
+        self._about_action.setProperty("role", "menu-action")
+        self._about_action.clicked.connect(self.about_requested)
+        self._workspace_switcher = _WorkspaceSwitcherWidget()
+        self._workspace_switcher.segment_activated.connect(self.workspace_switch_requested)
+        self._running_pill = QPushButton()
+        self._running_pill.setObjectName("running_pill")
+        self._running_pill.setProperty("role", "running-pill")
+        self._running_pill.clicked.connect(self.running_pill_clicked)
+        self._running_pill.setVisible(False)
+        self._version_label = QLabel(f"v{app_version}")
+        self._version_label.setObjectName("menu_bar_version_label")
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self._settings_action)
+        layout.addWidget(self._about_action)
+        layout.addWidget(self._workspace_switcher)
+        layout.addStretch(1)
+        layout.addWidget(self._running_pill)
+        layout.addWidget(self._version_label)
+
+    def apply_view_model(self, view_model: MainWindowViewModel) -> None:
+        """Reflect ``view_model`` in every menu-bar control (the widget's only mutator).
+
+        Named ``apply_view_model`` rather than ``render`` -- ``QWidget`` already declares
+        a ``render(...)`` method (offscreen painting to a ``QPainter``/``QPaintDevice``)
+        that this method must not shadow with an incompatible signature.
+        """
+        self._settings_action.setEnabled(view_model.settings_action_enabled)
+        self._settings_action.setToolTip(
+            "" if view_model.settings_action_enabled else _DISABLED_SETTINGS_TOOLTIP
+        )
+        self._running_pill.setVisible(view_model.running_pill_visible)
+        self._running_pill.setText(view_model.running_pill_label)
+        self._workspace_switcher.set_active(view_model.active_workspace)

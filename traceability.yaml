@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-18T09:47:11Z'
+generated_at: '2026-07-18T12:52:26Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3579,7 +3579,7 @@ stories:
         - src/ollama_llm_bench/ui/shared/model_dropdown/tests/test_model_dropdown.py::test_selection_emits_model_changed_with_model_name
   STORY-053:
     title: Build the Main Window application shell — menu bar, workspace region, status bar, and quit sequence
-    status: ready
+    status: done
     spec_clauses:
     - 01_Main_Window/description.md#10-event-bus-integration
     - 01_Main_Window/description.md#3-menu-bar
@@ -3600,23 +3600,43 @@ stories:
     - EC-WS-2
     acceptance_criteria:
       STORY-053-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
       STORY-053-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[finishing]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[idle]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[paused]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[running]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[stopping]
       STORY-053-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_failed]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_finished]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_stopped]
       STORY-053-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_benchmark_layout_reflows_on_run_lifecycle
       STORY-053-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
       STORY-053-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
       STORY-053-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_resize_burst_coalesces_into_one_write
       STORY-053-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_persisted_value]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_screens_at_all]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[off_screen_clamped_to_centred_default]
       STORY-053-AC-9:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_main_window_constructs_and_shows_with_no_error_logs
   STORY-054:
     title: Build the New Benchmark configuration surface — mode selector, section visibility, selection store, task files, and test models
     status: ready
@@ -6096,7 +6116,27 @@ edge_cases:
   EC-PLAT-3:
     stories:
     - STORY-053
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[finishing]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[idle]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[paused]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[running]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[stopping]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_failed]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_finished]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_stopped]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_persisted_value]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_screens_at_all]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[off_screen_clamped_to_centred_default]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_resize_burst_coalesces_into_one_write
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_benchmark_layout_reflows_on_run_lifecycle
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_main_window_constructs_and_shows_with_no_error_logs
   EC-PLAT-4:
     stories:
     - STORY-005
@@ -6699,7 +6739,27 @@ edge_cases:
   EC-RUN-4:
     stories:
     - STORY-053
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[finishing]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[idle]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[paused]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[running]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[stopping]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_failed]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_finished]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_stopped]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_persisted_value]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_screens_at_all]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[off_screen_clamped_to_centred_default]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_resize_burst_coalesces_into_one_write
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_benchmark_layout_reflows_on_run_lifecycle
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_main_window_constructs_and_shows_with_no_error_logs
   EC-RUN-5:
     stories:
     - STORY-057
@@ -6711,7 +6771,27 @@ edge_cases:
   EC-SET-1:
     stories:
     - STORY-053
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[finishing]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[idle]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[paused]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[running]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[stopping]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_failed]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_finished]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_stopped]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_persisted_value]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_screens_at_all]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[off_screen_clamped_to_centred_default]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_resize_burst_coalesces_into_one_write
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_benchmark_layout_reflows_on_run_lifecycle
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_main_window_constructs_and_shows_with_no_error_logs
   EC-SET-2:
     stories:
     - STORY-067
@@ -6747,7 +6827,27 @@ edge_cases:
   EC-WS-2:
     stories:
     - STORY-053
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[finishing]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[idle]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[paused]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[running]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_shell_affordances_per_run_state[stopping]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_failed]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_finished]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_terminal_event_restores_idle_affordances[run_stopped]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_persisted_value]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[no_screens_at_all]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_offscreen_geometry_is_clamped[off_screen_clamped_to_centred_default]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_resize_burst_coalesces_into_one_write
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_benchmark_layout_reflows_on_run_lifecycle
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_main_window_constructs_and_shows_with_no_error_logs
   EC-WS-3:
     stories:
     - STORY-069
