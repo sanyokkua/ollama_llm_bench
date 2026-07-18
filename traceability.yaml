@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-18T08:16:20Z'
+generated_at: '2026-07-18T09:47:11Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3577,14 +3577,935 @@ stories:
       STORY-052-AC-6:
         tests:
         - src/ollama_llm_bench/ui/shared/model_dropdown/tests/test_model_dropdown.py::test_selection_emits_model_changed_with_model_name
+  STORY-053:
+    title: Build the Main Window application shell — menu bar, workspace region, status bar, and quit sequence
+    status: ready
+    spec_clauses:
+    - 01_Main_Window/description.md#10-event-bus-integration
+    - 01_Main_Window/description.md#3-menu-bar
+    - 01_Main_Window/description.md#4-status-bar
+    - 01_Main_Window/description.md#5-workspace-switcher-and-the-workspace-region
+    - 01_Main_Window/description.md#6-window-level-run-states
+    - 01_Main_Window/description.md#8-close-confirmation-behaviour
+    - 01_Main_Window/state_machine.md#2-state-semantics
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b1-mainwindowgateway
+    - 08_Cross_Cutting/08-H_app_modes.md#2-run-state-function-matrix
+    modules:
+    - ui/main_window/
+    edge_cases:
+    - EC-PLAT-3
+    - EC-RUN-4
+    - EC-SET-1
+    - EC-WS-2
+    acceptance_criteria:
+      STORY-053-AC-1:
+        tests: []
+      STORY-053-AC-2:
+        tests: []
+      STORY-053-AC-3:
+        tests: []
+      STORY-053-AC-4:
+        tests: []
+      STORY-053-AC-5:
+        tests: []
+      STORY-053-AC-6:
+        tests: []
+      STORY-053-AC-7:
+        tests: []
+      STORY-053-AC-8:
+        tests: []
+      STORY-053-AC-9:
+        tests: []
+  STORY-054:
+    title: Build the New Benchmark configuration surface — mode selector, section visibility, selection store, task files, and test models
+    status: ready
+    spec_clauses:
+    - 02_New_Benchmark_Widget/description.md#12-section-visibility-decision-table
+    - 02_New_Benchmark_Widget/description.md#3-run-modes-and-the-mode-selector
+    - 02_New_Benchmark_Widget/description.md#46-test-models
+    - 02_New_Benchmark_Widget/description.md#5-behaviour-per-element
+    - 02_New_Benchmark_Widget/state_machine.md#3-test-models-multi-provider-sub-machine
+    - 02_New_Benchmark_Widget/state_machine.md#4-task-files-sub-machine
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
+    - 11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#62-the-policy-table
+    modules:
+    - ui/new_benchmark/
+    edge_cases:
+    - EC-TASK-1
+    - EC-TASK-3
+    - EC-TASK-8
+    acceptance_criteria:
+      STORY-054-AC-1:
+        tests: []
+      STORY-054-AC-2:
+        tests: []
+      STORY-054-AC-3:
+        tests: []
+      STORY-054-AC-4:
+        tests: []
+      STORY-054-AC-5:
+        tests: []
+      STORY-054-AC-6:
+        tests: []
+      STORY-054-AC-7:
+        tests: []
+  STORY-055:
+    title: Build the New Benchmark judge, advanced options, validation, and Start flow with the Run Summary dialog
+    status: ready
+    spec_clauses:
+    - 02_New_Benchmark_Widget/description.md#44-judge
+    - 02_New_Benchmark_Widget/description.md#47-advanced-options
+    - 02_New_Benchmark_Widget/description.md#48-start-button
+    - 02_New_Benchmark_Widget/description.md#6-validation-rules
+    - 07_Common_Dialogs/run_summary_dialog.md#12-start-effects
+    - 07_Common_Dialogs/run_summary_dialog.md#6-per-mode-contents
+    - 07_Common_Dialogs/run_summary_dialog.md#8-preflight-re-check-on-open
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
+    modules:
+    - ui/common_dialogs/
+    - ui/new_benchmark/
+    edge_cases:
+    - EC-PROV-6
+    - EC-RUN-1
+    - EC-RUN-3
+    - EC-TASK-2
+    acceptance_criteria:
+      STORY-055-AC-1:
+        tests: []
+      STORY-055-AC-2:
+        tests: []
+      STORY-055-AC-3:
+        tests: []
+      STORY-055-AC-4:
+        tests: []
+      STORY-055-AC-5:
+        tests: []
+      STORY-055-AC-6:
+        tests: []
+      STORY-055-AC-7:
+        tests: []
+      STORY-055-AC-8:
+        tests: []
+  STORY-056:
+    title: Build the Resume Benchmark widget — run table, search, sort, and the clone/rename/delete/export/log actions
+    status: ready
+    spec_clauses:
+    - 03_Resume_Benchmark_Widget/description.md#33-run-table
+    - 03_Resume_Benchmark_Widget/description.md#35-context-menu
+    - 03_Resume_Benchmark_Widget/description.md#36-clone-as-new-retry-run
+    - 03_Resume_Benchmark_Widget/description.md#43-status-badge
+    - 03_Resume_Benchmark_Widget/description.md#7-event-bus-integration
+    - 07_Common_Dialogs/rename_run_dialog.md#10-commit-effects
+    - 07_Common_Dialogs/rename_run_dialog.md#5-validation-rules
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway
+    modules:
+    - ui/common_dialogs/
+    - ui/resume_benchmark/
+    edge_cases:
+    - EC-PERSIST-2
+    acceptance_criteria:
+      STORY-056-AC-1:
+        tests: []
+      STORY-056-AC-2:
+        tests: []
+      STORY-056-AC-3:
+        tests: []
+      STORY-056-AC-4:
+        tests: []
+      STORY-056-AC-5:
+        tests: []
+      STORY-056-AC-6:
+        tests: []
+      STORY-056-AC-7:
+        tests: []
+  STORY-057:
+    title: Build the Resume and Retry flows — Resume Summary dialog with drift and the Retry Selection dialog
+    status: ready
+    spec_clauses:
+    - 03_Resume_Benchmark_Widget/description.md#41-resumable-run
+    - 07_Common_Dialogs/resume_summary_dialog.md#11-resume-effects
+    - 07_Common_Dialogs/resume_summary_dialog.md#5-drift-warnings
+    - 07_Common_Dialogs/resume_summary_dialog.md#6-resume-gating
+    - 07_Common_Dialogs/resume_summary_dialog.md#7-task-selection-inline-picker
+    - 07_Common_Dialogs/retry_selection_dialog.md#13-confirm-effects
+    - 07_Common_Dialogs/retry_selection_dialog.md#7-pre-selection-rule
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway
+    modules:
+    - ui/common_dialogs/
+    - ui/resume_benchmark/
+    edge_cases:
+    - EC-PERSIST-4
+    - EC-RUN-11
+    - EC-RUN-5
+    - EC-RUN-6
+    acceptance_criteria:
+      STORY-057-AC-1:
+        tests: []
+      STORY-057-AC-2:
+        tests: []
+      STORY-057-AC-3:
+        tests: []
+      STORY-057-AC-4:
+        tests: []
+      STORY-057-AC-5:
+        tests: []
+      STORY-057-AC-6:
+        tests: []
+      STORY-057-AC-7:
+        tests: []
+  STORY-058:
+    title: Build the Progress widget shell, run controls, counters, stage bar, and stability sub-controllers
+    status: ready
+    spec_clauses:
+    - 04_Progress_Widget/description.md#12-event-bus-integration
+    - 04_Progress_Widget/description.md#3-header-row
+    - 04_Progress_Widget/description.md#4-run-progress-counters
+    - 04_Progress_Widget/description.md#5-stage-progress-bar
+    - 04_Progress_Widget/description.md#6-model-panel-and-stability-indicators
+    - 04_Progress_Widget/implementation_structure.md#3-controller-split-rationale
+    - 04_Progress_Widget/implementation_structure.md#41-counterscontroller
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
+    modules:
+    - ui/progress/
+    edge_cases:
+    - EC-PROV-3
+    - EC-PROV-4
+    - EC-PROV-4b
+    - EC-RUN-2
+    acceptance_criteria:
+      STORY-058-AC-1:
+        tests: []
+      STORY-058-AC-2:
+        tests: []
+      STORY-058-AC-3:
+        tests: []
+      STORY-058-AC-4:
+        tests: []
+      STORY-058-AC-5:
+        tests: []
+      STORY-058-AC-6:
+        tests: []
+      STORY-058-AC-7:
+        tests: []
+  STORY-059:
+    title: Build the Progress widget Current-task sub-controller with the inference and judge progress sub-rows
+    status: ready
+    spec_clauses:
+    - 04_Progress_Widget/description.md#7-current-task-section
+    - 04_Progress_Widget/description.md#71-inference-progress-row-and-judge-progress-row
+    - 04_Progress_Widget/implementation_structure.md#42-currenttaskcontroller
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
+    modules:
+    - ui/progress/
+    edge_cases:
+    - EC-PROV-1
+    - EC-RUN-17
+    - EC-RUN-18
+    - EC-RUN-19
+    - EC-RUN-23
+    acceptance_criteria:
+      STORY-059-AC-1:
+        tests: []
+      STORY-059-AC-2:
+        tests: []
+      STORY-059-AC-3:
+        tests: []
+      STORY-059-AC-4:
+        tests: []
+      STORY-059-AC-5:
+        tests: []
+      STORY-059-AC-6:
+        tests: []
+  STORY-060:
+    title: Build the Progress widget run event-log sub-controller with verbosity, search, bounded buffer, and auto-scroll
+    status: ready
+    spec_clauses:
+    - 04_Progress_Widget/description.md#8-benchmark-event-log-panel
+    - 04_Progress_Widget/description.md#84-buffer-cap
+    - 04_Progress_Widget/description.md#85-auto-scroll
+    - 04_Progress_Widget/implementation_structure.md#43-logcontroller
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
+    modules:
+    - ui/progress/
+    edge_cases:
+    - EC-LOG-1
+    - EC-LOG-3
+    - EC-PERF-3
+    - EC-PROV-4a
+    acceptance_criteria:
+      STORY-060-AC-1:
+        tests: []
+      STORY-060-AC-2:
+        tests: []
+      STORY-060-AC-3:
+        tests: []
+      STORY-060-AC-4:
+        tests: []
+      STORY-060-AC-5:
+        tests: []
+      STORY-060-AC-6:
+        tests: []
+  STORY-061:
+    title: Build the Result widget shell — run selector, tab strip, per-run view-state store, and the export footer
+    status: ready
+    spec_clauses:
+    - 05_Result_Widget/description.md#12-event-bus-integration
+    - 05_Result_Widget/description.md#4-tab-strip-and-the-four-tabs
+    - 05_Result_Widget/description.md#51-per-tab-export-button-cluster
+    - 05_Result_Widget/description.md#52-save-destination-toggle-and-open-exports-folder
+    - 05_Result_Widget/description.md#6-run-selection-logic
+    - 05_Result_Widget/description.md#7-view-only-during-run-rule
+    - 05_Result_Widget/description.md#9-per-run-table-and-chart-view-state
+    - 05_Result_Widget/implementation_structure.md#4-parent-controller
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
+    modules:
+    - ui/results/
+    edge_cases:
+    - EC-RES-5
+    - EC-RES-6
+    - EC-WS-1
+    acceptance_criteria:
+      STORY-061-AC-1:
+        tests: []
+      STORY-061-AC-2:
+        tests: []
+      STORY-061-AC-3:
+        tests: []
+      STORY-061-AC-4:
+        tests: []
+      STORY-061-AC-5:
+        tests: []
+      STORY-061-AC-6:
+        tests: []
+      STORY-061-AC-7:
+        tests: []
+  STORY-062:
+    title: Build the Result widget Summary tab — per-model aggregation, mode-aware columns, filters, sorting, and export
+    status: ready
+    spec_clauses:
+    - 05_Result_Widget/implementation_structure.md#51-summarytabcontroller
+    - 05_Result_Widget/tabs/summary_tab.md#11-export
+    - 05_Result_Widget/tabs/summary_tab.md#3-identity-model
+    - 05_Result_Widget/tabs/summary_tab.md#4-column-reference
+    - 05_Result_Widget/tabs/summary_tab.md#5-mode-aware-column-visibility
+    - 05_Result_Widget/tabs/summary_tab.md#6-filter-bar
+    - 05_Result_Widget/tabs/summary_tab.md#8-sorting
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
+    modules:
+    - ui/results/
+    edge_cases:
+    - EC-RES-1
+    - EC-RES-2
+    acceptance_criteria:
+      STORY-062-AC-1:
+        tests: []
+      STORY-062-AC-2:
+        tests: []
+      STORY-062-AC-3:
+        tests: []
+      STORY-062-AC-4:
+        tests: []
+      STORY-062-AC-5:
+        tests: []
+  STORY-063:
+    title: Build the Result widget Details tab — per-result rows, mode-aware columns, the Task Detail Panel, drill-down, and export
+    status: ready
+    spec_clauses:
+    - 05_Result_Widget/implementation_structure.md#52-detailstabcontroller
+    - 05_Result_Widget/tabs/details_tab.md#10-chart-click-drill-down
+    - 05_Result_Widget/tabs/details_tab.md#11-verdict-and-status-rendering
+    - 05_Result_Widget/tabs/details_tab.md#14-export
+    - 05_Result_Widget/tabs/details_tab.md#3-column-reference
+    - 05_Result_Widget/tabs/details_tab.md#4-mode-aware-column-visibility
+    - 05_Result_Widget/tabs/details_tab.md#9-row-selection-and-the-task-detail-panel
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
+    modules:
+    - ui/results/
+    edge_cases:
+    - EC-RES-2
+    acceptance_criteria:
+      STORY-063-AC-1:
+        tests: []
+      STORY-063-AC-2:
+        tests: []
+      STORY-063-AC-3:
+        tests: []
+      STORY-063-AC-4:
+        tests: []
+      STORY-063-AC-5:
+        tests: []
+  STORY-064:
+    title: Build the Result widget Charts tab — mode-aware chart set, navigation, filters, drill-down, detach, and image export
+    status: ready
+    spec_clauses:
+    - 05_Result_Widget/implementation_structure.md#53-chartstabcontroller
+    - 05_Result_Widget/tabs/charts_tab.md#11-empty-states
+    - 05_Result_Widget/tabs/charts_tab.md#12-export
+    - 05_Result_Widget/tabs/charts_tab.md#3-the-twelve-chart-kinds
+    - 05_Result_Widget/tabs/charts_tab.md#4-mode-availability-matrix
+    - 05_Result_Widget/tabs/charts_tab.md#7-prevnext-navigation-and-the-chart-kind-dropdown
+    - 05_Result_Widget/tabs/charts_tab.md#8-chart-click-drill-down
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
+    modules:
+    - ui/results/
+    edge_cases:
+    - EC-RES-4
+    acceptance_criteria:
+      STORY-064-AC-1:
+        tests: []
+      STORY-064-AC-2:
+        tests: []
+      STORY-064-AC-3:
+        tests: []
+      STORY-064-AC-4:
+        tests: []
+      STORY-064-AC-5:
+        tests: []
+      STORY-064-AC-6:
+        tests: []
+  STORY-065:
+    title: Build the Result widget Run Analysis tab and the Generate Analysis dialog
+    status: ready
+    spec_clauses:
+    - 05_Result_Widget/tabs/run_analysis_tab.md#10-footer-export
+    - 05_Result_Widget/tabs/run_analysis_tab.md#4-generation-timing
+    - 05_Result_Widget/tabs/run_analysis_tab.md#6-rendering-and-no-length-cap
+    - 05_Result_Widget/tabs/run_analysis_tab.md#9-empty-and-failed-states
+    - 07_Common_Dialogs/generate_analysis_dialog.md#4-provider-and-model-selection
+    - 07_Common_Dialogs/generate_analysis_dialog.md#6-filter-rule
+    - 07_Common_Dialogs/generate_analysis_dialog.md#8-confirm-behaviour-and-the-single-inference-gate
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
+    modules:
+    - ui/common_dialogs/
+    - ui/results/
+    edge_cases:
+    - EC-PROV-4e
+    - EC-RES-3
+    - EC-RUN-12
+    - EC-RUN-14
+    acceptance_criteria:
+      STORY-065-AC-1:
+        tests: []
+      STORY-065-AC-2:
+        tests: []
+      STORY-065-AC-3:
+        tests: []
+      STORY-065-AC-4:
+        tests: []
+      STORY-065-AC-5:
+        tests: []
+      STORY-065-AC-6:
+        tests: []
+      STORY-065-AC-7:
+        tests: []
+  STORY-066:
+    title: Build the Settings dialog shell, Providers tab, embedding selection, and the Provider Edit sub-dialog
+    status: ready
+    spec_clauses:
+    - 06_Settings_Dialog/description.md#12-provider-authentication-model
+    - 06_Settings_Dialog/description.md#14-auto-check-on-open-and-embedding-bootstrap
+    - 06_Settings_Dialog/description.md#32-provider-table
+    - 06_Settings_Dialog/description.md#33-per-row-actions
+    - 06_Settings_Dialog/description.md#34-embedding-section
+    - 06_Settings_Dialog/sub_dialogs/provider_edit.md#51-entry-validation-inline
+    - 06_Settings_Dialog/sub_dialogs/provider_edit.md#82-test-inference
+    - 06_Settings_Dialog/sub_dialogs/provider_edit.md#9-validation
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
+    modules:
+    - ui/settings_dialog/
+    edge_cases:
+    - EC-PROV-10
+    - EC-PROV-11
+    - EC-PROV-5
+    - EC-PROV-5b
+    - EC-PROV-5c
+    - EC-PROV-6
+    - EC-PROV-7
+    acceptance_criteria:
+      STORY-066-AC-1:
+        tests: []
+      STORY-066-AC-2:
+        tests: []
+      STORY-066-AC-3:
+        tests: []
+      STORY-066-AC-4:
+        tests: []
+      STORY-066-AC-5:
+        tests: []
+      STORY-066-AC-6:
+        tests: []
+      STORY-066-AC-7:
+        tests: []
+      STORY-066-AC-8:
+        tests: []
+  STORY-067:
+    title: Build the Settings General tab, cross-tab validation, and the atomic Save / Import / Reset transactions
+    status: ready
+    spec_clauses:
+    - 06_Settings_Dialog/description.md#10-close-flow
+    - 06_Settings_Dialog/description.md#15-validation-rules
+    - 06_Settings_Dialog/description.md#41-inference
+    - 06_Settings_Dialog/description.md#46-display
+    - 06_Settings_Dialog/description.md#6-save-flow-atomic
+    - 06_Settings_Dialog/description.md#8-import-flow
+    - 06_Settings_Dialog/description.md#9-reset-flow
+    - 06_Settings_Dialog/sub_dialogs/reset_confirmation.md#4-what-is-reset
+    - 06_Settings_Dialog/sub_dialogs/reset_confirmation.md#6-the-bundled-default-seed
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
+    modules:
+    - ui/settings_dialog/
+    edge_cases:
+    - EC-SET-2
+    - EC-SET-3
+    - EC-SET-4
+    acceptance_criteria:
+      STORY-067-AC-1:
+        tests: []
+      STORY-067-AC-2:
+        tests: []
+      STORY-067-AC-3:
+        tests: []
+      STORY-067-AC-4:
+        tests: []
+      STORY-067-AC-5:
+        tests: []
+      STORY-067-AC-6:
+        tests: []
+  STORY-068:
+    title: Build the Task Editor workspace shell — toolbar, Files pane, Tasks pane, buffer model, and view-model
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway
+    - 09_Task_Editor/description.md#2-layout
+    - 09_Task_Editor/description.md#32-editor-toolbar
+    - 09_Task_Editor/description.md#33-files-pane
+    - 09_Task_Editor/description.md#34-tasks-pane
+    - 09_Task_Editor/description.md#7-event-bus-integration
+    - 09_Task_Editor/implementation_structure.md#5-controller
+    modules:
+    - ui/task_editor/
+    edge_cases:
+    - EC-WS-4
+    acceptance_criteria:
+      STORY-068-AC-1:
+        tests: []
+      STORY-068-AC-2:
+        tests: []
+      STORY-068-AC-3:
+        tests: []
+      STORY-068-AC-4:
+        tests: []
+      STORY-068-AC-5:
+        tests: []
+      STORY-068-AC-6:
+        tests: []
+      STORY-068-AC-7:
+        tests: []
+  STORY-069:
+    title: Build the Task Editor field editor, YAML preview, save/validation cascade, and confirmation dialogs
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway
+    - 09_Task_Editor/description.md#35-field-editor-pane
+    - 09_Task_Editor/description.md#36-yaml-preview-side-panel
+    - 09_Task_Editor/description.md#37-leave-confirmation-and-quit-confirmation
+    - 09_Task_Editor/description.md#38-new-file-seed-scaffold
+    - 09_Task_Editor/description.md#4-validation-rules
+    - 09_Task_Editor/implementation_structure.md#4-view-model-struct
+    modules:
+    - ui/task_editor/
+    edge_cases:
+    - EC-WS-3
+    acceptance_criteria:
+      STORY-069-AC-1:
+        tests: []
+      STORY-069-AC-2:
+        tests: []
+      STORY-069-AC-3:
+        tests: []
+      STORY-069-AC-4:
+        tests: []
+      STORY-069-AC-5:
+        tests: []
+      STORY-069-AC-6:
+        tests: []
+  STORY-070:
+    title: Build the About dialog and the generic Error dialog
+    status: ready
+    spec_clauses:
+    - 07_Common_Dialogs/about_dialog.md#4-identity-block
+    - 07_Common_Dialogs/about_dialog.md#5-paths-block
+    - 07_Common_Dialogs/about_dialog.md#6-folder-actions
+    - 07_Common_Dialogs/error_dialog.md#5-three-error-patterns
+    - 07_Common_Dialogs/error_dialog.md#6-content-composition
+    - 07_Common_Dialogs/error_dialog.md#9-button-behaviour
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling
+    modules:
+    - ui/common_dialogs/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-070-AC-1:
+        tests: []
+      STORY-070-AC-2:
+        tests: []
+      STORY-070-AC-3:
+        tests: []
+      STORY-070-AC-4:
+        tests: []
+      STORY-070-AC-5:
+        tests: []
+      STORY-070-AC-6:
+        tests: []
 clauses:
+  01_Main_Window/description.md#10-event-bus-integration:
+    stories:
+    - STORY-053
+  01_Main_Window/description.md#3-menu-bar:
+    stories:
+    - STORY-053
+  01_Main_Window/description.md#4-status-bar:
+    stories:
+    - STORY-053
+  01_Main_Window/description.md#5-workspace-switcher-and-the-workspace-region:
+    stories:
+    - STORY-053
+  01_Main_Window/description.md#6-window-level-run-states:
+    stories:
+    - STORY-053
+  01_Main_Window/description.md#8-close-confirmation-behaviour:
+    stories:
+    - STORY-053
   01_Main_Window/implementation_structure.md#8-stores-fanout:
     stories:
     - STORY-039
     - STORY-045
+  01_Main_Window/state_machine.md#2-state-semantics:
+    stories:
+    - STORY-053
+  02_New_Benchmark_Widget/description.md#12-section-visibility-decision-table:
+    stories:
+    - STORY-054
+  02_New_Benchmark_Widget/description.md#3-run-modes-and-the-mode-selector:
+    stories:
+    - STORY-054
+  02_New_Benchmark_Widget/description.md#44-judge:
+    stories:
+    - STORY-055
+  02_New_Benchmark_Widget/description.md#46-test-models:
+    stories:
+    - STORY-054
+  02_New_Benchmark_Widget/description.md#47-advanced-options:
+    stories:
+    - STORY-055
+  02_New_Benchmark_Widget/description.md#48-start-button:
+    stories:
+    - STORY-055
+  02_New_Benchmark_Widget/description.md#5-behaviour-per-element:
+    stories:
+    - STORY-054
+  02_New_Benchmark_Widget/description.md#6-validation-rules:
+    stories:
+    - STORY-055
+  02_New_Benchmark_Widget/state_machine.md#3-test-models-multi-provider-sub-machine:
+    stories:
+    - STORY-054
+  02_New_Benchmark_Widget/state_machine.md#4-task-files-sub-machine:
+    stories:
+    - STORY-054
+  03_Resume_Benchmark_Widget/description.md#33-run-table:
+    stories:
+    - STORY-056
+  03_Resume_Benchmark_Widget/description.md#35-context-menu:
+    stories:
+    - STORY-056
+  03_Resume_Benchmark_Widget/description.md#36-clone-as-new-retry-run:
+    stories:
+    - STORY-056
+  03_Resume_Benchmark_Widget/description.md#41-resumable-run:
+    stories:
+    - STORY-057
+  03_Resume_Benchmark_Widget/description.md#43-status-badge:
+    stories:
+    - STORY-056
+  03_Resume_Benchmark_Widget/description.md#7-event-bus-integration:
+    stories:
+    - STORY-056
+  04_Progress_Widget/description.md#12-event-bus-integration:
+    stories:
+    - STORY-058
+  04_Progress_Widget/description.md#3-header-row:
+    stories:
+    - STORY-058
+  04_Progress_Widget/description.md#4-run-progress-counters:
+    stories:
+    - STORY-058
+  04_Progress_Widget/description.md#5-stage-progress-bar:
+    stories:
+    - STORY-058
+  04_Progress_Widget/description.md#6-model-panel-and-stability-indicators:
+    stories:
+    - STORY-058
+  04_Progress_Widget/description.md#7-current-task-section:
+    stories:
+    - STORY-059
+  04_Progress_Widget/description.md#71-inference-progress-row-and-judge-progress-row:
+    stories:
+    - STORY-059
+  04_Progress_Widget/description.md#8-benchmark-event-log-panel:
+    stories:
+    - STORY-060
+  04_Progress_Widget/description.md#84-buffer-cap:
+    stories:
+    - STORY-060
+  04_Progress_Widget/description.md#85-auto-scroll:
+    stories:
+    - STORY-060
+  04_Progress_Widget/implementation_structure.md#3-controller-split-rationale:
+    stories:
+    - STORY-058
+  04_Progress_Widget/implementation_structure.md#41-counterscontroller:
+    stories:
+    - STORY-058
+  04_Progress_Widget/implementation_structure.md#42-currenttaskcontroller:
+    stories:
+    - STORY-059
+  04_Progress_Widget/implementation_structure.md#43-logcontroller:
+    stories:
+    - STORY-060
+  05_Result_Widget/description.md#12-event-bus-integration:
+    stories:
+    - STORY-061
+  05_Result_Widget/description.md#4-tab-strip-and-the-four-tabs:
+    stories:
+    - STORY-061
+  05_Result_Widget/description.md#51-per-tab-export-button-cluster:
+    stories:
+    - STORY-061
+  05_Result_Widget/description.md#52-save-destination-toggle-and-open-exports-folder:
+    stories:
+    - STORY-061
+  05_Result_Widget/description.md#6-run-selection-logic:
+    stories:
+    - STORY-061
+  05_Result_Widget/description.md#7-view-only-during-run-rule:
+    stories:
+    - STORY-061
+  05_Result_Widget/description.md#9-per-run-table-and-chart-view-state:
+    stories:
+    - STORY-061
+  05_Result_Widget/implementation_structure.md#4-parent-controller:
+    stories:
+    - STORY-061
+  05_Result_Widget/implementation_structure.md#51-summarytabcontroller:
+    stories:
+    - STORY-062
+  05_Result_Widget/implementation_structure.md#52-detailstabcontroller:
+    stories:
+    - STORY-063
+  05_Result_Widget/implementation_structure.md#53-chartstabcontroller:
+    stories:
+    - STORY-064
   05_Result_Widget/implementation_structure.md#6-view-model-structs:
     stories:
     - STORY-046
+  05_Result_Widget/tabs/charts_tab.md#11-empty-states:
+    stories:
+    - STORY-064
+  05_Result_Widget/tabs/charts_tab.md#12-export:
+    stories:
+    - STORY-064
+  05_Result_Widget/tabs/charts_tab.md#3-the-twelve-chart-kinds:
+    stories:
+    - STORY-064
+  05_Result_Widget/tabs/charts_tab.md#4-mode-availability-matrix:
+    stories:
+    - STORY-064
+  05_Result_Widget/tabs/charts_tab.md#7-prevnext-navigation-and-the-chart-kind-dropdown:
+    stories:
+    - STORY-064
+  05_Result_Widget/tabs/charts_tab.md#8-chart-click-drill-down:
+    stories:
+    - STORY-064
+  05_Result_Widget/tabs/details_tab.md#10-chart-click-drill-down:
+    stories:
+    - STORY-063
+  05_Result_Widget/tabs/details_tab.md#11-verdict-and-status-rendering:
+    stories:
+    - STORY-063
+  05_Result_Widget/tabs/details_tab.md#14-export:
+    stories:
+    - STORY-063
+  05_Result_Widget/tabs/details_tab.md#3-column-reference:
+    stories:
+    - STORY-063
+  05_Result_Widget/tabs/details_tab.md#4-mode-aware-column-visibility:
+    stories:
+    - STORY-063
+  05_Result_Widget/tabs/details_tab.md#9-row-selection-and-the-task-detail-panel:
+    stories:
+    - STORY-063
+  05_Result_Widget/tabs/run_analysis_tab.md#10-footer-export:
+    stories:
+    - STORY-065
+  05_Result_Widget/tabs/run_analysis_tab.md#4-generation-timing:
+    stories:
+    - STORY-065
+  05_Result_Widget/tabs/run_analysis_tab.md#6-rendering-and-no-length-cap:
+    stories:
+    - STORY-065
+  05_Result_Widget/tabs/run_analysis_tab.md#9-empty-and-failed-states:
+    stories:
+    - STORY-065
+  05_Result_Widget/tabs/summary_tab.md#11-export:
+    stories:
+    - STORY-062
+  05_Result_Widget/tabs/summary_tab.md#3-identity-model:
+    stories:
+    - STORY-062
+  05_Result_Widget/tabs/summary_tab.md#4-column-reference:
+    stories:
+    - STORY-062
+  05_Result_Widget/tabs/summary_tab.md#5-mode-aware-column-visibility:
+    stories:
+    - STORY-062
+  05_Result_Widget/tabs/summary_tab.md#6-filter-bar:
+    stories:
+    - STORY-062
+  05_Result_Widget/tabs/summary_tab.md#8-sorting:
+    stories:
+    - STORY-062
+  06_Settings_Dialog/description.md#10-close-flow:
+    stories:
+    - STORY-067
+  06_Settings_Dialog/description.md#12-provider-authentication-model:
+    stories:
+    - STORY-066
+  06_Settings_Dialog/description.md#14-auto-check-on-open-and-embedding-bootstrap:
+    stories:
+    - STORY-066
+  06_Settings_Dialog/description.md#15-validation-rules:
+    stories:
+    - STORY-067
+  06_Settings_Dialog/description.md#32-provider-table:
+    stories:
+    - STORY-066
+  06_Settings_Dialog/description.md#33-per-row-actions:
+    stories:
+    - STORY-066
+  06_Settings_Dialog/description.md#34-embedding-section:
+    stories:
+    - STORY-066
+  06_Settings_Dialog/description.md#41-inference:
+    stories:
+    - STORY-067
+  06_Settings_Dialog/description.md#46-display:
+    stories:
+    - STORY-067
+  06_Settings_Dialog/description.md#6-save-flow-atomic:
+    stories:
+    - STORY-067
+  06_Settings_Dialog/description.md#8-import-flow:
+    stories:
+    - STORY-067
+  06_Settings_Dialog/description.md#9-reset-flow:
+    stories:
+    - STORY-067
+  06_Settings_Dialog/sub_dialogs/provider_edit.md#51-entry-validation-inline:
+    stories:
+    - STORY-066
+  06_Settings_Dialog/sub_dialogs/provider_edit.md#82-test-inference:
+    stories:
+    - STORY-066
+  06_Settings_Dialog/sub_dialogs/provider_edit.md#9-validation:
+    stories:
+    - STORY-066
+  06_Settings_Dialog/sub_dialogs/reset_confirmation.md#4-what-is-reset:
+    stories:
+    - STORY-067
+  06_Settings_Dialog/sub_dialogs/reset_confirmation.md#6-the-bundled-default-seed:
+    stories:
+    - STORY-067
+  07_Common_Dialogs/about_dialog.md#4-identity-block:
+    stories:
+    - STORY-070
+  07_Common_Dialogs/about_dialog.md#5-paths-block:
+    stories:
+    - STORY-070
+  07_Common_Dialogs/about_dialog.md#6-folder-actions:
+    stories:
+    - STORY-070
+  07_Common_Dialogs/error_dialog.md#5-three-error-patterns:
+    stories:
+    - STORY-070
+  07_Common_Dialogs/error_dialog.md#6-content-composition:
+    stories:
+    - STORY-070
+  07_Common_Dialogs/error_dialog.md#9-button-behaviour:
+    stories:
+    - STORY-070
+  07_Common_Dialogs/generate_analysis_dialog.md#4-provider-and-model-selection:
+    stories:
+    - STORY-065
+  07_Common_Dialogs/generate_analysis_dialog.md#6-filter-rule:
+    stories:
+    - STORY-065
+  07_Common_Dialogs/generate_analysis_dialog.md#8-confirm-behaviour-and-the-single-inference-gate:
+    stories:
+    - STORY-065
+  07_Common_Dialogs/rename_run_dialog.md#10-commit-effects:
+    stories:
+    - STORY-056
+  07_Common_Dialogs/rename_run_dialog.md#5-validation-rules:
+    stories:
+    - STORY-056
+  07_Common_Dialogs/resume_summary_dialog.md#11-resume-effects:
+    stories:
+    - STORY-057
+  07_Common_Dialogs/resume_summary_dialog.md#5-drift-warnings:
+    stories:
+    - STORY-057
+  07_Common_Dialogs/resume_summary_dialog.md#6-resume-gating:
+    stories:
+    - STORY-057
+  07_Common_Dialogs/resume_summary_dialog.md#7-task-selection-inline-picker:
+    stories:
+    - STORY-057
+  07_Common_Dialogs/retry_selection_dialog.md#13-confirm-effects:
+    stories:
+    - STORY-057
+  07_Common_Dialogs/retry_selection_dialog.md#7-pre-selection-rule:
+    stories:
+    - STORY-057
+  07_Common_Dialogs/run_summary_dialog.md#12-start-effects:
+    stories:
+    - STORY-055
+  07_Common_Dialogs/run_summary_dialog.md#6-per-mode-contents:
+    stories:
+    - STORY-055
+  07_Common_Dialogs/run_summary_dialog.md#8-preflight-re-check-on-open:
+    stories:
+    - STORY-055
   08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution:
     stories:
     - STORY-029
@@ -3645,6 +4566,24 @@ clauses:
     - STORY-049
     - STORY-051
     - STORY-052
+    - STORY-053
+    - STORY-054
+    - STORY-055
+    - STORY-056
+    - STORY-057
+    - STORY-058
+    - STORY-059
+    - STORY-060
+    - STORY-061
+    - STORY-062
+    - STORY-063
+    - STORY-064
+    - STORY-065
+    - STORY-066
+    - STORY-067
+    - STORY-068
+    - STORY-069
+    - STORY-070
   08_Cross_Cutting/08-D_color_palette_and_typography.md#3-dark-theme-colour-tokens:
     stories:
     - STORY-049
@@ -3687,6 +4626,9 @@ clauses:
     stories:
     - STORY-015
     - STORY-043
+    - STORY-055
+    - STORY-065
+    - STORY-066
   08_Cross_Cutting/08-E_interfaces_contracts.md#17-adaptive-timeout-service:
     stories:
     - STORY-022
@@ -3742,6 +4684,37 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#76-appsettingsstore:
     stories:
     - STORY-008
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7b1-mainwindowgateway:
+    stories:
+    - STORY-053
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway:
+    stories:
+    - STORY-054
+    - STORY-055
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway:
+    stories:
+    - STORY-056
+    - STORY-057
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway:
+    stories:
+    - STORY-058
+    - STORY-059
+    - STORY-060
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway:
+    stories:
+    - STORY-061
+    - STORY-062
+    - STORY-063
+    - STORY-064
+    - STORY-065
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway:
+    stories:
+    - STORY-066
+    - STORY-067
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway:
+    stories:
+    - STORY-068
+    - STORY-069
   08_Cross_Cutting/08-E_interfaces_contracts.md#8-settings-service:
     stories:
     - STORY-014
@@ -3761,6 +4734,9 @@ clauses:
   08_Cross_Cutting/08-G_feature_flags.md#5-eval--evaluation-behaviour:
     stories:
     - STORY-014
+  08_Cross_Cutting/08-H_app_modes.md#2-run-state-function-matrix:
+    stories:
+    - STORY-053
   08_Cross_Cutting/08-I_edge_cases.md#ec-persist-1--database-schema-version-mismatch-at-startup:
     stories:
     - STORY-008
@@ -3808,6 +4784,7 @@ clauses:
     stories:
     - STORY-050
     - STORY-052
+    - STORY-070
   08_Cross_Cutting/08-L_ui_standardization.md#6-button-styles:
     stories:
     - STORY-051
@@ -3848,6 +4825,42 @@ clauses:
     stories:
     - STORY-039
     - STORY-045
+  09_Task_Editor/description.md#2-layout:
+    stories:
+    - STORY-068
+  09_Task_Editor/description.md#32-editor-toolbar:
+    stories:
+    - STORY-068
+  09_Task_Editor/description.md#33-files-pane:
+    stories:
+    - STORY-068
+  09_Task_Editor/description.md#34-tasks-pane:
+    stories:
+    - STORY-068
+  09_Task_Editor/description.md#35-field-editor-pane:
+    stories:
+    - STORY-069
+  09_Task_Editor/description.md#36-yaml-preview-side-panel:
+    stories:
+    - STORY-069
+  09_Task_Editor/description.md#37-leave-confirmation-and-quit-confirmation:
+    stories:
+    - STORY-069
+  09_Task_Editor/description.md#38-new-file-seed-scaffold:
+    stories:
+    - STORY-069
+  09_Task_Editor/description.md#4-validation-rules:
+    stories:
+    - STORY-069
+  09_Task_Editor/description.md#7-event-bus-integration:
+    stories:
+    - STORY-068
+  09_Task_Editor/implementation_structure.md#4-view-model-struct:
+    stories:
+    - STORY-069
+  09_Task_Editor/implementation_structure.md#5-controller:
+    stories:
+    - STORY-068
   09_Task_Editor/implementation_structure.md#7-dependency-protocols:
     stories:
     - STORY-039
@@ -4185,6 +5198,7 @@ clauses:
   11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#62-the-policy-table:
     stories:
     - STORY-024
+    - STORY-054
   11_Services_and_Algorithms/10_MODE_VISIBILITY_POLICY.md#63-the-lookup:
     stories:
     - STORY-024
@@ -4991,6 +6005,18 @@ edge_cases:
     - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_import_item_group_reflects_current_value[same_value_is_unchanged]
     - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_missing_or_not_mapping_is_hard_error
     - src/ollama_llm_bench/backend/import_export/tests/test_settings_validation.py::test_settings_offending_key_skipped_valid_kept
+  EC-LOG-1:
+    stories:
+    - STORY-060
+    tests: []
+  EC-LOG-3:
+    stories:
+    - STORY-060
+    tests: []
+  EC-PERF-3:
+    stories:
+    - STORY-060
+    tests: []
   EC-PERSIST-1:
     stories:
     - STORY-008
@@ -5010,9 +6036,14 @@ edge_cases:
     - tests/integration/persistence/test_app_settings_store.py::test_newer_or_cross_major_version_is_hard_error_leaving_file_untouched
     - tests/integration/persistence/test_app_settings_store.py::test_setting_upsert_read_and_schema_version
     - tests/integration/persistence/test_single_writer.py::test_concurrent_writes_are_serialized_through_one_lock
+  EC-PERSIST-2:
+    stories:
+    - STORY-056
+    tests: []
   EC-PERSIST-4:
     stories:
     - STORY-011
+    - STORY-057
     tests:
     - tests/integration/persistence/test_crash_recovery_sweep.py::test_recover_in_flight_results_is_idempotent
     - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_cosine_check]
@@ -5062,6 +6093,10 @@ edge_cases:
     - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_unknown_host_falls_back_to_linux_conventions
     - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[empty_string]
     - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[unset]
+  EC-PLAT-3:
+    stories:
+    - STORY-053
+    tests: []
   EC-PLAT-4:
     stories:
     - STORY-005
@@ -5075,6 +6110,59 @@ edge_cases:
     - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_unknown_host_falls_back_to_linux_conventions
     - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[empty_string]
     - src/ollama_llm_bench/backend/platform/tests/test_platform_detector.py::test_xdg_data_home_unset_or_empty_falls_back[unset]
+  EC-PROV-1:
+    stories:
+    - STORY-059
+    tests: []
+  EC-PROV-10:
+    stories:
+    - STORY-066
+    tests: []
+  EC-PROV-11:
+    stories:
+    - STORY-066
+    tests: []
+  EC-PROV-3:
+    stories:
+    - STORY-058
+    tests: []
+  EC-PROV-4:
+    stories:
+    - STORY-058
+    tests: []
+  EC-PROV-4a:
+    stories:
+    - STORY-060
+    tests: []
+  EC-PROV-4b:
+    stories:
+    - STORY-058
+    tests: []
+  EC-PROV-4e:
+    stories:
+    - STORY-065
+    tests: []
+  EC-PROV-5:
+    stories:
+    - STORY-066
+    tests: []
+  EC-PROV-5b:
+    stories:
+    - STORY-066
+    tests: []
+  EC-PROV-5c:
+    stories:
+    - STORY-066
+    tests: []
+  EC-PROV-6:
+    stories:
+    - STORY-055
+    - STORY-066
+    tests: []
+  EC-PROV-7:
+    stories:
+    - STORY-066
+    tests: []
   EC-RD-3:
     stories:
     - STORY-002
@@ -5273,6 +6361,7 @@ edge_cases:
   EC-RES-1:
     stories:
     - STORY-033
+    - STORY-062
     tests:
     - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[bool_option_wrong_type_logs_warning]
     - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[enum_option_out_of_domain_logs_warning]
@@ -5377,6 +6466,8 @@ edge_cases:
   EC-RES-2:
     stories:
     - STORY-032
+    - STORY-062
+    - STORY-063
     tests:
     - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_falls_back_when_sanitisation_yields_empty
     - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_is_traversal_safe_and_bounded
@@ -5386,9 +6477,14 @@ edge_cases:
     - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
     - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
     - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
+  EC-RES-3:
+    stories:
+    - STORY-065
+    tests: []
   EC-RES-4:
     stories:
     - STORY-033
+    - STORY-064
     tests:
     - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[bool_option_wrong_type_logs_warning]
     - src/ollama_llm_bench/backend/charts/tests/test_chart_options.py::test_out_of_domain_option_logs_a_one_time_warning[enum_option_out_of_domain_logs_warning]
@@ -5490,6 +6586,26 @@ edge_cases:
     - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-time_vs_tokens_scatter]
     - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-tokens_per_task_box]
     - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[real-verdict_counts_stacked]
+  EC-RES-5:
+    stories:
+    - STORY-061
+    tests: []
+  EC-RES-6:
+    stories:
+    - STORY-061
+    tests: []
+  EC-RUN-1:
+    stories:
+    - STORY-055
+    tests: []
+  EC-RUN-11:
+    stories:
+    - STORY-057
+    tests: []
+  EC-RUN-12:
+    stories:
+    - STORY-065
+    tests: []
   EC-RUN-13:
     stories:
     - STORY-016
@@ -5534,6 +6650,7 @@ edge_cases:
   EC-RUN-14:
     stories:
     - STORY-015
+    - STORY-065
     tests:
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_fresh_store_starts_idle_and_not_busy[fake]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_fresh_store_starts_idle_and_not_busy[real]
@@ -5555,6 +6672,90 @@ edge_cases:
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[provider_test_60s]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[readiness_probe_30s]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_does_not_fire_before_its_timeout_elapses
+  EC-RUN-17:
+    stories:
+    - STORY-059
+    tests: []
+  EC-RUN-18:
+    stories:
+    - STORY-059
+    tests: []
+  EC-RUN-19:
+    stories:
+    - STORY-059
+    tests: []
+  EC-RUN-2:
+    stories:
+    - STORY-058
+    tests: []
+  EC-RUN-23:
+    stories:
+    - STORY-059
+    tests: []
+  EC-RUN-3:
+    stories:
+    - STORY-055
+    tests: []
+  EC-RUN-4:
+    stories:
+    - STORY-053
+    tests: []
+  EC-RUN-5:
+    stories:
+    - STORY-057
+    tests: []
+  EC-RUN-6:
+    stories:
+    - STORY-057
+    tests: []
+  EC-SET-1:
+    stories:
+    - STORY-053
+    tests: []
+  EC-SET-2:
+    stories:
+    - STORY-067
+    tests: []
+  EC-SET-3:
+    stories:
+    - STORY-067
+    tests: []
+  EC-SET-4:
+    stories:
+    - STORY-067
+    tests: []
+  EC-TASK-1:
+    stories:
+    - STORY-054
+    tests: []
+  EC-TASK-2:
+    stories:
+    - STORY-055
+    tests: []
+  EC-TASK-3:
+    stories:
+    - STORY-054
+    tests: []
+  EC-TASK-8:
+    stories:
+    - STORY-054
+    tests: []
+  EC-WS-1:
+    stories:
+    - STORY-061
+    tests: []
+  EC-WS-2:
+    stories:
+    - STORY-053
+    tests: []
+  EC-WS-3:
+    stories:
+    - STORY-069
+    tests: []
+  EC-WS-4:
+    stories:
+    - STORY-068
+    tests: []
 modules:
   adapters/clipboard/:
     stories:
@@ -5714,6 +6915,40 @@ modules:
   backend/yaml_formatter/:
     stories:
     - STORY-031
+  ui/common_dialogs/:
+    stories:
+    - STORY-055
+    - STORY-056
+    - STORY-057
+    - STORY-065
+    - STORY-070
+  ui/main_window/:
+    stories:
+    - STORY-053
+  ui/new_benchmark/:
+    stories:
+    - STORY-054
+    - STORY-055
+  ui/progress/:
+    stories:
+    - STORY-058
+    - STORY-059
+    - STORY-060
+  ui/results/:
+    stories:
+    - STORY-061
+    - STORY-062
+    - STORY-063
+    - STORY-064
+    - STORY-065
+  ui/resume_benchmark/:
+    stories:
+    - STORY-056
+    - STORY-057
+  ui/settings_dialog/:
+    stories:
+    - STORY-066
+    - STORY-067
   ui/shared/:
     stories:
     - STORY-051
@@ -5723,6 +6958,10 @@ modules:
   ui/shared/provider_dropdown/:
     stories:
     - STORY-052
+  ui/task_editor/:
+    stories:
+    - STORY-068
+    - STORY-069
   ui/theme/:
     stories:
     - STORY-049

@@ -1,0 +1,196 @@
+---
+id: STORY-067
+title: Build the Settings General tab, cross-tab validation, and the atomic Save / Import / Reset transactions
+status: ready
+spec_clauses:
+  - 06_Settings_Dialog/description.md#41-inference
+  - 06_Settings_Dialog/description.md#46-display
+  - 06_Settings_Dialog/description.md#6-save-flow-atomic
+  - 06_Settings_Dialog/description.md#8-import-flow
+  - 06_Settings_Dialog/description.md#9-reset-flow
+  - 06_Settings_Dialog/description.md#10-close-flow
+  - 06_Settings_Dialog/description.md#15-validation-rules
+  - 06_Settings_Dialog/sub_dialogs/reset_confirmation.md#4-what-is-reset
+  - 06_Settings_Dialog/sub_dialogs/reset_confirmation.md#6-the-bundled-default-seed
+  - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
+  - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+modules:
+  - ui/settings_dialog/
+acceptance_criteria:
+  - STORY-067-AC-1
+  - STORY-067-AC-2
+  - STORY-067-AC-3
+  - STORY-067-AC-4
+  - STORY-067-AC-5
+  - STORY-067-AC-6
+edge_cases:
+  - EC-SET-2
+  - EC-SET-3
+  - EC-SET-4
+depends_on:
+  - STORY-049
+  - STORY-066
+adrs:
+  - ADR-0001
+  - ADR-0008
+owner: coder
+estimate: L
+---
+
+# STORY-067 — Build the Settings General tab, cross-tab validation, and the atomic Save / Import / Reset transactions
+
+## Goal
+
+Complete the Settings dialog: the General tab as a scrollable column of sections whose every
+control binds to exactly one user-saved setting key from the registry; the cross-tab validation
+cascade (hard errors, soft warnings, and the cleared-numeric-field edge input); the atomic Save
+transaction spanning the provider catalog and the app-settings layer; the Export and Import
+flows with the Import preview sub-dialog; the Reset flow with the Reset confirmation sub-dialog;
+and the dirty-guarded Close flow.
+
+## In scope
+
+- `_internal/general_tab/`: the section column and `field_binders.py` mapping each control to one
+  `08-G` registry key (Inference, Benchmark Events, Evaluation, Judge/embedding timeouts,
+  Run-level analysis, Embedding Models, Display, Logging Run/App, Storage, Task Editor).
+- `_internal/validation.py`: the cross-tab cascade producing the hard-error / soft-warning
+  findings and computing `save_enabled`, including the timeout-pair and cosine-threshold rules and
+  the cleared-numeric-field-as-hard-error rule.
+- `_internal/controller.py` transaction orchestration: the atomic Save (both stores through the
+  gateway), the emitted `_provider_registry_reloaded` / `_app_settings_changed`, and the
+  clean-after-save behaviour.
+- The Export flow and the Import flow with `_internal/sub_dialogs/import_preview.py` (the
+  Added/Changed/Unchanged/Skipped grouping and the replace-providers / merge-settings apply).
+- `_internal/sub_dialogs/reset_confirmation.py` and the wipe-and-reseed Reset transaction; the
+  Close flow with the Discard-changes confirmation.
+
+## Out of scope
+
+- The Settings shell, Providers tab, embedding selection, and Provider Edit sub-dialog — owned by
+  STORY-066, which this story builds on.
+- The concrete `AppSettingsStore` / `ProvidersStore` and the real SQLite transaction — consumed
+  behind the gateway; the atomic-transaction integration test exercises the adapter+backend.
+- Wiring the concrete `SettingsGateway` and mounting the dialog in `compose.py` — this story
+  **must not touch** `compose.py` (Phase 11 owns it).
+
+## Spec inputs
+
+- `06_Settings_Dialog/description.md#41-inference` — the Inference-section controls and their
+  registry keys (a representative binder section; the completeness rule covers every key).
+- `06_Settings_Dialog/description.md#46-display` — the Theme and score-display keys.
+- `06_Settings_Dialog/description.md#6-save-flow-atomic` — the single-transaction Save spanning
+  both stores and the post-commit events and toast.
+- `06_Settings_Dialog/description.md#8-import-flow` — the parse-validate-preview-apply sequence
+  (replace providers, merge settings) and the unknown-key handling.
+- `06_Settings_Dialog/description.md#9-reset-flow` — the wipe-and-reseed transaction and the
+  discard-of-unsaved-edits.
+- `06_Settings_Dialog/description.md#10-close-flow` — the clean immediate close and the dirty
+  Discard-changes confirmation.
+- `06_Settings_Dialog/description.md#15-validation-rules` — the hard errors, soft warnings, and
+  the cleared-numeric-field edge input.
+- `06_Settings_Dialog/sub_dialogs/reset_confirmation.md#4-what-is-reset` — exactly what a reset
+  wipes and re-seeds.
+- `06_Settings_Dialog/sub_dialogs/reset_confirmation.md#6-the-bundled-default-seed` — the three
+  bundled local providers re-seeded with fresh UUID4 ids.
+- `08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway` — `replace_providers`,
+  `upsert_settings`, `list_settings`, `get_resolved_str`.
+- `08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract` — theme
+  roles only.
+
+## Design constraints
+
+- The controller depends only on `SettingsGateway` plus the retained UI helpers; the persistence
+  transaction is atomic across the provider catalog and the app-settings layer (D-R-06).
+- Every General-tab control binds to exactly one `08-G` key; `field_binders.py` is the single
+  place the registry-to-control mapping is declared.
+- A failed Save/Import/Reset transaction writes nothing and leaves the dialog dirty; the
+  post-commit `_provider_registry_reloaded` / `_app_settings_changed` events fire only on commit.
+- A cleared numeric field is a hard error (treated as empty, never as zero); Save stays disabled.
+- No `setStyleSheet`, no colour literal, no `asyncio`.
+- The controller obtains its `structlog` logger at module scope (never inside `__init__`, per
+  `logging.md`) and emits `DEBUG`-level events — static event name + keyword fields, never an
+  f-string — at construction, at every Gateway call, at every `EventBus` handler invocation, and
+  at every user-triggered state transition, so an anomaly is visible in `app.log` during
+  development before it becomes a user-facing bug.
+
+## Acceptance criteria
+
+### STORY-067-AC-1
+
+Given the General tab, when each control renders, then it binds to exactly one user-saved setting
+key from the registry and round-trips its value through that key's storage text form; a control
+never exists outside the registry.
+
+### STORY-067-AC-2
+
+For each validation input, the cross-tab cascade produces the specified severity and Save
+enablement:
+
+| Input                                                             | Severity     | Save     |
+| ----------------------------------------------------------------- | ------------ | -------- |
+| Two providers share a Name                                        | hard error   | disabled |
+| `benchmark.max_timeout_seconds` < `benchmark.min_timeout_seconds` | hard error   | disabled |
+| A numeric field cleared / out of range                            | hard error   | disabled |
+| An env-var name whose variable is unset                           | soft warning | allowed  |
+| No findings and the dialog is dirty                               | —            | enabled  |
+
+### STORY-067-AC-3
+
+Given a dirty dialog with no hard error, when the user clicks Save Changes, then the working
+provider catalog and the app-settings values are written in one transaction through the gateway,
+and on commit `_provider_registry_reloaded` and `_app_settings_changed` are emitted and the
+dialog becomes clean.
+
+### STORY-067-AC-4
+
+Given an import file with keys the build does not know, when the Import preview renders, then the
+unknown keys appear in the Skipped/ignored group and the recognised keys still import on confirm.
+
+### STORY-067-AC-5
+
+Given the user confirms Reset to Defaults, when the reset transaction runs, then every
+`app_settings` and `providers` row is wiped and the three bundled local providers plus the
+in-code setting defaults are re-seeded in one transaction, discarding any unsaved working edits.
+
+### STORY-067-AC-6
+
+Given the dialog is dirty, when the user clicks Close, then the Discard-changes confirmation is
+shown and Cancel keeps the dialog open with the working copy intact; and given a clean dialog,
+then Close dismisses it immediately.
+
+## Test plan
+
+- STORY-067-AC-1 — unit, colocated
+  `src/ollama_llm_bench/ui/settings_dialog/tests/test_general_field_binders.py`,
+  `test_each_control_binds_one_registry_key`.
+- STORY-067-AC-2 — table-driven unit, colocated
+  `src/ollama_llm_bench/ui/settings_dialog/tests/test_validation.py`,
+  `test_validation_severity_and_save_enablement`. Covers EC-SET-3.
+- STORY-067-AC-3 — integration, `tests/integration/test_settings_save.py`,
+  `test_atomic_save_writes_both_and_emits_events`. Wrapped in `structlog.testing.capture_logs()`;
+  asserts no captured entry's `log_level` is in `{"error", "critical"}`.
+- STORY-067-AC-4 — unit (`pytest-qt`, fake `SettingsGateway`), colocated
+  `src/ollama_llm_bench/ui/settings_dialog/tests/test_import_preview.py`,
+  `test_unknown_keys_skipped_known_keys_import`. Covers EC-SET-2.
+- STORY-067-AC-5 — integration, `tests/integration/test_settings_reset.py`,
+  `test_reset_wipes_and_reseeds_atomically`. Covers EC-SET-4.
+- STORY-067-AC-6 — unit (`pytest-qt`), colocated
+  `src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py`,
+  `test_close_flow_dirty_vs_clean`.
+
+## Definition of done
+
+- [ ] Every acceptance criterion has a passing test that names STORY-067.
+- [ ] EC-SET-2, EC-SET-3, and EC-SET-4 each have a passing test.
+- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the Loaded / Dirty /
+  Saving states and the Import-preview and Reset-confirmation sub-dialog states of
+  `06_Settings_Dialog/state_machine.md`.
+- [ ] An architecture test confirms the controller depends only on `SettingsGateway`, that every
+  General-tab control maps to a single `08-G` key, and that the module references no
+  `setStyleSheet`, embeds no colour literal, and imports no `asyncio`.
+- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/settings_dialog/`.
+- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan clause
+  and no orphan test for STORY-067.
+- [ ] The module inventory is unchanged.
+- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+  records, and DEBUG-level lifecycle events are emitted per the design constraint above.
