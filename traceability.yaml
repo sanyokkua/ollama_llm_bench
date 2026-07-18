@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-18T12:52:26Z'
+generated_at: '2026-07-18T15:55:03Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3658,19 +3658,35 @@ stories:
     - EC-TASK-8
     acceptance_criteria:
       STORY-054-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
       STORY-054-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[synthetic-expected_visible0]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[tasks-expected_visible1]
       STORY-054-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_contains_reflects_current_membership
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_remove_deletes_exactly_one_pair
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_selection_preserved_across_provider_switch
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
       STORY-054-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_added_file_shows_task_count_badge
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_whole_file_parse_error_adds_no_row
       STORY-054-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_clear_all_scopes_to_browsed_provider
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
       STORY-054-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_empty_folder_adds_no_row
       STORY-054-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_smoke.py::test_new_benchmark_widget_constructs_and_shows_with_no_error_logs
   STORY-055:
     title: Build the New Benchmark judge, advanced options, validation, and Start flow with the Run Summary dialog
     status: ready
@@ -6807,7 +6823,23 @@ edge_cases:
   EC-TASK-1:
     stories:
     - STORY-054
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[synthetic-expected_visible0]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[tasks-expected_visible1]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_clear_all_scopes_to_browsed_provider
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_contains_reflects_current_membership
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_remove_deletes_exactly_one_pair
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_selection_preserved_across_provider_switch
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_smoke.py::test_new_benchmark_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_added_file_shows_task_count_badge
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_empty_folder_adds_no_row
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_whole_file_parse_error_adds_no_row
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
   EC-TASK-2:
     stories:
     - STORY-055
@@ -6815,11 +6847,43 @@ edge_cases:
   EC-TASK-3:
     stories:
     - STORY-054
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[synthetic-expected_visible0]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[tasks-expected_visible1]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_clear_all_scopes_to_browsed_provider
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_contains_reflects_current_membership
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_remove_deletes_exactly_one_pair
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_selection_preserved_across_provider_switch
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_smoke.py::test_new_benchmark_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_added_file_shows_task_count_badge
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_empty_folder_adds_no_row
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_whole_file_parse_error_adds_no_row
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
   EC-TASK-8:
     stories:
     - STORY-054
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[synthetic-expected_visible0]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[tasks-expected_visible1]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_clear_all_scopes_to_browsed_provider
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_contains_reflects_current_membership
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_remove_deletes_exactly_one_pair
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_selection_preserved_across_provider_switch
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_smoke.py::test_new_benchmark_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_added_file_shows_task_count_badge
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_empty_folder_adds_no_row
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_whole_file_parse_error_adds_no_row
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
   EC-WS-1:
     stories:
     - STORY-061
