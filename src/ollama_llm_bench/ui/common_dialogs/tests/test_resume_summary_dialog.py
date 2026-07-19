@@ -1,19 +1,47 @@
 """Tests for the Resume Summary dialog (STORY-057)."""
 
+from collections.abc import Callable
+
+from PySide6.QtCore import Qt
 import pytest
+from pytestqt.qtbot import QtBot
+import structlog
 
 from ollama_llm_bench.backend.domain import (
     BenchmarkResult,
     BenchmarkRun,
+    ResultId,
     ResultStatus,
+    RunId,
     RunMode,
     RunStatus,
     Verdict,
 )
+from ollama_llm_bench.backend.events import Subscription
 from ollama_llm_bench.backend.run_drift import DriftKind, DriftSeverity, DriftWarning
 from ollama_llm_bench.ui.common_dialogs._internal.resume_summary_select import (
     select_resume_summary_view_model,
 )
+from ollama_llm_bench.ui.common_dialogs._internal.resume_summary_view import ResumeSummaryDialog
+
+
+class _RecordingEventBus:
+    """A minimal ``EventBus`` structural fake recording every emitted payload."""
+
+    def __init__(self) -> None:
+        self.emitted: list[tuple[str, object]] = []
+
+    def subscribe(
+        self,
+        signal_name: str,
+        handler: Callable[[object], None],
+        owner: object | None = None,
+    ) -> Subscription:
+        raise NotImplementedError
+
+    def emit(self, signal_name: str, payload: object) -> None:
+        self.emitted.append((signal_name, payload))
+
 
 _RUN = BenchmarkRun(
     run_id=1,
@@ -167,3 +195,104 @@ def test_warning_only_drift_never_disables_rows() -> None:
     assert row.is_checked is True
     assert view_model.warning_warnings == (warning,)
     assert view_model.blocking_warnings == ()
+
+
+class _FakeResumeSummaryGateway:
+    def __init__(self) -> None:
+        self.reset_result_ids: tuple[ResultId, ...] | None = None
+        self.resumed_run_id: RunId | None = None
+
+    def get_run(self, run_id: RunId) -> BenchmarkRun:
+        return _RUN
+
+    def resumable_results(self, run_id: RunId) -> tuple[BenchmarkResult, ...]:
+        return (_result(1, ResultStatus.PENDING),)
+
+    def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
+        return ()
+
+    def reset_results(self, result_ids: tuple[ResultId, ...]) -> int:
+        self.reset_result_ids = result_ids
+        return len(result_ids)
+
+    def resume_run(self, run_id: RunId) -> None:
+        self.resumed_run_id = run_id
+
+
+def test_resume_summary_dialog_constructs_and_shows_with_no_error_logs(qtbot: QtBot) -> None:
+    """Proves: STORY-057-AC-7
+
+    ``ResumeSummaryDialog`` constructs and shows with no error/critical logs.
+    """
+    # Arrange
+    gateway = _FakeResumeSummaryGateway()
+    view_model = select_resume_summary_view_model(
+        run=_RUN, resumable_results=(_result(1, ResultStatus.PENDING),), drift_warnings=()
+    )
+    bus = _RecordingEventBus()
+    # Act
+    with structlog.testing.capture_logs() as logs:
+        dialog = ResumeSummaryDialog(gateway=gateway, event_bus=bus, view_model=view_model)
+        qtbot.addWidget(dialog)
+        dialog.show()
+        qtbot.wait(0)
+    # Assert
+    assert dialog.isVisible()
+    assert not any(entry["log_level"] in {"error", "critical"} for entry in logs)
+
+
+def test_resume_resets_only_checked_and_calls_resume_run(qtbot: QtBot) -> None:
+    """Proves: STORY-057-AC-4
+
+    Clicking Resume Run resets only the checked tasks and calls
+    ``ResumeGateway.resume_run(run_id)``; an unchecked task is untouched.
+    """
+    # Arrange
+    gateway = _FakeResumeSummaryGateway()
+    bus = _RecordingEventBus()
+    view_model = select_resume_summary_view_model(
+        run=_RUN,
+        resumable_results=(_result(1, ResultStatus.PENDING), _result(2, ResultStatus.PENDING)),
+        drift_warnings=(),
+    )
+    dialog = ResumeSummaryDialog(gateway=gateway, event_bus=bus, view_model=view_model)
+    qtbot.addWidget(dialog)
+    dialog.show()
+    # Act -- uncheck the second task, then click Resume Run
+    second_item = dialog.task_item_by_result_id[2]
+    second_item.setCheckState(Qt.CheckState.Unchecked)
+    qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
+        dialog.resume_button, Qt.MouseButton.LeftButton
+    )
+    # Assert
+    assert gateway.reset_result_ids == (1,)
+    assert gateway.resumed_run_id == _RUN.run_id
+
+
+def test_blocking_drift_gates_resume_behind_checkbox(qtbot: QtBot) -> None:
+    """Proves: STORY-057-AC-2
+
+    The Resume Run button is disabled with a BLOCKING warning present, and
+    enables once the "Resume anyway" checkbox is ticked.
+    """
+    # Arrange
+    gateway = _FakeResumeSummaryGateway()
+    bus = _RecordingEventBus()
+    view_model = select_resume_summary_view_model(
+        run=_RUN,
+        resumable_results=(_result(1, ResultStatus.PENDING),),
+        drift_warnings=(_blocking_warning(),),
+    )
+    dialog = ResumeSummaryDialog(gateway=gateway, event_bus=bus, view_model=view_model)
+    qtbot.addWidget(dialog)
+    dialog.show()
+    # Assert -- disabled before ticking
+    assert not dialog.resume_button.isEnabled()
+    # Act
+    override_checkbox = dialog.override_checkbox
+    assert override_checkbox is not None
+    qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
+        override_checkbox, Qt.MouseButton.LeftButton
+    )
+    # Assert -- enabled after ticking
+    assert dialog.resume_button.isEnabled()
