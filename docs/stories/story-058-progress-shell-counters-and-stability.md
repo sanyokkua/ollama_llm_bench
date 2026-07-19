@@ -1,7 +1,7 @@
 ---
 id: STORY-058
 title: Build the Progress widget shell, run controls, counters, stage bar, and stability sub-controllers
-status: ready
+status: done
 spec_clauses:
   - 04_Progress_Widget/description.md#3-header-row
   - 04_Progress_Widget/description.md#4-run-progress-counters
@@ -214,3 +214,33 @@ construction+show in `structlog.testing.capture_logs()` and asserting no capture
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes (post-review defect-fix pass)
+
+- Fixed: the header stage badge is now pushed to the correct terminal/paused `RunStage` by
+  `ProgressController` on `_run_paused`/`_run_resumed`/`_run_stopped`/`_run_finished`/
+  `_run_failed` and on SPEC-098 reconciliation (`CountersController.set_stage`/
+  `resume_live_stage`), since the pipeline's own `_stage_changed` never emits those five values.
+- Fixed: Pause/Stop are now hidden (`HeaderAffordances.pause_resume_visible`/`stop_visible`),
+  not merely disabled, in the `Empty`/`ViewingPastRun` states, matching `state_machine.md` §4
+  and the no-placeholder-UI rule.
+- Fixed: the SPEC-098 draining status line (`"Pausing — finishing the current call…"` /
+  `"Stopping — cancelling the current call…"`, `description.md` §3.4's exact wording) is now
+  rendered in the header and cleared on settle (terminal event or reconciliation timeout).
+- Fixed (minor finding): the SPEC-098 reconciliation timeout now reconciles to the *specific*
+  terminal/paused display (`RunStage.COMPLETED`/`FAILED`/`STOPPED`/`PAUSED`, read from
+  `run_header(run_id).status` via `terminal_stage_for_run_status`, or `RunStage.PAUSED` when
+  the drain was a Pause and the run is still active) rather than only the generic
+  Running/ViewingPastRun buckets.
+- Deferred (minor finding, by design): the reconciliation timeout stays a fixed
+  `_DEFAULT_RECONCILE_TIMEOUT_MS = 5000` rather than being derived from
+  `provider.hard_cancel_max_ms + margin`. `hard_cancel_max_ms` is a field on each concrete
+  provider adapter's own client-config struct (`provider_openai_compatible`/`provider_anthropic`/
+  `provider_gemini` `models.py`), not something any existing Gateway or settings surface
+  resolves for "the currently active provider of this run" — determining it correctly would
+  require `ProgressGateway` to resolve the live provider from the last-known
+  `current_provider_id` and read its client config, a materially larger surface change than a
+  narrow accessor addition, and arguably outside this widget's D-R-06 collaborator set
+  (`ProgressGateway`/`EventBus`/`LogFormatter`). Left as a fixed, generously-bounded constant;
+  a future story can add a purpose-built accessor if this needs to track the real per-provider
+  bound.

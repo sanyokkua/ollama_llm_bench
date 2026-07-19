@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-19T16:34:18Z'
+generated_at: '2026-07-19T21:05:45Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3830,7 +3830,7 @@ stories:
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller.py::test_resume_widget_constructs_and_shows_with_no_error_logs
   STORY-057:
     title: Build the Resume and Retry flows — Resume Summary dialog with drift and the Retry Selection dialog
-    status: ready
+    status: done
     spec_clauses:
     - 03_Resume_Benchmark_Widget/description.md#41-resumable-run
     - 07_Common_Dialogs/resume_summary_dialog.md#11-resume-effects
@@ -3904,7 +3904,7 @@ stories:
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_retry_selection_dialog_constructs_and_shows_with_no_error_logs
   STORY-058:
     title: Build the Progress widget shell, run controls, counters, stage bar, and stability sub-controllers
-    status: ready
+    status: done
     spec_clauses:
     - 04_Progress_Widget/description.md#12-event-bus-integration
     - 04_Progress_Widget/description.md#3-header-row
@@ -3924,19 +3924,74 @@ stories:
     - EC-RUN-2
     acceptance_criteria:
       STORY-058-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[STOPPED]
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[no-live-stage-observed-yet]
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[resumes-to-last-live-stage]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COMPLETED]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COSINE_CHECK]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FAILED]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FINISHING]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INFERENCE]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INITIALIZING]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[JUDGE_CHECK]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[KEYWORD_CHECK]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[PAUSED]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[STOPPED]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COMPLETED]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COSINE_CHECK]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[FAILED]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INFERENCE]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INITIALIZING]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[JUDGE_CHECK]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[KEYWORD_CHECK]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[PAUSED]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[STOPPED]
       STORY-058-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pausing_draining_status_line_shown_and_cleared_on_run_paused
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_is_a_noop_with_no_run_selected
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_opens_rename_dialog
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_failed_transitions_to_viewing_past_run
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_finished_transitions_to_viewing_past_run
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_ignored_while_a_run_is_active
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_none_transitions_empty
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_past_run_loads_its_header
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_renamed_updates_run_name_only_for_matching_run
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_resumed_transitions_to_running
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stopping_draining_status_line_shown_and_cleared_on_run_stopped
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Empty-False-False-False-False-False]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Initializing-True-True-False-True-True]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Paused-True-True-True-True-True]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Running-True-True-True-True-True]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Stopping-False-True-False-True-False]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[ViewingPastRun-False-False-False-False-False]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_run_name_label_renders_via_apply_header
       STORY-058-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pause_click_requests_pause_and_never_calls_stop
+        - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stop_requires_confirmation_before_stop_run
       STORY-058-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_counts_by_status_maps_to_counters_and_segments
       STORY-058-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_progress_updated_bursts_coalesce
       STORY-058-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_judge_model_excluded_callout_persists_across_later_stability_events
+        - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_provider_open_band_shows_retry_probe_link
+        - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[excluded-closed-excluded-closed]
+        - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-closed-ok-closed]
+        - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-probing-ok-warn]
+        - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-tripped-ok-open]
+        - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[warn-closed-warn-closed]
       STORY-058-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_progress_widget_constructs_and_shows_with_no_error_logs
   STORY-059:
     title: Build the Progress widget Current-task sub-controller with the inference and judge progress sub-rows
     status: ready
@@ -6372,11 +6427,121 @@ edge_cases:
   EC-PROV-3:
     stories:
     - STORY-058
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[STOPPED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[no-live-stage-observed-yet]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[resumes-to-last-live-stage]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pause_click_requests_pause_and_never_calls_stop
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pausing_draining_status_line_shown_and_cleared_on_run_paused
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_is_a_noop_with_no_run_selected
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_opens_rename_dialog
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_failed_transitions_to_viewing_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_finished_transitions_to_viewing_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_ignored_while_a_run_is_active
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_none_transitions_empty
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_past_run_loads_its_header
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_renamed_updates_run_name_only_for_matching_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_resumed_transitions_to_running
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stop_requires_confirmation_before_stop_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stopping_draining_status_line_shown_and_cleared_on_run_stopped
+    - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_counts_by_status_maps_to_counters_and_segments
+    - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_progress_updated_bursts_coalesce
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_judge_model_excluded_callout_persists_across_later_stability_events
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_provider_open_band_shows_retry_probe_link
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[excluded-closed-excluded-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-closed-ok-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-probing-ok-warn]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-tripped-ok-open]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[warn-closed-warn-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Empty-False-False-False-False-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Initializing-True-True-False-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Paused-True-True-True-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Running-True-True-True-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Stopping-False-True-False-True-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[ViewingPastRun-False-False-False-False-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_progress_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_run_name_label_renders_via_apply_header
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COSINE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FINISHING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INFERENCE]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INITIALIZING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[JUDGE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[KEYWORD_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[STOPPED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COSINE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INFERENCE]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INITIALIZING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[JUDGE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[KEYWORD_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[STOPPED]
   EC-PROV-4:
     stories:
     - STORY-058
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[STOPPED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[no-live-stage-observed-yet]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[resumes-to-last-live-stage]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pause_click_requests_pause_and_never_calls_stop
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pausing_draining_status_line_shown_and_cleared_on_run_paused
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_is_a_noop_with_no_run_selected
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_opens_rename_dialog
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_failed_transitions_to_viewing_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_finished_transitions_to_viewing_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_ignored_while_a_run_is_active
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_none_transitions_empty
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_past_run_loads_its_header
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_renamed_updates_run_name_only_for_matching_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_resumed_transitions_to_running
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stop_requires_confirmation_before_stop_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stopping_draining_status_line_shown_and_cleared_on_run_stopped
+    - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_counts_by_status_maps_to_counters_and_segments
+    - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_progress_updated_bursts_coalesce
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_judge_model_excluded_callout_persists_across_later_stability_events
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_provider_open_band_shows_retry_probe_link
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[excluded-closed-excluded-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-closed-ok-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-probing-ok-warn]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-tripped-ok-open]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[warn-closed-warn-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Empty-False-False-False-False-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Initializing-True-True-False-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Paused-True-True-True-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Running-True-True-True-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Stopping-False-True-False-True-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[ViewingPastRun-False-False-False-False-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_progress_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_run_name_label_renders_via_apply_header
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COSINE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FINISHING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INFERENCE]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INITIALIZING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[JUDGE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[KEYWORD_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[STOPPED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COSINE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INFERENCE]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INITIALIZING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[JUDGE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[KEYWORD_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[STOPPED]
   EC-PROV-4a:
     stories:
     - STORY-060
@@ -6384,7 +6549,62 @@ edge_cases:
   EC-PROV-4b:
     stories:
     - STORY-058
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[STOPPED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[no-live-stage-observed-yet]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[resumes-to-last-live-stage]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pause_click_requests_pause_and_never_calls_stop
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pausing_draining_status_line_shown_and_cleared_on_run_paused
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_is_a_noop_with_no_run_selected
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_opens_rename_dialog
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_failed_transitions_to_viewing_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_finished_transitions_to_viewing_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_ignored_while_a_run_is_active
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_none_transitions_empty
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_past_run_loads_its_header
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_renamed_updates_run_name_only_for_matching_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_resumed_transitions_to_running
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stop_requires_confirmation_before_stop_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stopping_draining_status_line_shown_and_cleared_on_run_stopped
+    - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_counts_by_status_maps_to_counters_and_segments
+    - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_progress_updated_bursts_coalesce
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_judge_model_excluded_callout_persists_across_later_stability_events
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_provider_open_band_shows_retry_probe_link
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[excluded-closed-excluded-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-closed-ok-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-probing-ok-warn]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-tripped-ok-open]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[warn-closed-warn-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Empty-False-False-False-False-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Initializing-True-True-False-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Paused-True-True-True-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Running-True-True-True-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Stopping-False-True-False-True-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[ViewingPastRun-False-False-False-False-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_progress_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_run_name_label_renders_via_apply_header
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COSINE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FINISHING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INFERENCE]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INITIALIZING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[JUDGE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[KEYWORD_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[STOPPED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COSINE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INFERENCE]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INITIALIZING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[JUDGE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[KEYWORD_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[STOPPED]
   EC-PROV-4e:
     stories:
     - STORY-065
@@ -7016,7 +7236,62 @@ edge_cases:
   EC-RUN-2:
     stories:
     - STORY-058
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[STOPPED]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[no-live-stage-observed-yet]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_resume_restores_live_stage_via_real_wiring[resumes-to-last-live-stage]
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pause_click_requests_pause_and_never_calls_stop
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_pausing_draining_status_line_shown_and_cleared_on_run_paused
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_is_a_noop_with_no_run_selected
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_rename_pencil_click_opens_rename_dialog
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_failed_transitions_to_viewing_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_finished_transitions_to_viewing_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_ignored_while_a_run_is_active
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_none_transitions_empty
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_id_changed_to_past_run_loads_its_header
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_renamed_updates_run_name_only_for_matching_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_run_resumed_transitions_to_running
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stop_requires_confirmation_before_stop_run
+    - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stopping_draining_status_line_shown_and_cleared_on_run_stopped
+    - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_counts_by_status_maps_to_counters_and_segments
+    - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_progress_updated_bursts_coalesce
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_judge_model_excluded_callout_persists_across_later_stability_events
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_provider_open_band_shows_retry_probe_link
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[excluded-closed-excluded-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-closed-ok-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-probing-ok-warn]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[ok-tripped-ok-open]
+    - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[warn-closed-warn-closed]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Empty-False-False-False-False-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Initializing-True-True-False-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Paused-True-True-True-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Running-True-True-True-True-True]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[Stopping-False-True-False-True-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_header_controls_visibility_per_run_state[ViewingPastRun-False-False-False-False-False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_progress_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_run_name_label_renders_via_apply_header
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[COSINE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[FINISHING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INFERENCE]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[INITIALIZING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[JUDGE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[KEYWORD_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_always_carries_stage_name_text[STOPPED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COMPLETED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[COSINE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[FAILED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INFERENCE]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[INITIALIZING]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[JUDGE_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[KEYWORD_CHECK]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[PAUSED]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[STOPPED]
   EC-RUN-23:
     stories:
     - STORY-059

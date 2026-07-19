@@ -445,3 +445,31 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `_internal/registry.py`, it is now part of the public contract. No change to the implementation
   or the registry itself — purely a visibility change to support the New Benchmark panel's
   Advanced Options section (STORY-055). Per `08-C` §2 and `08-E` §8a.
+
+- Progress widget shell, run controls, and stability sub-controllers (`ui/progress/`): the
+  factory `make_progress_widget(*, bus, gateway, log_formatter) -> QWidget`, the `ProgressGateway`
+  Protocol (08-E §7b.4 base surface plus two locally-added extensions: `list_runs()` for the
+  rename-pencil's dialog reuse and `is_run_active()` for SPEC-098's bounded reconciliation timer),
+  and the locally-declared `RunStage(StrEnum)` with ten values (INITIALIZING, INFERENCE,
+  KEYWORD_CHECK, COSINE_CHECK, JUDGE_CHECK, FINISHING, COMPLETED, FAILED, STOPPED, PAUSED)
+  parsed from the backend's plain-string stage fields. The header renders the stage badge in
+  one of six tones (info/primary/warn/success/error/mute) via `ui.theme.resolve_color()`, the
+  run-name label, the rename pencil (visible only while actively executing per 08-L §1's
+  no-placeholder-UI rule), Pause/Resume toggle, and Stop with an inline confirmation modal
+  (`QMessageBox.question`) plus the SPEC-098 draining status line (exact text "Pausing —
+  finishing the current call…" / "Stopping — cancelling the current call…" per description.md
+  §3.4). `CountersController` derives per-`ResultStatus` counters and stage-bar segment weights
+  from each `_progress_updated` payload, coalesces bursts within a single Qt event-loop turn via
+  `QTimer.singleShot(0, ...)` so the last payload wins, and supplies ETA and provider/model
+  labels. `StabilityController` derives the model band (ok/warn/excluded), provider band
+  (closed/warn/open with manual-probe action via `gateway.manual_provider_probe()` never a direct
+  breaker call per D-R-06), and a persistent red judge-model-exclusion callout (EC-PROV-4b)
+  surviving later stability events. The SPEC-098 bounded reconciliation timer on entering
+  Pausing/Stopping races a `QTimer` against the terminal `EventBus` event; on timeout expiry it
+  reconciles via `gateway.is_run_active()` + `gateway.run_header(run_id).status`, using the
+  specific terminal/paused `RunStage` (not generic buckets), mirrors the main-window close-handler
+  race pattern (first one wins). Deliberately out of scope: the Current-Task section (STORY-059),
+  Run Event-Log panel (STORY-060), ViewingPastRun Model-summary panel, and `compose.py` wiring
+  of the real `ProgressGateway` (Phase 11). Per `04_Progress_Widget/description.md` §§3–6, 10, 12;
+  `implementation_structure.md` §§3, 4.1; `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b.4;
+  and `08_Cross_Cutting/08-D_color_palette_and_typography.md` §16.
