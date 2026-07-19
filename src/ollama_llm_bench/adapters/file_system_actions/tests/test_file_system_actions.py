@@ -100,3 +100,49 @@ def test_integration_failure_raises_os_adapter_error(tmp_path: Path, mocker: Moc
         actions.open_in_file_manager(str(target))
     assert "/secret/detail" not in exc_info.value.message
     assert isinstance(exc_info.value.__cause__, FileNotFoundError)
+
+
+def test_run_log_exists_true_when_file_present(tmp_path: Path, mocker: MockerFixture) -> None:
+    """Proves: STORY-056 (FileSystemActions extension)
+
+    run_log_exists returns True when the derived log path exists on disk.
+    """
+    # Arrange
+    mocker.patch(
+        f"{_INTERNAL}.run_log_path",
+        return_value=tmp_path / "run_7_1700000000.log",
+    )
+    (tmp_path / "run_7_1700000000.log").write_text("log")
+    actions = QtFileSystemActions(platform_identifier="linux")
+    # Act / Assert
+    assert actions.run_log_exists(run_id=7, started_at="2023-11-14T22:13:20+00:00") is True
+
+
+def test_run_log_exists_false_when_file_absent(tmp_path: Path, mocker: MockerFixture) -> None:
+    """Proves: STORY-056 (FileSystemActions extension)
+
+    run_log_exists returns False when the derived log path does not exist.
+    """
+    # Arrange
+    mocker.patch(
+        f"{_INTERNAL}.run_log_path",
+        return_value=tmp_path / "run_7_1700000000.log",
+    )
+    actions = QtFileSystemActions(platform_identifier="linux")
+    # Act / Assert
+    assert actions.run_log_exists(run_id=7, started_at="2023-11-14T22:13:20+00:00") is False
+
+
+def test_run_log_path_str_returns_derived_path(tmp_path: Path, mocker: MockerFixture) -> None:
+    """Proves: STORY-056 (FileSystemActions extension)
+
+    run_log_path_str returns the same derived path as run_log_exists, as a string.
+    """
+    # Arrange
+    expected = tmp_path / "run_7_1700000000.log"
+    mocker.patch(f"{_INTERNAL}.run_log_path", return_value=expected)
+    actions = QtFileSystemActions(platform_identifier="linux")
+    # Act / Assert
+    assert actions.run_log_path_str(run_id=7, started_at="2023-11-14T22:13:20+00:00") == str(
+        expected
+    )

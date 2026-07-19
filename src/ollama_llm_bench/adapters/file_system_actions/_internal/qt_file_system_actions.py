@@ -1,11 +1,13 @@
 """Concrete per-OS ``FileSystemActions`` (08-E §21c, 08-K §5)."""
 
+from datetime import datetime
 from pathlib import Path
 import subprocess
 import sys
 
 from ollama_llm_bench.backend.errors import OsAdapterError
-from ollama_llm_bench.backend.platform import PlatformKind
+from ollama_llm_bench.backend.infra import run_log_path
+from ollama_llm_bench.backend.platform import PlatformKind, make_platform_detector
 
 _MACOS_MARKERS = ("darwin",)
 _WINDOWS_MARKERS = ("win32", "cygwin")
@@ -28,6 +30,24 @@ def _classify(platform_identifier: str) -> PlatformKind:
     if any(marker in lowered for marker in _LINUX_MARKERS):
         return PlatformKind.LINUX
     return PlatformKind.UNKNOWN
+
+
+class _AppDataRootView:
+    """Adapts a resolved ``PlatformProfile`` to ``backend.infra``'s narrow,
+    structurally-typed ``PlatformDetector`` Protocol (``app_data_root`` only).
+
+    ``backend.platform.PlatformDetector.detect()`` returns a full
+    ``PlatformProfile``; ``backend.infra.run_log_path`` wants an object
+    exposing ``app_data_root`` directly. This tiny private view bridges the
+    two structurally -- it never crosses this module's own boundary.
+    """
+
+    def __init__(self, app_data_root: Path) -> None:
+        self._app_data_root = app_data_root
+
+    @property
+    def app_data_root(self) -> Path:
+        return self._app_data_root
 
 
 def _reveal_command(kind: PlatformKind, path: str) -> list[str]:
@@ -78,3 +98,15 @@ class QtFileSystemActions:
             # only a validated existing path is interpolated, never a shell string
         except OSError as exc:
             raise OsAdapterError(message="the OS file manager could not be launched") from exc
+
+    def run_log_exists(self, *, run_id: int, started_at: str) -> bool:
+        return self._run_log_path(run_id=run_id, started_at=started_at).exists()
+
+    def run_log_path_str(self, *, run_id: int, started_at: str) -> str:
+        return str(self._run_log_path(run_id=run_id, started_at=started_at))
+
+    def _run_log_path(self, *, run_id: int, started_at: str) -> Path:
+        unix_ts = int(datetime.fromisoformat(started_at).timestamp())
+        profile = make_platform_detector().detect()
+        app_data_root_view = _AppDataRootView(profile.app_data_root)
+        return run_log_path(app_data_root_view, run_id=str(run_id), unix_ts=unix_ts)
