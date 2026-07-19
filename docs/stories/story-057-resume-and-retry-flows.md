@@ -1,7 +1,7 @@
 ---
 id: STORY-057
 title: Build the Resume and Retry flows — Resume Summary dialog with drift and the Retry Selection dialog
-status: ready
+status: done
 spec_clauses:
   - 03_Resume_Benchmark_Widget/description.md#41-resumable-run
   - 07_Common_Dialogs/resume_summary_dialog.md#5-drift-warnings
