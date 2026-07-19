@@ -48,6 +48,9 @@ def _row(**overrides: object) -> RunRow:
         ({}, "action_export_summary_md", True),
         ({}, "action_export_details_csv", True),
         ({}, "action_export_details_md", True),
+        ({"is_resumable": True, "is_executing": False}, "action_retry", True),
+        ({"is_resumable": False, "is_executing": False}, "action_retry", False),
+        ({"is_resumable": True, "is_executing": True}, "action_retry", False),
     ],
 )
 def test_menu_item_gating_per_row_state(

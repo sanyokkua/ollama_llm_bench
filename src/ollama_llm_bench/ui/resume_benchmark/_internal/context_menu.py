@@ -1,10 +1,9 @@
-"""The grouped run-row context menu + per-item gating (STORY-056-AC-4).
+"""The grouped run-row context menu + per-item gating (STORY-056-AC-4, STORY-057).
 
 Source of truth: ``docs/v3_specification/03_Resume_Benchmark_Widget/description.md``
-§3.5 (context menu), §4.2 (action gating). Builds the **Naming, Export, File,
-and Destructive** groups only -- the story's Goal defers the **Resume** group
-(Resume Run, Retry selected tasks...) to STORY-057, which must *extend* this
-same menu-builder function rather than duplicate it.
+§3.5 (context menu), §4.2 (action gating); ``07_Common_Dialogs/retry_selection_dialog.md``
+§2 (Invoking Surfaces -- "Right-click a run row, choose Retry"). Builds the **Resume,
+Naming, Export, File, and Destructive** groups, in that order per §3.5.
 """
 
 from PySide6.QtGui import QAction
@@ -15,6 +14,7 @@ from ollama_llm_bench.ui.resume_benchmark.models import RunRow
 __all__: list[str] = ["build_context_menu"]
 
 _EXECUTING_TOOLTIP = "This run is currently running"
+_NOT_RESUMABLE_TOOLTIP = "This run has no resumable result"
 _NO_ANALYSIS_TOOLTIP = "No analysis for this run"
 _NO_LOG_TOOLTIP = "The run log file is not available"
 
@@ -34,6 +34,14 @@ def build_context_menu(*, row: RunRow, parent: QWidget) -> QMenu:
     menu = QMenu(parent)
     not_executing = not row.is_executing
 
+    _add_action(
+        menu,
+        object_name="action_retry",
+        label="Retry selected tasks…",
+        enabled=row.is_resumable and not_executing,
+        disabled_tooltip=_EXECUTING_TOOLTIP if row.is_executing else _NOT_RESUMABLE_TOOLTIP,
+    )
+    menu.addSeparator()
     _add_action(
         menu,
         object_name="action_clone",
