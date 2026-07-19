@@ -42,6 +42,7 @@ __all__: list[str] = [
     "clone_as_new_retry_run",
     "confirm_and_delete_run",
     "export_run_analysis",
+    "export_table_not_yet_available",
     "show_run_log_file",
 ]
 
@@ -231,6 +232,26 @@ def export_run_analysis(
     Path(path).write_text(run.run_analysis, encoding="utf-8")
     logger.debug("resume_export_analysis_written", run_id=run_id)
     event_bus.emit(SIGNAL_GLOBAL_MESSAGE, GlobalMessageEvent(text="Exported", severity="info"))
+
+
+def export_table_not_yet_available(*, event_bus: EventBus) -> None:
+    """Toast that Export Summary/Details wiring is not yet available.
+
+    ``ResumeGateway`` (08-E §7b.3) has no ``serialize_table``-equivalent
+    method, unlike its sibling ``ResultGateway`` -- so the Export Summary
+    (CSV/Markdown) and Export Details (CSV/Markdown) menu items (always
+    enabled per AC-4) are gated correctly but cannot be legally wired to
+    real export content yet (STORY-056 Escalation; see the story's Notes
+    section for the follow-up-story tracking).
+
+    Args:
+        event_bus: Emits the toast.
+    """
+    logger.debug("resume_export_table_not_yet_available")
+    event_bus.emit(
+        SIGNAL_GLOBAL_MESSAGE,
+        GlobalMessageEvent(text="Export not yet available", severity="info"),
+    )
 
 
 def show_run_log_file(

@@ -35,6 +35,7 @@ from ollama_llm_bench.ui.resume_benchmark._internal.actions import (
     clone_as_new_retry_run,
     confirm_and_delete_run,
     export_run_analysis,
+    export_table_not_yet_available,
     show_run_log_file,
 )
 from ollama_llm_bench.ui.resume_benchmark._internal.context_menu import build_context_menu
@@ -65,6 +66,14 @@ _COLUMN_NAMES: dict[int, str] = {
     COL_TASKS: "tasks",
 }
 _COLUMN_BY_NAME: dict[str, int] = {name: column for column, name in _COLUMN_NAMES.items()}
+_EXPORT_TABLE_ACTION_NAMES = frozenset(
+    {
+        "action_export_summary_csv",
+        "action_export_summary_md",
+        "action_export_details_csv",
+        "action_export_details_md",
+    }
+)
 _RUN_TOUCHED_EVENT_TYPES = (
     RunRenamedEvent,
     RunStartedEvent,
@@ -162,6 +171,8 @@ class ResumeBenchmarkController:
                 action.triggered.connect(partial(self._on_export_analysis_triggered, row))
             elif name == "action_show_log":
                 action.triggered.connect(partial(self._on_show_log_triggered, row))
+            elif name in _EXPORT_TABLE_ACTION_NAMES:
+                action.triggered.connect(self._on_export_table_triggered)
 
     def _on_clone_triggered(self, source_run_id: RunId) -> None:
         logger.debug("resume_clone_triggered", source_run_id=source_run_id)
@@ -202,6 +213,9 @@ class ResumeBenchmarkController:
             parent=self._view,
         )
         self._rebuild_all_rows()
+
+    def _on_export_table_triggered(self) -> None:
+        export_table_not_yet_available(event_bus=self._event_bus)
 
     def _on_export_analysis_triggered(self, row: RunRow) -> None:
         export_run_analysis(
