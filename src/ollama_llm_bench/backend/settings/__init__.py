@@ -10,6 +10,7 @@ Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-C_settings_hierarch
 """
 
 from ollama_llm_bench.backend.settings.api import (
+    PER_RUN_OVERRIDABLE,
     RunSnapshotBuilder,
     SettingsService,
     make_run_snapshot_builder,
@@ -18,6 +19,7 @@ from ollama_llm_bench.backend.settings.api import (
 from ollama_llm_bench.backend.settings.models import BenchmarkRunSettingEntry, RunSettingsSnapshot
 
 __all__: list[str] = [
+    "PER_RUN_OVERRIDABLE",
     "BenchmarkRunSettingEntry",
     "RunSettingsSnapshot",
     "RunSnapshotBuilder",

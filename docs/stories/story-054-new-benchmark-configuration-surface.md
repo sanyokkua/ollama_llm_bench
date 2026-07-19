@@ -1,7 +1,7 @@
 ---
 id: STORY-054
 title: Build the New Benchmark configuration surface — mode selector, section visibility, selection store, task files, and test models
-status: ready
+status: done
 spec_clauses:
   - 02_New_Benchmark_Widget/description.md#3-run-modes-and-the-mode-selector
   - 02_New_Benchmark_Widget/description.md#5-behaviour-per-element

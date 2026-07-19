@@ -13,16 +13,27 @@ from PySide6.QtWidgets import QWidget
 from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.adapters.workspace_controller import WorkspaceController
 from ollama_llm_bench.backend.events import EventBus
+from ollama_llm_bench.backend.settings import PER_RUN_OVERRIDABLE
 from ollama_llm_bench.backend.task_files import TaskFileLoader
+from ollama_llm_bench.ui.new_benchmark._internal.advanced_options import (
+    AdvancedOptionsSectionWidget,
+)
 from ollama_llm_bench.ui.new_benchmark._internal.controller import NewBenchmarkController
+from ollama_llm_bench.ui.new_benchmark._internal.judge_section import JudgeSectionWidget
 from ollama_llm_bench.ui.new_benchmark._internal.mode_selector import ModeSelectorWidget
 from ollama_llm_bench.ui.new_benchmark._internal.task_files import TaskFilesSectionWidget
 from ollama_llm_bench.ui.new_benchmark._internal.test_models import TestModelsSectionWidget
 from ollama_llm_bench.ui.new_benchmark._internal.view import NewBenchmarkView
-from ollama_llm_bench.ui.new_benchmark.protocols import ModeVisibilityPolicy, NewBenchmarkGateway
+from ollama_llm_bench.ui.new_benchmark.protocols import (
+    ModeVisibilityPolicy,
+    NewBenchmarkGateway,
+    RunValidator,
+)
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
 __all__: list[str] = ["NewBenchmarkCollaborators", "make_new_benchmark_widget"]
+
+_ANALYSIS_TOGGLE_KEY = "feature.judge_run_analysis_enabled"
 
 
 class NewBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
@@ -36,6 +47,8 @@ class NewBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=Fa
             ``_provider_registry_reloaded``.
         task_file_loader: Parses a dropped/picked task file into tasks.
         mode_visibility_policy: The section-visibility source of truth.
+        run_validator: Computes Run Validator entries for a would-be request
+            (STORY-055 Design Decision 1).
         native_pickers: OS file/folder dialogs for Add File/Add Folder.
         workspace: Switches to the Task Editor workspace for "Open in Task Editor".
         theme_manager: Resolves theme roles for badges and section styling.
@@ -47,6 +60,7 @@ class NewBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=Fa
     event_bus: EventBus
     task_file_loader: TaskFileLoader
     mode_visibility_policy: ModeVisibilityPolicy
+    run_validator: RunValidator
     native_pickers: NativePickers
     workspace: WorkspaceController
     theme_manager: ThemeManager
@@ -61,6 +75,7 @@ class NewBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=Fa
             collaborators.event_bus,
             collaborators.task_file_loader,
             collaborators.mode_visibility_policy,
+            collaborators.run_validator,
             collaborators.native_pickers,
             collaborators.workspace,
         )
@@ -71,10 +86,8 @@ class NewBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=Fa
 def make_new_benchmark_widget(*, collaborators: NewBenchmarkCollaborators) -> QWidget:
     """Construct the mountable New Benchmark widget.
 
-    Judge, Advanced Options, embedding status row, and Start-flow behaviour are
-    stubbed (STORY-055); Performance Matrix content is stubbed (a new,
-    not-yet-drafted future story) -- both still participate in section
-    visibility via ``mode_visibility_policy``.
+    Performance Matrix content is stubbed (a new, not-yet-drafted future story)
+    -- it still participates in section visibility via ``mode_visibility_policy``.
 
     Args:
         collaborators: Every collaborator this widget and its controller need,
@@ -102,15 +115,29 @@ def make_new_benchmark_widget(*, collaborators: NewBenchmarkCollaborators) -> QW
         ),
         event_bus=collaborators.event_bus,
     )
+    judge_section = JudgeSectionWidget(
+        provider_configs_source=collaborators.gateway.provider_list,
+        hide_embedding_models_source=lambda: test_models_section.hide_embedding_models,
+        event_bus=collaborators.event_bus,
+    )
+    advanced_options_section = AdvancedOptionsSectionWidget(
+        initial_values={
+            key: collaborators.gateway.get_setting(key) or ""
+            for key in sorted(PER_RUN_OVERRIDABLE - {_ANALYSIS_TOGGLE_KEY})
+        }
+    )
     view = NewBenchmarkView(
         mode_selector=mode_selector,
         task_files_section=task_files_section,
         test_models_section=test_models_section,
+        judge_section=judge_section,
+        advanced_options_section=advanced_options_section,
     )
     controller = NewBenchmarkController(
         gateway=collaborators.gateway,
         event_bus=collaborators.event_bus,
         mode_visibility_policy=collaborators.mode_visibility_policy,
+        run_validator=collaborators.run_validator,
         view=view,
     )
     controller.bind()

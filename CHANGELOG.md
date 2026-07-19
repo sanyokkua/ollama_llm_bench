@@ -329,13 +329,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   three-layer package tree (`backend/`, `adapters/`, `ui/`), the `tests/` tree, the
   traceability tooling (`scripts/trace.py`, `scripts/validate_traceability.py`), and the two
   GitHub Actions workflows (`pr-gate.yml`, `release.yml`).
+
 - Three accepted Architecture Decision Records: `docs/adr/0001-programmatic-qt-widgets-theming.md`,
   `docs/adr/0002-scoped-reactive-stores-and-event-bus.md`,
   `docs/adr/0003-uv-build-and-unsigned-distribution.md`.
+
 - Backend domain vocabulary (`backend/domain/`): 27 closed enumerations (`StrEnum`), 33
   cross-boundary `msgspec.Struct` records, 7 type aliases, 14 constrained types per
   `docs/v3_specification/10_Domain_and_Data/02_DTOS_AND_ENUMS.md`, establishing the
   foundational Qt-free domain model for Phase 1.
+
 - Error taxonomy and secret redaction (`backend/errors/`): 27 exception classes forming the
   four-category error taxonomy (`TransientError`, `PermanentError`, `UserError`,
   `ProgrammerError`) with 20 leaves plus 3 programmer-error leaves; the `ErrorContext`
@@ -343,6 +346,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   guarding against provider credential leaks per
   `docs/v3_specification/11_Services_and_Algorithms/17_ERROR_TAXONOMY.md` and
   `docs/v3_specification/10_Domain_and_Data/08_REDACTION_PATTERNS.md`.
+
 - Typed event bus core (`backend/events/`): the `EventBus` and `Subscription` service Protocols
   (`typing.Protocol`, no concrete implementation yet), 36 event payload types as frozen
   `msgspec.Struct` records with full type safety and schema validation, and 36 signal-name
@@ -351,6 +355,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `docs/v3_specification/08_Cross_Cutting/08-Q_event_payload_schemas.md`. The Qt delivery
   bridge and the concrete `EventBus` implementation live in the adapter layer (`adapters/qt_event_bus/`,
   a later story).
+
 - Cross-cutting infrastructure (`backend/infra/`): the `Clock` Protocol (injectable,
   testable time source with `now_utc()` and `monotonic_ms()`) backed by a `SystemClock`
   factory; the two-stream `structlog` logging configuration (`configure_logging` for
@@ -361,6 +366,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`app_log_path`, `run_log_path`, and their directory variants) composing over the platform
   detector per `docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md` and
   `docs/v3_specification/16_Engineering_Standards/06_LOGGING_STANDARD.md`.
+
 - Platform detection and OS-appropriate paths (`backend/platform/`): the `PlatformDetector`
   Protocol and `PlatformKind` enum classifying the host into `MACOS`, `WINDOWS`, `LINUX`,
   or `UNKNOWN`; the immutable `PlatformProfile` DTO carrying OS version, application-data
@@ -368,6 +374,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   native theme support; the factory `make_platform_detector()` binding to the real host
   environment; and `create_app_data_dir()` for recursive, idempotent creation of the
   OS-appropriate app-data directory per `docs/v3_specification/08_Cross_Cutting/08-K_platform_specifics.md`.
+
 - Provider registry and canonical LLM client protocol (`backend/provider_registry/`): the
   `ProviderRegistry` Protocol (three methods: `list_enabled()`, `get_client(provider_id)`,
   `reload()`) managing one `LLMClient` per enabled, structurally valid provider; the canonical
@@ -378,6 +385,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   variable; rebuilds atomically on configuration change; and defers closing superseded clients
   until the single-inference gate is idle (SPEC-045) per `08-E` §9–§10 and
   `11_Services_and_Algorithms/03_PROVIDER_REGISTRY.md`.
+
 - Task file loading and validation (`backend/task_files/`): the `TaskFileLoader` Protocol
   (loader-tolerant `load(source_path) -> tuple[BenchmarkTask, ...]` skipping malformed
   individual tasks without raising, raising `TaskFileError` only for whole-file rejection) and
@@ -390,6 +398,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `question`, empty `category`, overlong prompt, retired `task_type` key) so their verdicts
   never diverge. Invalid `difficulty` and non-bool `cosine_enabled` fallback to struct defaults
   rather than dropping tasks per `11_Services_and_Algorithms/14_VALIDATION_CASCADE.md`.
+
 - Comment-preserving YAML formatter (`backend/yaml_formatter/`): the `YamlFormatter` Protocol
   (the sole task-file writer; `load_document(source_path) -> TaskFileDocument` round-tripping
   via `ruamel.yaml` with comments; `save(*, document, target_path, format_on_save) -> SaveResult`
@@ -401,3 +410,38 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   via factory `make_yaml_formatter()` per `11_Services_and_Algorithms/12_YAML_FORMATTER.md`.
   Testing fakes in `testing.py`. First use of `ruamel.yaml` and property-based round-trip
   testing via Hypothesis.
+
+- Run Summary confirmation dialog (`ui/common_dialogs/`): the factory
+  `make_run_summary_dialog(*, gateway, run_validator, request, parent=None) -> QDialog | None`
+  and the narrow adapter gateway `RunSummaryGateway` Protocol (`readiness_snapshot()`,
+  `start_run(request)`). Opens only after a preflight re-check passes (returns `None` if
+  environment is broken, leaving widget fields intact — see `07_Common_Dialogs/run_summary_dialog.md` §8),
+  presents a mode-aware summary for user review with per-mode sections (work-to-be-done,
+  settings snapshots, warnings callout), and on Start Benchmark issues `gateway.start_run(request)`
+  and closes. The dialog never edits configuration — it presents and confirms only. Carries no
+  dependencies on `NewBenchmarkGateway` or any sibling UI module; the concrete adapter may
+  satisfy both Gateway Protocols with one class or two thin ones (compose.py decision). Per
+  `07_Common_Dialogs/run_summary_dialog.md` §§6, 8, 12 and `08-E` §7b.2.
+
+- New Benchmark panel completion (`ui/new_benchmark/`): the `RunValidator` Protocol (design
+  decision 1 in STORY-055) with a single method `validate(request) -> tuple[ValidationEntry, ...]`
+  producing hard-error/soft-warning entries, `ValidationEntry` and `RunValidationSeverity` DTOs
+  in `models.py`, and a new required field `run_validator: RunValidator` on the
+  `NewBenchmarkCollaborators` dependency bundle. The widget now wires the Judge section (provider
+  and model selection, analysis toggle, embedding-status row per 02_New_Benchmark_Widget §44),
+  the Advanced Options collapsible section (per-run setting overrides, DD-47 carriage rule per
+  §47), validation gating of the Start button (hard-error check, soft-warning distinction, and
+  the single-inference-gate `IDLE`-only gate per §48 and `08-E` §13), the Start flow (assembles
+  `RunStartRequest`, opens the Run Summary dialog, calls `gateway.start_run(request)` on
+  confirm, transitions to read-only Locked state on `_run_started`), and integrates with the
+  mode-selector and task-files/test-models sections previously delivered by STORY-054.
+  Per `02_New_Benchmark_Widget/description.md` §§6, 44, 47, 48; `state_machine.md`; and
+  `08-E` §7b.2.
+
+- Settings service public registry re-export (`backend/settings/`): the `PER_RUN_OVERRIDABLE`
+  constant (a `frozenset[SettingKey]` of 35 keys that may be overridden per run) is now
+  re-exported from both `api.py` and `__init__.py`, making it available to UI modules that
+  assemble per-run setting overrides (the Advanced Options widget). Previously internal to
+  `_internal/registry.py`, it is now part of the public contract. No change to the implementation
+  or the registry itself — purely a visibility change to support the New Benchmark panel's
+  Advanced Options section (STORY-055). Per `08-C` §2 and `08-E` §8a.

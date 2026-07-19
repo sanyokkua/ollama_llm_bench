@@ -7,7 +7,7 @@ from ollama_llm_bench.adapters.native_pickers.testing import FakeNativePickers
 from ollama_llm_bench.adapters.workspace_controller.testing import FakeWorkspaceController
 from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader
 from ollama_llm_bench.ui.new_benchmark import NewBenchmarkCollaborators, make_new_benchmark_widget
-from ollama_llm_bench.ui.new_benchmark.testing import FakeNewBenchmarkGateway
+from ollama_llm_bench.ui.new_benchmark.testing import FakeNewBenchmarkGateway, FakeRunValidator
 from ollama_llm_bench.ui.new_benchmark.tests.conftest import (
     FakeEventBus,
     _RealBackedModeVisibilityPolicy,
@@ -39,6 +39,7 @@ def test_new_benchmark_widget_constructs_and_shows_with_no_error_logs(
         event_bus=fake_event_bus,
         task_file_loader=task_file_loader,
         mode_visibility_policy=real_mode_visibility_policy,
+        run_validator=FakeRunValidator(),
         native_pickers=native_pickers,
         workspace=workspace,
         theme_manager=theme_manager,

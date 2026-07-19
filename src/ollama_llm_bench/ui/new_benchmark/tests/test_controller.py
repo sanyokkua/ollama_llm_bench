@@ -8,7 +8,7 @@ from ollama_llm_bench.backend.domain import RunMode
 from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader
 from ollama_llm_bench.ui.new_benchmark import NewBenchmarkCollaborators, make_new_benchmark_widget
 from ollama_llm_bench.ui.new_benchmark._internal.view import NewBenchmarkView
-from ollama_llm_bench.ui.new_benchmark.testing import FakeNewBenchmarkGateway
+from ollama_llm_bench.ui.new_benchmark.testing import FakeNewBenchmarkGateway, FakeRunValidator
 from ollama_llm_bench.ui.new_benchmark.tests.conftest import (
     FakeEventBus,
     _RealBackedModeVisibilityPolicy,
@@ -38,6 +38,7 @@ def test_mode_selector_restores_and_persists_last_mode_via_gateway(
         event_bus=fake_event_bus,
         task_file_loader=FakeTaskFileLoader(),
         mode_visibility_policy=real_mode_visibility_policy,
+        run_validator=FakeRunValidator(),
         native_pickers=FakeNativePickers(),
         workspace=FakeWorkspaceController(),
         theme_manager=theme_manager,

@@ -1,10 +1,15 @@
-"""Architecture tests for ``ui/new_benchmark/`` (STORY-054 Definition of done).
+"""Architecture tests for ``ui/new_benchmark/`` and ``ui/common_dialogs/`` (STORY-054,
+STORY-055 Definition of done).
 
 Asserts: no ``setStyleSheet`` call, no colour literal reference, no ``asyncio``
-import anywhere in the module; ``_internal/view.py`` imports no Gateway/backend
-service symbol (passive-View rule); ``_internal/controller.py`` imports only its
-own ``NewBenchmarkGateway`` plus the declared non-store helpers -- never a raw
-backend Store/Service Protocol beyond those (D-R-06).
+import anywhere in either module; ``_internal/view.py`` imports no Gateway/backend
+service symbol (passive-View rule); ``ui/new_benchmark/_internal/controller.py``
+imports only its own ``NewBenchmarkGateway`` plus the declared non-store helpers --
+never a raw backend Store/Service Protocol beyond those (D-R-06);
+``ui/common_dialogs/api.py`` and ``_internal/view.py`` import only their own
+``RunSummaryGateway`` plus the local non-store-helper ``RunValidator`` Protocol
+re-used from ``ui.new_benchmark.protocols`` -- never ``NewBenchmarkGateway`` itself
+or any other backend Store/Service.
 """
 
 import ast
@@ -16,8 +21,12 @@ import ollama_llm_bench
 
 _PACKAGE_ROOT = Path(inspect.getfile(ollama_llm_bench)).parent
 _MODULE_ROOT = _PACKAGE_ROOT / "ui" / "new_benchmark"
+_COMMON_DIALOGS_ROOT = _PACKAGE_ROOT / "ui" / "common_dialogs"
+_SCAN_ROOTS = (_MODULE_ROOT, _COMMON_DIALOGS_ROOT)
 _VIEW_FILE = _MODULE_ROOT / "_internal" / "view.py"
 _CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "controller.py"
+_COMMON_DIALOGS_API_FILE = _COMMON_DIALOGS_ROOT / "api.py"
+_COMMON_DIALOGS_VIEW_FILE = _COMMON_DIALOGS_ROOT / "_internal" / "view.py"
 
 _FORBIDDEN_CONCURRENCY_ROOTS = ("asyncio", "anyio", "qasync")
 _ALLOWED_CONTROLLER_BACKEND_IMPORTS = {
@@ -25,11 +34,19 @@ _ALLOWED_CONTROLLER_BACKEND_IMPORTS = {
     "ollama_llm_bench.backend.events",
     "ollama_llm_bench.ui.new_benchmark.protocols",
 }
+_ALLOWED_COMMON_DIALOGS_BACKEND_IMPORTS = {"ollama_llm_bench.backend.domain"}
+_ALLOWED_COMMON_DIALOGS_EXTERNAL_UI_IMPORTS = {
+    "ollama_llm_bench.ui.new_benchmark.models",
+    "ollama_llm_bench.ui.new_benchmark.protocols",
+}
 _HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 
 
 def _iter_source_files() -> list[Path]:
-    return sorted(_MODULE_ROOT.rglob("*.py"))
+    files: list[Path] = []
+    for root in _SCAN_ROOTS:
+        files.extend(sorted(root.rglob("*.py")))
+    return files
 
 
 def _imported_modules(tree: ast.AST) -> set[str]:
@@ -146,3 +163,35 @@ def test_new_benchmark_embeds_no_colour_literal() -> None:
     ]
     # Assert
     assert offenders == []
+
+
+def test_common_dialogs_depends_only_on_its_own_gateway_and_declared_protocols() -> None:
+    """Proves: STORY-055 Definition of done
+
+    ``ui/common_dialogs/api.py`` and ``_internal/view.py`` import no backend
+    Protocol beyond their own declared ``RunSummaryGateway`` (backend.domain DTOs
+    only) plus the local non-store-helper ``RunValidator``/``ValidationEntry``
+    types re-used from ``ui.new_benchmark.protocols``/``ui.new_benchmark.models``
+    (D-R-06) -- never ``NewBenchmarkGateway`` itself or any other backend
+    Store/Service Protocol.
+    """
+    # Arrange / Act
+    offenders: dict[str, list[str]] = {}
+    for source_file in (_COMMON_DIALOGS_API_FILE, _COMMON_DIALOGS_VIEW_FILE):
+        tree = ast.parse(source_file.read_text(encoding="utf-8"), filename=str(source_file))
+        imported_modules = _imported_modules(tree)
+        disallowed_backend = {
+            m for m in imported_modules if m.startswith("ollama_llm_bench.backend.")
+        } - _ALLOWED_COMMON_DIALOGS_BACKEND_IMPORTS
+        external_ui_imports = {
+            m
+            for m in imported_modules
+            if m.startswith("ollama_llm_bench.ui.")
+            and not m.startswith("ollama_llm_bench.ui.common_dialogs.")
+        }
+        disallowed_ui = external_ui_imports - _ALLOWED_COMMON_DIALOGS_EXTERNAL_UI_IMPORTS
+        disallowed = sorted(disallowed_backend | disallowed_ui)
+        if disallowed:
+            offenders[str(source_file.relative_to(_PACKAGE_ROOT))] = disallowed
+    # Assert
+    assert offenders == {}

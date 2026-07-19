@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-18T16:19:30Z'
+generated_at: '2026-07-19T10:38:58Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3639,7 +3639,7 @@ stories:
         - src/ollama_llm_bench/ui/main_window/_internal/tests/test_shell.py::test_main_window_constructs_and_shows_with_no_error_logs
   STORY-054:
     title: Build the New Benchmark configuration surface — mode selector, section visibility, selection store, task files, and test models
-    status: ready
+    status: done
     spec_clauses:
     - 02_New_Benchmark_Widget/description.md#12-section-visibility-decision-table
     - 02_New_Benchmark_Widget/description.md#3-run-modes-and-the-mode-selector
@@ -3690,7 +3690,7 @@ stories:
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_smoke.py::test_new_benchmark_widget_constructs_and_shows_with_no_error_logs
   STORY-055:
     title: Build the New Benchmark judge, advanced options, validation, and Start flow with the Run Summary dialog
-    status: ready
+    status: done
     spec_clauses:
     - 02_New_Benchmark_Widget/description.md#44-judge
     - 02_New_Benchmark_Widget/description.md#47-advanced-options
@@ -3712,21 +3712,43 @@ stories:
     - EC-TASK-2
     acceptance_criteria:
       STORY-055-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
       STORY-055-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
       STORY-055-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
       STORY-055-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[max_timeout_less_than_min_timeout]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_enabled_judge_provider_while_required]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_validation_entries]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
       STORY-055-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
       STORY-055-AC-6:
-        tests: []
+        tests:
+        - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
       STORY-055-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
       STORY-055-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
   STORY-056:
     title: Build the Resume Benchmark widget — run table, search, sort, and the clone/rename/delete/export/log actions
     status: ready
@@ -6215,7 +6237,29 @@ edge_cases:
     stories:
     - STORY-055
     - STORY-066
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[max_timeout_less_than_min_timeout]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_enabled_judge_provider_while_required]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_validation_entries]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
+    - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-PROV-7:
     stories:
     - STORY-066
@@ -6654,7 +6698,29 @@ edge_cases:
   EC-RUN-1:
     stories:
     - STORY-055
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[max_timeout_less_than_min_timeout]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_enabled_judge_provider_while_required]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_validation_entries]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
+    - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-RUN-11:
     stories:
     - STORY-057
@@ -6752,7 +6818,29 @@ edge_cases:
   EC-RUN-3:
     stories:
     - STORY-055
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[max_timeout_less_than_min_timeout]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_enabled_judge_provider_while_required]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_validation_entries]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
+    - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-RUN-4:
     stories:
     - STORY-053
@@ -6845,7 +6933,29 @@ edge_cases:
   EC-TASK-2:
     stories:
     - STORY-055
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[max_timeout_less_than_min_timeout]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_enabled_judge_provider_while_required]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_validation_entries]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
+    - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-TASK-3:
     stories:
     - STORY-054

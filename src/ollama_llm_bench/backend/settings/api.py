@@ -8,6 +8,7 @@ import icontract
 
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.backend.persistence.app_settings import AppSettingsStore
+from ollama_llm_bench.backend.settings._internal.registry import PER_RUN_OVERRIDABLE
 from ollama_llm_bench.backend.settings._internal.run_snapshot_builder_impl import (
     RunSnapshotBuilderImpl,
 )
@@ -17,6 +18,7 @@ from ollama_llm_bench.backend.settings._internal.settings_service_impl import (
 from ollama_llm_bench.backend.settings.protocols import RunSnapshotBuilder, SettingsService
 
 __all__: list[str] = [
+    "PER_RUN_OVERRIDABLE",
     "RunSnapshotBuilder",
     "SettingsService",
     "make_run_snapshot_builder",
