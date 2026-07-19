@@ -246,3 +246,86 @@ mounting it under `qtbot`, then showing it (`qtbot.addWidget(...)`, `.show()`, o
   `backend.infra.run_log_path` — the real log-path construction lives in `backend/infra`, which
   `ui/*` cannot import directly, so `adapters/*` (which may import any `backend/*` package)
   supplies the derived boolean/path instead.
+
+### Post-review gap-closure pass (spec-conformance review, 2026-07-19)
+
+An independent spec-conformance review found the seven authored acceptance-criteria tests
+passing but five clauses this story itself cites were under-covered. Fixed, in the review's
+severity order:
+
+1. **§3.3 — missing per-row pencil/⋯ buttons, missing sort caret, misleading caption.** Added
+   `_internal/row_actions_delegate.py` (`RowActionsDelegate`, a `QStyledItemDelegate` painted
+   over the Tasks column) providing hover-revealed pencil (`pencil_clicked`) and ⋯
+   (`more_clicked`) icon glyphs — painted only for the currently-hovered row so the table stays
+   virtualised (EC-RB-12), never one persistent widget per row. `ResumeBenchmarkView` tracks
+   hover via `QTableView.entered` (`setMouseTracking(True)`) and clears it on viewport `Leave`
+   via an installed event filter; `pencil_clicked`/`more_clicked` route to new controller
+   methods `on_pencil_clicked`/`on_more_clicked`, the former reusing the existing
+   `_on_rename_triggered` path, the latter reusing `on_context_menu_requested`. Added
+   `_internal/theme_lookup.py::resolve_theme_tokens` (a small internal helper, not exported)
+   so the delegate can resolve the `text.primary` icon colour through `ui/theme` with no colour
+   literal. `RunTableModel.headerData` now appends a `▼`/`▲` caret to the active sort column's
+   `DisplayRole` label (verified to flip on repeated `set_sort` calls) and optionally returns a
+   `primary.base`-coloured `ForegroundRole` when an (optional, defaults to `None`) `ThemeManager`
+   is wired — mirroring `ui/new_benchmark/_internal/task_files.py`'s established
+   optional-`ThemeManager` fallback pattern so existing theme-less unit tests are unaffected.
+   The caption now reads "Right-click a row, use the pencil to rename, or ⋯ for more actions."
+   Tests: `tests/test_row_actions_delegate.py` (6 tests), `test_run_table_model.py ::test_header_caret_reflects_active_sort_column_and_direction`.
+1. **§4.3 — Status column rendered as plain text, not a coloured badge.** Added
+   `_internal/status_badge_delegate.py` (`StatusBadgeDelegate` + the extracted pure
+   `resolve_status_badge_colors` helper) and wired it via `setItemDelegateForColumn(COL_STATUS, ...)`. It reuses `ui/shared`'s exact badge colour-role mapping via a new public
+   `ui/shared.resolve_badge_color_roles(status: BadgeStatus) -> tuple[str, str]` function
+   (extracted from `BadgeLabelWidget`'s private `_BASE_ROLE`/`_FILL_ROLE` dicts, now shared by
+   both) resolved through `ui/theme.resolve_color` — no new colour literal, no `setStyleSheet`.
+   `RunTableModel.data()` now also answers `Qt.ItemDataRole.UserRole` for `COL_STATUS` with
+   `row.status_badge_status`, the delegate's paint-time input. Falls back to the base
+   `QStyledItemDelegate.paint` when no `ThemeManager` is wired (same optional-collaborator
+   pattern as gap 1). Tests: `tests/test_status_badge_delegate.py` (6 tests, table-driven over
+   all four `status_badge_status` values against the same theme roles
+   `ui/shared/tests/test_badge_label.py` asserts for `BadgeLabelWidget`).
+1. **Selection dropped on every model reset (search/sort/rebuild).** `RunTableModel.set_rows`/
+   `set_search_term`/`set_sort` all call `beginResetModel`/`endResetModel`, which clears Qt's
+   own selection model — previously nothing re-applied the controller's tracked selection
+   afterward. Added `ResumeBenchmarkController.current_selected_run_id()` (read accessor) and
+   `ResumeBenchmarkView._on_model_reset` (connected to `table_model.modelReset`), which restores
+   the QTableView's visual selection to the tracked run id's row when it is still present —
+   wrapped in `selectionModel().blockSignals(True/False)` so the restoration never re-emits
+   `selectionChanged`/`_run_id_changed`. When the row is no longer present, this is a no-op and
+   the controller's pre-existing `_clear_selection_if_filtered_out` path (already covered by
+   AC-2) fires as before. Test (mounted-view, real `make_resume_benchmark_widget`):
+   `test_controller.py::test_selection_restored_across_sort_reset_with_view_mounted` — selects a
+   row, fires a header `sectionClicked` (the exact signal a real header click emits), and asserts
+   the same row is still selected with no `_run_id_changed(None)` emitted in between.
+1. **Clone timestamp — verified `RunsStore.create_run` does NOT re-stamp.** Read
+   `backend/persistence/runs/_internal/store_impl.py::_insert_run_header`: it binds
+   `run.created_at`/`run.timestamp` verbatim into the `INSERT` (only `run_id` is discarded, via
+   `cursor.lastrowid`) — **confirmed: the store does not re-stamp.** Fixed
+   `clone_as_new_retry_run` to compute `cloned_at = datetime.now(UTC).isoformat()` once and use
+   it for both `created_at` and `timestamp` on the new run (the same ISO-8601-UTC idiom
+   `backend.infra.SystemClock.now_utc()` uses; `ui/resume_benchmark/` cannot import
+   `backend.infra` directly per the layering table, and `ResumeGateway` carries no clock method,
+   so this is the narrowest available fix, not a new time-source pattern). Tests:
+   `test_clone_stamps_a_fresh_created_at_newer_than_the_source`,
+   `test_clone_sorts_to_top_of_default_started_at_descending_table_order` (feeds the source +
+   cloned run through the real `select_run_rows`/`RunTableModel` pipeline and asserts the clone
+   is `visible_row(0)`).
+1. **Clone result_id reuse — verified `ResultsStore.create_results` is autoincrement.** Read
+   `backend/persistence/results/_internal/store_impl.py::_insert_result_header`: it never binds
+   the incoming `result.result_id` into its `INSERT` column list — SQLite's
+   `INTEGER PRIMARY KEY` always assigns a fresh id via `cursor.lastrowid`. **Confirmed: passing
+   the source's `result_id` through unchanged (the existing `_clone_result`/
+   `msgspec_replace_run_id` behaviour) is safe — no code change was needed.** Added a regression
+   test using a new `_FakeAutoIncrementResumeGateway` (mimics the real store's id-reassignment
+   behaviour) proving the clone's result ids are disjoint from the source's:
+   `test_clone_result_ids_are_reassigned_by_an_autoincrement_store`.
+
+Also converted `test_run_table_model.py::test_status_badge_per_run_status`'s in-body loop to
+`@pytest.mark.parametrize` (its trailing `INCOMPLETE`-only resumability assertion was split out
+into its own `test_incomplete_run_with_pending_result_is_resumable`, since a parametrized test
+must not also carry a conditional assertion) per `testing.md`'s no-`if`/no-`for` rule.
+
+`just check`, `just coverage-layers`, `just trace`, and `just trace-check` were all re-run.
+`just trace-check` fails with a pre-existing backlog of ~34 dangling/untested `EC-` ids (none
+of them `EC-RB-*`/`EC-PERSIST-*`) unrelated to this story or this pass — see the
+`project_preexisting_gate_failures` note; `git status` confirms none of the files this pass
+touched introduced a new dangling edge case.

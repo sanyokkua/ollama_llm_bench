@@ -44,7 +44,11 @@ def make_resume_benchmark_widget(*, collaborators: ResumeBenchmarkCollaborators)
         native_pickers=collaborators.native_pickers,
         file_system_actions=collaborators.file_system_actions,
     )
-    view = ResumeBenchmarkView(controller=controller)
+    view = ResumeBenchmarkView(
+        controller=controller,
+        theme_manager=collaborators.theme_manager,
+        platform_kind=collaborators.platform_kind,
+    )
     controller.bind(view)
     controller.load_initial_rows()
     return view

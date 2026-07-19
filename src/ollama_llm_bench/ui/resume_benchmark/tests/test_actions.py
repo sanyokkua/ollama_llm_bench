@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from pathlib import Path
 
+import msgspec
 from PySide6.QtWidgets import QMessageBox, QWidget
 from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
@@ -13,6 +14,7 @@ from ollama_llm_bench.backend.domain import (
     BenchmarkResult,
     BenchmarkRun,
     BenchmarkTask,
+    ResultId,
     ResultStatus,
     RunId,
     RunMode,
@@ -26,6 +28,8 @@ from ollama_llm_bench.ui.resume_benchmark._internal.actions import (
     export_run_analysis,
     show_run_log_file,
 )
+from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import RunTableModel
+from ollama_llm_bench.ui.resume_benchmark._internal.view_model_select import select_run_rows
 
 _INTERNAL = "ollama_llm_bench.ui.resume_benchmark._internal.actions"
 _EXPECTED_NEW_RUN_ID = 999
@@ -166,6 +170,31 @@ class _FakeResumeGateway:
         raise NotImplementedError
 
 
+class _FakeAutoIncrementResumeGateway(_FakeResumeGateway):
+    """A ``ResumeGateway`` fake mimicking the real ``ResultsStore.create_results``'s
+    autoincrement behaviour: ids the caller supplies are discarded and replaced
+    with freshly assigned ones (``backend/persistence/results/_internal/store_impl.py``
+    ``_insert_result_header`` never binds the incoming ``result_id`` into its
+    ``INSERT`` column list -- confirmed by reading that store's real code)."""
+
+    def __init__(
+        self,
+        *,
+        run: BenchmarkRun,
+        tasks: tuple[BenchmarkTask, ...],
+        results: tuple[BenchmarkResult, ...],
+    ) -> None:
+        super().__init__(run=run, tasks=tasks, results=results)
+        self._next_result_id: ResultId = 500
+
+    def create_results(self, results: tuple[BenchmarkResult, ...]) -> None:
+        assigned: list[BenchmarkResult] = []
+        for result in results:
+            assigned.append(msgspec.structs.replace(result, result_id=self._next_result_id))
+            self._next_result_id += 1
+        self.created_results = tuple(assigned)
+
+
 def test_clone_creates_new_retry_run() -> None:
     """Proves: STORY-056-AC-5
 
@@ -221,6 +250,88 @@ def test_clone_clears_error_fields_on_reset_results() -> None:
     reset_result = gateway.created_results[0]
     assert reset_result.error_kind is None
     assert reset_result.error_message is None
+
+
+def test_clone_stamps_a_fresh_created_at_newer_than_the_source() -> None:
+    """Proves: STORY-056-AC-5 (gap fix: clone sorts to the top, §3.6 step 5)
+
+    RunsStore.create_run does not re-stamp created_at/timestamp on insert
+    (confirmed by reading
+    backend/persistence/runs/_internal/store_impl.py::_insert_run_header,
+    which binds run.created_at/run.timestamp verbatim) -- so
+    clone_as_new_retry_run must stamp a fresh "now" itself for the clone to
+    ever sort ahead of its (necessarily older) source run.
+    """
+    # Arrange
+    source = _run(1, status=RunStatus.FAILED)  # created_at: 2024-01-01T00:00:00+00:00
+    gateway = _FakeResumeGateway(run=source, tasks=(), results=())
+
+    # Act
+    clone_as_new_retry_run(gateway=gateway, source_run_id=1)
+
+    # Assert
+    cloned_run = gateway.created_run
+    assert cloned_run is not None
+    assert cloned_run.created_at > source.created_at
+    assert cloned_run.timestamp > source.timestamp
+
+
+def test_clone_sorts_to_top_of_default_started_at_descending_table_order(
+    qtbot: QtBot,
+) -> None:
+    """Proves: STORY-056-AC-5 (gap fix: clone sorts to the top, §3.6 step 5)
+
+    Feeding the source run and the freshly cloned run through the same
+    view_model_select/RunTableModel pipeline the widget uses proves the
+    clone's fresh created_at stamp lands it first under the table's default
+    started_at-or-created_at descending sort.
+    """
+    # Arrange
+    source = _run(1, status=RunStatus.FAILED)
+    gateway = _FakeResumeGateway(run=source, tasks=(), results=())
+
+    # Act
+    new_run_id = clone_as_new_retry_run(gateway=gateway, source_run_id=1)
+    cloned_run = gateway.created_run
+    assert cloned_run is not None
+    cloned_run = msgspec.structs.replace(cloned_run, run_id=new_run_id)
+
+    # Assert
+    rows = select_run_rows(
+        runs=(source, cloned_run),
+        results_by_run_id={1: (), new_run_id: ()},
+        active_run_id=None,
+        log_file_exists_by_run_id={},
+    )
+    model = RunTableModel(rows=rows)
+    assert model.visible_row(0).run_id == new_run_id
+
+
+def test_clone_result_ids_are_reassigned_by_an_autoincrement_store() -> None:
+    """Proves: STORY-056-AC-5 (gap fix: clone must not reuse source result_id values)
+
+    ResultsStore.create_results is an autoincrement store that discards the
+    caller-supplied result_id (confirmed by reading
+    backend/persistence/results/_internal/store_impl.py::_insert_result_header,
+    which never binds the incoming id into its INSERT column list) -- so
+    passing the source's result_id through unchanged on the clone is safe:
+    a real store always assigns fresh, distinct ids regardless.
+    """
+    # Arrange
+    source = _run(1, status=RunStatus.FAILED)
+    completed_result = _result(1, run_id=1, status=ResultStatus.COMPLETED)
+    failed_result = _result(2, run_id=1, status=ResultStatus.FAILED_INFERENCE)
+    gateway = _FakeAutoIncrementResumeGateway(
+        run=source, tasks=(), results=(completed_result, failed_result)
+    )
+
+    # Act
+    clone_as_new_retry_run(gateway=gateway, source_run_id=1)
+
+    # Assert
+    new_ids = {r.result_id for r in gateway.created_results}
+    source_ids = {completed_result.result_id, failed_result.result_id}
+    assert new_ids.isdisjoint(source_ids)
 
 
 def test_confirm_and_delete_run_deletes_on_yes(mocker: MockerFixture, qtbot: QtBot) -> None:

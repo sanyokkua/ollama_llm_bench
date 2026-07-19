@@ -7,6 +7,7 @@ from ollama_llm_bench.ui.shared.api import (
     make_badge_label,
     make_health_dot,
     make_multi_check_filter_button,
+    resolve_badge_color_roles,
 )
 from ollama_llm_bench.ui.shared.models import BadgeStatus, FilterSelectionChanged
 
@@ -16,4 +17,5 @@ __all__: list[str] = [
     "make_badge_label",
     "make_health_dot",
     "make_multi_check_filter_button",
+    "resolve_badge_color_roles",
 ]

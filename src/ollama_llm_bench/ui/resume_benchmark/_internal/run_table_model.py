@@ -10,9 +10,12 @@ controller uses to map a selected view row back to a ``run_id``.
 from typing import override
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QPersistentModelIndex, Qt
+from PySide6.QtGui import QColor
 
 from ollama_llm_bench.backend.domain import RunId
+from ollama_llm_bench.ui.resume_benchmark._internal.theme_lookup import resolve_theme_tokens
 from ollama_llm_bench.ui.resume_benchmark.models import RunRow
+from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager, resolve_color
 
 __all__: list[str] = [
     "COL_MODE",
@@ -47,9 +50,18 @@ _SORT_KEY_FNS: dict[int, object] = {
 class RunTableModel(QAbstractTableModel):
     """Virtualised run table: search + sort over ``RunRow`` tuples (STORY-056-AC-1)."""
 
-    def __init__(self, *, rows: tuple[RunRow, ...] = (), parent: QObject | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        rows: tuple[RunRow, ...] = (),
+        theme_manager: ThemeManager | None = None,
+        platform_kind: PlatformKind = PlatformKind.UNKNOWN,
+        parent: QObject | None = None,
+    ) -> None:
         super().__init__(parent)
         self._all_rows: tuple[RunRow, ...] = rows
+        self._theme_manager = theme_manager
+        self._platform_kind = platform_kind
         self._search_term = ""
         self._sort_column = COL_STARTED
         self._sort_descending = True
@@ -134,9 +146,13 @@ class RunTableModel(QAbstractTableModel):
         index: QModelIndex | QPersistentModelIndex,
         role: int = Qt.ItemDataRole.DisplayRole,
     ) -> object:
-        if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
+        if not index.isValid():
             return None
         row = self._visible_rows[index.row()]
+        if role == Qt.ItemDataRole.UserRole and index.column() == COL_STATUS:
+            return row.status_badge_status
+        if role != Qt.ItemDataRole.DisplayRole:
+            return None
         values = (
             row.effective_name,
             row.mode_label,
@@ -150,6 +166,21 @@ class RunTableModel(QAbstractTableModel):
     def headerData(
         self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole
     ) -> object:
-        if role != Qt.ItemDataRole.DisplayRole or orientation != Qt.Orientation.Horizontal:
+        if orientation != Qt.Orientation.Horizontal:
             return None
-        return _HEADERS[section]
+        is_active_sort_column = section == self._sort_column
+        if role == Qt.ItemDataRole.DisplayRole:
+            if is_active_sort_column:
+                caret = "▼" if self._sort_descending else "▲"
+                return f"{_HEADERS[section]} {caret}"
+            return _HEADERS[section]
+        if (
+            role == Qt.ItemDataRole.ForegroundRole
+            and is_active_sort_column
+            and self._theme_manager is not None
+        ):
+            tokens = resolve_theme_tokens(
+                theme_manager=self._theme_manager, platform_kind=self._platform_kind
+            )
+            return QColor(resolve_color(tokens, "primary.base"))
+        return None

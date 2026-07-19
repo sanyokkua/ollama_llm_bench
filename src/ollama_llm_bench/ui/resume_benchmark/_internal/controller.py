@@ -158,6 +158,26 @@ class ResumeBenchmarkController:
         self._wire_menu_actions(menu, row)
         menu.exec(global_pos)
 
+    def on_pencil_clicked(self, view_row: int) -> None:
+        """The inline pencil Icon Button click; opens Rename for that row (§3.3)."""
+        row = self.table_model.visible_row(view_row)
+        logger.debug("resume_pencil_clicked", run_id=row.run_id)
+        self._on_rename_triggered(row.run_id)
+
+    def on_more_clicked(self, view_row: int, global_pos: QPoint) -> None:
+        """The inline ⋯ Icon Button click; opens the same context menu (SPEC-078)."""
+        logger.debug("resume_more_clicked", view_row=view_row)
+        self.on_context_menu_requested(view_row, global_pos)
+
+    def current_selected_run_id(self) -> RunId | None:
+        """The run id currently tracked as selected.
+
+        Read by the view to restore the ``QTableView``'s visual selection
+        after a model reset (``set_rows``/``set_search_term``/``set_sort``
+        all clear Qt's own selection model).
+        """
+        return self._selected_run_id
+
     def _wire_menu_actions(self, menu: QMenu, row: RunRow) -> None:
         for action in menu.actions():
             name = action.objectName()

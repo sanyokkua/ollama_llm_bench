@@ -1,6 +1,8 @@
 """Colocated unit tests for ui/resume_benchmark's run table (STORY-056)."""
 
+from PySide6.QtCore import Qt
 from PySide6.QtTest import QAbstractItemModelTester
+import pytest
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.backend.domain import (
@@ -10,7 +12,12 @@ from ollama_llm_bench.backend.domain import (
     RunMode,
     RunStatus,
 )
-from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import RunTableModel
+from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import (
+    COL_NAME,
+    COL_STARTED,
+    COL_STATUS,
+    RunTableModel,
+)
 from ollama_llm_bench.ui.resume_benchmark._internal.view_model_select import select_run_rows
 from ollama_llm_bench.ui.resume_benchmark.models import RunRow
 
@@ -44,32 +51,56 @@ def _result(result_id: int, *, run_id: int, status: ResultStatus) -> BenchmarkRe
     )
 
 
-def test_status_badge_per_run_status() -> None:
-    """Proves: STORY-056-AC-3
-
-    Each RunStatus maps to its exact badge label/tone pair, table-driven over
-    all four persisted statuses (also covers EC-PERSIST-2: INCOMPLETE renders
-    Pending and is offered as resumable).
-    """
-    cases = [
+@pytest.mark.parametrize(
+    ("status", "expected_label", "expected_tone"),
+    [
         (RunStatus.COMPLETED, "Done", "pass"),
         (RunStatus.STOPPED, "Stopped", "warning"),
         (RunStatus.FAILED, "Failed", "fail"),
         (RunStatus.INCOMPLETE, "Pending", "neutral"),
-    ]
-    for status, expected_label, expected_tone in cases:
-        run = _run(1, status=status)
-        results = (_result(1, run_id=1, status=ResultStatus.PENDING),)
-        rows = select_run_rows(
-            runs=(run,),
-            results_by_run_id={1: results},
-            active_run_id=None,
-            log_file_exists_by_run_id={},
-        )
-        assert rows[0].status_badge_label == expected_label
-        assert rows[0].status_badge_status == expected_tone
-        if status is RunStatus.INCOMPLETE:
-            assert rows[0].is_resumable is True
+    ],
+)
+def test_status_badge_per_run_status(
+    status: RunStatus, expected_label: str, expected_tone: str
+) -> None:
+    """Proves: STORY-056-AC-3
+
+    Each RunStatus maps to its exact badge label/tone pair, table-driven over
+    all four persisted statuses.
+    """
+    # Arrange
+    run = _run(1, status=status)
+    results = (_result(1, run_id=1, status=ResultStatus.PENDING),)
+    # Act
+    rows = select_run_rows(
+        runs=(run,),
+        results_by_run_id={1: results},
+        active_run_id=None,
+        log_file_exists_by_run_id={},
+    )
+    # Assert
+    assert rows[0].status_badge_label == expected_label
+    assert rows[0].status_badge_status == expected_tone
+
+
+def test_incomplete_run_with_pending_result_is_resumable() -> None:
+    """Proves: STORY-056-AC-3 (EC-PERSIST-2)
+
+    An INCOMPLETE run with a pending result renders the Pending badge and is
+    offered as resumable.
+    """
+    # Arrange
+    run = _run(1, status=RunStatus.INCOMPLETE)
+    results = (_result(1, run_id=1, status=ResultStatus.PENDING),)
+    # Act
+    rows = select_run_rows(
+        runs=(run,),
+        results_by_run_id={1: results},
+        active_run_id=None,
+        log_file_exists_by_run_id={},
+    )
+    # Assert
+    assert rows[0].is_resumable is True
 
 
 def test_completed_run_is_not_resumable() -> None:
@@ -206,3 +237,43 @@ def test_find_view_row_for_run_id_returns_none_when_absent(qtbot: QtBot) -> None
     model = RunTableModel(rows=(_row(1, "Alpha", "Synthetic Benchmark", "2024-01-01 00:00"),))
     assert model.find_view_row_for_run_id(999) is None
     assert model.find_view_row_for_run_id(1) == 0
+
+
+def test_header_caret_reflects_active_sort_column_and_direction(qtbot: QtBot) -> None:
+    """Proves: STORY-056-AC-1 (gap fix: sort-direction caret, §3.3)
+
+    The active sort column's header carries a ▼/▲ caret matching its current
+    direction; every other column's header carries no caret. Clicking through
+    ``set_sort`` (the same call ``on_sort_header_clicked`` makes) flips the
+    caret's direction and moves it to the newly active column.
+    """
+    # Arrange
+    model = RunTableModel(rows=())
+
+    # Act / Assert -- default: Started descending
+    assert model.headerData(COL_STARTED, Qt.Orientation.Horizontal) == "Started ▼"
+    assert model.headerData(COL_NAME, Qt.Orientation.Horizontal) == "Run name"
+
+    # Act -- make Run name the active sort column, ascending
+    model.set_sort(COL_NAME, descending=False)
+    # Assert
+    assert model.headerData(COL_NAME, Qt.Orientation.Horizontal) == "Run name ▲"
+    assert model.headerData(COL_STARTED, Qt.Orientation.Horizontal) == "Started"
+
+    # Act -- toggle the same column's direction
+    model.set_sort(COL_NAME, descending=True)
+    # Assert
+    assert model.headerData(COL_NAME, Qt.Orientation.Horizontal) == "Run name ▼"
+
+
+def test_status_column_user_role_carries_the_status_badge_status(qtbot: QtBot) -> None:
+    """Proves: STORY-056-AC-3 (gap fix: coloured Status badge delegate, §4.3)
+
+    The Status column's ``UserRole`` data is the row's ``status_badge_status``
+    tone string -- the input ``StatusBadgeDelegate`` resolves to a colour.
+    """
+    # Arrange
+    model = RunTableModel(rows=(_row(1, "Alpha", "Synthetic Benchmark", "2024-01-01 00:00"),))
+    index = model.index(0, COL_STATUS)
+    # Act / Assert
+    assert model.data(index, Qt.ItemDataRole.UserRole) == "pass"

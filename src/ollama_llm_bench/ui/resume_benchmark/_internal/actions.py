@@ -11,8 +11,34 @@ dialog exists for it and no acceptance criterion tests one); the
 ``log_file_exists``/``log_file`` derivation lives entirely behind
 ``FileSystemActions.run_log_path_str`` (STORY-056's own extension of that
 Protocol), so this module never touches ``backend/infra`` directly.
+
+Clone's fresh ``created_at``/``timestamp`` stamp (gap fix, §3.6 step 5):
+``RunsStore.create_run`` inserts ``created_at``/``timestamp`` verbatim from
+the caller-supplied ``BenchmarkRun`` -- it does **not** re-stamp them on
+insert (confirmed by reading
+``backend/persistence/runs/_internal/store_impl.py::_insert_run_header``,
+which binds ``run.created_at``/``run.timestamp`` straight into the
+``INSERT`` statement). This module therefore computes "now" itself, the same
+``datetime.now(UTC).isoformat()`` idiom ``backend/infra``'s ``SystemClock``
+uses, so the clone sorts to the top of the table's default
+``started_at``-or-``created_at``-descending order (§3.3) -- this module
+cannot depend on ``backend.infra.Clock`` directly (``ui/*`` may only import
+``backend.domain``/``backend.errors``/``backend.events``/``backend.stores``/
+``backend.settings``, never ``backend.infra``), and this widget's
+``ResumeGateway`` carries no clock method, so there is no injectable
+alternative available at this layer.
+
+``RunsStore.create_run`` and ``ResultsStore.create_results`` also both
+ignore the caller-supplied ``run_id``/``result_id`` -- both are
+``INTEGER PRIMARY KEY`` columns SQLite auto-assigns via ``lastrowid``
+(confirmed by reading the same store's ``_insert_run_header`` and
+``ResultsStore._insert_result_header``, neither of which binds the incoming
+id into its ``INSERT`` column list). Passing the source result's
+``result_id`` through unchanged on the clone (below) is therefore safe: the
+store discards it and assigns a fresh id regardless.
 """
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 from PySide6.QtWidgets import QMessageBox, QWidget
@@ -70,10 +96,11 @@ def clone_as_new_retry_run(*, gateway: ResumeGateway, source_run_id: RunId) -> R
     source = gateway.get_run(source_run_id)
     tasks = gateway.list_tasks(source_run_id)
     results = gateway.list_results(source_run_id)
+    cloned_at = datetime.now(UTC).isoformat()
     new_run = BenchmarkRun(
         run_id=0,
         run_name=f"{effective_run_name(source)} (retry)",
-        timestamp=source.timestamp,
+        timestamp=cloned_at,
         run_mode=source.run_mode,
         status=RunStatus.INCOMPLETE,
         total_tasks=source.total_tasks,
@@ -85,7 +112,7 @@ def clone_as_new_retry_run(*, gateway: ResumeGateway, source_run_id: RunId) -> R
         embedding_provider_name=source.embedding_provider_name,
         embedding_model_name=source.embedding_model_name,
         schema_version=source.schema_version,
-        created_at=source.created_at,
+        created_at=cloned_at,
         models=source.models,
         providers=source.providers,
         settings_snapshot=source.settings_snapshot,

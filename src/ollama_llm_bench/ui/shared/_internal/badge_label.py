@@ -26,6 +26,16 @@ _FILL_ROLE: dict[BadgeStatus, str] = {
 }
 
 
+def resolve_badge_color_roles(status: BadgeStatus) -> tuple[str, str]:
+    """Return the ``(base_role, fill_role)`` colour-role names for a badge status.
+
+    Shared by ``BadgeLabelWidget`` and any other custom-painted surface (for
+    example a table-cell delegate) that must render the same badge colour
+    language without constructing a full widget instance.
+    """
+    return _BASE_ROLE[status], _FILL_ROLE[status]
+
+
 class BadgeLabelWidget(QWidget):
     """A pill-shaped badge: a soft fill background plus base-coloured text (08-D §5)."""
 

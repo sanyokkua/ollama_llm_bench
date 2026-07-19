@@ -1,7 +1,10 @@
 """Colocated unit tests for the Resume widget controller (STORY-056)."""
 
 from collections.abc import Callable, Mapping
+from typing import cast
 
+from PySide6.QtCore import QItemSelectionModel
+from PySide6.QtWidgets import QTableView
 from pytestqt.qtbot import QtBot
 import structlog
 
@@ -22,6 +25,10 @@ from ollama_llm_bench.backend.events import (
 )
 from ollama_llm_bench.ui.resume_benchmark import make_resume_benchmark_widget
 from ollama_llm_bench.ui.resume_benchmark._internal.controller import ResumeBenchmarkController
+from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import (
+    COL_NAME,
+    RunTableModel,
+)
 from ollama_llm_bench.ui.resume_benchmark.models import ResumeBenchmarkCollaborators
 
 
@@ -83,6 +90,7 @@ class _FakeResumeGateway:
     ) -> None:
         self._runs = {run.run_id: run for run in runs}
         self._results_by_run_id = results_by_run_id
+        self.set_sort_calls: list[tuple[str, bool]] = []
 
     def list_runs(self) -> tuple[BenchmarkRun, ...]:
         return tuple(self._runs.values())
@@ -133,7 +141,7 @@ class _FakeResumeGateway:
         return ("started", True)
 
     def set_sort_setting(self, column: str, descending: bool) -> None:  # noqa: FBT001  # mirrors ResumeGateway verbatim
-        raise NotImplementedError
+        self.set_sort_calls.append((column, descending))
 
     def resume_run(self, run_id: RunId) -> None:
         raise NotImplementedError
@@ -145,10 +153,10 @@ class _FakeResumeGateway:
         return None
 
 
-def _run(run_id: int) -> BenchmarkRun:
+def _run(run_id: int, *, run_name: str = "Alpha") -> BenchmarkRun:
     return BenchmarkRun(
         run_id=run_id,
-        run_name="Alpha",
+        run_name=run_name,
         timestamp="2024-01-01T00:00:00+00:00",
         run_mode=RunMode.TASKS,
         status=RunStatus.INCOMPLETE,
@@ -245,3 +253,58 @@ def test_resume_widget_constructs_and_shows_with_no_error_logs(qtbot: QtBot) -> 
     # Assert
     assert widget.isVisible()
     assert not any(entry["log_level"] in {"error", "critical"} for entry in captured)
+
+
+def test_selection_restored_across_sort_reset_with_view_mounted(qtbot: QtBot) -> None:
+    """Proves: STORY-056-AC-2 (gap fix: selection restore across a model reset, §3.3)
+
+    ``RunTableModel.set_sort`` (like ``set_rows``/``set_search_term``) calls
+    ``beginResetModel``/``endResetModel``, which clears Qt's own selection
+    model. Mounting the real widget, selecting a row, then triggering a
+    sort-column click must leave the same row selected in the QTableView
+    afterward -- and must not emit a spurious ``_run_id_changed(None)`` in
+    between (the selection is being restored, not changed by the user).
+    """
+    # Arrange
+    gateway = _FakeResumeGateway(
+        runs=(_run(1, run_name="Alpha"), _run(2, run_name="Beta")),
+        results_by_run_id={1: (), 2: ()},
+    )
+    bus = _RecordingEventBus()
+    collaborators = ResumeBenchmarkCollaborators(
+        gateway=gateway,
+        event_bus=bus,
+        native_pickers=_FakeNativePickers(),
+        file_system_actions=_FakeFileSystemActions(),
+    )
+    widget = make_resume_benchmark_widget(collaborators=collaborators)
+    qtbot.addWidget(widget)
+    widget.show()
+    table_view = cast("QTableView", widget.findChild(QTableView, "resume_benchmark.table"))
+    model = cast("RunTableModel", table_view.model())
+    selected_view_row = model.find_view_row_for_run_id(1)
+    assert selected_view_row is not None
+    table_view.selectionModel().select(
+        model.index(selected_view_row, 0),
+        QItemSelectionModel.SelectionFlag.ClearAndSelect | QItemSelectionModel.SelectionFlag.Rows,
+    )
+    events_before = len(bus.emitted)
+
+    # Act -- a sort-column click (drives a model reset unrelated to selection)
+    table_view.horizontalHeader().sectionClicked.emit(COL_NAME)
+
+    # Assert -- run 1's row is still selected
+    restored_view_row = model.find_view_row_for_run_id(1)
+    assert restored_view_row is not None
+    assert table_view.selectionModel().isRowSelected(
+        restored_view_row, model.index(-1, -1).parent()
+    )
+
+    # Assert -- no spurious _run_id_changed(None) was emitted while restoring
+    new_events = bus.emitted[events_before:]
+    assert not any(
+        name == SIGNAL_RUN_ID_CHANGED
+        and isinstance(payload, RunIdChangedEvent)
+        and payload.run_id is None
+        for name, payload in new_events
+    )

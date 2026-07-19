@@ -13,6 +13,7 @@ from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.backend.domain import RunId
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.resume_benchmark.protocols import ResumeGateway
+from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
 __all__: list[str] = ["ResumeBenchmarkCollaborators", "RunRow"]
 
@@ -44,3 +45,5 @@ class ResumeBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc
     event_bus: EventBus
     native_pickers: NativePickers
     file_system_actions: FileSystemActions
+    theme_manager: ThemeManager | None = None
+    platform_kind: PlatformKind = PlatformKind.UNKNOWN
