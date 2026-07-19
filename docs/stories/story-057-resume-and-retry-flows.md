@@ -195,17 +195,20 @@ and mounting it under `qtbot`, then showing it (`qtbot.addWidget(...)`, `.show()
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-057.
-- [ ] EC-RUN-5, EC-RUN-6, EC-RUN-11, and EC-PERSIST-4 each have a passing test.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises every state in the
+- [x] Every acceptance criterion has a passing test that names STORY-057.
+- [x] EC-RUN-5, EC-RUN-6, EC-RUN-11, and EC-PERSIST-4 each have a passing test.
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises every state in the
   Resume Summary and Retry Selection dialog state machines.
-- [ ] An architecture test confirms the dialogs and the resume/retry actions depend only on
+- [x] An architecture test confirms the dialogs and the resume/retry actions depend only on
   `ResumeGateway` (via the widget), and that the modules reference no `setStyleSheet`, embed
   no colour literal, and import no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/resume_benchmark/` and
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/resume_benchmark/` and
   `ui/common_dialogs/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan
-  clause and no orphan test for STORY-057.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan
+  clause and no orphan test for STORY-057. (Repo-wide `just trace-check` still fails on
+  ~33 pre-existing edge-case gaps from earlier stories, unrelated to STORY-057 -- confirmed by
+  diffing against the pre-STORY-057 commit, which already showed the same failures plus
+  EC-RUN-5/6/11 that this story's tests now additionally close.)
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
