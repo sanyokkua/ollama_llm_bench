@@ -21,7 +21,7 @@ from ollama_llm_bench.backend.domain import (
 )
 from ollama_llm_bench.ui.resume_benchmark.models import RunRow
 
-__all__: list[str] = ["select_run_rows"]
+__all__: list[str] = ["default_run_name", "effective_run_name", "select_run_rows"]
 
 _STATUS_BADGE: dict[RunStatus, tuple[str, str]] = {
     RunStatus.COMPLETED: ("Done", "pass"),
@@ -97,7 +97,7 @@ def _to_run_row(
     )
     return RunRow(
         run_id=run.run_id,
-        effective_name=_effective_name(run),
+        effective_name=effective_run_name(run),
         mode_label=_MODE_LABELS[run.run_mode],
         started_at_display=_format_local(run.started_at) if run.started_at else "",
         started_at_sort_key=run.started_at or run.created_at,
@@ -112,7 +112,7 @@ def _to_run_row(
     )
 
 
-def _effective_name(run: BenchmarkRun) -> str:
+def effective_run_name(run: BenchmarkRun) -> str:
     """The user-set name if present, otherwise the generated default name (SPEC-077)."""
     if run.run_name:
         return run.run_name
