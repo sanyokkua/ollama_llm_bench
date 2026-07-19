@@ -220,3 +220,29 @@ mounting it under `qtbot`, then showing it (`qtbot.addWidget(...)`, `.show()`, o
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+- **Export Summary/Details (CSV/Markdown) functional wiring is deferred to a not-yet-created
+  follow-up story (STORY-056b).** `ResumeGateway` (08-E §7b.3) has no `serialize_table`-shaped
+  method, unlike its sibling `ResultGateway` (`serialize_table(run_id, table, fmt) -> str`), and
+  `ui/resume_benchmark/` is not permitted to import `backend/csv_export` directly. This pass
+  implements exactly what AC-4 requires — the four Export Summary/Details context-menu actions
+  exist and are gated "always enabled" — and wires their `.triggered` connection to a
+  `_global_message` toast reading "Export not yet available"
+  (`_internal/actions.py::export_table_not_yet_available`) rather than leaving them disconnected,
+  per `08-L_ui_standardization.md`'s no-placeholder-UI rule. Landing real export content requires
+  a `ResumeGateway.serialize_table` protocol amendment (mirroring `ResultGateway.serialize_table`)
+  and a fold-back into `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b.3 — this session did
+  not attempt that amendment, consistent with the implementation plan's Escalation section.
+- Two other design decisions were resolved during planning, not spec-mandated, and are baked
+  into this implementation: (1) the Delete confirmation is an inline stock
+  `QMessageBox.question(...)` (native OS chrome, no `setStyleSheet`) rather than a new themed
+  `common_dialogs` factory — no prior confirmation-dialog pattern exists and no acceptance
+  criterion tests one; (2) the `log_file_exists`/`log_file_path` gating boolean (AC-4's "Show
+  run-log file" gate) is answered by extending `adapters/file_system_actions/protocols.py`'s
+  `FileSystemActions` Protocol with two new methods, `run_log_exists(*, run_id, started_at)` and
+  `run_log_path_str(*, run_id, started_at)`, both deriving the path via
+  `backend.infra.run_log_path` — the real log-path construction lives in `backend/infra`, which
+  `ui/*` cannot import directly, so `adapters/*` (which may import any `backend/*` package)
+  supplies the derived boolean/path instead.
