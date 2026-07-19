@@ -15,6 +15,7 @@ from ollama_llm_bench.backend.domain import (
     BenchmarkRun,
     BenchmarkTask,
     ResultId,
+    ResultStatus,
     RunId,
     RunMode,
     RunStatus,
@@ -102,6 +103,7 @@ class _FakeResumeGateway:
         self.set_sort_calls: list[tuple[str, bool]] = []
         self.created_run: BenchmarkRun | None = None
         self.created_results: tuple[BenchmarkResult, ...] = ()
+        self.resumed_run_ids: list[RunId] = []
         self._next_run_id: RunId = 999
 
     def list_runs(self) -> tuple[BenchmarkRun, ...]:
@@ -163,7 +165,7 @@ class _FakeResumeGateway:
         self.set_sort_calls.append((column, descending))
 
     def resume_run(self, run_id: RunId) -> None:
-        raise NotImplementedError
+        self.resumed_run_ids.append(run_id)
 
     def is_run_active(self) -> bool:
         return False
@@ -187,6 +189,29 @@ def _run(run_id: int, *, run_name: str | None = "Alpha") -> BenchmarkRun:
     )
 
 
+def _pending_result(result_id: int) -> BenchmarkResult:
+    return BenchmarkResult(
+        result_id=result_id,
+        run_id=1,
+        task_id=f"task-{result_id}",
+        provider_id="11111111-1111-4111-8111-111111111111",
+        provider_name="Test Provider",
+        model_name="test-model",
+        status=ResultStatus.PENDING,
+        created_at="2024-01-01T00:00:00+00:00",
+    )
+
+
+class _StubResumeView(QWidget):
+    """A bare stand-in view carrying only the footer-button-state hook
+    (STORY-057) the controller now pushes to on every rows/selection change --
+    this file's tests exercise controller logic, never real view rendering.
+    """
+
+    def set_resume_button_state(self, *, enabled: bool, disabled_reason: str) -> None:
+        pass
+
+
 def _make_controller(
     gateway: _FakeResumeGateway, *, bus: _RecordingEventBus
 ) -> tuple[ResumeBenchmarkController, QWidget]:
@@ -196,7 +221,7 @@ def _make_controller(
         native_pickers=_FakeNativePickers(),
         file_system_actions=_FakeFileSystemActions(),
     )
-    view = QWidget()
+    view = _StubResumeView()
     controller.bind(view)
     controller.load_initial_rows()
     return controller, view
@@ -331,6 +356,85 @@ def _trigger(menu: QMenu, object_name: str) -> None:
             action.trigger()
             return
     raise AssertionError(f"no action named {object_name}")
+
+
+def test_resume_run_clicked_opens_dialog_and_calls_resume_run(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-057-AC-4
+
+    Confirming the Resume Summary dialog opened from on_resume_run_clicked
+    calls ResumeGateway.resume_run(run_id) for the selected run.
+    """
+    # Arrange
+    bus = _RecordingEventBus()
+    gateway = _FakeResumeGateway(runs=(_run(1),))
+    fake_dialog = mocker.Mock()
+    fake_dialog.exec.side_effect = lambda: gateway.resume_run(1)
+    make_dialog_mock = mocker.patch(
+        f"{_COMMON_DIALOGS}.make_resume_summary_dialog", return_value=fake_dialog
+    )
+    controller, view = _make_controller(gateway, bus=bus)
+    qtbot.addWidget(view)
+    controller.on_row_selected(1)
+
+    # Act
+    controller.on_resume_run_clicked()
+
+    # Assert
+    make_dialog_mock.assert_called_once()
+    fake_dialog.exec.assert_called_once()
+    assert gateway.resumed_run_ids == [1]
+
+
+def test_resume_run_clicked_with_no_selection_is_a_noop(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-057-AC-4
+
+    on_resume_run_clicked with no row selected never opens the dialog.
+    """
+    # Arrange
+    make_dialog_mock = mocker.patch(f"{_COMMON_DIALOGS}.make_resume_summary_dialog")
+    bus = _RecordingEventBus()
+    gateway = _FakeResumeGateway(runs=(_run(1),))
+    controller, view = _make_controller(gateway, bus=bus)
+    qtbot.addWidget(view)
+
+    # Act
+    controller.on_resume_run_clicked()
+
+    # Assert
+    make_dialog_mock.assert_not_called()
+
+
+def test_retry_context_menu_action_opens_retry_dialog(qtbot: QtBot, mocker: MockerFixture) -> None:
+    """Proves: STORY-057-AC-5
+
+    Triggering action_retry from the context menu opens the Retry Selection
+    dialog for that row's run.
+    """
+    # Arrange
+    fake_dialog = mocker.Mock()
+    fake_dialog.exec.return_value = None
+    make_dialog_mock = mocker.patch(
+        f"{_COMMON_DIALOGS}.make_retry_selection_dialog", return_value=fake_dialog
+    )
+    bus = _RecordingEventBus()
+    gateway = _FakeResumeGateway(runs=(_run(1),))
+    gateway._results_by_run_id[1] = (_pending_result(1),)  # test-fake setup
+    controller, view = _make_controller(gateway, bus=bus)
+    qtbot.addWidget(view)
+    row = controller.table_model.visible_row(0)
+    menu = build_context_menu(row=row, parent=view)
+    controller._wire_menu_actions(menu, row)
+
+    # Act
+    _trigger(menu, "action_retry")
+
+    # Assert
+    make_dialog_mock.assert_called_once_with(gateway=gateway, run_id=1, parent=view)
+    fake_dialog.exec.assert_called_once()
 
 
 def test_splice_row_updates_existing_row_in_place(qtbot: QtBot) -> None:

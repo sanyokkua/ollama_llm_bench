@@ -4,6 +4,7 @@ and ``FileSystemActions`` -- never a raw backend Store/Service Protocol (D-R-06)
 """
 
 from functools import partial
+from typing import TYPE_CHECKING, cast
 
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QMenu, QWidget
@@ -53,6 +54,12 @@ from ollama_llm_bench.ui.resume_benchmark._internal.view_model_select import (
 )
 from ollama_llm_bench.ui.resume_benchmark.models import RunRow
 from ollama_llm_bench.ui.resume_benchmark.protocols import ResumeGateway
+
+if TYPE_CHECKING:
+    # Only for the cast() in _push_resume_button_state -- view.py imports this
+    # module for ResumeBenchmarkView's constructor parameter, so a real
+    # module-level import here would be a runtime import cycle.
+    from ollama_llm_bench.ui.resume_benchmark._internal.view import ResumeBenchmarkView
 
 __all__: list[str] = ["ResumeBenchmarkController"]
 
@@ -135,6 +142,7 @@ class ResumeBenchmarkController:
         self._event_bus.emit(
             SIGNAL_RUN_ID_CHANGED, RunIdChangedEvent(run_id=run_id, previous_run_id=previous)
         )
+        self._push_resume_button_state()
 
     def on_search_term_changed(self, term: str) -> None:
         """The search box's debounced text change; re-filters and may clear selection."""
@@ -191,6 +199,8 @@ class ResumeBenchmarkController:
                 action.triggered.connect(partial(self._on_export_analysis_triggered, row))
             elif name == "action_show_log":
                 action.triggered.connect(partial(self._on_show_log_triggered, row))
+            elif name == "action_retry":
+                action.triggered.connect(partial(self._on_retry_triggered, row.run_id))
             elif name in _EXPORT_TABLE_ACTION_NAMES:
                 action.triggered.connect(self._on_export_table_triggered)
 
@@ -232,6 +242,38 @@ class ResumeBenchmarkController:
             run_name=row.effective_name,
             parent=self._view,
         )
+        self._rebuild_all_rows()
+
+    def on_resume_run_clicked(self) -> None:
+        """The footer Resume Run button click; opens the Resume Summary dialog."""
+        # Deferred import: see _on_rename_triggered's docstring note for why
+        # ui.common_dialogs is imported here rather than at module scope.
+        from ollama_llm_bench.ui.common_dialogs import make_resume_summary_dialog  # noqa: PLC0415
+
+        if self._view is None or self._selected_run_id is None:
+            return
+        run_id = self._selected_run_id
+        logger.debug("resume_run_clicked", run_id=run_id)
+        dialog = make_resume_summary_dialog(
+            gateway=self._gateway, event_bus=self._event_bus, run_id=run_id, parent=self._view
+        )
+        if dialog is None:
+            return
+        dialog.exec()
+        self._rebuild_all_rows()
+
+    def _on_retry_triggered(self, run_id: RunId) -> None:
+        from ollama_llm_bench.ui.common_dialogs import make_retry_selection_dialog  # noqa: PLC0415
+
+        if self._view is None:
+            return
+        logger.debug("resume_retry_triggered", run_id=run_id)
+        dialog = make_retry_selection_dialog(
+            gateway=self._gateway, run_id=run_id, parent=self._view
+        )
+        if dialog is None:
+            return
+        dialog.exec()
         self._rebuild_all_rows()
 
     def _on_export_table_triggered(self) -> None:
@@ -322,6 +364,23 @@ class ResumeBenchmarkController:
         self._current_rows = rows
         self.table_model.set_rows(rows)
         self._clear_selection_if_filtered_out()
+        self._push_resume_button_state()
+
+    def _push_resume_button_state(self) -> None:
+        if self._view is None:
+            return
+        view = cast("ResumeBenchmarkView", self._view)
+        row = next((r for r in self._current_rows if r.run_id == self._selected_run_id), None)
+        if row is None:
+            view.set_resume_button_state(enabled=False, disabled_reason="Select a run to resume")
+            return
+        if row.is_executing:
+            reason = "This run is currently running"
+        elif not row.is_resumable:
+            reason = "This run is fully completed — nothing to resume"
+        else:
+            reason = ""
+        view.set_resume_button_state(enabled=row.is_resumable, disabled_reason=reason)
 
     def _clear_selection_if_filtered_out(self) -> None:
         if self._selected_run_id is None:

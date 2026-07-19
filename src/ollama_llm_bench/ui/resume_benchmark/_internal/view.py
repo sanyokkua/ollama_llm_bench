@@ -17,9 +17,11 @@ from PySide6.QtCore import (
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
+    QPushButton,
     QTableView,
     QVBoxLayout,
     QWidget,
@@ -102,6 +104,16 @@ class ResumeBenchmarkView(QWidget):
         caption.setProperty("role", "muted-caption")
         layout.addWidget(caption)
 
+        footer = QHBoxLayout()
+        footer.addStretch()
+        self._resume_button = QPushButton("Resume Run")
+        self._resume_button.setObjectName("resume_benchmark.resume_button")
+        self._resume_button.setProperty("role", "primary-button")
+        self._resume_button.setEnabled(False)
+        self._resume_button.clicked.connect(self._on_resume_button_clicked)
+        footer.addWidget(self._resume_button)
+        layout.addLayout(footer)
+
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         """Clear the hovered row's icons when the pointer leaves the table viewport."""
         if watched is self._table_view.viewport() and event.type() == QEvent.Type.Leave:
@@ -145,6 +157,19 @@ class ResumeBenchmarkView(QWidget):
         rect = self._table_view.visualRect(index)
         global_pos = self._table_view.viewport().mapToGlobal(rect.center())
         self._controller.on_more_clicked(view_row, global_pos)
+
+    def _on_resume_button_clicked(self) -> None:
+        self._controller.on_resume_run_clicked()
+
+    def set_resume_button_state(self, *, enabled: bool, disabled_reason: str) -> None:
+        """Push the footer Resume Run button's enabled state and disabled-reason tooltip.
+
+        Args:
+            enabled: Whether the currently-selected run is resumable and idle.
+            disabled_reason: The tooltip shown while disabled; ignored when enabled.
+        """
+        self._resume_button.setEnabled(enabled)
+        self._resume_button.setToolTip("" if enabled else disabled_reason)
 
     def _on_model_reset(self) -> None:
         """Restore the QTableView's visual selection after any model reset.
