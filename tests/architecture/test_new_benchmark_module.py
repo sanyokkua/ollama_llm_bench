@@ -1,13 +1,16 @@
 """Architecture tests for ``ui/new_benchmark/`` and ``ui/common_dialogs/`` (STORY-054,
-STORY-055 Definition of done).
+STORY-055, STORY-057 Definition of done).
 
 Asserts: no ``setStyleSheet`` call, no colour literal reference, no ``asyncio``
 import anywhere in either module; ``_internal/view.py`` imports no Gateway/backend
 service symbol (passive-View rule); ``ui/new_benchmark/_internal/controller.py``
 imports only its own ``NewBenchmarkGateway`` plus the declared non-store helpers --
 never a raw backend Store/Service Protocol beyond those (D-R-06);
-``ui/common_dialogs/api.py`` and ``_internal/view.py`` import only their own
-``RunSummaryGateway`` plus the local non-store-helper ``RunValidator`` Protocol
+``ui/common_dialogs/api.py`` and its dialog-view/select files import only their own
+declared Gateways (``RunSummaryGateway``, ``ResumeSummaryGateway``,
+``RetrySelectionGateway``) plus ``backend.domain`` (DTOs), ``backend.events``
+(STORY-057's Fix-in-Settings toast), ``backend.run_drift`` (STORY-057's
+``DriftWarning`` DTO) and the local non-store-helper ``RunValidator`` Protocol
 re-used from ``ui.new_benchmark.protocols`` -- never ``NewBenchmarkGateway`` itself
 or any other backend Store/Service.
 """
@@ -27,6 +30,13 @@ _VIEW_FILE = _MODULE_ROOT / "_internal" / "view.py"
 _CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "controller.py"
 _COMMON_DIALOGS_API_FILE = _COMMON_DIALOGS_ROOT / "api.py"
 _COMMON_DIALOGS_VIEW_FILE = _COMMON_DIALOGS_ROOT / "_internal" / "view.py"
+_COMMON_DIALOGS_STORY_057_FILES = (
+    _COMMON_DIALOGS_ROOT / "_internal" / "resume_summary_select.py",
+    _COMMON_DIALOGS_ROOT / "_internal" / "resume_summary_view.py",
+    _COMMON_DIALOGS_ROOT / "_internal" / "retry_selection_select.py",
+    _COMMON_DIALOGS_ROOT / "_internal" / "retry_selection_view.py",
+    _COMMON_DIALOGS_ROOT / "_internal" / "actions.py",
+)
 
 _FORBIDDEN_CONCURRENCY_ROOTS = ("asyncio", "anyio", "qasync")
 _ALLOWED_CONTROLLER_BACKEND_IMPORTS = {
@@ -34,7 +44,11 @@ _ALLOWED_CONTROLLER_BACKEND_IMPORTS = {
     "ollama_llm_bench.backend.events",
     "ollama_llm_bench.ui.new_benchmark.protocols",
 }
-_ALLOWED_COMMON_DIALOGS_BACKEND_IMPORTS = {"ollama_llm_bench.backend.domain"}
+_ALLOWED_COMMON_DIALOGS_BACKEND_IMPORTS = {
+    "ollama_llm_bench.backend.domain",
+    "ollama_llm_bench.backend.events",
+    "ollama_llm_bench.backend.run_drift",
+}
 _ALLOWED_COMMON_DIALOGS_EXTERNAL_UI_IMPORTS = {
     "ollama_llm_bench.ui.new_benchmark.models",
     "ollama_llm_bench.ui.new_benchmark.protocols",
@@ -166,18 +180,25 @@ def test_new_benchmark_embeds_no_colour_literal() -> None:
 
 
 def test_common_dialogs_depends_only_on_its_own_gateway_and_declared_protocols() -> None:
-    """Proves: STORY-055 Definition of done
+    """Proves: STORY-055, STORY-057 Definition of done
 
-    ``ui/common_dialogs/api.py`` and ``_internal/view.py`` import no backend
-    Protocol beyond their own declared ``RunSummaryGateway`` (backend.domain DTOs
-    only) plus the local non-store-helper ``RunValidator``/``ValidationEntry``
-    types re-used from ``ui.new_benchmark.protocols``/``ui.new_benchmark.models``
-    (D-R-06) -- never ``NewBenchmarkGateway`` itself or any other backend
-    Store/Service Protocol.
+    ``ui/common_dialogs/api.py``, ``_internal/view.py``, and the STORY-057
+    Resume Summary/Retry Selection dialog files import no backend Protocol
+    beyond their own declared Gateways (``backend.domain`` DTOs,
+    ``backend.events`` for the Fix-in-Settings toast, ``backend.run_drift``
+    for the ``DriftWarning`` DTO) plus the local non-store-helper
+    ``RunValidator``/``ValidationEntry`` types re-used from
+    ``ui.new_benchmark.protocols``/``ui.new_benchmark.models`` (D-R-06) --
+    never ``NewBenchmarkGateway`` itself or any other backend Store/Service
+    Protocol.
     """
     # Arrange / Act
     offenders: dict[str, list[str]] = {}
-    for source_file in (_COMMON_DIALOGS_API_FILE, _COMMON_DIALOGS_VIEW_FILE):
+    for source_file in (
+        _COMMON_DIALOGS_API_FILE,
+        _COMMON_DIALOGS_VIEW_FILE,
+        *_COMMON_DIALOGS_STORY_057_FILES,
+    ):
         tree = ast.parse(source_file.read_text(encoding="utf-8"), filename=str(source_file))
         imported_modules = _imported_modules(tree)
         disallowed_backend = {

@@ -1,25 +1,45 @@
-"""Public factory for ``ui/common_dialogs/`` -- the Run Summary dialog (STORY-055).
+"""Public factories for ``ui/common_dialogs/`` -- Run Summary/Rename Run (STORY-055/056)
+and Resume Summary/Retry Selection (STORY-057).
 
 Source of truth: ``docs/v3_specification/07_Common_Dialogs/run_summary_dialog.md``
-§8 (preflight re-check), §12 (Start Effects). Scoped to exactly the Run Summary
-dialog -- see this package's ``__init__.py`` docstring for why the other Common
-Dialogs are out of scope.
+§8 (preflight re-check), §12 (Start Effects); ``resume_summary_dialog.md`` §2, §12
+(§13 Function Inventory "Open dialog" gate); ``retry_selection_dialog.md`` §2, §12
+(state machine "Loading -> [*]: run has no result rows", EC-RT-1).
 """
 
 import icontract
 from PySide6.QtWidgets import QDialog, QWidget
 
 from ollama_llm_bench.backend.domain import AppReadinessSnapshot, RunId, RunStartRequest
+from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.common_dialogs._internal.rename_run_view import RenameRunDialog
+from ollama_llm_bench.ui.common_dialogs._internal.resume_summary_select import (
+    select_resume_summary_view_model,
+)
+from ollama_llm_bench.ui.common_dialogs._internal.resume_summary_view import ResumeSummaryDialog
+from ollama_llm_bench.ui.common_dialogs._internal.retry_selection_select import (
+    select_retry_selection_view_model,
+)
+from ollama_llm_bench.ui.common_dialogs._internal.retry_selection_view import RetrySelectionDialog
 from ollama_llm_bench.ui.common_dialogs._internal.view import RunSummaryDialog
 from ollama_llm_bench.ui.common_dialogs._internal.view_model_select import (
     select_run_summary_view_model,
 )
-from ollama_llm_bench.ui.common_dialogs.protocols import RenameRunGateway, RunSummaryGateway
+from ollama_llm_bench.ui.common_dialogs.protocols import (
+    RenameRunGateway,
+    ResumeSummaryGateway,
+    RetrySelectionGateway,
+    RunSummaryGateway,
+)
 from ollama_llm_bench.ui.new_benchmark.models import RunValidationSeverity, ValidationEntry
 from ollama_llm_bench.ui.new_benchmark.protocols import RunValidator
 
-__all__: list[str] = ["make_rename_run_dialog", "make_run_summary_dialog"]
+__all__: list[str] = [
+    "make_rename_run_dialog",
+    "make_resume_summary_dialog",
+    "make_retry_selection_dialog",
+    "make_run_summary_dialog",
+]
 
 
 @icontract.require(lambda gateway: gateway is not None, "gateway is a required collaborator")
@@ -107,6 +127,69 @@ def make_rename_run_dialog(
         computed_default_name=computed_default_name,
         parent=parent,
     )
+
+
+@icontract.require(lambda gateway: gateway is not None, "gateway is a required collaborator")
+@icontract.require(lambda event_bus: event_bus is not None, "event_bus is a required collaborator")
+@icontract.require(lambda run_id: run_id > 0, "run_id must be a valid positive id")
+@icontract.ensure(lambda result: result is None or isinstance(result, QDialog))
+def make_resume_summary_dialog(
+    *,
+    gateway: ResumeSummaryGateway,
+    event_bus: EventBus,
+    run_id: RunId,
+    parent: QWidget | None = None,
+) -> QDialog | None:
+    """Build the Resume Summary dialog, or ``None`` if the run has no resumable result (EC-RES-6).
+
+    Args:
+        gateway: The dialog's own narrow adapter gateway (D-R-06).
+        event_bus: Used only for the Fix-in-Settings not-yet-available toast.
+        run_id: The run to resume.
+        parent: The parent widget the dialog is centred over, if any.
+
+    Returns:
+        The mountable, modal ``QDialog``, or ``None`` when the run has zero
+        resumable results (the caller is responsible for surfacing a toast).
+    """
+    run = gateway.get_run(run_id)
+    resumable = gateway.resumable_results(run_id)
+    if not resumable:
+        return None
+    drift_warnings = gateway.detect_drift(run_id)
+    view_model = select_resume_summary_view_model(
+        run=run, resumable_results=resumable, drift_warnings=drift_warnings
+    )
+    return ResumeSummaryDialog(
+        gateway=gateway, event_bus=event_bus, view_model=view_model, parent=parent
+    )
+
+
+@icontract.require(lambda gateway: gateway is not None, "gateway is a required collaborator")
+@icontract.require(lambda run_id: run_id > 0, "run_id must be a valid positive id")
+@icontract.ensure(lambda result: result is None or isinstance(result, QDialog))
+def make_retry_selection_dialog(
+    *,
+    gateway: RetrySelectionGateway,
+    run_id: RunId,
+    parent: QWidget | None = None,
+) -> QDialog | None:
+    """Build the Retry Selection dialog, or ``None`` if the run has zero result rows.
+
+    Args:
+        gateway: The dialog's own narrow adapter gateway (D-R-06).
+        run_id: The run whose result rows are offered for retry.
+        parent: The parent widget the dialog is centred over, if any.
+
+    Returns:
+        The mountable, modal ``QDialog``, or ``None`` when the run has no
+        result rows at all (EC-RT-1; state machine §12).
+    """
+    results = gateway.list_results(run_id)
+    if not results:
+        return None
+    view_model = select_retry_selection_view_model(run_id=run_id, results=results)
+    return RetrySelectionDialog(gateway=gateway, view_model=view_model, parent=parent)
 
 
 def _preflight_passes(
