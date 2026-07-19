@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-19T10:38:58Z'
+generated_at: '2026-07-19T12:01:31Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3769,19 +3769,59 @@ stories:
     - EC-PERSIST-2
     acceptance_criteria:
       STORY-056-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller.py::test_load_initial_rows_applies_persisted_sort
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_on_sort_header_clicked_toggles_direction_and_persists
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_custom_run_name_used_verbatim
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_default_sort_and_name_or_mode_search
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_effective_name_falls_back_to_generated_default
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_set_sort_reorders_by_chosen_column
       STORY-056-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller.py::test_selection_emits_run_id_changed_and_clears_on_filter_out
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_on_external_run_id_changed_updates_selection_state
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_find_view_row_for_run_id_returns_none_when_absent
       STORY-056-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_completed_run_is_not_resumable
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_status_badge_per_run_status
       STORY-056-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_disabled_actions_carry_explanatory_tooltip
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_groups_separated_in_naming_export_file_destructive_order
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs0-action_clone-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs1-action_clone-False]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs10-action_export_summary_csv-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs11-action_export_summary_md-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs12-action_export_details_csv-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs13-action_export_details_md-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs2-action_rename-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs3-action_rename-False]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs4-action_delete-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs5-action_delete-False]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs6-action_export_analysis-False]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs7-action_export_analysis-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs8-action_show_log-False]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs9-action_show_log-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_on_context_menu_requested_builds_and_execs_menu
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_executing_run_is_never_resumable
       STORY-056-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_clone_clears_error_fields_on_reset_results
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_clone_creates_new_retry_run
       STORY-056-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_rename_commits_name_or_none
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_empty_input_is_default_intent
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_rejects_case_insensitive_duplicate
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_rejects_control_characters
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_rejects_disallowed_punctuation
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_rejects_names_over_80_characters
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_rename_context_for_returns_current_name_and_default
       STORY-056-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_rename_dialog_constructs_and_shows_with_no_error_logs
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller.py::test_resume_widget_constructs_and_shows_with_no_error_logs
   STORY-057:
     title: Build the Resume and Retry flows — Resume Summary dialog with drift and the Retry Selection dialog
     status: ready
@@ -6098,7 +6138,47 @@ edge_cases:
   EC-PERSIST-2:
     stories:
     - STORY-056
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_rename_commits_name_or_none
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_rename_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_empty_input_is_default_intent
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_rejects_case_insensitive_duplicate
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_rejects_control_characters
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_rejects_disallowed_punctuation
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_rename_run_dialog.py::test_validate_name_rejects_names_over_80_characters
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_clone_clears_error_fields_on_reset_results
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_clone_creates_new_retry_run
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_disabled_actions_carry_explanatory_tooltip
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_groups_separated_in_naming_export_file_destructive_order
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs0-action_clone-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs1-action_clone-False]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs10-action_export_summary_csv-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs11-action_export_summary_md-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs12-action_export_details_csv-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs13-action_export_details_md-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs2-action_rename-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs3-action_rename-False]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs4-action_delete-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs5-action_delete-False]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs6-action_export_analysis-False]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs7-action_export_analysis-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs8-action_show_log-False]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs9-action_show_log-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller.py::test_load_initial_rows_applies_persisted_sort
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller.py::test_resume_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller.py::test_selection_emits_run_id_changed_and_clears_on_filter_out
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_on_context_menu_requested_builds_and_execs_menu
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_on_external_run_id_changed_updates_selection_state
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_on_sort_header_clicked_toggles_direction_and_persists
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_rename_context_for_returns_current_name_and_default
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_completed_run_is_not_resumable
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_custom_run_name_used_verbatim
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_default_sort_and_name_or_mode_search
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_effective_name_falls_back_to_generated_default
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_executing_run_is_never_resumable
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_find_view_row_for_run_id_returns_none_when_absent
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_set_sort_reorders_by_chosen_column
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_status_badge_per_run_status
   EC-PERSIST-4:
     stories:
     - STORY-011

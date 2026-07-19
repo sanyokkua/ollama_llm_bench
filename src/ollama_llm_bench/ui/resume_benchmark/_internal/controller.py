@@ -236,13 +236,13 @@ class ResumeBenchmarkController:
         )
 
     def _on_run_list_changed(self, _payload: object) -> None:
-        logger.debug("resume_event_received", event="run_list_changed")
+        logger.debug("resume_event_received", signal_name="run_list_changed")
         self._rebuild_all_rows()
 
     def _on_run_touched(self, payload: object) -> None:
         if not isinstance(payload, _RUN_TOUCHED_EVENT_TYPES):
             return
-        logger.debug("resume_event_received", event="run_touched", run_id=payload.run_id)
+        logger.debug("resume_event_received", signal_name="run_touched", run_id=payload.run_id)
         self._splice_row(payload.run_id)
 
     def _on_external_run_id_changed(self, payload: object) -> None:
@@ -250,11 +250,11 @@ class ResumeBenchmarkController:
             return
         if payload.run_id == self._selected_run_id:
             return
-        logger.debug("resume_event_received", event="run_id_changed", run_id=payload.run_id)
+        logger.debug("resume_event_received", signal_name="run_id_changed", run_id=payload.run_id)
         self._selected_run_id = payload.run_id
 
     def _on_task_file_changed(self, _payload: object) -> None:
-        logger.debug("resume_event_received", event="task_file_changed")
+        logger.debug("resume_event_received", signal_name="task_file_changed")
         self._rebuild_all_rows()
 
     def _rebuild_all_rows(self) -> None:
