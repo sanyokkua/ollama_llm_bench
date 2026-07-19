@@ -22,6 +22,7 @@ from ollama_llm_bench.backend.domain import (
 )
 from ollama_llm_bench.backend.errors import OsAdapterError
 from ollama_llm_bench.backend.events import SIGNAL_GLOBAL_MESSAGE, GlobalMessageEvent, Subscription
+from ollama_llm_bench.backend.run_drift import DriftWarning
 from ollama_llm_bench.ui.resume_benchmark._internal.actions import (
     clone_as_new_retry_run,
     confirm_and_delete_run,
@@ -153,6 +154,9 @@ class _FakeResumeGateway:
 
     def refresh_readiness(self) -> AppReadinessSnapshot:
         raise NotImplementedError
+
+    def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
+        return ()
 
     def get_sort_setting(self) -> tuple[str, bool]:
         raise NotImplementedError

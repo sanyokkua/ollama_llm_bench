@@ -25,6 +25,7 @@ from ollama_llm_bench.backend.events import (
     RunIdChangedEvent,
     Subscription,
 )
+from ollama_llm_bench.backend.run_drift import DriftWarning
 from ollama_llm_bench.ui.resume_benchmark._internal.context_menu import build_context_menu
 from ollama_llm_bench.ui.resume_benchmark._internal.controller import ResumeBenchmarkController
 from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import COL_MODE, COL_NAME
@@ -151,6 +152,9 @@ class _FakeResumeGateway:
 
     def refresh_readiness(self) -> AppReadinessSnapshot:
         raise NotImplementedError
+
+    def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
+        return ()
 
     def get_sort_setting(self) -> tuple[str, bool]:
         return ("started", True)
