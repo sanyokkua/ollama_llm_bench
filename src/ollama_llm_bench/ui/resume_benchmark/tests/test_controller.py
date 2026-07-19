@@ -23,6 +23,7 @@ from ollama_llm_bench.backend.events import (
     RunIdChangedEvent,
     Subscription,
 )
+from ollama_llm_bench.backend.run_drift import DriftWarning
 from ollama_llm_bench.ui.resume_benchmark import make_resume_benchmark_widget
 from ollama_llm_bench.ui.resume_benchmark._internal.controller import ResumeBenchmarkController
 from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import (
@@ -91,6 +92,7 @@ class _FakeResumeGateway:
         self._runs = {run.run_id: run for run in runs}
         self._results_by_run_id = results_by_run_id
         self.set_sort_calls: list[tuple[str, bool]] = []
+        self.drift_warnings_by_run_id: dict[RunId, tuple[DriftWarning, ...]] = {}
 
     def list_runs(self) -> tuple[BenchmarkRun, ...]:
         return tuple(self._runs.values())
@@ -151,6 +153,9 @@ class _FakeResumeGateway:
 
     def active_run_id(self) -> RunId | None:
         return None
+
+    def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
+        return self.drift_warnings_by_run_id.get(run_id, ())
 
 
 def _run(run_id: int, *, run_name: str = "Alpha") -> BenchmarkRun:

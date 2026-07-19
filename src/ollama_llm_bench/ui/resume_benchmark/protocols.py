@@ -3,7 +3,8 @@
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
 §7b.3. Declared locally, scoped to exactly this widget's backend calls -- wraps
 ``RunsStore``, ``ResultsStore``, ``TasksStore``, ``ReadinessService`` (drift
-refresh), ``SettingsService`` (sort persistence), and the resume command.
+refresh), ``SettingsService`` (sort persistence), ``RunDriftDetector`` (STORY-057's
+``detect_drift``), and the resume command.
 """
 
 from typing import Protocol
@@ -18,6 +19,7 @@ from ollama_llm_bench.backend.domain import (
     RunId,
     RunStatusPatch,
 )
+from ollama_llm_bench.backend.run_drift import DriftWarning
 
 __all__: list[str] = ["ResumeGateway"]
 
@@ -83,6 +85,16 @@ class ResumeGateway(Protocol):
 
     def refresh_readiness(self) -> AppReadinessSnapshot:
         """Refresh the readiness snapshot before the Run Drift Detector runs."""
+        ...
+
+    def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
+        """Run the Run Drift Detector fresh against the current environment.
+
+        Fast-synchronous (refreshes readiness, then a pure comparison over the
+        run's frozen snapshot) -- callable from the GUI thread. Never raises;
+        every environment-availability problem is reported as a returned
+        ``DriftWarning``, never an exception (11_RUN_DRIFT_DETECTOR.md).
+        """
         ...
 
     def get_sort_setting(self) -> tuple[str, bool]:

@@ -5,9 +5,12 @@ Asserts: no ``setStyleSheet`` call, no colour literal, no ``asyncio`` import
 anywhere in either module's STORY-056 files; ``_internal/controller.py``
 imports only its own ``ResumeGateway`` plus ``EventBus``/``NativePickers``/
 ``FileSystemActions`` and its own ``models``/``protocols`` -- never a raw
-``RunsStore``/``ResultsStore``/``TasksStore`` (D-R-06); ``_internal/actions.py``
-(the export path) imports no redaction function; ``_internal/view.py`` imports
-no Gateway/EventBus/backend symbol (the passive-View rule).
+``RunsStore``/``ResultsStore``/``TasksStore`` (D-R-06), plus ``backend.run_drift``
+for the ``DriftWarning`` DTO STORY-057's ``detect_drift`` wiring needs
+(DTO-only use, mirroring the existing ``backend.domain``/``backend.events``
+precedent); ``_internal/actions.py`` (the export path) imports no redaction
+function; ``_internal/view.py`` imports no Gateway/EventBus/backend symbol
+(the passive-View rule).
 """
 
 import ast
@@ -33,6 +36,7 @@ _FORBIDDEN_CONCURRENCY_ROOTS = ("asyncio", "anyio", "qasync")
 _ALLOWED_CONTROLLER_BACKEND_IMPORTS = {
     "ollama_llm_bench.backend.domain",
     "ollama_llm_bench.backend.events",
+    "ollama_llm_bench.backend.run_drift",
 }
 _FORBIDDEN_STORE_MODULES = (
     "ollama_llm_bench.backend.persistence.runs",
@@ -124,9 +128,10 @@ def test_resume_benchmark_embeds_no_colour_literal() -> None:
 def test_controller_depends_only_on_declared_collaborators() -> None:
     """Proves: STORY-056 Definition of done
 
-    ``_internal/controller.py`` imports only ``backend.domain``/``backend.events``
-    (which carry the ``ResumeGateway``-adjacent DTOs/signals it needs) --
-    never a raw backend persistence Store Protocol beyond those (D-R-06).
+    ``_internal/controller.py`` imports only ``backend.domain``/``backend.events``/
+    ``backend.run_drift`` (which carry the ``ResumeGateway``-adjacent DTOs/signals
+    it needs, ``backend.run_drift`` DTO-only for ``DriftWarning``) -- never a raw
+    backend persistence Store Protocol beyond those (D-R-06).
     """
     # Arrange
     tree = ast.parse(_CONTROLLER_FILE.read_text(encoding="utf-8"), filename=str(_CONTROLLER_FILE))
