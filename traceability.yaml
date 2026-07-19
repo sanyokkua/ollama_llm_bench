@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-19T12:42:57Z'
+generated_at: '2026-07-19T16:27:55Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3751,7 +3751,7 @@ stories:
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
   STORY-056:
     title: Build the Resume Benchmark widget — run table, search, sort, and the clone/rename/delete/export/log actions
-    status: ready
+    status: done
     spec_clauses:
     - 03_Resume_Benchmark_Widget/description.md#33-run-table
     - 03_Resume_Benchmark_Widget/description.md#35-context-menu
@@ -3798,6 +3798,9 @@ stories:
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs11-action_export_summary_md-True]
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs12-action_export_details_csv-True]
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs13-action_export_details_md-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs14-action_retry-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs15-action_retry-False]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs16-action_retry-False]
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs2-action_rename-True]
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs3-action_rename-False]
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs4-action_delete-True]
@@ -3848,19 +3851,57 @@ stories:
     - EC-RUN-6
     acceptance_criteria:
       STORY-057-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_resume_footer.py::test_resume_button_enabled_only_for_resumable_not_executing
       STORY-057-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_disables_not_yet_completed_rows_until_override
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_gates_resume_behind_checkbox
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_override_re_enables_rows
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_warning_only_drift_never_disables_rows
       STORY-057-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_completed_task_row_is_unchecked_but_enabled
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[awaiting_judge_check-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[errored-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_inference-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_judge_timeout-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_provider-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_timeout-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[pending-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[running_inference-True]
       STORY-057-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_resets_only_checked_and_calls_resume_run
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_opens_dialog_and_calls_resume_run
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_with_no_selection_is_a_noop
       STORY-057-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_is_only_failed_and_shows_only_that_group
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_preselection_and_confirm_resets_and_resumes
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[awaiting_judge_check-only_incomplete-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[completed-only_completed-False]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[errored-only_failed-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_inference-only_failed-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_judge_timeout-only_failed-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_provider-only_failed-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_timeout-only_failed-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[pending-only_incomplete-True]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[running_inference-only_incomplete-True]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_retry_context_menu_action_opens_retry_dialog
       STORY-057-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[completed-only_completed]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[errored-only_failed]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_inference-only_failed]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_judge_timeout-only_failed]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_provider-only_failed]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_timeout-only_failed]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[running_inference-only_incomplete]
       STORY-057-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_summary_dialog_constructs_and_shows_with_no_error_logs
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_retry_selection_dialog_constructs_and_shows_with_no_error_logs
   STORY-058:
     title: Build the Progress widget shell, run controls, counters, stage bar, and stability sub-controllers
     status: ready
@@ -6159,6 +6200,9 @@ edge_cases:
     - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs11-action_export_summary_md-True]
     - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs12-action_export_details_csv-True]
     - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs13-action_export_details_md-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs14-action_retry-True]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs15-action_retry-False]
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs16-action_retry-False]
     - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs2-action_rename-True]
     - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs3-action_rename-False]
     - src/ollama_llm_bench/ui/resume_benchmark/tests/test_context_menu_gating.py::test_menu_item_gating_per_row_state[row_kwargs4-action_delete-True]
@@ -6190,6 +6234,44 @@ edge_cases:
     - STORY-011
     - STORY-057
     tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_disables_not_yet_completed_rows_until_override
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_gates_resume_behind_checkbox
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_override_re_enables_rows
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_completed_task_row_is_unchecked_but_enabled
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_resets_only_checked_and_calls_resume_run
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_summary_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[awaiting_judge_check-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[errored-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_inference-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_judge_timeout-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_provider-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_timeout-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[pending-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[running_inference-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_warning_only_drift_never_disables_rows
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_is_only_failed_and_shows_only_that_group
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_preselection_and_confirm_resets_and_resumes
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[completed-only_completed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[errored-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_inference-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_judge_timeout-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_provider-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_timeout-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[running_inference-only_incomplete]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[awaiting_judge_check-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[completed-only_completed-False]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[errored-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_inference-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_judge_timeout-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_provider-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_timeout-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[pending-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[running_inference-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_retry_selection_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_opens_dialog_and_calls_resume_run
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_with_no_selection_is_a_noop
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_retry_context_menu_action_opens_retry_dialog
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_resume_footer.py::test_resume_button_enabled_only_for_resumable_not_executing
     - tests/integration/persistence/test_crash_recovery_sweep.py::test_recover_in_flight_results_is_idempotent
     - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_cosine_check]
     - tests/integration/persistence/test_crash_recovery_sweep.py::test_sweep_resets_only_the_four_mid_flight_statuses[awaiting_judge_check]
@@ -6810,7 +6892,45 @@ edge_cases:
   EC-RUN-11:
     stories:
     - STORY-057
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_disables_not_yet_completed_rows_until_override
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_gates_resume_behind_checkbox
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_override_re_enables_rows
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_completed_task_row_is_unchecked_but_enabled
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_resets_only_checked_and_calls_resume_run
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_summary_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[awaiting_judge_check-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[errored-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_inference-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_judge_timeout-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_provider-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_timeout-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[pending-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[running_inference-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_warning_only_drift_never_disables_rows
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_is_only_failed_and_shows_only_that_group
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_preselection_and_confirm_resets_and_resumes
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[completed-only_completed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[errored-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_inference-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_judge_timeout-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_provider-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_timeout-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[running_inference-only_incomplete]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[awaiting_judge_check-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[completed-only_completed-False]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[errored-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_inference-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_judge_timeout-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_provider-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_timeout-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[pending-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[running_inference-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_retry_selection_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_opens_dialog_and_calls_resume_run
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_with_no_selection_is_a_noop
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_retry_context_menu_action_opens_retry_dialog
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_resume_footer.py::test_resume_button_enabled_only_for_resumable_not_executing
   EC-RUN-12:
     stories:
     - STORY-065
@@ -6954,11 +7074,87 @@ edge_cases:
   EC-RUN-5:
     stories:
     - STORY-057
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_disables_not_yet_completed_rows_until_override
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_gates_resume_behind_checkbox
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_override_re_enables_rows
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_completed_task_row_is_unchecked_but_enabled
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_resets_only_checked_and_calls_resume_run
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_summary_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[awaiting_judge_check-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[errored-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_inference-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_judge_timeout-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_provider-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_timeout-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[pending-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[running_inference-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_warning_only_drift_never_disables_rows
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_is_only_failed_and_shows_only_that_group
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_preselection_and_confirm_resets_and_resumes
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[completed-only_completed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[errored-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_inference-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_judge_timeout-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_provider-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_timeout-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[running_inference-only_incomplete]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[awaiting_judge_check-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[completed-only_completed-False]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[errored-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_inference-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_judge_timeout-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_provider-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_timeout-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[pending-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[running_inference-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_retry_selection_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_opens_dialog_and_calls_resume_run
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_with_no_selection_is_a_noop
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_retry_context_menu_action_opens_retry_dialog
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_resume_footer.py::test_resume_button_enabled_only_for_resumable_not_executing
   EC-RUN-6:
     stories:
     - STORY-057
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_disables_not_yet_completed_rows_until_override
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_gates_resume_behind_checkbox
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_blocking_drift_override_re_enables_rows
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_completed_task_row_is_unchecked_but_enabled
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_resets_only_checked_and_calls_resume_run
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_resume_summary_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[awaiting_judge_check-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[errored-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_inference-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_judge_timeout-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_provider-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[failed_timeout-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[pending-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_task_picker_precheck_per_status[running_inference-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_resume_summary_dialog.py::test_warning_only_drift_never_disables_rows
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_is_only_failed_and_shows_only_that_group
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_default_filter_preselection_and_confirm_resets_and_resumes
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[completed-only_completed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[errored-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_inference-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_judge_timeout-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_provider-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[failed_timeout-only_failed]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_filter_group_for_maps_every_status[running_inference-only_incomplete]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[awaiting_judge_check-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[completed-only_completed-False]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[errored-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_inference-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_judge_timeout-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_provider-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[failed_timeout-only_failed-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[pending-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_pre_selection_rule_by_group[running_inference-only_incomplete-True]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_retry_selection_dialog.py::test_retry_selection_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_opens_dialog_and_calls_resume_run
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_resume_run_clicked_with_no_selection_is_a_noop
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_retry_context_menu_action_opens_retry_dialog
+    - src/ollama_llm_bench/ui/resume_benchmark/tests/test_resume_footer.py::test_resume_button_enabled_only_for_resumable_not_executing
   EC-SET-1:
     stories:
     - STORY-053
