@@ -1,7 +1,7 @@
 ---
 id: STORY-056
 title: Build the Resume Benchmark widget — run table, search, sort, and the clone/rename/delete/export/log actions
-status: ready
+status: done
 spec_clauses:
   - 03_Resume_Benchmark_Widget/description.md#33-run-table
   - 03_Resume_Benchmark_Widget/description.md#35-context-menu
