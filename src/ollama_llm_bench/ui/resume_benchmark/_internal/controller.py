@@ -154,6 +154,8 @@ class ResumeBenchmarkController:
             name = action.objectName()
             if name == "action_clone":
                 action.triggered.connect(partial(self._on_clone_triggered, row.run_id))
+            elif name == "action_rename":
+                action.triggered.connect(partial(self._on_rename_triggered, row.run_id))
             elif name == "action_delete":
                 action.triggered.connect(partial(self._on_delete_triggered, row))
             elif name == "action_export_analysis":
@@ -166,6 +168,28 @@ class ResumeBenchmarkController:
         new_run_id = clone_as_new_retry_run(gateway=self._gateway, source_run_id=source_run_id)
         self._rebuild_all_rows()
         self.on_row_selected(new_run_id)
+
+    def _on_rename_triggered(self, run_id: RunId) -> None:
+        # Deferred import: ui.common_dialogs needs ui.resume_benchmark.protocols
+        # (RunSummaryGateway-style structural fakes elsewhere) at import time via
+        # ui.new_benchmark; a module-level import here would re-enter that chain
+        # before it finishes initialising, exactly the documented cycle
+        # ui.new_benchmark._internal.controller._on_start_clicked already breaks
+        # the same way.
+        from ollama_llm_bench.ui.common_dialogs import make_rename_run_dialog  # noqa: PLC0415
+
+        if self._view is None:
+            return
+        logger.debug("resume_rename_triggered", run_id=run_id)
+        current_custom_name, computed_default_name = self.rename_context_for(run_id)
+        dialog = make_rename_run_dialog(
+            gateway=self._gateway,
+            run_id=run_id,
+            current_custom_name=current_custom_name,
+            computed_default_name=computed_default_name,
+            parent=self._view,
+        )
+        dialog.exec()
 
     def _on_delete_triggered(self, row: RunRow) -> None:
         if self._view is None:

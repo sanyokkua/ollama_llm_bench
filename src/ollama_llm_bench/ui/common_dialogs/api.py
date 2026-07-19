@@ -9,16 +9,17 @@ Dialogs are out of scope.
 import icontract
 from PySide6.QtWidgets import QDialog, QWidget
 
-from ollama_llm_bench.backend.domain import AppReadinessSnapshot, RunStartRequest
+from ollama_llm_bench.backend.domain import AppReadinessSnapshot, RunId, RunStartRequest
+from ollama_llm_bench.ui.common_dialogs._internal.rename_run_view import RenameRunDialog
 from ollama_llm_bench.ui.common_dialogs._internal.view import RunSummaryDialog
 from ollama_llm_bench.ui.common_dialogs._internal.view_model_select import (
     select_run_summary_view_model,
 )
-from ollama_llm_bench.ui.common_dialogs.protocols import RunSummaryGateway
+from ollama_llm_bench.ui.common_dialogs.protocols import RenameRunGateway, RunSummaryGateway
 from ollama_llm_bench.ui.new_benchmark.models import RunValidationSeverity, ValidationEntry
 from ollama_llm_bench.ui.new_benchmark.protocols import RunValidator
 
-__all__: list[str] = ["make_run_summary_dialog"]
+__all__: list[str] = ["make_rename_run_dialog", "make_run_summary_dialog"]
 
 
 @icontract.require(lambda gateway: gateway is not None, "gateway is a required collaborator")
@@ -65,6 +66,47 @@ def make_run_summary_dialog(
         request=request, readiness=readiness, validation_entries=validation_entries
     )
     return RunSummaryDialog(gateway=gateway, request=request, view_model=view_model, parent=parent)
+
+
+@icontract.require(lambda gateway: gateway is not None, "gateway is a required collaborator")
+@icontract.require(lambda run_id: run_id > 0, "run_id must be a valid positive id")
+@icontract.ensure(lambda result: isinstance(result, QDialog))
+def make_rename_run_dialog(
+    *,
+    gateway: RenameRunGateway,
+    run_id: RunId,
+    current_custom_name: str | None,
+    computed_default_name: str,
+    parent: QWidget | None = None,
+) -> QDialog:
+    """Construct the Rename Run dialog for one run (rename_run_dialog.md).
+
+    Unlike ``make_run_summary_dialog``, this factory never returns ``None``
+    -- the Rename dialog has no readiness-gate precondition in its spec,
+    only live in-dialog validation, so it always constructs.
+
+    Args:
+        gateway: Wraps ``list_runs`` (V-5 uniqueness) and ``rename_run``
+            (commit).
+        run_id: The run being renamed.
+        current_custom_name: The run's current custom name, or ``None`` if
+            it currently uses the generated default.
+        computed_default_name: The precomputed default-name preview string
+            (``Run N — <Mode> — YYYY-MM-DD HH:MM``), computed by the caller
+            since ``RenameRunGateway`` carries no mode-label-formatting
+            logic.
+        parent: The dialog's parent widget, if any.
+
+    Returns:
+        The constructed, unshown ``QDialog``.
+    """
+    return RenameRunDialog(
+        gateway=gateway,
+        run_id=run_id,
+        current_custom_name=current_custom_name,
+        computed_default_name=computed_default_name,
+        parent=parent,
+    )
 
 
 def _preflight_passes(

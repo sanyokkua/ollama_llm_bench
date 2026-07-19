@@ -13,9 +13,14 @@ satisfies this Protocol structurally, with no adapter shim, exactly like
 
 from typing import Protocol
 
-from ollama_llm_bench.backend.domain import AppReadinessSnapshot, RunId, RunStartRequest
+from ollama_llm_bench.backend.domain import (
+    AppReadinessSnapshot,
+    BenchmarkRun,
+    RunId,
+    RunStartRequest,
+)
 
-__all__: list[str] = ["RunSummaryGateway"]
+__all__: list[str] = ["RenameRunGateway", "RunSummaryGateway"]
 
 
 class RunSummaryGateway(Protocol):
@@ -34,4 +39,22 @@ class RunSummaryGateway(Protocol):
         fast-synchronous (enqueues to the dispatcher thread and returns). §12
         Start Effects.
         """
+        ...
+
+
+class RenameRunGateway(Protocol):
+    """Adapter gateway for the Rename Run dialog (D-R-06).
+
+    Shares ``list_runs``/``rename_run`` verbatim with ``ResumeGateway``
+    (08-E §7b.3) by design -- a concrete adapter satisfies both Protocols
+    structurally with one class, per the structural-satisfaction pattern
+    already used elsewhere in this codebase.
+    """
+
+    def list_runs(self) -> tuple[BenchmarkRun, ...]:
+        """Return every run header -- used for the V-5 name-uniqueness check."""
+        ...
+
+    def rename_run(self, run_id: RunId, name: str | None) -> None:
+        """Persist the new name (or clear it, for the default-intent case)."""
         ...
