@@ -3,6 +3,7 @@
 from collections.abc import Callable, Mapping
 
 from pytestqt.qtbot import QtBot
+import structlog
 
 from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
@@ -19,7 +20,14 @@ from ollama_llm_bench.backend.events import (
     RunIdChangedEvent,
     Subscription,
 )
+from ollama_llm_bench.ui.resume_benchmark import make_resume_benchmark_widget
 from ollama_llm_bench.ui.resume_benchmark._internal.controller import ResumeBenchmarkController
+from ollama_llm_bench.ui.resume_benchmark.models import ResumeBenchmarkCollaborators
+
+
+class _NoopSubscription:
+    def cancel(self) -> None:
+        return None
 
 
 class _RecordingEventBus:
@@ -32,7 +40,7 @@ class _RecordingEventBus:
         handler: Callable[[object], None],
         owner: object | None = None,
     ) -> Subscription:
-        raise NotImplementedError
+        return _NoopSubscription()
 
     def emit(self, signal_name: str, payload: object) -> None:
         self.emitted.append((signal_name, payload))
@@ -210,3 +218,30 @@ def test_load_initial_rows_applies_persisted_sort(qtbot: QtBot) -> None:
 
     # Assert
     assert controller.table_model.rowCount() == 1
+
+
+def test_resume_widget_constructs_and_shows_with_no_error_logs(qtbot: QtBot) -> None:
+    """Proves: STORY-056-AC-7
+
+    make_resume_benchmark_widget constructs and shows with a fake
+    ResumeGateway, raises no exception, reports isVisible(), and emits no
+    error/critical structlog record.
+    """
+    # Arrange
+    collaborators = ResumeBenchmarkCollaborators(
+        gateway=_FakeResumeGateway(runs=(), results_by_run_id={}),
+        event_bus=_RecordingEventBus(),
+        native_pickers=_FakeNativePickers(),
+        file_system_actions=_FakeFileSystemActions(),
+    )
+
+    # Act
+    with structlog.testing.capture_logs() as captured:
+        widget = make_resume_benchmark_widget(collaborators=collaborators)
+        qtbot.addWidget(widget)
+        widget.show()
+        qtbot.wait(0)
+
+    # Assert
+    assert widget.isVisible()
+    assert not any(entry["log_level"] in {"error", "critical"} for entry in captured)
