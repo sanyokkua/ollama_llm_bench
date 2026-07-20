@@ -1,19 +1,18 @@
-"""``DetailsTabView`` -- the Details tab's passive Qt view (STORY-063 task 9).
+"""``DetailsTabView`` -- the Details tab's passive Qt view (STORY-063 tasks 9-10).
 
 Source of truth: ``docs/v3_specification/05_Result_Widget/tabs/details_tab.md`` §2
 (layout), §3 (column reference), §5 (the seven filter-bar chips), §6 (per-column
 filter), §7 (columns popover, the pinned ``Provider / Model`` column), §8 (sorting),
-§9 (the Task Detail Panel -- Task 10's scope), §11 (badge rendering), and the 250 ms
-live-update debounce (§13). Passive View: renders a ``DetailsViewModel`` via
-``apply()`` and emits controller calls on user interaction; imports no backend symbol
-beyond ``backend.domain`` DTOs/enums it renders as chip options and badge text.
+§9 (the Task Detail Panel), §11 (badge rendering), and the 250 ms live-update
+debounce (§13). Passive View: renders a ``DetailsViewModel`` via ``apply()`` and
+emits controller calls on user interaction; imports no backend symbol beyond
+``backend.domain`` DTOs/enums it renders as chip options and badge text.
 
 Structural template: ``ui/results/_internal/summary_tab/view.py`` (``_build_ui``, the
 filter-chip button, the columns popover, header ``sectionClicked``/``sectionMoved``/
 ``customContextMenuRequested`` wiring, the debounce timer). This module retargets that
-shape at the Details table model and adds badge rendering; the Task Detail Panel host
-itself is Task 10's scope -- ``apply()`` here only forwards ``vm.detail_panel`` to a
-placeholder hook Task 10 fills in.
+shape at the Details table model and adds badge rendering and the Task Detail Panel
+(``_TaskDetailPanel``, §9) that ``apply()`` renders ``vm.detail_panel`` into.
 
 Documented scope simplifications (mirrors the Summary tab's own pre-approved
 simplifications; see that module's docstring):
@@ -55,6 +54,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QMenu,
     QPushButton,
+    QScrollArea,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QTableView,
@@ -76,7 +76,12 @@ from ollama_llm_bench.ui.results._internal.theme_lookup import (
     resolve_spacing_tokens,
     resolve_theme_tokens,
 )
-from ollama_llm_bench.ui.results.models import DetailsViewModel, ResultDetailViewModel
+from ollama_llm_bench.ui.results.models import (
+    AttemptRow,
+    DetailsViewModel,
+    PhaseEvaluationRow,
+    ResultDetailViewModel,
+)
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager, resolve_color
 
 __all__: list[str] = ["DetailsTabView"]
@@ -158,6 +163,44 @@ def _selected_values_for(
         if entry.column == column:
             return entry.allowed_values
     return None
+
+
+def _format_identity(fields: tuple[tuple[str, str], ...]) -> str:
+    """Render the Task Detail Panel's identity & meta grid as ``"Label: value"`` lines
+    (details_tab.md §9 section 1)."""
+    return "\n".join(f"{label}: {value}" for label, value in fields)
+
+
+def _format_prompts(panel: ResultDetailViewModel) -> str:
+    """Render the prompts section: only the blocks actually sent are shown
+    (details_tab.md §9 section 2)."""
+    blocks: list[str] = []
+    if panel.system_prompt is not None:
+        blocks.append(f"System prompt:\n{panel.system_prompt}")
+    if panel.user_prompt is not None:
+        blocks.append(f"User prompt:\n{panel.user_prompt}")
+    return "\n\n".join(blocks)
+
+
+def _format_phases(phases: tuple[PhaseEvaluationRow, ...]) -> str:
+    """Render one line per evaluation phase (details_tab.md §9 section 5)."""
+    return "\n".join(
+        f"{phase.phase_name}: {phase.outcome} ({phase.measurement}) — {phase.description}"
+        for phase in phases
+    )
+
+
+def _format_attempts(attempts: tuple[AttemptRow, ...]) -> str:
+    """Render one line per attempt, including error detail for a failed attempt
+    (details_tab.md §9 section 8)."""
+    lines = []
+    for attempt in attempts:
+        duration = _EM_DASH if attempt.duration_ms is None else str(attempt.duration_ms)
+        line = f"#{attempt.attempt_index}: {attempt.outcome} ({duration} ms)"
+        if attempt.error_kind is not None:
+            line = f"{line} — {attempt.error_kind}: {attempt.error_message}"
+        lines.append(line)
+    return "\n".join(lines)
 
 
 class _FilterChipButton[T](QPushButton):
@@ -460,6 +503,145 @@ class _HeaderInteractionController:
         controller.on_column_filter_changed(column, tuple(working_selected))
 
 
+class _TaskDetailPanel(QWidget):
+    """The vertically scrollable single-record inspector (details_tab.md §9).
+
+    Renders a complete dump of the selected result -- the identity & meta grid, the
+    prompts sent, the golden answer, the model response (with a reveal for the raw,
+    un-stripped response when a reasoning block was present), the per-phase
+    evaluation, the judge reasoning, the error, and the attempt history -- in the
+    spec's fixed section order. Detachable into its own top-level window via the
+    ``Detach window`` action (§9's last sentence; no reusable per-tab detach
+    mechanism exists yet on the parent ``ResultView`` shell to build on, so this is a
+    minimal, self-contained reparent-and-show action with no dedicated test).
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("details_tab.detail_panel")
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+
+        self._empty_label = QLabel("")
+        self._empty_label.setObjectName("details_tab.detail_panel.empty_label")
+        self._empty_label.setWordWrap(True)
+        outer.addWidget(self._empty_label)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        self._detach_button = QPushButton("Detach window")
+        self._detach_button.setObjectName("details_tab.detail_panel.detach_window")
+        self._detach_button.setProperty("role", "outlined-muted-button")
+        self._detach_button.clicked.connect(self._on_detach_clicked)
+        content_layout.addWidget(self._detach_button)
+        self._identity_label = _add_section(content_layout, "details_tab.detail_panel.identity")
+        self._prompts_label = _add_section(content_layout, "details_tab.detail_panel.prompts")
+        self._golden_label = _add_section(content_layout, "details_tab.detail_panel.golden_answer")
+        self._response_label = _add_section(
+            content_layout, "details_tab.detail_panel.model_response"
+        )
+        self._thinking_note_label = _add_section(
+            content_layout, "details_tab.detail_panel.thinking_note"
+        )
+        self._raw_response_toggle = QPushButton("Show raw response")
+        self._raw_response_toggle.setObjectName("details_tab.detail_panel.raw_response_toggle")
+        self._raw_response_toggle.setProperty("role", "outlined-muted-button")
+        self._raw_response_toggle.setCheckable(True)
+        self._raw_response_toggle.toggled.connect(self._on_raw_response_toggled)
+        content_layout.addWidget(self._raw_response_toggle)
+        self._raw_response_label = _add_section(
+            content_layout, "details_tab.detail_panel.raw_response"
+        )
+        self._phases_label = _add_section(
+            content_layout, "details_tab.detail_panel.phase_evaluation"
+        )
+        self._judge_label = _add_section(content_layout, "details_tab.detail_panel.judge_reasoning")
+        self._error_label = _add_section(content_layout, "details_tab.detail_panel.error")
+        self._attempts_label = _add_section(content_layout, "details_tab.detail_panel.attempts")
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
+
+        self._content_widgets: tuple[QWidget, ...] = (
+            scroll,
+            self._detach_button,
+            self._identity_label,
+            self._prompts_label,
+            self._golden_label,
+            self._response_label,
+            self._phases_label,
+            self._judge_label,
+            self._error_label,
+            self._attempts_label,
+        )
+        self.apply_empty("Select a row to inspect it.")
+
+    def apply_detail(self, panel: ResultDetailViewModel | None) -> None:
+        """Render the full record for ``panel``, or fall back to the empty state
+        when no row is selected (details_tab.md §9)."""
+        if panel is None:
+            self.apply_empty("Select a row to inspect it.")
+            return
+        self._set_content_visible(visible=True)
+        self._identity_label.setText(_format_identity(panel.identity_fields))
+        self._prompts_label.setText(_format_prompts(panel))
+        self._golden_label.setText(panel.golden_answer or "(none)")
+        self._response_label.setText(panel.model_response or "(no response)")
+        self._apply_thinking_block(panel)
+        self._phases_label.setText(_format_phases(panel.phase_evaluations))
+        self._judge_label.setText(panel.judge_reasoning)
+        self._error_label.setText(panel.error_message)
+        self._attempts_label.setText(_format_attempts(panel.attempts))
+
+    def apply_empty(self, message: str) -> None:
+        """Render the panel's empty state: no row currently selected (details_tab.md §9)."""
+        self._empty_label.setText(message)
+        self._set_content_visible(visible=False)
+
+    def _apply_thinking_block(self, panel: ResultDetailViewModel) -> None:
+        self._thinking_note_label.setVisible(panel.has_thinking_block)
+        self._thinking_note_label.setText(
+            "A reasoning block was present in the response and has been stripped."
+            if panel.has_thinking_block
+            else ""
+        )
+        show_toggle = panel.has_thinking_block and panel.raw_response is not None
+        self._raw_response_toggle.setVisible(show_toggle)
+        if not show_toggle:
+            self._raw_response_toggle.setChecked(False)
+        self._raw_response_label.setText(panel.raw_response or "")
+        self._raw_response_label.setVisible(show_toggle and self._raw_response_toggle.isChecked())
+
+    def _set_content_visible(self, *, visible: bool) -> None:
+        for widget in self._content_widgets:
+            widget.setVisible(visible)
+        if not visible:
+            self._thinking_note_label.setVisible(False)
+            self._raw_response_toggle.setVisible(False)
+            self._raw_response_label.setVisible(False)
+        self._empty_label.setVisible(not visible)
+
+    def _on_raw_response_toggled(self, checked: bool) -> None:  # noqa: FBT001  # Qt signal callback
+        self._raw_response_toggle.setText("Hide raw response" if checked else "Show raw response")
+        self._raw_response_label.setVisible(checked)
+
+    def _on_detach_clicked(self) -> None:
+        self.setParent(None)
+        self.setWindowFlags(Qt.WindowType.Window)
+        self.setWindowTitle("Task Detail Panel")
+        self.show()
+
+
+def _add_section(layout: QVBoxLayout, object_name: str) -> QLabel:
+    """Add one word-wrapped, initially-hidden text section to the Task Detail Panel."""
+    label = QLabel()
+    label.setObjectName(object_name)
+    label.setWordWrap(True)
+    layout.addWidget(label)
+    return label
+
+
 class DetailsTabView(QWidget):
     """Passive Details tab body: the filter bar, the results table with badge
     rendering, the column-visibility popover, and the debounced live-update timer.
@@ -478,7 +660,6 @@ class DetailsTabView(QWidget):
         self._controller: DetailsTabController | None = None
         self._visible_columns: tuple[DetailsColumnKey, ...] = ()
         self._export_enabled = False
-        self._pending_detail_panel: ResultDetailViewModel | None = None
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -524,6 +705,9 @@ class DetailsTabView(QWidget):
         if selection_model is not None:
             selection_model.currentRowChanged.connect(self._on_current_row_changed)
         root.addWidget(self._table_view, 1)
+
+        self._detail_panel = _TaskDetailPanel(self)
+        root.addWidget(self._detail_panel)
 
         self._recompute_timer = QTimer(self)
         self._recompute_timer.setSingleShot(True)
@@ -604,7 +788,7 @@ class DetailsTabView(QWidget):
         self._empty_label.setText(vm.empty_state_message or "")
         self._empty_label.setVisible(vm.empty_state_message is not None)
         self._reselect_row(vm.selected_result_id)
-        self._on_detail_panel_updated(vm.detail_panel)
+        self._detail_panel.apply_detail(vm.detail_panel)
 
     def apply_no_run(self, message: str) -> None:
         """Render the "select a run" state: no chips, no table, just the message."""
@@ -680,10 +864,6 @@ class DetailsTabView(QWidget):
                     self._table_view.setCurrentIndex(index)
                     return
         selection_model.clearSelection()
-
-    def _on_detail_panel_updated(self, panel: ResultDetailViewModel | None) -> None:
-        """Cache the Task Detail Panel payload; Task 10 mounts and renders it here."""
-        self._pending_detail_panel = panel
 
     def _on_chip_changed(self, chip_name: str, selected: tuple[object, ...]) -> None:
         if self._controller is not None:
