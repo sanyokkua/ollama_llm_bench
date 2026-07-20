@@ -468,8 +468,46 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Pausing/Stopping races a `QTimer` against the terminal `EventBus` event; on timeout expiry it
   reconciles via `gateway.is_run_active()` + `gateway.run_header(run_id).status`, using the
   specific terminal/paused `RunStage` (not generic buckets), mirrors the main-window close-handler
-  race pattern (first one wins). Deliberately out of scope: the Current-Task section (STORY-059),
-  Run Event-Log panel (STORY-060), ViewingPastRun Model-summary panel, and `compose.py` wiring
-  of the real `ProgressGateway` (Phase 11). Per `04_Progress_Widget/description.md` §§3–6, 10, 12;
+  race pattern (first one wins). Deliberately out of scope: the ViewingPastRun Model-summary
+  panel and `compose.py` wiring of the real `ProgressGateway` (Phase 11). Per
+  `04_Progress_Widget/description.md` §§3–6, 10, 12;
   `implementation_structure.md` §§3, 4.1; `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b.4;
   and `08_Cross_Cutting/08-D_color_palette_and_typography.md` §16.
+
+- Progress widget Current-task sub-controller (`ui/progress/`): the `CurrentTaskController`
+  implementation, subscribing to six events (`_inference_started`, `_inference_progress`,
+  `_judge_started`, `_judge_completed`, `_task_completed`, `_task_retry`) and deriving the
+  `CurrentTaskViewModel`. The in-flight task grid displays the active task id, stage, task time,
+  and timeouts. The Inference progress sub-row (`context=BENCHMARK_TASK`) shows waiting-for-first-token
+  sub-state A and generating sub-state B, rendered from cached `_inference_progress` events; visibility
+  reset on `_inference_started`, hidden on `_task_completed`, and showing a placeholder during judge
+  phase. The Judge progress sub-row (`context=BENCHMARK_JUDGE`) has parallel waiting and receiving
+  sub-states, shown/reset on `_judge_started`, hidden on `_judge_completed`/`_task_completed`. Both
+  sub-rows are verbosity-independent and marked with a leading `~` when token counts derive from the
+  4-character heuristic (EC-RUN-17). The retry line renders in error tone with the classified reason
+  while active and clears on task completion. Context filter accepts only `BENCHMARK_TASK` and
+  `BENCHMARK_JUDGE`, ignoring `RUN_ANALYSIS` and `PROVIDER_TEST` progress events. Defensive
+  out-of-order handling for a judge event lacking a completed main inference. Covers EC-RUN-17,
+  EC-RUN-18, EC-RUN-19, EC-RUN-23, EC-PROV-1. Per `04_Progress_Widget/description.md` §§7, 7.1;
+  `implementation_structure.md` §4.2; `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b.4;
+  `08-D_color_palette_and_typography.md` §16; and `08-Q_event_payload_schemas.md` §4.1a.
+
+- Progress widget run event-log sub-controller (`ui/progress/`): the `LogController`
+  implementation, subscribing to fifteen log-source events (`_inference_started`,
+  `_inference_completed`, `_task_completed`, `_judge_started`, `_judge_completed`, `_task_retry`,
+  `_stage_changed`, `_provider_switched`, `_model_switched`, `_run_stopped`, `_run_finished`,
+  `_run_failed`, `_model_stability_changed`, `_provider_registry_reloaded`, `_log_cleared`).
+  Caches every raw event and renders one HTML line per event via `LogFormatter` at the
+  user-selected verbosity. The toolbar exposes four controls: a verbosity dropdown (Short/Normal/Verbose,
+  persisted to `ui.run_log_verbosity`), a case-insensitive search filter, a Clear-view action
+  (empties display while retaining cached events for re-render on verbosity change), and a
+  bounded-buffer status. The display buffer is capped by `ui.run_log_max_lines` (range 1,000–500,000),
+  with oldest lines evicted first when capacity is exceeded; the per-run log file is never trimmed
+  by the widget. A log-write-failure warning indicator surfaces when the run-log file writer reports
+  an error, allowing in-memory buffering to continue. Auto-scroll toggle persisted to
+  `ui.auto_scroll_run_log` follows the newest line by default, suspending on manual scroll-up.
+  Past-run log replay loads and renders a prior run's saved log on `_run_id_changed` when no run
+  is active via `ProgressGateway.load_past_log(run_id)`. Coalesced per-event view repaints via Qt
+  event-loop coalescing to enforce EC-PERF-3. Covers EC-LOG-1, EC-LOG-3, EC-PERF-3, EC-PROV-4a.
+  Per `04_Progress_Widget/description.md` §§8, 8.3–8.5; `implementation_structure.md` §4.3;
+  `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b.4; and `08-D_color_palette_and_typography.md` §16.

@@ -1,8 +1,16 @@
-"""Colocated view tests for ``ui/progress/`` (STORY-058-AC-1, AC-2, AC-7)."""
+"""Colocated view tests for ``ui/progress/`` (STORY-058-AC-1, AC-2, AC-7; STORY-060)."""
 
 from typing import TYPE_CHECKING, cast
 
-from PySide6.QtWidgets import QFormLayout, QLabel, QPushButton, QToolButton, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFormLayout,
+    QLabel,
+    QPushButton,
+    QTextEdit,
+    QToolButton,
+    QWidget,
+)
 import pytest
 from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
@@ -11,7 +19,7 @@ import structlog
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-from ollama_llm_bench.backend.domain import ResultStatus
+from ollama_llm_bench.backend.domain import ResultStatus, RunLogVerbosity
 from ollama_llm_bench.backend.log_formatting import LogFormatter
 from ollama_llm_bench.ui.progress import make_progress_widget
 from ollama_llm_bench.ui.progress._internal.select import select_header
@@ -21,6 +29,8 @@ from ollama_llm_bench.ui.progress.models import (
     CountersViewModel,
     CurrentTaskViewModel,
     HeaderAffordances,
+    LogLineViewModel,
+    LogViewModel,
     RunStage,
 )
 from ollama_llm_bench.ui.progress.testing import FakeProgressGateway
@@ -379,3 +389,151 @@ def test_retry_line_clears_when_not_active(qtbot: QtBot) -> None:
     container = cast("QWidget | None", view.findChild(QWidget, "progress.current_task.retry"))
     assert container is not None
     assert list(cast("Iterable[QLabel]", container.findChildren(QLabel))) == []
+
+
+# -- Run Event Log panel (STORY-060; `implementation_structure.md` §9's View row) --
+
+
+def _log_vm(
+    *,
+    verbosity: RunLogVerbosity = RunLogVerbosity.NORMAL,
+    lines: tuple[LogLineViewModel, ...] = (),
+    file_write_warning: bool = False,
+    auto_scroll: bool = True,
+) -> LogViewModel:
+    return LogViewModel(
+        verbosity=verbosity,
+        lines=lines,
+        search_term="",
+        auto_scroll=auto_scroll,
+        file_write_warning=file_write_warning,
+    )
+
+
+def test_apply_log_sets_verbosity_combo_without_reemitting_signal(qtbot: QtBot) -> None:
+    """Proves: STORY-060-AC-2
+
+    `apply_log` sets the verbosity combo's displayed text from
+    `LogViewModel.verbosity` without re-emitting `log_verbosity_changed` -- the
+    view blocks its own signal while applying the ViewModel, so a
+    controller-driven re-render never bounces back into another controller
+    call (`implementation_structure.md` §9's render-only View contract).
+    """
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    received: list[str] = []
+    view.log_verbosity_changed.connect(received.append)
+
+    # Act
+    view.apply_log(_log_vm(verbosity=RunLogVerbosity.VERBOSE))
+
+    # Assert
+    combo = cast("QComboBox", view.findChild(QComboBox, "progress.log.verbosity"))
+    assert combo.currentText() == "Verbose"
+    assert received == []
+
+
+def test_apply_log_body_renders_each_line_html(qtbot: QtBot) -> None:
+    """Proves: STORY-060-AC-1
+
+    The log body's rendered text reflects every line in `LogViewModel.lines`,
+    in order; the view performs no HTML construction of its own -- it only
+    appends each pre-built fragment.
+    """
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    lines = (
+        LogLineViewModel(kind="task_start", html="<b>first</b>"),
+        LogLineViewModel(kind="done", html="<b>second</b>"),
+    )
+
+    # Act
+    view.apply_log(_log_vm(lines=lines))
+
+    # Assert
+    body = cast("QTextEdit", view.findChild(QTextEdit, "progress.log.body"))
+    text = body.toPlainText()
+    assert text.index("first") < text.index("second")
+
+
+@pytest.mark.parametrize("file_write_warning", [True, False])
+def test_apply_log_warning_label_visibility_reflects_file_write_warning(
+    file_write_warning: bool,  # noqa: FBT001  # pytest.mark.parametrize table column
+    qtbot: QtBot,
+) -> None:
+    """Proves: STORY-060-AC-5
+
+    Covers EC-LOG-1. The write-failure warning label's visibility mirrors
+    `LogViewModel.file_write_warning` -- shown only while the run-log file
+    writer's last write attempt failed.
+    """
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    view.show()
+
+    # Act
+    view.apply_log(_log_vm(file_write_warning=file_write_warning))
+
+    # Assert
+    label = cast("QLabel", view.findChild(QLabel, "progress.log.write_warning"))
+    assert label.isVisible() is file_write_warning
+
+
+def _many_log_lines() -> tuple[LogLineViewModel, ...]:
+    return tuple(
+        LogLineViewModel(kind="task_start", html=f"<span>line {i}</span>") for i in range(200)
+    )
+
+
+def test_apply_log_scrolls_to_bottom_when_auto_scroll_true(qtbot: QtBot) -> None:
+    """Proves: STORY-060 (`description.md` §8.5's auto-scroll rule)
+
+    `apply_log` moves the log body's scrollbar to the maximum when
+    `LogViewModel.auto_scroll` is `True`, even if the user had previously
+    scrolled away from the bottom.
+    """
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    view.resize(200, 100)
+    view.show()
+    many_lines = _many_log_lines()
+    view.apply_log(_log_vm(lines=many_lines, auto_scroll=True))
+    body = cast("QTextEdit", view.findChild(QTextEdit, "progress.log.body"))
+    scrollbar = body.verticalScrollBar()
+    scrollbar.setValue(0)  # the user scrolled back up to read earlier lines
+
+    # Act -- a further re-render arrives (e.g. the next pipeline event)
+    view.apply_log(_log_vm(lines=many_lines, auto_scroll=True))
+
+    # Assert
+    assert scrollbar.value() == scrollbar.maximum()
+
+
+def test_apply_log_preserves_scroll_position_when_auto_scroll_false(qtbot: QtBot) -> None:
+    """Proves: STORY-060 (`description.md` §8.5's auto-scroll rule)
+
+    `apply_log` must preserve the user's scroll position -- not snap back to
+    the newest line -- when `LogViewModel.auto_scroll` is `False` (the
+    "suspend on scroll-up" rule). See the `xfail` reason for the concrete
+    defect this test caught.
+    """
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    view.resize(200, 100)
+    view.show()
+    many_lines = _many_log_lines()
+    view.apply_log(_log_vm(lines=many_lines, auto_scroll=True))
+    body = cast("QTextEdit", view.findChild(QTextEdit, "progress.log.body"))
+    scrollbar = body.verticalScrollBar()
+    scrollbar.setValue(0)  # the user scrolled back up to read earlier lines
+
+    # Act -- a further re-render arrives (e.g. the next pipeline event)
+    view.apply_log(_log_vm(lines=many_lines, auto_scroll=False))
+
+    # Assert
+    assert scrollbar.value() == 0

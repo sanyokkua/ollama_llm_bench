@@ -82,7 +82,12 @@ def _make_bound_controller(
 ) -> tuple[ProgressController, ProgressView]:
     view = ProgressView()
     qtbot.addWidget(view)
-    controller = ProgressController(gateway=gateway, event_bus=event_bus, reconcile_timeout_ms=80)
+    controller = ProgressController(
+        gateway=gateway,
+        event_bus=event_bus,
+        log_formatter=FakeLogFormatter(),
+        reconcile_timeout_ms=80,
+    )
     controller.bind(view)
     return controller, view
 

@@ -1,6 +1,7 @@
-"""``ProgressView`` -- the passive Progress widget view: header row + the Run
-Progress/Model two-column row (``04_Progress_Widget/description.md`` §2, §3, §4, §5,
-§6.1; STORY-058). No Current-Task or Log regions -- those are STORY-059/STORY-060.
+"""``ProgressView`` -- the passive Progress widget view: header row, the Run
+Progress/Model two-column row, the Current-task grid, and the Run Event Log panel
+(``04_Progress_Widget/description.md`` §2, §3, §4, §5, §6.1, §7, §8; STORY-058,
+STORY-059, STORY-060).
 
 Passive View: renders a ``ViewModel`` slice per ``apply_*`` method and emits
 widget-local Qt signals on user interaction; imports no adapter Gateway, no reactive
@@ -12,15 +13,19 @@ from typing import Final
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
+    QComboBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QPushButton,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
-from ollama_llm_bench.backend.domain import ResultStatus
+from ollama_llm_bench.backend.domain import ResultStatus, RunLogVerbosity
 from ollama_llm_bench.ui.progress._internal.header import ProgressHeaderWidget
 from ollama_llm_bench.ui.progress._internal.stage_badge import StageBadgeWidget
 from ollama_llm_bench.ui.progress._internal.theme_lookup import (
@@ -31,6 +36,7 @@ from ollama_llm_bench.ui.progress.models import (
     CountersViewModel,
     CurrentTaskViewModel,
     HeaderAffordances,
+    LogViewModel,
     ProgressViewModel,
     StabilityViewModel,
 )
@@ -38,6 +44,16 @@ from ollama_llm_bench.ui.shared import BadgeStatus, make_badge_label
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager, resolve_color
 
 __all__: list[str] = ["ProgressView"]
+
+# description.md §8.1's fixed verbosity dropdown items, in display order; the combo's
+# display text is each `RunLogVerbosity` member's value, title-cased.
+_LOG_VERBOSITY_ITEMS: Final[tuple[str, ...]] = tuple(
+    verbosity.value.capitalize() for verbosity in RunLogVerbosity
+)
+# description.md §8.1's exact log-write-failure warning indicator text.
+_LOG_WRITE_WARNING_TEXT: Final[str] = (
+    "⚠ Run log file write failed — the on-screen log is still live"
+)
 
 # description.md §4's per-ResultStatus counter rows shown as plain per-phase counts
 # (the "Failed" row is a derived aggregate, read from `badge_counts` instead -- §4).
@@ -85,6 +101,10 @@ class ProgressView(QWidget):
     pause_resume_clicked = Signal()
     stop_clicked = Signal()
     retry_probe_clicked = Signal()
+    log_verbosity_changed = Signal(str)
+    log_search_changed = Signal(str)
+    log_clear_clicked = Signal()
+    log_auto_scroll_changed = Signal(bool)
 
     def __init__(
         self,
@@ -103,9 +123,11 @@ class ProgressView(QWidget):
         self._header.pause_resume_clicked.connect(self.pause_resume_clicked)
         self._header.stop_clicked.connect(self.stop_clicked)
         self._counter_value_labels: dict[str, QLabel] = {}
+        self._log_at_bottom = True
         self._build_counters_panel()
         self._build_model_panel()
         self._build_current_task_panel()
+        self._build_log_panel()
         self._build_layout()
 
     @property
@@ -125,7 +147,7 @@ class ProgressView(QWidget):
         row.addWidget(self._model_group, 1)
         root.addLayout(row)
         root.addWidget(self._current_task_group)
-        root.addStretch(1)
+        root.addWidget(self._log_group, 1)
 
     def _build_counters_panel(self) -> None:
         self._counters_group = QGroupBox("Run Progress")
@@ -207,6 +229,36 @@ class ProgressView(QWidget):
         layout = QVBoxLayout(self._current_task_group)
         layout.addLayout(form)
 
+    def _build_log_panel(self) -> None:
+        self._log_group = QGroupBox("Run Event Log")
+        self._log_group.setObjectName("progress.log")
+        toolbar = QHBoxLayout()
+        self._log_verbosity_combo = QComboBox()
+        self._log_verbosity_combo.setObjectName("progress.log.verbosity")
+        self._log_verbosity_combo.addItems(_LOG_VERBOSITY_ITEMS)
+        self._log_verbosity_combo.currentTextChanged.connect(self.log_verbosity_changed)
+        self._log_search_edit = QLineEdit()
+        self._log_search_edit.setObjectName("progress.log.search")
+        self._log_search_edit.setPlaceholderText("Search the run log…")
+        self._log_search_edit.textChanged.connect(self.log_search_changed)
+        self._log_clear_button = QPushButton("Clear")
+        self._log_clear_button.setObjectName("progress.log.clear")
+        self._log_clear_button.clicked.connect(self.log_clear_clicked)
+        toolbar.addWidget(self._log_verbosity_combo)
+        toolbar.addWidget(self._log_search_edit, 1)
+        toolbar.addWidget(self._log_clear_button)
+        self._log_warning_label = QLabel(_LOG_WRITE_WARNING_TEXT)
+        self._log_warning_label.setObjectName("progress.log.write_warning")
+        self._log_warning_label.setVisible(False)
+        self._log_body = QTextEdit()
+        self._log_body.setObjectName("progress.log.body")
+        self._log_body.setReadOnly(True)
+        self._log_body.verticalScrollBar().valueChanged.connect(self._on_log_scroll_changed)
+        layout = QVBoxLayout(self._log_group)
+        layout.addLayout(toolbar)
+        layout.addWidget(self._log_warning_label)
+        layout.addWidget(self._log_body)
+
     def apply_header(self, *, run_name: str, affordances: HeaderAffordances) -> None:
         """Render the run-name/pencil/Pause-Resume/Stop header slice (AC-2, AC-3)."""
         self._header.apply(run_name=run_name, affordances=affordances)
@@ -280,6 +332,40 @@ class ProgressView(QWidget):
         if vm.retry_active and vm.retry_label is not None:
             self._retry_layout.addWidget(self._make_callout(status="excluded", text=vm.retry_label))
         self._current_task_form.setRowVisible(_CURRENT_TASK_RETRY_ROW, vm.retry_active)
+
+    def apply_log(self, vm: LogViewModel) -> None:
+        """Render the Run Event Log panel: verbosity combo, warning indicator, body
+        lines, and auto-scroll (STORY-060-AC-1..6). The view builds no HTML itself
+        and applies no search filtering -- both are pre-computed by the controller;
+        this method only paints ``vm``."""
+        self._log_verbosity_combo.blockSignals(True)  # noqa: FBT003  # Qt's own blockSignals(bool) API
+        self._log_verbosity_combo.setCurrentText(vm.verbosity.value.capitalize())
+        self._log_verbosity_combo.blockSignals(False)  # noqa: FBT003  # Qt's own blockSignals(bool) API
+        self._log_warning_label.setVisible(vm.file_write_warning)
+        scrollbar = self._log_body.verticalScrollBar()
+        pre_render_value = scrollbar.value()
+        scrollbar.blockSignals(True)  # noqa: FBT003  # Qt's own blockSignals(bool) API
+        self._log_body.clear()
+        for line in vm.lines:
+            self._log_body.append(line.html)
+        # QTextEdit.append() unconditionally scrolls to the newly-appended text --
+        # blockSignals() only suppresses signal emission, not that internal scroll-follow
+        # behaviour -- so `auto_scroll is False` must explicitly restore the pre-render
+        # position instead of leaving Qt's natural post-append() position in place
+        # (description.md §8.5's scroll-suspend rule).
+        if vm.auto_scroll:
+            scrollbar.setValue(scrollbar.maximum())
+        else:
+            scrollbar.setValue(pre_render_value)
+        scrollbar.blockSignals(False)  # noqa: FBT003  # Qt's own blockSignals(bool) API
+        self._log_at_bottom = scrollbar.value() == scrollbar.maximum()
+
+    def _on_log_scroll_changed(self, _value: int) -> None:
+        scrollbar = self._log_body.verticalScrollBar()
+        at_bottom = scrollbar.value() == scrollbar.maximum()
+        if at_bottom != self._log_at_bottom:
+            self._log_at_bottom = at_bottom
+            self.log_auto_scroll_changed.emit(at_bottom)
 
     def apply(self, vm: ProgressViewModel) -> None:
         """The single top-level render entry point (idempotent)."""

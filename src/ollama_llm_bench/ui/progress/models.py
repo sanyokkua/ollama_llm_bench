@@ -11,8 +11,8 @@ UI-only until a backend module needs the same closed set.
 
 ``ProgressViewModel`` is narrowed relative to ``implementation_structure.md``'s
 full struct: it carries only the fields this story's controllers populate
-(``counters``, ``stability``, plus the header fields). STORY-059 adds a
-``current_task`` field and STORY-060 adds a ``log`` field later -- ordinary
+(``counters``, ``stability``, plus the header fields). STORY-059 added the
+``current_task`` field and STORY-060 adds the ``log`` field here -- ordinary
 incremental growth of a struct this module alone owns and controls every
 construction site of.
 """
@@ -21,12 +21,14 @@ from enum import StrEnum
 
 import msgspec
 
-from ollama_llm_bench.backend.domain import InferenceContext, ResultStatus
+from ollama_llm_bench.backend.domain import InferenceContext, ResultStatus, RunLogVerbosity
 
 __all__: list[str] = [
     "CountersViewModel",
     "CurrentTaskViewModel",
     "HeaderAffordances",
+    "LogLineViewModel",
+    "LogViewModel",
     "ProgressViewModel",
     "RunStage",
     "StabilityViewModel",
@@ -107,6 +109,32 @@ class CurrentTaskViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     last_progress_context: InferenceContext | None
 
 
+class LogLineViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One rendered Run Event Log line (description.md §8; STORY-060-AC-1).
+
+    ``kind`` is the raw ``RunLogEventKind`` string value (not the enum itself --
+    the view never branches on it, only ``html`` is rendered); ``html`` is the
+    pre-built HTML fragment ``LogFormatter.format_event`` returned (or, for a
+    past-run replay line, an HTML-escaped raw log-file line).
+    """
+
+    kind: str
+    html: str
+
+
+class LogViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The Run Event Log panel's full render state (description.md §8;
+    STORY-060-AC-1..6): the toolbar's verbosity/search state, the buffered and
+    filtered lines, the auto-scroll preference, and the log-write-failure
+    warning indicator."""
+
+    verbosity: RunLogVerbosity
+    lines: tuple[LogLineViewModel, ...]
+    search_term: str
+    auto_scroll: bool
+    file_write_warning: bool
+
+
 class HeaderAffordances(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     """The header row's per-state control affordances (state_machine.md §4; AC-2).
 
@@ -129,8 +157,8 @@ class HeaderAffordances(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 class ProgressViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     """The Progress widget's full render state (implementation_structure.md §5,
-    narrowed per STORY-058's scope; STORY-059 adds ``current_task`` -- no ``log``
-    field until STORY-060)."""
+    narrowed per STORY-058's scope; STORY-059 added ``current_task``; STORY-060
+    adds ``log``)."""
 
     widget_state: str
     run_name: str
@@ -143,3 +171,4 @@ class ProgressViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     counters: CountersViewModel
     current_task: CurrentTaskViewModel
     stability: StabilityViewModel
+    log: LogViewModel

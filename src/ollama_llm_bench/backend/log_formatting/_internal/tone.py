@@ -32,8 +32,9 @@ _TONE_BY_KIND: Final[dict[RunLogEventKind, str]] = {
     RunLogEventKind.RETRY: "error",
     RunLogEventKind.FAILED: "error",
     RunLogEventKind.STOPPED: "muted",
+    RunLogEventKind.TASK_JUDGE_TIMEOUT: "error",
 }
-"""The eleven-kind-to-tone mapping (§6.3)."""
+"""The twelve-kind-to-tone mapping (§6.3; ``TASK_JUDGE_TIMEOUT`` added by STORY-060)."""
 
 
 def resolve_tone(kind: RunLogEventKind) -> str:

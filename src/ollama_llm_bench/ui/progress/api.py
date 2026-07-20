@@ -42,10 +42,8 @@ def make_progress_widget(
             provider-probe command (08-E §7b.4, plus STORY-058's ``list_runs``/
             ``is_run_active`` extensions).
         log_formatter: Renders one event into an HTML log line at a
-            verbosity. Retained on the factory signature per
-            ``implementation_structure.md`` §2 so the public surface never has
-            to change shape across STORY-058 -> STORY-060, even though this
-            story's own code paths (no Log region yet) do not call it.
+            verbosity; consumed by the Run Event Log panel's ``LogController``
+            (STORY-060).
 
     Returns:
         The mountable, unshown ``QWidget`` the caller places in the Benchmark

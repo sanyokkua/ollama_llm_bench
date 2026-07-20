@@ -16,9 +16,15 @@ extensions this story's grounding pass identified as real gaps:
   and ``ResumeGateway.is_run_active()``. Needed by the SPEC-098 bounded
   reconciliation timer (``description.md`` §10), which reconciles a lost
   terminal event via ``is_run_active()`` plus ``run_header(run_id).status``.
+- ``run_log_write_failed()`` (STORY-060) -- 08-E §7b.4 carries no method
+  surfacing the run-log file writer's write outcome, and no ``EventBus``
+  signal carries a per-write ``WriteOutcome`` either (a per-write outcome is
+  not a broadcast event). ``LogController`` polls this fast-synchronous
+  method once per handled log-source event to drive
+  ``LogViewModel.file_write_warning`` (EC-LOG-1).
 
-Both additions are pure extensions of this module's own Protocol -- no other
-module's file changes.
+All three additions are pure extensions of this module's own Protocol -- no
+other module's file changes.
 """
 
 from typing import Protocol
@@ -89,8 +95,7 @@ class ProgressGateway(Protocol):
     def load_past_log(self, run_id: RunId) -> str:
         """Load the saved run-log of a past run for replay.
 
-        blocking -- reads a file from disk; call only from a ``TaskRunner``
-        worker, never the GUI thread.
+        fast-synchronous -- a single-file store read.
         """
         ...
 
@@ -133,5 +138,16 @@ class ProgressGateway(Protocol):
         fast-synchronous. Read by the SPEC-098 bounded reconciliation timer on
         expiry, alongside ``run_header(run_id).status``, to recover from a
         lost terminal event (gap resolution above).
+        """
+        ...
+
+    def run_log_write_failed(self) -> bool:
+        """Whether the run-log file writer's most recent write attempt failed.
+
+        fast-synchronous -- a cheap boolean read reflecting the run-log file
+        writer's last ``WriteOutcome``. Polled by ``LogController`` once per
+        handled log-source event so ``LogViewModel.file_write_warning`` stays
+        current (EC-LOG-1, gap resolution above); on-screen rendering keeps
+        appending from the in-memory buffer regardless of this value.
         """
         ...

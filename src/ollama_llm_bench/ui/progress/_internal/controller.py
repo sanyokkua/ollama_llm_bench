@@ -38,6 +38,7 @@ from ollama_llm_bench.backend.events import (
 from ollama_llm_bench.backend.log_formatting import LogFormatter
 from ollama_llm_bench.ui.progress._internal.counters_controller import CountersController
 from ollama_llm_bench.ui.progress._internal.current_task_controller import CurrentTaskController
+from ollama_llm_bench.ui.progress._internal.log_controller import LogController
 from ollama_llm_bench.ui.progress._internal.select import (
     select_header,
     terminal_stage_for_run_status,
@@ -84,14 +85,11 @@ class ProgressController:
         *,
         gateway: ProgressGateway,
         event_bus: EventBus,
-        log_formatter: LogFormatter | None = None,
+        log_formatter: LogFormatter,
         reconcile_timeout_ms: int = _DEFAULT_RECONCILE_TIMEOUT_MS,
     ) -> None:
         self._gateway = gateway
         self._event_bus = event_bus
-        # Retained collaborator for STORY-059/STORY-060's Current-Task/Log regions;
-        # this story's own code paths do not call it (no Log region built yet).
-        self._log_formatter = log_formatter
         self._reconcile_timeout_ms = reconcile_timeout_ms
         self._view: ProgressView | None = None
         self._state = STATE_EMPTY
@@ -103,6 +101,7 @@ class ProgressController:
         self.counters = CountersController(gateway=gateway, event_bus=event_bus)
         self.current_task = CurrentTaskController(gateway=gateway, event_bus=event_bus)
         self.stability = StabilityController(gateway=gateway, event_bus=event_bus)
+        self.log = LogController(gateway=gateway, event_bus=event_bus, log_formatter=log_formatter)
         logger.debug("progress_controller_constructed")
 
     def bind(self, view: ProgressView) -> None:
@@ -111,6 +110,7 @@ class ProgressController:
         self.counters.bind(view)
         self.current_task.bind(view)
         self.stability.bind(view)
+        self.log.bind(view)
         bus = self._event_bus
         bus.subscribe(SIGNAL_RUN_STARTED, self._on_run_started, owner=view)
         bus.subscribe(SIGNAL_RUN_PAUSED, self._on_run_paused, owner=view)
@@ -199,6 +199,7 @@ class ProgressController:
         run = self._gateway.run_header(payload.run_id)
         self._run_name = run.run_name or ""
         self._transition(STATE_VIEWING_PAST_RUN)
+        self.log.load_past_run(payload.run_id)
 
     # -- User-triggered actions ------------------------------------------------
 

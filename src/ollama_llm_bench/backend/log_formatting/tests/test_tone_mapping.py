@@ -50,3 +50,20 @@ def test_event_kind_maps_to_tone(*, kind: RunLogEventKind, expected_tone: str) -
 
     # Assert
     assert f'class="tone-{expected_tone}"' in fragment
+
+
+def test_task_judge_timeout_kind_maps_to_error_tone() -> None:
+    """Proves: STORY-060-AC-1
+
+    Covers EC-PROV-4a: the ``task_judge_timeout`` kind (added by STORY-060 for the
+    per-task judge-call-exhaustion log line) wraps its kind tag in the same
+    ``error`` tone as ``retry``/``failed``.
+    """
+    formatter = make_log_formatter()
+    event = RunLogEvent(kind=RunLogEventKind.TASK_JUDGE_TIMEOUT, timestamp="2026-07-14T10:00:00Z")
+
+    # Act
+    fragment = formatter.format_event(event=event, verbosity=RunLogVerbosity.NORMAL)
+
+    # Assert
+    assert 'class="tone-error"' in fragment

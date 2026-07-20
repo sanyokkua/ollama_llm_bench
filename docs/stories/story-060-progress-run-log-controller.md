@@ -1,9 +1,10 @@
 ---
 id: STORY-060
 title: Build the Progress widget run event-log sub-controller with verbosity, search, bounded buffer, and auto-scroll
-status: ready
+status: done
 spec_clauses:
   - 04_Progress_Widget/description.md#8-benchmark-event-log-panel
+  - 04_Progress_Widget/description.md#83-event-kinds
   - 04_Progress_Widget/description.md#84-buffer-cap
   - 04_Progress_Widget/description.md#85-auto-scroll
   - 04_Progress_Widget/implementation_structure.md#43-logcontroller
@@ -11,6 +12,8 @@ spec_clauses:
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
 modules:
   - ui/progress/
+  - backend/domain/
+  - backend/log_formatting/
 acceptance_criteria:
   - STORY-060-AC-1
   - STORY-060-AC-2
@@ -151,16 +154,38 @@ replays that run's saved log through `ProgressGateway.load_past_log(run_id)`.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-060.
-- [ ] EC-LOG-1, EC-LOG-3, EC-PERF-3, and EC-PROV-4a each have a passing test.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the log-panel states of
+- [x] Every acceptance criterion has a passing test that names STORY-060.
+- [x] EC-LOG-1, EC-LOG-3, EC-PERF-3, and EC-PROV-4a each have a passing test.
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the log-panel states of
   `04_Progress_Widget/state_machine.md`.
-- [ ] An architecture test confirms the sub-controller depends only on `ProgressGateway`,
+- [x] An architecture test confirms the sub-controller depends only on `ProgressGateway`,
   `EventBus`, and `LogFormatter`, never builds HTML itself, and that the module references no
   `setStyleSheet`, embeds no colour literal, and imports no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/progress/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/progress/`.
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan
   clause and no orphan test for STORY-060.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+Two lower-severity gaps were identified during a post-implementation spec-conformance review
+and are recorded here as explicitly out of scope, per the project's "if something is genuinely
+out of scope, say so explicitly" rule, rather than being silently implemented or silently
+dropped:
+
+- **Search does not highlight matches.** `04_Progress_Widget/description.md#8.1` (cited clause)
+  says the search input should "filter visible lines and highlight matches"; this story's
+  `filter_search` only filters -- no acceptance criterion in this story covers search behaviour
+  at all, and no highlighting was implemented (the originally approved plan flagged this exact
+  ambiguity and deferred confirming it against `mockup.html`). Recommend a fast-follow story/AC
+  if highlighting is wanted.
+- **`judge_started` and `judge_excluded` gaps.** `select_judge_started` reuses
+  `RunLogEventKind.JUDGE` rather than a distinct kind (the authoritative enum in
+  `10_Domain_and_Data/02_DTOS_AND_ENUMS.md §7.7` only defines `JUDGE`, so this follows the
+  authoritative source over `04_Progress_Widget/description.md#8.3`'s table, which lists them
+  separately -- a pre-existing spec inconsistency, not a coder defect). `judge_excluded` (tied
+  to EC-PROV-4b, which is **not** in this story's `edge_cases:` list) is entirely unimplemented
+  here -- no enum member, no tone entry, no `LogController` subscription -- and should be picked
+  up by whichever future story owns EC-PROV-4b.

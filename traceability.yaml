@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-20T11:46:44Z'
+generated_at: '2026-07-20T13:50:52Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -3994,7 +3994,7 @@ stories:
         - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_progress_widget_constructs_and_shows_with_no_error_logs
   STORY-059:
     title: Build the Progress widget Current-task sub-controller with the inference and judge progress sub-rows
-    status: ready
+    status: done
     spec_clauses:
     - 04_Progress_Widget/description.md#7-current-task-section
     - 04_Progress_Widget/description.md#71-inference-progress-row-and-judge-progress-row
@@ -4048,15 +4048,18 @@ stories:
         - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_heuristic_token_count_marked_with_tilde
   STORY-060:
     title: Build the Progress widget run event-log sub-controller with verbosity, search, bounded buffer, and auto-scroll
-    status: ready
+    status: done
     spec_clauses:
     - 04_Progress_Widget/description.md#8-benchmark-event-log-panel
+    - 04_Progress_Widget/description.md#83-event-kinds
     - 04_Progress_Widget/description.md#84-buffer-cap
     - 04_Progress_Widget/description.md#85-auto-scroll
     - 04_Progress_Widget/implementation_structure.md#43-logcontroller
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
     modules:
+    - backend/domain/
+    - backend/log_formatting/
     - ui/progress/
     edge_cases:
     - EC-LOG-1
@@ -4065,17 +4068,30 @@ stories:
     - EC-PROV-4a
     acceptance_criteria:
       STORY-060-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_task_judge_timeout_kind_maps_to_error_tone
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_log_updates_coalesce_under_rapid_event_bursts
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_one_line_per_event_via_formatter
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_body_renders_each_line_html
       STORY-060-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_rerenders_from_cache
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_sets_verbosity_combo_without_reemitting_signal
       STORY-060-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_buffer_cap_evicts_oldest
       STORY-060-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_clear_empties_view_not_cache
       STORY-060-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_file_write_warning_indicator
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[False]
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[True]
       STORY-060-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_past_run_replay_loads_saved_log
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_while_viewing_past_run_preserves_replayed_lines
   STORY-061:
     title: Build the Result widget shell — run selector, tab strip, per-run view-state store, and the export footer
     status: ready
@@ -4495,6 +4511,9 @@ clauses:
     stories:
     - STORY-059
   04_Progress_Widget/description.md#8-benchmark-event-log-panel:
+    stories:
+    - STORY-060
+  04_Progress_Widget/description.md#83-event-kinds:
     stories:
     - STORY-060
   04_Progress_Widget/description.md#84-buffer-cap:
@@ -6236,15 +6255,54 @@ edge_cases:
   EC-LOG-1:
     stories:
     - STORY-060
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_task_judge_timeout_kind_maps_to_error_tone
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_buffer_cap_evicts_oldest
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_clear_empties_view_not_cache
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_file_write_warning_indicator
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_log_updates_coalesce_under_rapid_event_bursts
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_one_line_per_event_via_formatter
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_past_run_replay_loads_saved_log
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_rerenders_from_cache
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_while_viewing_past_run_preserves_replayed_lines
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_body_renders_each_line_html
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_sets_verbosity_combo_without_reemitting_signal
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[True]
   EC-LOG-3:
     stories:
     - STORY-060
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_task_judge_timeout_kind_maps_to_error_tone
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_buffer_cap_evicts_oldest
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_clear_empties_view_not_cache
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_file_write_warning_indicator
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_log_updates_coalesce_under_rapid_event_bursts
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_one_line_per_event_via_formatter
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_past_run_replay_loads_saved_log
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_rerenders_from_cache
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_while_viewing_past_run_preserves_replayed_lines
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_body_renders_each_line_html
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_sets_verbosity_combo_without_reemitting_signal
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[True]
   EC-PERF-3:
     stories:
     - STORY-060
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_task_judge_timeout_kind_maps_to_error_tone
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_buffer_cap_evicts_oldest
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_clear_empties_view_not_cache
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_file_write_warning_indicator
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_log_updates_coalesce_under_rapid_event_bursts
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_one_line_per_event_via_formatter
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_past_run_replay_loads_saved_log
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_rerenders_from_cache
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_while_viewing_past_run_preserves_replayed_lines
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_body_renders_each_line_html
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_sets_verbosity_combo_without_reemitting_signal
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[True]
   EC-PERSIST-1:
     stories:
     - STORY-008
@@ -6596,7 +6654,20 @@ edge_cases:
   EC-PROV-4a:
     stories:
     - STORY-060
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_tone_mapping.py::test_task_judge_timeout_kind_maps_to_error_tone
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_buffer_cap_evicts_oldest
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_clear_empties_view_not_cache
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_file_write_warning_indicator
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_log_updates_coalesce_under_rapid_event_bursts
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_one_line_per_event_via_formatter
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_past_run_replay_loads_saved_log
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_rerenders_from_cache
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_while_viewing_past_run_preserves_replayed_lines
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_body_renders_each_line_html
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_sets_verbosity_combo_without_reemitting_signal
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[False]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[True]
   EC-PROV-4b:
     stories:
     - STORY-058
@@ -7786,6 +7857,7 @@ modules:
     - STORY-001
     - STORY-033
     - STORY-036
+    - STORY-060
   backend/embedding/:
     stories:
     - STORY-027
@@ -7814,6 +7886,7 @@ modules:
   backend/log_formatting/:
     stories:
     - STORY-036
+    - STORY-060
   backend/mode_visibility/:
     stories:
     - STORY-024

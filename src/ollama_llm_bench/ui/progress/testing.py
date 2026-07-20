@@ -32,6 +32,7 @@ class FakeProgressGateway:
         self._task_counters: dict[RunId, tuple[BenchmarkResult, ...]] = {}
         self._past_logs: dict[RunId, str] = {}
         self._is_run_active = False
+        self._run_log_write_failed = False
         self.recorded_pause_run_calls = 0
         self.recorded_resume_run_calls = 0
         self.recorded_stop_run_reasons: list[str | None] = []
@@ -77,6 +78,9 @@ class FakeProgressGateway:
     def is_run_active(self) -> bool:
         return self._is_run_active
 
+    def run_log_write_failed(self) -> bool:
+        return self._run_log_write_failed
+
     def set_run(self, run: BenchmarkRun) -> None:
         """Test helper: seed ``run_metadata``/``list_runs`` for ``run.run_id``."""
         self._runs[run.run_id] = run
@@ -96,3 +100,7 @@ class FakeProgressGateway:
     def set_is_run_active(self, *, active: bool) -> None:
         """Test helper: force ``is_run_active()``'s return value."""
         self._is_run_active = active
+
+    def set_run_log_write_failed(self, *, failed: bool) -> None:
+        """Test helper: force ``run_log_write_failed()``'s return value."""
+        self._run_log_write_failed = failed

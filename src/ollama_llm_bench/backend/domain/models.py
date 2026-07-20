@@ -341,7 +341,13 @@ class RunLogVerbosity(StrEnum):
 
 
 class RunLogEventKind(StrEnum):
-    """The eleven kinds of pipeline event rendered in the Run Log (§7.7)."""
+    """The twelve kinds of pipeline event rendered in the Run Log (§7.7).
+
+    ``TASK_JUDGE_TIMEOUT`` is an additive member beyond the original eleven
+    (STORY-060 gap fix): `04_Progress_Widget/description.md` §8.3 documents a
+    distinct `task_judge_timeout` event kind (EC-PROV-4a's per-task judge-call
+    exhaustion line) that STORY-036 had not yet added.
+    """
 
     STAGE = "stage"
     SYSTEM = "system"
@@ -354,6 +360,7 @@ class RunLogEventKind(StrEnum):
     STOPPED = "stopped"
     FINISHED = "finished"
     FAILED = "failed"
+    TASK_JUDGE_TIMEOUT = "task_judge_timeout"
 
 
 # ---------------------------------------------------------------------------------

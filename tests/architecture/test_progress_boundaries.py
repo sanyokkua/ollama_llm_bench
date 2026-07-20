@@ -1,13 +1,14 @@
-"""Architecture tests for ``ui/progress/`` (STORY-058 Definition of done).
+"""Architecture tests for ``ui/progress/`` (STORY-058 Definition of done; STORY-059,
+STORY-060 extend the same suite for their own sub-controllers).
 
 Asserts: no ``setStyleSheet`` call, no colour literal, no ``asyncio``/``anyio``/
 ``qasync`` import anywhere in the module; each sub-controller
-(``counters_controller.py``, ``stability_controller.py``, and the parent
-``controller.py``) imports only its own ``ProgressGateway`` plus
+(``counters_controller.py``, ``stability_controller.py``, ``log_controller.py``,
+and the parent ``controller.py``) imports only its own ``ProgressGateway`` plus
 ``EventBus``/``backend.domain``/``backend.log_formatting`` -- never
 ``AdaptiveTimeoutService`` or the circuit breaker (D-R-06); ``_internal/view.py``
 imports no adapter Gateway, no reactive store, and no raw backend service symbol
-(the passive-View rule).
+(the passive-View rule); ``log_controller.py`` builds no HTML itself.
 """
 
 import ast
@@ -24,6 +25,7 @@ _CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "controller.py"
 _COUNTERS_CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "counters_controller.py"
 _CURRENT_TASK_CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "current_task_controller.py"
 _STABILITY_CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "stability_controller.py"
+_LOG_CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "log_controller.py"
 _VIEW_FILE = _MODULE_ROOT / "_internal" / "view.py"
 
 _FORBIDDEN_CONCURRENCY_ROOTS = ("asyncio", "anyio", "qasync")
@@ -144,6 +146,7 @@ def test_sub_controllers_never_import_adaptive_timeout_or_circuit_breaker() -> N
         _COUNTERS_CONTROLLER_FILE,
         _CURRENT_TASK_CONTROLLER_FILE,
         _STABILITY_CONTROLLER_FILE,
+        _LOG_CONTROLLER_FILE,
         _CONTROLLER_FILE,
     ):
         tree = ast.parse(source_file.read_text(encoding="utf-8"), filename=str(source_file))
@@ -190,6 +193,40 @@ def test_current_task_controller_never_reads_run_log_verbosity() -> None:
     """
     # Assert
     assert "run_log_verbosity" not in _CURRENT_TASK_CONTROLLER_FILE.read_text(encoding="utf-8")
+
+
+def test_log_controller_depends_only_on_declared_collaborators() -> None:
+    """Proves: STORY-060 Definition of done
+
+    ``_internal/log_controller.py`` imports only ``backend.domain``/
+    ``backend.events``/``backend.log_formatting`` -- never a raw backend
+    Store/Service Protocol, and never ``AdaptiveTimeoutService``/the circuit
+    breaker (D-R-06).
+    """
+    # Arrange
+    tree = ast.parse(
+        _LOG_CONTROLLER_FILE.read_text(encoding="utf-8"), filename=str(_LOG_CONTROLLER_FILE)
+    )
+    imported_modules = _imported_modules(tree)
+    # Act
+    backend_imports = {m for m in imported_modules if m.startswith("ollama_llm_bench.backend.")}
+    disallowed = backend_imports - _ALLOWED_CONTROLLER_BACKEND_IMPORTS
+    # Assert
+    assert disallowed == set()
+
+
+def test_log_controller_builds_no_html_itself() -> None:
+    """Proves: STORY-060 Definition of done
+
+    ``_internal/log_controller.py`` never assembles an HTML fragment itself --
+    every rendered line comes from ``LogFormatter.format_event`` (or, for a
+    past-run replay line, ``select.escape_past_run_line``'s plain HTML-escaping,
+    which lives in ``select.py``, not here).
+    """
+    # Assert
+    text = _LOG_CONTROLLER_FILE.read_text(encoding="utf-8")
+    assert "<span" not in text
+    assert "<div" not in text
 
 
 def test_view_imports_no_backend_service_symbol() -> None:

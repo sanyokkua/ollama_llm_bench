@@ -246,6 +246,7 @@ _CASES: tuple[tuple[type[StrEnum], tuple[tuple[str, str], ...]], ...] = (
             ("STOPPED", "stopped"),
             ("FINISHED", "finished"),
             ("FAILED", "failed"),
+            ("TASK_JUDGE_TIMEOUT", "task_judge_timeout"),
         ),
     ),
 )
