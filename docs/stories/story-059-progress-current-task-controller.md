@@ -1,7 +1,7 @@
 ---
 id: STORY-059
 title: Build the Progress widget Current-task sub-controller with the inference and judge progress sub-rows
-status: ready
+status: done
 spec_clauses:
   - 04_Progress_Widget/description.md#7-current-task-section
   - 04_Progress_Widget/description.md#71-inference-progress-row-and-judge-progress-row
