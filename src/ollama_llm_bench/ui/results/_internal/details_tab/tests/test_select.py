@@ -176,6 +176,7 @@ def test_ttft_none_renders_em_dash_not_zero() -> None:
         view_state=view_state,
         score_display_format="decimal",
     )
-    ttft_index = view_state.columns.order.index(DetailsColumnKey.TTFT_MS)
+    visible_order = [c for c in view_state.columns.order if c in view_state.columns.visible]
+    ttft_index = visible_order.index(DetailsColumnKey.TTFT_MS)
     # Assert
     assert vm.rows[0].cells[ttft_index] == "—"
