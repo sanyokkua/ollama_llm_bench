@@ -18,15 +18,17 @@ placeholder hook Task 10 fills in.
 Documented scope simplifications (mirrors the Summary tab's own pre-approved
 simplifications; see that module's docstring):
 
-- The per-column filter's domain (§6: "scoped to that column's distinct values in the
-  current run") is read from the view's own currently-rendered table rows, not
-  recomputed from the backend's unfiltered result set -- the View holds no gateway and
-  cannot re-query the run. In practice this differs from a literal whole-run domain
-  only while another filter is already narrowing the same column's visible values,
-  which is the same trade-off Summary's per-column filter already accepts.
 - Right-clicking the pinned ``Provider / Model`` column opens the Models chip's menu
   instead of a redundant separate per-column filter, mirroring Summary's identical
   precedent for its own pinned column.
+
+The per-column filter menu's domain (§6: "scoped to that column's distinct values in
+the current run") is queried from the bound ``DetailsTabController`` via
+``get_column_filter_domain`` -- always the run's full unfiltered result set, never
+narrowed by any currently-active filter including the column's own -- through the
+``_HeaderInteractionController`` collaborator below, which also owns the header's
+sort/reorder/pin wiring to keep ``DetailsTabView`` itself within the project's
+lines-per-class limit (coding-style.md).
 """
 
 from collections.abc import Callable
@@ -333,6 +335,131 @@ class _BadgeDelegate(QStyledItemDelegate):
         painter.restore()
 
 
+class _HeaderInteractionController:
+    """Owns the Details table header's sort/reorder/pin/context-menu wiring
+    (§6, §7, §8). Extracted from ``DetailsTabView`` to keep that class within the
+    project's lines-per-class limit (coding-style.md).
+
+    Reads ``DetailsTabView``'s mutable ``_visible_columns``/``_controller`` through
+    accessor callables, since both change over the view's lifetime and this
+    collaborator is constructed once, before either is ever populated.
+    """
+
+    def __init__(
+        self,
+        *,
+        table_view: QTableView,
+        models_chip: QPushButton,
+        visible_columns: Callable[[], tuple[DetailsColumnKey, ...]],
+        controller: Callable[[], DetailsTabController | None],
+    ) -> None:
+        self._table_view = table_view
+        self._models_chip = models_chip
+        self._visible_columns = visible_columns
+        self._controller = controller
+
+    def on_section_clicked(self, logical_index: int) -> None:
+        """Cycle the clicked column header's sort (§8)."""
+        controller = self._controller()
+        visible_columns = self._visible_columns()
+        if controller is None or not (0 <= logical_index < len(visible_columns)):
+            return
+        controller.on_sort_header_clicked(visible_columns[logical_index])
+
+    def on_section_moved(
+        self, _logical_index: int, _old_visual_index: int, _new_visual_index: int
+    ) -> None:
+        """Re-pin the ``Provider / Model`` column and push the new column order (§7)."""
+        controller = self._controller()
+        if controller is None:
+            return
+        header = self._table_view.horizontalHeader()
+        visible_columns = self._visible_columns()
+        self._pin_provider_model_column(header, visible_columns)
+        view_state = controller.current_view_state
+        if view_state is None:
+            return
+        new_visible_order = tuple(
+            visible_columns[header.logicalIndex(visual)] for visual in range(header.count())
+        )
+        hidden_columns = tuple(
+            column for column in view_state.columns.order if column not in new_visible_order
+        )
+        controller.on_columns_reordered(new_visible_order + hidden_columns)
+
+    def _pin_provider_model_column(
+        self, header: QHeaderView, visible_columns: tuple[DetailsColumnKey, ...]
+    ) -> None:
+        if DetailsColumnKey.PROVIDER_MODEL not in visible_columns:
+            return
+        logical_index = visible_columns.index(DetailsColumnKey.PROVIDER_MODEL)
+        if header.visualIndex(logical_index) == 0:
+            return
+        header.blockSignals(True)  # noqa: FBT003  # Qt's own blockSignals(bool) API
+        try:
+            header.moveSection(header.visualIndex(logical_index), 0)
+        finally:
+            header.blockSignals(False)  # noqa: FBT003  # Qt's own blockSignals(bool) API
+
+    def on_header_context_menu_requested(self, position: QPoint) -> None:
+        """Open the Models chip menu for the pinned column, else a per-column filter (§6/§7)."""
+        controller = self._controller()
+        if controller is None:
+            return
+        header = self._table_view.horizontalHeader()
+        visible_columns = self._visible_columns()
+        logical_index = header.logicalIndexAt(position)
+        if not (0 <= logical_index < len(visible_columns)):
+            return
+        column = visible_columns[logical_index]
+        if column is DetailsColumnKey.PROVIDER_MODEL:
+            self._models_chip.showMenu()
+            return
+        self._show_column_filter_menu(controller, column, header.mapToGlobal(position))
+
+    def _show_column_filter_menu(
+        self, controller: DetailsTabController, column: DetailsColumnKey, global_pos: QPoint
+    ) -> None:
+        view_state = controller.current_view_state
+        if view_state is None:
+            return
+        domain = controller.get_column_filter_domain(column)
+        if not domain:
+            return
+        active_filter = _selected_values_for(view_state, column)
+        working_selected = set(domain) if active_filter is None else set(active_filter)
+        menu = QMenu(self._table_view)
+        for value in domain:
+            action = QAction(value, menu)
+            action.setCheckable(True)
+            action.setChecked(value in working_selected)
+            action.toggled.connect(
+                partial(
+                    self._on_column_filter_value_toggled,
+                    controller,
+                    column,
+                    value,
+                    working_selected,
+                )
+            )
+            menu.addAction(action)
+        menu.exec(global_pos)
+
+    def _on_column_filter_value_toggled(
+        self,
+        controller: DetailsTabController,
+        column: DetailsColumnKey,
+        value: str,
+        working_selected: set[str],
+        checked: bool,  # noqa: FBT001  # Qt signal callback
+    ) -> None:
+        if checked:
+            working_selected.add(value)
+        else:
+            working_selected.discard(value)
+        controller.on_column_filter_changed(column, tuple(working_selected))
+
+
 class DetailsTabView(QWidget):
     """Passive Details tab body: the filter bar, the results table with badge
     rendering, the column-visibility popover, and the debounced live-update timer.
@@ -372,12 +499,20 @@ class DetailsTabView(QWidget):
         self._table_view = QTableView()
         self._table_view.setObjectName("details_tab.table")
         self._table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self._header_interaction = _HeaderInteractionController(
+            table_view=self._table_view,
+            models_chip=self._chip_models,
+            visible_columns=lambda: self._visible_columns,
+            controller=lambda: self._controller,
+        )
         header = self._table_view.horizontalHeader()
         header.setSectionsMovable(True)
-        header.sectionClicked.connect(self._on_section_clicked)
-        header.sectionMoved.connect(self._on_section_moved)
+        header.sectionClicked.connect(self._header_interaction.on_section_clicked)
+        header.sectionMoved.connect(self._header_interaction.on_section_moved)
         header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        header.customContextMenuRequested.connect(self._on_header_context_menu_requested)
+        header.customContextMenuRequested.connect(
+            self._header_interaction.on_header_context_menu_requested
+        )
         model = make_details_table_model(headers=(), rows=())
         self._table_view.setModel(model)
         self._table_model = cast("_RowsSettable", model)
@@ -595,87 +730,3 @@ class DetailsTabView(QWidget):
     def _on_columns_reset_clicked(self) -> None:
         if self._controller is not None:
             self._controller.on_columns_reset_clicked()
-
-    def _on_section_clicked(self, logical_index: int) -> None:
-        if self._controller is None or not (0 <= logical_index < len(self._visible_columns)):
-            return
-        self._controller.on_sort_header_clicked(self._visible_columns[logical_index])
-
-    def _on_section_moved(
-        self, _logical_index: int, _old_visual_index: int, _new_visual_index: int
-    ) -> None:
-        if self._controller is None:
-            return
-        header = self._table_view.horizontalHeader()
-        self._pin_provider_model_column(header)
-        view_state = self._controller.current_view_state
-        if view_state is None:
-            return
-        new_visible_order = tuple(
-            self._visible_columns[header.logicalIndex(visual)] for visual in range(header.count())
-        )
-        hidden_columns = tuple(
-            column for column in view_state.columns.order if column not in new_visible_order
-        )
-        self._controller.on_columns_reordered(new_visible_order + hidden_columns)
-
-    def _pin_provider_model_column(self, header: QHeaderView) -> None:
-        if DetailsColumnKey.PROVIDER_MODEL not in self._visible_columns:
-            return
-        logical_index = self._visible_columns.index(DetailsColumnKey.PROVIDER_MODEL)
-        if header.visualIndex(logical_index) == 0:
-            return
-        header.blockSignals(True)  # noqa: FBT003  # Qt's own blockSignals(bool) API
-        try:
-            header.moveSection(header.visualIndex(logical_index), 0)
-        finally:
-            header.blockSignals(False)  # noqa: FBT003  # Qt's own blockSignals(bool) API
-
-    def _on_header_context_menu_requested(self, position: QPoint) -> None:
-        if self._controller is None:
-            return
-        header = self._table_view.horizontalHeader()
-        logical_index = header.logicalIndexAt(position)
-        if not (0 <= logical_index < len(self._visible_columns)):
-            return
-        column = self._visible_columns[logical_index]
-        if column is DetailsColumnKey.PROVIDER_MODEL:
-            self._chip_models.showMenu()
-            return
-        self._show_column_filter_menu(column, logical_index, header.mapToGlobal(position))
-
-    def _show_column_filter_menu(
-        self, column: DetailsColumnKey, column_index: int, global_pos: QPoint
-    ) -> None:
-        view_state = self._controller.current_view_state if self._controller is not None else None
-        if view_state is None:
-            return
-        domain = tuple(dict.fromkeys(row.cells[column_index] for row in self._table_model.rows))
-        if not domain:
-            return
-        active_filter = _selected_values_for(view_state, column)
-        working_selected = set(domain) if active_filter is None else set(active_filter)
-        menu = QMenu(self)
-        for value in domain:
-            action = QAction(value, menu)
-            action.setCheckable(True)
-            action.setChecked(value in working_selected)
-            action.toggled.connect(
-                partial(self._on_column_filter_value_toggled, column, value, working_selected)
-            )
-            menu.addAction(action)
-        menu.exec(global_pos)
-
-    def _on_column_filter_value_toggled(
-        self,
-        column: DetailsColumnKey,
-        value: str,
-        working_selected: set[str],
-        checked: bool,  # noqa: FBT001  # Qt signal callback
-    ) -> None:
-        if checked:
-            working_selected.add(value)
-        else:
-            working_selected.discard(value)
-        if self._controller is not None:
-            self._controller.on_column_filter_changed(column, tuple(working_selected))
