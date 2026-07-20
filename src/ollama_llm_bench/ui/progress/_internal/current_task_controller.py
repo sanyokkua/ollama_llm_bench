@@ -195,8 +195,8 @@ class CurrentTaskController:
             last_context = InferenceContext.BENCHMARK_JUDGE
         elif self._inference_visible:
             last_context = InferenceContext.BENCHMARK_TASK
-        stage_label = "judge" if self._judge_visible else (
-            "inference" if self._inference_visible else "—"
+        stage_label = (
+            "judge" if self._judge_visible else ("inference" if self._inference_visible else "—")
         )
         vm = CurrentTaskViewModel(
             task_id=self._task_id,
@@ -214,4 +214,3 @@ class CurrentTaskController:
         logger.debug("current_task_applied", task_id=vm.task_id, stage_label=vm.stage_label)
         if self._view is not None:
             self._view.apply_current_task(vm)
-
