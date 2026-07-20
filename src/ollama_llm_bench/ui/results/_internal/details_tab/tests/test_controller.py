@@ -5,11 +5,14 @@ no Qt involved. Folded into a fuller ``test_details_tab.py`` in Task 10 once
 ``DetailsTabView`` exists.
 """
 
-from unittest.mock import Mock
+from pytest_mock import MockerFixture
 
 from ollama_llm_bench.backend.domain import RunMode
 from ollama_llm_bench.backend.events import DetailedDataChangedEvent
-from ollama_llm_bench.ui.results._internal.details_tab.controller import DetailsTabController
+from ollama_llm_bench.ui.results._internal.details_tab.controller import (
+    DetailsTabController,
+    DetailsTabViewProtocol,
+)
 from ollama_llm_bench.ui.results._internal.details_tab.tests.conftest import make_result, make_task
 from ollama_llm_bench.ui.results._internal.view_state_store import PerRunViewStateStore
 from ollama_llm_bench.ui.results.tests.conftest import FakeEventBus, FakeResultGateway
@@ -18,7 +21,7 @@ _SELECTED_RESULT_ID = 7
 
 
 def test_set_run_context_pushes_a_details_view_model(
-    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus, mocker: MockerFixture
 ) -> None:
     """Proves: STORY-063"""
     # Arrange
@@ -27,7 +30,7 @@ def test_set_run_context_pushes_a_details_view_model(
     controller = DetailsTabController(
         gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
     )
-    view = Mock()
+    view = mocker.Mock(spec=DetailsTabViewProtocol)
     controller.bind(view)
     # Act
     controller.set_run_context(run_id=1, run_mode=RunMode.GRADED)
@@ -36,7 +39,7 @@ def test_set_run_context_pushes_a_details_view_model(
 
 
 def test_set_run_context_with_no_run_applies_empty_state(
-    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus, mocker: MockerFixture
 ) -> None:
     """Proves: STORY-063"""
     # Arrange
@@ -44,7 +47,7 @@ def test_set_run_context_with_no_run_applies_empty_state(
     controller = DetailsTabController(
         gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
     )
-    view = Mock()
+    view = mocker.Mock(spec=DetailsTabViewProtocol)
     controller.bind(view)
     # Act
     controller.set_run_context(run_id=None, run_mode=None)
@@ -53,7 +56,7 @@ def test_set_run_context_with_no_run_applies_empty_state(
 
 
 def test_on_row_selected_pushes_a_detail_panel(
-    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus, mocker: MockerFixture
 ) -> None:
     """Proves: STORY-063"""
     # Arrange
@@ -62,7 +65,7 @@ def test_on_row_selected_pushes_a_detail_panel(
     controller = DetailsTabController(
         gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
     )
-    view = Mock()
+    view = mocker.Mock(spec=DetailsTabViewProtocol)
     controller.bind(view)
     controller.set_run_context(run_id=1, run_mode=RunMode.GRADED)
     # Act
@@ -75,7 +78,7 @@ def test_on_row_selected_pushes_a_detail_panel(
 
 
 def test_apply_drilldown_filter_narrows_and_selects_matching_task(
-    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus, mocker: MockerFixture
 ) -> None:
     """Proves: STORY-063"""
     from ollama_llm_bench.ui.results.models import ChartDrilldownRequest  # noqa: PLC0415
@@ -88,7 +91,7 @@ def test_apply_drilldown_filter_narrows_and_selects_matching_task(
     controller = DetailsTabController(
         gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
     )
-    view = Mock()
+    view = mocker.Mock(spec=DetailsTabViewProtocol)
     controller.bind(view)
     controller.set_run_context(run_id=1, run_mode=RunMode.GRADED)
     # Act
@@ -99,7 +102,7 @@ def test_apply_drilldown_filter_narrows_and_selects_matching_task(
 
 
 def test_set_run_terminal_state_enables_export(
-    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus, mocker: MockerFixture
 ) -> None:
     """Proves: STORY-063"""
     # Arrange
@@ -107,7 +110,7 @@ def test_set_run_terminal_state_enables_export(
     controller = DetailsTabController(
         gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
     )
-    view = Mock()
+    view = mocker.Mock(spec=DetailsTabViewProtocol)
     controller.bind(view)
     # Act
     controller.set_run_terminal_state(is_terminal=True)
@@ -116,7 +119,7 @@ def test_set_run_terminal_state_enables_export(
 
 
 def test_detailed_data_changed_event_for_other_run_is_ignored(
-    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus, mocker: MockerFixture
 ) -> None:
     """Proves: STORY-063"""
     # Arrange
@@ -125,7 +128,7 @@ def test_detailed_data_changed_event_for_other_run_is_ignored(
     controller = DetailsTabController(
         gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
     )
-    view = Mock()
+    view = mocker.Mock(spec=DetailsTabViewProtocol)
     controller.bind(view)
     controller.set_run_context(run_id=1, run_mode=RunMode.GRADED)
     view.reset_mock()
@@ -138,7 +141,7 @@ def test_detailed_data_changed_event_for_other_run_is_ignored(
 
 
 def test_on_chip_changed_updates_filters_and_recomputes(
-    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus, mocker: MockerFixture
 ) -> None:
     """Proves: STORY-063"""
     # Arrange
@@ -149,7 +152,7 @@ def test_on_chip_changed_updates_filters_and_recomputes(
     controller = DetailsTabController(
         gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
     )
-    view = Mock()
+    view = mocker.Mock(spec=DetailsTabViewProtocol)
     controller.bind(view)
     controller.set_run_context(run_id=1, run_mode=RunMode.GRADED)
     # Act
