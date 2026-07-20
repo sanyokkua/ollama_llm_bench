@@ -272,6 +272,10 @@ class ProgressView(QWidget):
             item = self._retry_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
+                # setParent(None) detaches the widget from the QObject child tree
+                # immediately; deleteLater() alone only schedules destruction for the
+                # next event-loop tick, leaving it visible to findChildren() until then.
+                widget.setParent(None)
                 widget.deleteLater()
         if vm.retry_active and vm.retry_label is not None:
             self._retry_layout.addWidget(self._make_callout(status="excluded", text=vm.retry_label))
