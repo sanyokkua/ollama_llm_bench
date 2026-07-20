@@ -258,6 +258,34 @@ class DetailsTabController:
             if matching is not None:
                 self.on_row_selected(matching.result_id)
 
+    def get_column_filter_domain(self, column: DetailsColumnKey) -> tuple[str, ...]:
+        """Return one column's per-column filter menu domain (§6).
+
+        Always derived from the run's full unfiltered results -- never narrowed by
+        any currently-active filter, including that column's own -- so the View can
+        query it directly instead of deriving it from its own already-filtered table
+        rows (which would self-narrow the menu on repeated use).
+
+        Args:
+            column: The column whose filter-menu domain to compute.
+
+        Returns:
+            The column's distinct formatted values, or an empty tuple before a run
+            is selected.
+        """
+        if self._run_id is None:
+            return ()
+        results = self._gateway.list_results(self._run_id)
+        tasks = self._gateway.list_tasks(self._run_id)
+        tasks_by_id = {task.task_id: task for task in tasks}
+        score_display_format = self._gateway.get_setting(_SETTING_SCORE_DISPLAY_FORMAT) or "decimal"
+        return select.column_filter_domain(
+            results=results,
+            tasks_by_id=tasks_by_id,
+            column=column,
+            score_display_format=score_display_format,
+        )
+
     def set_run_terminal_state(self, *, is_terminal: bool) -> None:
         """Enable/disable this tab's export action as the run reaches a terminal state."""
         if self._view is not None:

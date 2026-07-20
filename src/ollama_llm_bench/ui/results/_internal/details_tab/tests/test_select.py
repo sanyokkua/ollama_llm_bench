@@ -1,5 +1,6 @@
 """Unit tests for the Details tab's pure select.py — no Qt import."""
 
+import msgspec
 import pytest
 
 from ollama_llm_bench.backend.domain import (
@@ -11,6 +12,7 @@ from ollama_llm_bench.backend.domain import (
     Verdict,
 )
 from ollama_llm_bench.ui.results._internal.details_tab.select import (
+    ColumnFilterEntry,
     DetailsColumnKey,
     apply_drilldown,
     badge_role_for_layer,
@@ -18,6 +20,7 @@ from ollama_llm_bench.ui.results._internal.details_tab.select import (
     badge_role_for_verdict,
     build_detail_panel,
     chip_domains,
+    column_filter_domain,
     decode_view_state,
     default_view_state,
     encode_view_state,
@@ -311,6 +314,48 @@ def test_build_detail_panel_maps_attempt_history_rows() -> None:
     # Assert
     assert len(panel.attempts) == 1
     assert panel.attempts[0].duration_ms == _ATTEMPT_DURATION_MS
+
+
+def test_column_filter_domain_ignores_active_filter_on_same_column() -> None:
+    """Proves: STORY-063 review fix
+
+    Regression test closing the per-column filter menu's self-narrowing bug:
+    filtering the Status column down to one value must not shrink that same
+    column's own filter-menu domain on the next right-click. ``column_filter_domain``
+    is always computed from the unfiltered ``results``, never the already-filtered
+    row set ``map_details_rows`` produces (details_tab.md#6).
+    """
+    # Arrange
+    completed = make_result(result_id=1, status=ResultStatus.COMPLETED)
+    errored = make_result(result_id=2, status=ResultStatus.ERRORED)
+    view_state = default_view_state(RunMode.GRADED)
+    filters = msgspec.structs.replace(
+        view_state.filters,
+        column_filters=(
+            ColumnFilterEntry(
+                column=DetailsColumnKey.STATUS, allowed_values=(ResultStatus.COMPLETED.value,)
+            ),
+        ),
+    )
+    view_state = msgspec.structs.replace(view_state, filters=filters)
+    # Sanity: the active column filter does narrow the rendered table rows.
+    vm = map_details_rows(
+        results=(completed, errored),
+        tasks_by_id={},
+        run_mode=RunMode.GRADED,
+        view_state=view_state,
+        score_display_format="decimal",
+    )
+    assert len(vm.rows) == 1
+    # Act
+    domain = column_filter_domain(
+        results=(completed, errored),
+        tasks_by_id={},
+        column=DetailsColumnKey.STATUS,
+        score_display_format="decimal",
+    )
+    # Assert
+    assert ResultStatus.ERRORED.value in domain
 
 
 def test_single_result_drilldown_narrows_to_one_model_and_task() -> None:

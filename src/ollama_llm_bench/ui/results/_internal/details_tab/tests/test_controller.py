@@ -7,11 +7,15 @@ no Qt involved. Folded into a fuller ``test_details_tab.py`` in Task 10 once
 
 from pytest_mock import MockerFixture
 
-from ollama_llm_bench.backend.domain import RunMode
+from ollama_llm_bench.backend.domain import ResultStatus, RunMode
 from ollama_llm_bench.backend.events import DetailedDataChangedEvent
 from ollama_llm_bench.ui.results._internal.details_tab.controller import (
     DetailsTabController,
     DetailsTabViewProtocol,
+)
+from ollama_llm_bench.ui.results._internal.details_tab.select import (
+    DetailsChipDomains,
+    DetailsColumnKey,
 )
 from ollama_llm_bench.ui.results._internal.details_tab.tests.conftest import make_result, make_task
 from ollama_llm_bench.ui.results._internal.view_state_store import PerRunViewStateStore
@@ -25,7 +29,7 @@ def test_set_run_context_pushes_a_details_view_model(
 ) -> None:
     """Proves: STORY-063"""
     # Arrange
-    fake_gateway.set_results(1, (make_result(),))
+    fake_gateway.set_results(1, (make_result(result_id=1, status=ResultStatus.COMPLETED),))
     view_state_store = PerRunViewStateStore(gateway=fake_gateway)
     controller = DetailsTabController(
         gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
@@ -36,6 +40,55 @@ def test_set_run_context_pushes_a_details_view_model(
     controller.set_run_context(run_id=1, run_mode=RunMode.GRADED)
     # Assert
     view.apply.assert_called_once()
+    domains = view.apply.call_args.kwargs["domains"]
+    assert isinstance(domains, DetailsChipDomains)
+    assert domains.statuses == (ResultStatus.COMPLETED,)
+
+
+def test_get_column_filter_domain_reads_the_full_unfiltered_run(
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-063 review fix
+
+    ``get_column_filter_domain`` must source its result from the gateway's current
+    full result set -- not from any view-side filtered table -- so it always offers
+    every distinct value regardless of any active filter (details_tab.md#6).
+    """
+    # Arrange
+    fake_gateway.set_results(
+        1,
+        (
+            make_result(result_id=1, status=ResultStatus.COMPLETED),
+            make_result(result_id=2, status=ResultStatus.ERRORED),
+        ),
+    )
+    view_state_store = PerRunViewStateStore(gateway=fake_gateway)
+    controller = DetailsTabController(
+        gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
+    )
+    view = mocker.Mock(spec=DetailsTabViewProtocol)
+    controller.bind(view)
+    controller.set_run_context(run_id=1, run_mode=RunMode.GRADED)
+    controller.on_column_filter_changed(DetailsColumnKey.STATUS, (ResultStatus.COMPLETED.value,))
+    # Act
+    domain = controller.get_column_filter_domain(DetailsColumnKey.STATUS)
+    # Assert
+    assert set(domain) == {ResultStatus.COMPLETED.value, ResultStatus.ERRORED.value}
+
+
+def test_get_column_filter_domain_with_no_run_returns_empty(
+    fake_gateway: FakeResultGateway, fake_event_bus: FakeEventBus
+) -> None:
+    """Proves: STORY-063 review fix"""
+    # Arrange
+    view_state_store = PerRunViewStateStore(gateway=fake_gateway)
+    controller = DetailsTabController(
+        gateway=fake_gateway, bus=fake_event_bus, view_state_store=view_state_store
+    )
+    # Act
+    domain = controller.get_column_filter_domain(DetailsColumnKey.STATUS)
+    # Assert
+    assert domain == ()
 
 
 def test_set_run_context_with_no_run_applies_empty_state(

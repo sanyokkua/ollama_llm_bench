@@ -587,6 +587,38 @@ def _format_cell(
     return _CELL_FORMATTERS[column](result, task, score_display_format)
 
 
+def column_filter_domain(
+    *,
+    results: tuple[BenchmarkResult, ...],
+    tasks_by_id: dict[str, BenchmarkTask],
+    column: DetailsColumnKey,
+    score_display_format: str,
+) -> tuple[str, ...]:
+    """Return the distinct formatted values a column's per-column filter menu offers.
+
+    Always computed from the full unfiltered run -- never narrowed by any currently
+    active filter, including the column's own (details_tab.md#6) -- matching
+    ``chip_domains``'s identical unfiltered-source policy for the seven filter-bar
+    chips. Computing this from an already-filtered row set instead would create a
+    self-reinforcing ratchet: filtering a column narrows its own menu's future domain.
+
+    Args:
+        results: The selected run's current result rows, in arbitrary order.
+        tasks_by_id: The run's frozen tasks, keyed by task_id.
+        column: The column whose distinct display values to compute.
+        score_display_format: "decimal" or "percentage" -- the Cosine Score display setting.
+
+    Returns:
+        The column's distinct formatted cell values, in first-seen order.
+    """
+    return tuple(
+        dict.fromkeys(
+            _format_cell(column, result, tasks_by_id.get(result.task_id), score_display_format)
+            for result in results
+        )
+    )
+
+
 def _passes_chip[T](allowed: tuple[T, ...], value: T) -> bool:
     """Return True for a result-derived chip filter: empty (all-selected) always passes."""
     return not allowed or value in allowed
