@@ -2,7 +2,7 @@
 
 from typing import cast
 
-from PySide6.QtWidgets import QLabel, QPushButton, QToolButton
+from PySide6.QtWidgets import QFormLayout, QLabel, QPushButton, QToolButton, QWidget
 import pytest
 from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
@@ -14,7 +14,7 @@ from ollama_llm_bench.ui.progress import make_progress_widget
 from ollama_llm_bench.ui.progress._internal.select import select_header
 from ollama_llm_bench.ui.progress._internal.theme_lookup import resolve_theme_tokens
 from ollama_llm_bench.ui.progress._internal.view import ProgressView
-from ollama_llm_bench.ui.progress.models import CountersViewModel, HeaderAffordances, RunStage
+from ollama_llm_bench.ui.progress.models import CountersViewModel, CurrentTaskViewModel, HeaderAffordances, RunStage
 from ollama_llm_bench.ui.progress.testing import FakeProgressGateway
 from ollama_llm_bench.ui.progress.tests.conftest import FakeEventBus
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager, resolve_color
@@ -229,3 +229,147 @@ def test_run_name_label_renders_via_apply_header(qtbot: QtBot) -> None:
     # Assert
     label = cast("QLabel", view.findChild(QLabel, "progress.header.run_name"))
     assert label.text() == "Nightly Run"
+
+
+def _current_task_vm(
+    *,
+    retry_active: bool = False,
+    retry_label: str | None = None,
+    inference_visible: bool = False,
+    inference_label: str | None = None,
+    judge_visible: bool = False,
+    judge_label: str | None = None,
+) -> CurrentTaskViewModel:
+    return CurrentTaskViewModel(
+        task_id="task-1",
+        stage_label="inference",
+        task_time_label="5s",
+        timeouts=0,
+        retry_active=retry_active,
+        retry_label=retry_label,
+        inference_progress_visible=inference_visible,
+        inference_progress_label=inference_label,
+        judge_progress_visible=judge_visible,
+        judge_progress_label=judge_label,
+        last_progress_context=None,
+    )
+
+
+def test_current_task_grid_renders_task_id_stage_and_task_time(qtbot: QtBot) -> None:
+    """Proves: STORY-059-AC-1
+
+    The Task/Stage/Task Time labels reflect apply_current_task's ViewModel.
+    """
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+
+    # Act
+    view.apply_current_task(_current_task_vm())
+
+    # Assert
+    task_label = cast("QLabel", view.findChild(QLabel, "progress.current_task.task_id"))
+    stage_label = cast("QLabel", view.findChild(QLabel, "progress.current_task.stage"))
+    time_label = cast("QLabel", view.findChild(QLabel, "progress.current_task.task_time"))
+    assert task_label.text() == "task-1"
+    assert stage_label.text() == "inference"
+    assert time_label.text() == "5s"
+
+
+def test_inference_progress_row_hidden_when_not_visible(qtbot: QtBot) -> None:
+    """Proves: STORY-059-AC-1"""
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    view.show()
+    form = cast("QFormLayout", view.findChild(QFormLayout, "progress.current_task.form"))
+
+    # Act
+    view.apply_current_task(_current_task_vm(inference_visible=False))
+
+    # Assert
+    assert form.isRowVisible(form.rowCount() - 2) is False
+
+
+def test_inference_progress_row_shown_with_label_when_visible(qtbot: QtBot) -> None:
+    """Proves: STORY-059-AC-2"""
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    view.show()
+
+    # Act
+    view.apply_current_task(
+        _current_task_vm(
+            inference_visible=True,
+            inference_label="Generating — 184 tokens · 5.6 s elapsed",
+        )
+    )
+
+    # Assert
+    label = cast(
+        "QLabel", view.findChild(QLabel, "progress.current_task.inference_progress")
+    )
+    assert label.text() == "Generating — 184 tokens · 5.6 s elapsed"
+    assert label.isVisible()
+
+
+def test_judge_progress_row_shown_with_label_when_visible(qtbot: QtBot) -> None:
+    """Proves: STORY-059-AC-4"""
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    view.show()
+
+    # Act
+    view.apply_current_task(
+        _current_task_vm(judge_visible=True, judge_label="Judge: waiting for response — 0.0 s")
+    )
+
+    # Assert
+    label = cast("QLabel", view.findChild(QLabel, "progress.current_task.judge_progress"))
+    assert label.text() == "Judge: waiting for response — 0.0 s"
+    assert label.isVisible()
+
+
+def test_retry_line_renders_in_error_tone_when_active(qtbot: QtBot) -> None:
+    """Proves: STORY-059-AC-5
+
+    The retry line reuses the same error-toned badge helper.
+    """
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    view.show()
+
+    # Act
+    view.apply_current_task(
+        _current_task_vm(retry_active=True, retry_label="2/3 - Connection refused")
+    )
+
+    # Assert
+    container = view.findChild(QWidget, "progress.current_task.retry")
+    assert container is not None
+    assert any(
+        isinstance(child, QLabel) and child.text() == "2/3 - Connection refused"
+        for child in container.findChildren(QLabel)
+    )
+
+
+def test_retry_line_clears_when_not_active(qtbot: QtBot) -> None:
+    """Proves: STORY-059-AC-5"""
+    # Arrange
+    view = ProgressView()
+    qtbot.addWidget(view)
+    view.show()
+    view.apply_current_task(
+        _current_task_vm(retry_active=True, retry_label="2/3 - Connection refused")
+    )
+
+    # Act
+    view.apply_current_task(_current_task_vm(retry_active=False, retry_label=None))
+
+    # Assert
+    container = view.findChild(QWidget, "progress.current_task.retry")
+    assert container is not None
+    assert container.findChildren(QLabel) == []

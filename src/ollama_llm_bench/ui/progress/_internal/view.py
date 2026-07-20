@@ -29,6 +29,7 @@ from ollama_llm_bench.ui.progress._internal.theme_lookup import (
 )
 from ollama_llm_bench.ui.progress.models import (
     CountersViewModel,
+    CurrentTaskViewModel,
     HeaderAffordances,
     ProgressViewModel,
     StabilityViewModel,
@@ -70,6 +71,12 @@ _STABILITY_BADGE_STATUS: Final[dict[str, BadgeStatus]] = {
     "open": BadgeStatus.FAIL,
 }
 
+# Current-task grid row indices, in _build_current_task_panel's addRow order --
+# named so apply_current_task never hardcodes a bare row number (AC-1..AC-6).
+_CURRENT_TASK_RETRY_ROW: Final[int] = 4
+_CURRENT_TASK_INFERENCE_ROW: Final[int] = 5
+_CURRENT_TASK_JUDGE_ROW: Final[int] = 6
+
 
 class ProgressView(QWidget):
     """The Progress widget's passive view: header + Run Progress/Model row."""
@@ -98,6 +105,7 @@ class ProgressView(QWidget):
         self._counter_value_labels: dict[str, QLabel] = {}
         self._build_counters_panel()
         self._build_model_panel()
+        self._build_current_task_panel()
         self._build_layout()
 
     @property
@@ -116,6 +124,7 @@ class ProgressView(QWidget):
         row.addWidget(self._counters_group, 1)
         row.addWidget(self._model_group, 1)
         root.addLayout(row)
+        root.addWidget(self._current_task_group)
         root.addStretch(1)
 
     def _build_counters_panel(self) -> None:
@@ -166,6 +175,38 @@ class ProgressView(QWidget):
         layout.addLayout(form)
         layout.addWidget(self._stability_container)
 
+    def _build_current_task_panel(self) -> None:
+        self._current_task_group = QGroupBox("Current Task")
+        self._current_task_group.setObjectName("progress.current_task")
+        form = QFormLayout()
+        form.setObjectName("progress.current_task.form")
+        self._task_id_label = QLabel("—")
+        self._task_id_label.setObjectName("progress.current_task.task_id")
+        self._current_task_stage_label = QLabel("—")
+        self._current_task_stage_label.setObjectName("progress.current_task.stage")
+        self._task_time_label = QLabel("—")
+        self._task_time_label.setObjectName("progress.current_task.task_time")
+        self._timeouts_label = QLabel("0")
+        self._timeouts_label.setObjectName("progress.current_task.timeouts")
+        self._retry_container = QWidget()
+        self._retry_container.setObjectName("progress.current_task.retry")
+        self._retry_layout = QVBoxLayout(self._retry_container)
+        self._retry_layout.setContentsMargins(0, 0, 0, 0)
+        self._inference_progress_label = QLabel("")
+        self._inference_progress_label.setObjectName("progress.current_task.inference_progress")
+        self._judge_progress_label = QLabel("")
+        self._judge_progress_label.setObjectName("progress.current_task.judge_progress")
+        form.addRow("Task", self._task_id_label)
+        form.addRow("Stage", self._current_task_stage_label)
+        form.addRow("Task Time", self._task_time_label)
+        form.addRow("Timeouts", self._timeouts_label)
+        form.addRow("Retry", self._retry_container)
+        form.addRow("Inference progress", self._inference_progress_label)
+        form.addRow("Judge progress", self._judge_progress_label)
+        self._current_task_form = form
+        layout = QVBoxLayout(self._current_task_group)
+        layout.addLayout(form)
+
     def apply_header(self, *, run_name: str, affordances: HeaderAffordances) -> None:
         """Render the run-name/pencil/Pause-Resume/Stop header slice (AC-2, AC-3)."""
         self._header.apply(run_name=run_name, affordances=affordances)
@@ -210,6 +251,32 @@ class ProgressView(QWidget):
                 self._make_callout(status="excluded", text=vm.judge_excluded_text)
             )
 
+    def apply_current_task(self, vm: CurrentTaskViewModel) -> None:
+        """Render the Current-task grid + the two live progress sub-rows (AC-1..AC-6)."""
+        self._task_id_label.setText(vm.task_id or "—")
+        self._current_task_stage_label.setText(vm.stage_label)
+        self._task_time_label.setText(vm.task_time_label)
+        self._timeouts_label.setText(str(vm.timeouts))
+        self._render_retry_line(vm)
+        self._current_task_form.setRowVisible(
+            _CURRENT_TASK_INFERENCE_ROW, vm.inference_progress_visible
+        )
+        if vm.inference_progress_label is not None:
+            self._inference_progress_label.setText(vm.inference_progress_label)
+        self._current_task_form.setRowVisible(_CURRENT_TASK_JUDGE_ROW, vm.judge_progress_visible)
+        if vm.judge_progress_label is not None:
+            self._judge_progress_label.setText(vm.judge_progress_label)
+
+    def _render_retry_line(self, vm: CurrentTaskViewModel) -> None:
+        while self._retry_layout.count():
+            item = self._retry_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+        if vm.retry_active and vm.retry_label is not None:
+            self._retry_layout.addWidget(self._make_callout(status="excluded", text=vm.retry_label))
+        self._current_task_form.setRowVisible(_CURRENT_TASK_RETRY_ROW, vm.retry_active)
+
     def apply(self, vm: ProgressViewModel) -> None:
         """The single top-level render entry point (idempotent)."""
         self.apply_header(
@@ -224,6 +291,7 @@ class ProgressView(QWidget):
             ),
         )
         self.apply_counters(vm.counters)
+        self.apply_current_task(vm.current_task)
         self.apply_stability(vm.stability)
 
     def _make_callout(self, *, status: str, text: str) -> QWidget:
