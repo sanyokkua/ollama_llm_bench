@@ -19,7 +19,13 @@ from ollama_llm_bench.backend.domain import (
     RunMode,
     Verdict,
 )
-from ollama_llm_bench.ui.results.models import DetailRowViewModel, DetailsViewModel
+from ollama_llm_bench.ui.results.models import (
+    AttemptRow,
+    DetailRowViewModel,
+    DetailsViewModel,
+    PhaseEvaluationRow,
+    ResultDetailViewModel,
+)
 
 _EM_DASH: Final[str] = "—"
 
@@ -687,4 +693,154 @@ def map_details_rows(
         selected_result_id=None,
         detail_panel=None,
         empty_state_message=empty_message,
+    )
+
+
+def _identity_fields(
+    result: BenchmarkResult, task: BenchmarkTask | None, run_mode: RunMode
+) -> tuple[tuple[str, str], ...]:
+    """Build the identity & meta key/value grid (details_tab.md#9 section 1).
+
+    Every value is labelled; a None/absent value renders as an em dash so the
+    field stays visible.
+    """
+    task_fields: tuple[tuple[str, str], ...] = (
+        ("Category", task.category if task is not None else _EM_DASH),
+        ("Sub-category", task.sub_category if task is not None else _EM_DASH),
+        ("Difficulty", task.difficulty.value if task is not None else _EM_DASH),
+        ("Cosine enabled", str(task.cosine_enabled) if task is not None else _EM_DASH),
+    )
+    layer = result.resolution_layer.value if result.resolution_layer is not None else _EM_DASH
+    return (
+        ("Provider", result.provider_name),
+        ("Model", result.model_name),
+        ("Run mode", run_mode.value),
+        ("Task ID", result.task_id),
+        *task_fields,
+        ("Total time (ms)", _format_optional_int(result.total_time_ms)),
+        ("TTFT (ms)", _format_optional_int(result.ttft_ms)),
+        ("Tokens per second", _format_tps(result)),
+        ("Prompt tokens", _format_optional_int(result.prompt_tokens)),
+        ("Completion tokens", _format_optional_int(result.completion_tokens)),
+        ("Status", result.status.value),
+        ("Verdict", _format_verdict(result.verdict)),
+        ("Resolution layer", layer),
+        ("Cosine Score", _format_cosine_score(result, "decimal")),
+        ("Attempts", str(len(result.attempts))),
+        ("Started at", result.started_at or _EM_DASH),
+        ("Finished at", result.finished_at or _EM_DASH),
+    )
+
+
+def _judge_phase_row(result: BenchmarkResult) -> PhaseEvaluationRow:
+    """Build the judge phase's per-phase-evaluation row, incl. the FAILED_JUDGE_TIMEOUT
+    special-cased descriptions (details_tab.md#11)."""
+    if result.status == ResultStatus.FAILED_JUDGE_TIMEOUT:
+        exhausted = result.error_message is not None and "exhausted" in result.error_message.lower()
+        description = (
+            "Judge: did not complete — adaptive budget exhausted"
+            if exhausted
+            else "Judge: skipped — judge model excluded for the rest of the run"
+        )
+        return PhaseEvaluationRow(
+            phase_name="Judge",
+            outcome="did not complete",
+            measurement=_EM_DASH,
+            description=description,
+        )
+    if result.judge_verdict is None:
+        return PhaseEvaluationRow(
+            phase_name="Judge",
+            outcome=_EM_DASH,
+            measurement=_EM_DASH,
+            description="Judge phase did not run.",
+        )
+    return PhaseEvaluationRow(
+        phase_name="Judge",
+        outcome=_format_verdict(result.judge_verdict),
+        measurement=_EM_DASH,
+        description="The judge model evaluated the response and returned a binary verdict.",
+    )
+
+
+def _phase_evaluations(result: BenchmarkResult) -> tuple[PhaseEvaluationRow, ...]:
+    """Build one row per phase that ran: sanity check, keyword, cosine, judge (§9 section 5)."""
+    rows: list[PhaseEvaluationRow] = []
+    if result.sanity_check_passed is not None:
+        outcome = "ok" if result.sanity_check_passed else "failed"
+        rows.append(
+            PhaseEvaluationRow(
+                phase_name="Sanity check",
+                outcome=outcome,
+                measurement=_EM_DASH,
+                description="Checked the response was non-empty and well-formed.",
+            )
+        )
+    if result.keyword_verdict is not None:
+        term_count = len(result.terms)
+        rows.append(
+            PhaseEvaluationRow(
+                phase_name="Keyword",
+                outcome=_format_verdict(result.keyword_verdict),
+                measurement=f"{term_count} term(s) checked",
+                description="Matched required/forbidden terms against the response.",
+            )
+        )
+    if result.cosine_similarity is not None:
+        rows.append(
+            PhaseEvaluationRow(
+                phase_name="Cosine",
+                outcome=_format_verdict(result.cosine_verdict),
+                measurement=_format_cosine_score(result, "decimal"),
+                description="Compared the response to the golden answer by cosine similarity.",
+            )
+        )
+    if result.judge_verdict is not None or result.status == ResultStatus.FAILED_JUDGE_TIMEOUT:
+        rows.append(_judge_phase_row(result))
+    return tuple(rows)
+
+
+def _attempt_rows(result: BenchmarkResult) -> tuple[AttemptRow, ...]:
+    """Map the result's raw attempt history to the panel's attempt-history section
+    (details_tab.md#9 section 8)."""
+    return tuple(
+        AttemptRow(
+            attempt_index=a.attempt_index,
+            timeout_ms=a.timeout_ms,
+            duration_ms=a.duration_ms,
+            outcome=a.outcome.value,
+            error_kind=a.error_kind.value if a.error_kind is not None else None,
+            error_message=a.error_message,
+        )
+        for a in result.attempts
+    )
+
+
+def build_detail_panel(
+    *, result: BenchmarkResult, task: BenchmarkTask | None, run_mode: RunMode
+) -> ResultDetailViewModel:
+    """Assemble the Task Detail Panel's full record for the selected result (details_tab.md#9).
+
+    Args:
+        result: The selected result row.
+        task: The result's joined task, or None when it is no longer in the run's task set.
+        run_mode: The selected run's mode, shown in the identity grid.
+
+    Returns:
+        The panel's full render state: identity/meta grid, prompts, golden answer, model
+        response, per-phase evaluation, judge reasoning, error, and attempt history.
+    """
+    return ResultDetailViewModel(
+        result_id=result.result_id,
+        identity_fields=_identity_fields(result, task, run_mode),
+        system_prompt=result.system_prompt_sent,
+        user_prompt=result.user_prompt_sent,
+        golden_answer=task.golden_answer if task is not None else None,
+        model_response=result.sanitized_response,
+        has_thinking_block=result.has_thinking_block,
+        raw_response=result.raw_response,
+        phase_evaluations=_phase_evaluations(result),
+        judge_reasoning=result.judge_reasoning or "(none)",
+        error_message=result.error_message or "(none)",
+        attempts=_attempt_rows(result),
     )

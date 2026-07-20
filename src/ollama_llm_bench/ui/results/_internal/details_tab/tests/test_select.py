@@ -2,12 +2,18 @@
 
 import pytest
 
-from ollama_llm_bench.backend.domain import ResolutionLayer, ResultStatus, RunMode, Verdict
+from ollama_llm_bench.backend.domain import (
+    ResolutionLayer,
+    ResultStatus,
+    RunMode,
+    Verdict,
+)
 from ollama_llm_bench.ui.results._internal.details_tab.select import (
     DetailsColumnKey,
     badge_role_for_layer,
     badge_role_for_status,
     badge_role_for_verdict,
+    build_detail_panel,
     chip_domains,
     decode_view_state,
     default_view_state,
@@ -180,3 +186,50 @@ def test_ttft_none_renders_em_dash_not_zero() -> None:
     ttft_index = visible_order.index(DetailsColumnKey.TTFT_MS)
     # Assert
     assert vm.rows[0].cells[ttft_index] == "—"
+
+
+def test_build_detail_panel_renders_ordered_sections_with_em_dashes() -> None:
+    """Proves: STORY-063-AC-3"""
+    # Arrange
+    result = make_result(
+        result_id=1,
+        status=ResultStatus.COMPLETED,
+        verdict=Verdict.PASS,
+        keyword_verdict=Verdict.PASS,
+        judge_verdict=Verdict.PASS,
+        resolution_layer=ResolutionLayer.JUDGE,
+        judge_reasoning="The response correctly answers the question.",
+        cosine_similarity=None,
+    )
+    task = make_task(task_id="task-1", golden_answer="The answer is 42.")
+    # Act
+    panel = build_detail_panel(result=result, task=task, run_mode=RunMode.GRADED)
+    # Assert
+    assert panel.result_id == 1
+    assert panel.golden_answer == "The answer is 42."
+    assert panel.judge_reasoning == "The response correctly answers the question."
+    assert panel.error_message == "(none)"
+    identity_labels = [label for label, _value in panel.identity_fields]
+    assert "provider_name" not in identity_labels  # human labels, not raw field names
+    assert identity_labels == [
+        "Provider",
+        "Model",
+        "Run mode",
+        "Task ID",
+        "Category",
+        "Sub-category",
+        "Difficulty",
+        "Cosine enabled",
+        "Total time (ms)",
+        "TTFT (ms)",
+        "Tokens per second",
+        "Prompt tokens",
+        "Completion tokens",
+        "Status",
+        "Verdict",
+        "Resolution layer",
+        "Cosine Score",
+        "Attempts",
+        "Started at",
+        "Finished at",
+    ]
