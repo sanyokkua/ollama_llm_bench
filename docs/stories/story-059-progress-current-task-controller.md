@@ -32,6 +32,7 @@ depends_on:
 adrs:
   - ADR-0001
   - ADR-0008
+  - ADR-0009
 owner: coder
 estimate: L
 ---
@@ -189,6 +190,14 @@ field is optional with a default value, so existing STORY-030/STORY-035 tests th
 `InferenceProgressEvent` without it are unaffected by msgspec's evolution rules. The `backend/events/`
 module is therefore cited in the `modules:` front-matter even though most of the story's implementation
 is in the UI layer.
+
+An independent spec-conformance review found that this field is not enumerated by
+`10_Domain_and_Data/02_DTOS_AND_ENUMS.md` §7.7a or `08_Cross_Cutting/08-Q_event_payload_schemas.md`
+§4.1a, and that `04_Progress_Widget/implementation_structure.md` §4.2's stated "the controller
+infers it" mechanism is not implementable from the event payload alone (no per-chunk
+`delta_tokens` history reaches the event). **ADR-0009** records the resulting decision: keep the
+additive field, since it is the only implementable path to AC-6/EC-RUN-17, and the vendored spec
+documents remain out of date relative to the shipped code until they are next revised upstream.
 
 Note: the `backend/inference_progress/` module is missing entirely from
 `docs/v3_specification/14_Process_and_Traceability/01_MODULE_INVENTORY.md`, a pre-existing gap in

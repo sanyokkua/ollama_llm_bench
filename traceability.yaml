@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-20T09:01:10Z'
+generated_at: '2026-07-20T11:26:04Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4014,17 +4014,29 @@ stories:
     - EC-RUN-23
     acceptance_criteria:
       STORY-059-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_current_task_grid_renders_task_id_stage_and_task_time
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_hidden_when_not_visible
       STORY-059-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_shown_with_label_when_visible
       STORY-059-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_judge]
+        - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_task]
+        - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[provider_test]
+        - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[run_analysis]
       STORY-059-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_judge_progress_row_shown_with_label_when_visible
       STORY-059-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_retry_label_renders_attempt_over_total_and_reason
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_clears_when_not_active
+        - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_renders_in_error_tone_when_active
       STORY-059-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_inference_generating_label_marks_heuristic_estimate
   STORY-060:
     title: Build the Progress widget run event-log sub-controller with verbosity, search, bounded buffer, and auto-scroll
     status: ready
@@ -6424,7 +6436,19 @@ edge_cases:
   EC-PROV-1:
     stories:
     - STORY-059
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_inference_generating_label_marks_heuristic_estimate
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_retry_label_renders_attempt_over_total_and_reason
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_judge]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_task]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[provider_test]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[run_analysis]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_current_task_grid_renders_task_id_stage_and_task_time
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_hidden_when_not_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_judge_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_clears_when_not_active
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_renders_in_error_tone_when_active
   EC-PROV-10:
     stories:
     - STORY-066
@@ -7233,15 +7257,51 @@ edge_cases:
   EC-RUN-17:
     stories:
     - STORY-059
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_inference_generating_label_marks_heuristic_estimate
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_retry_label_renders_attempt_over_total_and_reason
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_judge]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_task]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[provider_test]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[run_analysis]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_current_task_grid_renders_task_id_stage_and_task_time
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_hidden_when_not_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_judge_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_clears_when_not_active
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_renders_in_error_tone_when_active
   EC-RUN-18:
     stories:
     - STORY-059
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_inference_generating_label_marks_heuristic_estimate
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_retry_label_renders_attempt_over_total_and_reason
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_judge]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_task]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[provider_test]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[run_analysis]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_current_task_grid_renders_task_id_stage_and_task_time
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_hidden_when_not_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_judge_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_clears_when_not_active
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_renders_in_error_tone_when_active
   EC-RUN-19:
     stories:
     - STORY-059
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_inference_generating_label_marks_heuristic_estimate
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_retry_label_renders_attempt_over_total_and_reason
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_judge]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_task]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[provider_test]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[run_analysis]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_current_task_grid_renders_task_id_stage_and_task_time
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_hidden_when_not_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_judge_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_clears_when_not_active
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_renders_in_error_tone_when_active
   EC-RUN-2:
     stories:
     - STORY-058
@@ -7304,7 +7364,19 @@ edge_cases:
   EC-RUN-23:
     stories:
     - STORY-059
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_inference_generating_label_marks_heuristic_estimate
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_retry_label_renders_attempt_over_total_and_reason
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_judge]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[benchmark_task]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[provider_test]
+    - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_progress_context_filter[run_analysis]
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_current_task_grid_renders_task_id_stage_and_task_time
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_hidden_when_not_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_inference_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_judge_progress_row_shown_with_label_when_visible
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_clears_when_not_active
+    - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_renders_in_error_tone_when_active
   EC-RUN-3:
     stories:
     - STORY-055
