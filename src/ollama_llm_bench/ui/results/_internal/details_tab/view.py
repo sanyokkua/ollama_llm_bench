@@ -191,12 +191,15 @@ def _format_phases(phases: tuple[PhaseEvaluationRow, ...]) -> str:
 
 
 def _format_attempts(attempts: tuple[AttemptRow, ...]) -> str:
-    """Render one line per attempt, including error detail for a failed attempt
-    (details_tab.md §9 section 8)."""
+    """Render one line per attempt, including its timeout budget and error detail
+    for a failed attempt (details_tab.md §9 section 8)."""
     lines = []
     for attempt in attempts:
         duration = _EM_DASH if attempt.duration_ms is None else str(attempt.duration_ms)
-        line = f"#{attempt.attempt_index}: {attempt.outcome} ({duration} ms)"
+        line = (
+            f"#{attempt.attempt_index}: {attempt.outcome} "
+            f"(timeout {attempt.timeout_ms} ms, duration {duration} ms)"
+        )
         if attempt.error_kind is not None:
             line = f"{line} — {attempt.error_kind}: {attempt.error_message}"
         lines.append(line)

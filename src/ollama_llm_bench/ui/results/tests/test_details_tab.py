@@ -18,7 +18,9 @@ from pytestqt.qtbot import QtBot
 import structlog
 
 from ollama_llm_bench.backend.domain import (
+    AttemptOutcome,
     BenchmarkResult,
+    BenchmarkResultAttempt,
     BenchmarkRun,
     BenchmarkTask,
     ResultStatus,
@@ -130,8 +132,10 @@ def test_task_detail_panel_renders_full_record(qtbot: QtBot) -> None:
 
     Selecting a Details-table row for real -- driven through the table's own
     selection model, not a hand-constructed ``ResultDetailViewModel`` -- renders the
-    Task Detail Panel's judge-reasoning and error sections with the exact values
-    ``select.build_detail_panel`` derived for that result.
+    Task Detail Panel's judge-reasoning, error, and attempts sections with the exact
+    values ``select.build_detail_panel`` derived for that result. The attempts
+    section must include each attempt's timeout budget alongside its outcome and
+    duration (details_tab.md §9 section 8).
     """
     # Arrange
     gateway = FakeResultGateway()
@@ -144,6 +148,14 @@ def test_task_detail_panel_renders_full_record(qtbot: QtBot) -> None:
                 status=ResultStatus.COMPLETED,
                 judge_reasoning="Correct and complete.",
                 error_message=None,
+                attempts=(
+                    BenchmarkResultAttempt(
+                        attempt_index=1,
+                        timeout_ms=45_000,
+                        duration_ms=1_200,
+                        outcome=AttemptOutcome.SUCCESS,
+                    ),
+                ),
             ),
         ),
     )
@@ -164,8 +176,11 @@ def test_task_detail_panel_renders_full_record(qtbot: QtBot) -> None:
     # Assert
     judge_label = cast("QLabel", view.findChild(QLabel, "details_tab.detail_panel.judge_reasoning"))
     error_label = cast("QLabel", view.findChild(QLabel, "details_tab.detail_panel.error"))
+    attempts_label = cast("QLabel", view.findChild(QLabel, "details_tab.detail_panel.attempts"))
     assert judge_label.text() == "Correct and complete."
     assert error_label.text() == "(none)"
+    assert "timeout 45000 ms" in attempts_label.text()
+    assert "duration 1200 ms" in attempts_label.text()
 
 
 class _TaskAwareResultGateway(FakeResultGateway):
