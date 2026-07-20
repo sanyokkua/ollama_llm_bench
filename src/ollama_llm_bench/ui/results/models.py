@@ -12,14 +12,20 @@ from ollama_llm_bench.adapters.clipboard import Clipboard
 from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.adapters.notification_service import NotificationService
-from ollama_llm_bench.backend.domain import RunId
+from ollama_llm_bench.backend.domain import ResultId, RunId
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.results.protocols import ExportFilenameHelper, ResultGateway
 from ollama_llm_bench.ui.theme import PlatformKind
 
 __all__: list[str] = [
+    "AttemptRow",
+    "ChartDrilldownRequest",
+    "DetailRowViewModel",
+    "DetailsViewModel",
     "FooterViewModel",
+    "PhaseEvaluationRow",
     "ResultCollaborators",
+    "ResultDetailViewModel",
     "ResultViewModel",
     "SummaryViewModel",
 ]
@@ -65,3 +71,73 @@ class SummaryViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     columns: tuple[str, ...]  # mode-offered, visible, in order; header text incl. sort caret
     rows: tuple[tuple[str, ...], ...]  # one tuple per surviving (provider, model) group
     empty_state_message: str | None
+
+
+class DetailRowViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One Details-table row: its result identity plus one formatted cell per visible column."""
+
+    result_id: ResultId
+    cells: tuple[str, ...]
+
+
+class PhaseEvaluationRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One row of the Task Detail Panel's per-phase evaluation section (details_tab.md#9)."""
+
+    phase_name: str
+    outcome: str
+    measurement: str
+    description: str
+
+
+class AttemptRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One row of the Task Detail Panel's attempt-history section (details_tab.md#9)."""
+
+    attempt_index: int
+    timeout_ms: int
+    duration_ms: int | None
+    outcome: str
+    error_kind: str | None
+    error_message: str | None
+
+
+class ResultDetailViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The Task Detail Panel payload for one selected result (details_tab.md#9)."""
+
+    result_id: ResultId
+    identity_fields: tuple[tuple[str, str], ...]
+    system_prompt: str | None
+    user_prompt: str | None
+    golden_answer: str | None
+    model_response: str | None
+    has_thinking_block: bool
+    raw_response: str | None
+    phase_evaluations: tuple[PhaseEvaluationRow, ...]
+    judge_reasoning: str
+    error_message: str
+    attempts: tuple[AttemptRow, ...]
+
+
+class DetailsViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Pushed by DetailsTabController to DetailsTabView (implementation_structure.md#52)."""
+
+    columns: tuple[str, ...]
+    rows: tuple[DetailRowViewModel, ...]
+    selected_result_id: ResultId | None
+    detail_panel: ResultDetailViewModel | None
+    empty_state_message: str | None
+
+
+class ChartDrilldownRequest(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """An in-process chart-click drill-down request (details_tab.md#10).
+
+    Exactly one of the three shapes below is populated by a caller:
+      - single-model: provider_id + model_name only
+      - model-and-status/verdict: provider_id + model_name + (status or verdict)
+      - single-result: provider_id + model_name + task_id
+    """
+
+    provider_id: str | None = None
+    model_name: str | None = None
+    task_id: str | None = None
+    status: str | None = None
+    verdict: str | None = None
