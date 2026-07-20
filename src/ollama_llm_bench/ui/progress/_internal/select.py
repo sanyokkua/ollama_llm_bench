@@ -7,7 +7,7 @@ boundary.
 
 import msgspec
 
-from ollama_llm_bench.backend.domain import ResultStatus, RunStatus
+from ollama_llm_bench.backend.domain import InferenceContext, ResultStatus, RunStatus
 from ollama_llm_bench.backend.events import (
     JudgeModelExcludedEvent,
     ModelStabilityChangedEvent,
@@ -21,9 +21,16 @@ from ollama_llm_bench.ui.progress.models import (
 )
 
 __all__: list[str] = [
+    "INFERENCE_COMPLETE_PLACEHOLDER",
+    "accepts_progress_context",
     "apply_judge_excluded",
     "estimate_eta_label",
     "format_duration_ms",
+    "format_inference_generating_label",
+    "format_inference_waiting_label",
+    "format_judge_receiving_label",
+    "format_judge_waiting_label",
+    "format_retry_label",
     "parse_stage",
     "select_counters",
     "select_header",
@@ -296,3 +303,52 @@ def apply_judge_excluded(
         show_open_settings=vm.show_open_settings,
         judge_excluded_text=text,
     )
+
+
+# description.md §7.1.3's exact italic placeholder shown in the Inference progress
+# sub-row while the judge phase is in flight for the same result (AC-4).
+INFERENCE_COMPLETE_PLACEHOLDER = "(complete — main inference finished)"
+
+# description.md §7.1: the Current-task controller accepts only these two
+# contexts; RUN_ANALYSIS/PROVIDER_TEST are routed to other subscribers (AC-3).
+_ACCEPTED_PROGRESS_CONTEXTS = frozenset(
+    {InferenceContext.BENCHMARK_TASK, InferenceContext.BENCHMARK_JUDGE}
+)
+
+
+def accepts_progress_context(context: InferenceContext) -> bool:
+    """Whether the Current-task controller accepts this ``_inference_progress``
+    context (description.md §7.1; AC-3; EC-RUN-23's premise)."""
+    return context in _ACCEPTED_PROGRESS_CONTEXTS
+
+
+def _estimate_marker(*, is_estimate: bool) -> str:
+    return "~" if is_estimate else ""
+
+
+def format_inference_waiting_label(elapsed_ms: int) -> str:
+    """Sub-state A label for the Inference progress sub-row (description.md §7.1.1; AC-1)."""
+    return f"Waiting for first token — {elapsed_ms / 1000:.1f} s"
+
+
+def format_inference_generating_label(*, tokens: int, elapsed_ms: int, is_estimate: bool) -> str:
+    """Sub-state B label for the Inference progress sub-row (description.md §7.1.1;
+    AC-2, AC-6; EC-RUN-17)."""
+    marker = _estimate_marker(is_estimate=is_estimate)
+    return f"Generating — {marker}{tokens} tokens · {elapsed_ms / 1000:.1f} s elapsed"
+
+
+def format_judge_waiting_label(elapsed_ms: int) -> str:
+    """Sub-state A label for the Judge progress sub-row (description.md §7.1.2)."""
+    return f"Judge: waiting for response — {elapsed_ms / 1000:.1f} s"
+
+
+def format_judge_receiving_label(*, tokens: int, elapsed_ms: int, is_estimate: bool) -> str:
+    """Sub-state B label for the Judge progress sub-row (description.md §7.1.2; AC-6)."""
+    marker = _estimate_marker(is_estimate=is_estimate)
+    return f"Judge: receiving — {marker}{tokens} tokens · {elapsed_ms / 1000:.1f} s elapsed"
+
+
+def format_retry_label(*, attempt: int, total_attempts: int, reason: str) -> str:
+    """The Retry line's ``attempt/total - reason`` text (description.md §7; AC-5)."""
+    return f"{attempt}/{total_attempts} - {reason}"

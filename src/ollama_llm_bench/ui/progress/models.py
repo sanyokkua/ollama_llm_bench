@@ -21,10 +21,11 @@ from enum import StrEnum
 
 import msgspec
 
-from ollama_llm_bench.backend.domain import ResultStatus
+from ollama_llm_bench.backend.domain import InferenceContext, ResultStatus
 
 __all__: list[str] = [
     "CountersViewModel",
+    "CurrentTaskViewModel",
     "HeaderAffordances",
     "ProgressViewModel",
     "RunStage",
@@ -89,6 +90,23 @@ class StabilityViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     judge_excluded_text: str | None = None
 
 
+class CurrentTaskViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The Current-task grid plus the Inference/Judge live progress sub-rows
+    (description.md §7, §7.1; implementation_structure.md §5; STORY-059-AC-1..6)."""
+
+    task_id: str | None
+    stage_label: str
+    task_time_label: str
+    timeouts: int
+    retry_active: bool
+    retry_label: str | None
+    inference_progress_visible: bool
+    inference_progress_label: str | None
+    judge_progress_visible: bool
+    judge_progress_label: str | None
+    last_progress_context: InferenceContext | None
+
+
 class HeaderAffordances(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     """The header row's per-state control affordances (state_machine.md §4; AC-2).
 
@@ -110,8 +128,9 @@ class HeaderAffordances(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 
 class ProgressViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """The Progress widget's full render state (implementation_structure.md §5, narrowed
-    per STORY-058's scope -- no ``current_task``/``log`` fields until STORY-059/060)."""
+    """The Progress widget's full render state (implementation_structure.md §5,
+    narrowed per STORY-058's scope; STORY-059 adds ``current_task`` -- no ``log``
+    field until STORY-060)."""
 
     widget_state: str
     run_name: str
@@ -122,4 +141,5 @@ class ProgressViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     stop_visible: bool
     stop_enabled: bool
     counters: CountersViewModel
+    current_task: CurrentTaskViewModel
     stability: StabilityViewModel
