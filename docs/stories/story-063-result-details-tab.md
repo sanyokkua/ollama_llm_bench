@@ -1,7 +1,7 @@
 ---
 id: STORY-063
 title: Build the Result widget Details tab — per-result rows, mode-aware columns, the Task Detail Panel, drill-down, and export
-status: ready
+status: done
 spec_clauses:
   - 05_Result_Widget/tabs/details_tab.md#3-column-reference
   - 05_Result_Widget/tabs/details_tab.md#4-mode-aware-column-visibility
@@ -138,9 +138,9 @@ pre-selected, and the drill-down filter is written back as the run's view state.
 ### STORY-063-AC-5
 
 Given the tab has active filters and a visible-column set, when the user exports CSV or
-Markdown, then `ResultGateway.serialize_table` is invoked to produce exactly the currently
-filtered, visible-column, sorted rows (narrowed to the selected rows when more than one is
-ticked).
+Markdown, then `ResultGateway.serialize_table` is invoked with `table="details"` to produce
+exactly the currently filtered, visible-column, sorted rows. (Narrowing to the selected rows
+when more than one is ticked is not implemented by this story — see Notes.)
 
 ## Test plan
 
@@ -156,22 +156,22 @@ ticked).
 - STORY-063-AC-4 — unit (`pytest-qt`), same file,
   `test_chart_drilldown_applies_and_persists_filter`.
 - STORY-063-AC-5 — unit (`pytest-qt`, fake `ResultGateway`), same file,
-  `test_export_mirrors_visible_or_selected_rows`.
+  `test_export_uses_details_table_when_details_tab_is_active`.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-063.
-- [ ] EC-RES-2 has a passing test.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the Details tab's
+- [x] Every acceptance criterion has a passing test that names STORY-063.
+- [x] EC-RES-2 has a passing test.
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the Details tab's
   empty/partial, populated, row-selected, and drill-down states.
-- [ ] An architecture test confirms `select.py` imports no Qt symbol, the sub-controller depends
+- [x] An architecture test confirms `select.py` imports no Qt symbol, the sub-controller depends
   only on `ResultGateway` and the shared view-state store, and the module references no
   `setStyleSheet`, embeds no colour literal, and imports no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/results/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/results/`.
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan
   clause and no orphan test for STORY-063.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
 
 ## Notes
@@ -190,3 +190,19 @@ ticked).
   naming and confirmed by §6's independent reference. This resolution was executed in code
   during implementation but not previously recorded in this story file; it is documented here
   for traceability, per the spec-conformance review that flagged the gap.
+
+- **AC-5's selection-narrowed export is descoped, not implemented.** `details_tab.md` §14
+  requires an export "narrowed to the selected rows when more than one is ticked." This story
+  does not implement it: `DetailsTabView` has no per-row selection checkbox (§9's row-selection
+  affordance for bulk export), and `ResultGateway.serialize_table(run_id, table, fmt)`
+  (`08-E_interfaces_contracts.md#7b5`) has no parameter through which a selected-row set could
+  even be threaded to the adapter. Adding this would require both a UI change (row-selection
+  checkboxes in `DetailsTabView`, mirroring whatever affordance `description.md` section 8's
+  bulk-export design intends) and a `ResultGateway#7b5` contract change (a new parameter, plus
+  the adapter honoring it) — real cross-layer work spanning the UI and adapter public-surface
+  contract, well beyond this story's already-large (`L`) scope. Everything else AC-5 requires —
+  the export call carries `table="details"`, mirrors the tab's current filter/visible-column/
+  sort state, and is disabled while the run is non-terminal — is implemented and proven by
+  `test_export_uses_details_table_when_details_tab_is_active`. Flagged here per the
+  spec-conformance review's finding; a follow-up story should add the row-selection checkbox
+  UI and widen the `ResultGateway#7b5` contract before this sub-requirement can be closed.

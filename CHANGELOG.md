@@ -17,6 +17,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Result widget Details tab (`ui/results/_internal/details_tab/`): per-result table with
+  mode-aware column sets (16 columns in SYNTHETIC/TASK mode, all 24 in GRADED), filter chips
+  (Verdict/Layer only in GRADED mode), per-column filters, sorting, and column
+  visibility/reorder controls. Verdict and status cells render semantic colour roles. The Task
+  Detail Panel displays the full structured record for a selected row in eight sections
+  (identity, prompts, golden answer, model response, evaluation, judge reasoning, error,
+  attempt history), with absent fields shown as em dashes. Chart-click drill-down requests from
+  the Charts tab (STORY-064) are received and applied as filters, persisted to the run's view
+  state. CSV and Markdown export via `ResultGateway.serialize_table(table="details")` mirrors
+  the active filter state, visible columns, and sort order. Mounted into the existing
+  `ResultController`/`ResultView` shell (STORY-061) via `DetailsTabController`/`DetailsTabView`.
+  Row-selection checkboxes for narrowing export to selected rows and live badge color updates
+  (pending a `theme_manager` field on `ResultCollaborators`) are deferred to follow-up stories.
+  Per `05_Result_Widget/tabs/details_tab.md` and `implementation_structure.md` §5.2.
+
 - Qt notification surface (`adapters/notification_service/`): the `NotificationService` Protocol
   (`show_info(text, duration_ms=5000)`, `show_warning(text, duration_ms=5000)`,
   `show_error(text, *, blocking=False)`) and factory

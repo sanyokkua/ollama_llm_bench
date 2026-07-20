@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-20T21:44:18Z'
+generated_at: '2026-07-20T21:52:42Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4185,7 +4185,7 @@ stories:
         - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[markdown]
   STORY-063:
     title: Build the Result widget Details tab — per-result rows, mode-aware columns, the Task Detail Panel, drill-down, and export
-    status: ready
+    status: done
     spec_clauses:
     - 05_Result_Widget/implementation_structure.md#52-detailstabcontroller
     - 05_Result_Widget/tabs/details_tab.md#10-chart-click-drill-down
