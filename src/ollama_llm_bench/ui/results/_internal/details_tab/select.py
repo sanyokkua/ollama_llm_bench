@@ -174,6 +174,62 @@ class DetailsChipDomains(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     difficulties: tuple[Difficulty, ...]
 
 
+_TERMINAL_FAILURE_STATUSES: Final[frozenset[ResultStatus]] = frozenset(
+    {
+        ResultStatus.FAILED_INFERENCE,
+        ResultStatus.FAILED_PROVIDER,
+        ResultStatus.FAILED_TIMEOUT,
+        ResultStatus.FAILED_JUDGE_TIMEOUT,
+        ResultStatus.ERRORED,
+    }
+)
+
+
+def badge_role_for_verdict(verdict: Verdict | None) -> str:
+    """Return the colour role for a verdict-family cell (details_tab.md#11).
+
+    Args:
+        verdict: The verdict value, or None if unavailable.
+
+    Returns:
+        The badge role: "success" for PASS, "error" for FAIL, "muted" for None.
+    """
+    if verdict is None:
+        return "muted"
+    return "success" if verdict == Verdict.PASS else "error"
+
+
+def badge_role_for_status(status: ResultStatus) -> str:
+    """Return the colour role for the Status cell (details_tab.md#11).
+
+    Args:
+        status: The result status.
+
+    Returns:
+        The badge role: "success" for COMPLETED, "error" for terminal failures,
+        "info" for in-progress states.
+    """
+    if status == ResultStatus.COMPLETED:
+        return "success"
+    if status in _TERMINAL_FAILURE_STATUSES:
+        return "error"
+    return "info"
+
+
+def badge_role_for_layer(layer: ResolutionLayer | None) -> str:
+    """Return the colour role for the Layer cell (details_tab.md#11).
+
+    Args:
+        layer: The resolution layer, or None if unavailable.
+
+    Returns:
+        The badge role: "info" for KEYWORD, COSINE, JUDGE; "muted" for SKIP or None.
+    """
+    if layer is None or layer == ResolutionLayer.SKIP:
+        return "muted"
+    return "info"
+
+
 def chip_domains(
     *, results: tuple[BenchmarkResult, ...], tasks_by_id: dict[str, BenchmarkTask]
 ) -> DetailsChipDomains:

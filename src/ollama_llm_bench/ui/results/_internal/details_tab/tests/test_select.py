@@ -1,8 +1,13 @@
 """Unit tests for the Details tab's pure select.py — no Qt import."""
 
-from ollama_llm_bench.backend.domain import RunMode
+import pytest
+
+from ollama_llm_bench.backend.domain import ResolutionLayer, ResultStatus, RunMode, Verdict
 from ollama_llm_bench.ui.results._internal.details_tab.select import (
     DetailsColumnKey,
+    badge_role_for_layer,
+    badge_role_for_status,
+    badge_role_for_verdict,
     chip_domains,
     offered_columns,
 )
@@ -51,3 +56,52 @@ def test_chip_domains_lists_two_providers_of_the_same_model_separately() -> None
     domains = chip_domains(results=(result_a, result_b), tasks_by_id={})
     # Assert
     assert len(domains.models) == _TWO_DISTINCT_MODEL_KEYS
+
+
+@pytest.mark.parametrize(
+    ("verdict", "expected_role"),
+    [
+        (Verdict.PASS, "success"),
+        (Verdict.FAIL, "error"),
+        (None, "muted"),
+    ],
+)
+def test_badge_role_for_verdict(verdict: Verdict | None, expected_role: str) -> None:
+    """Proves: STORY-063-AC-2"""
+    assert badge_role_for_verdict(verdict) == expected_role
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_role"),
+    [
+        (ResultStatus.COMPLETED, "success"),
+        (ResultStatus.FAILED_INFERENCE, "error"),
+        (ResultStatus.FAILED_PROVIDER, "error"),
+        (ResultStatus.FAILED_TIMEOUT, "error"),
+        (ResultStatus.FAILED_JUDGE_TIMEOUT, "error"),
+        (ResultStatus.ERRORED, "error"),
+        (ResultStatus.PENDING, "info"),
+        (ResultStatus.RUNNING_INFERENCE, "info"),
+        (ResultStatus.AWAITING_KEYWORD_CHECK, "info"),
+        (ResultStatus.AWAITING_COSINE_CHECK, "info"),
+        (ResultStatus.AWAITING_JUDGE_CHECK, "info"),
+    ],
+)
+def test_badge_role_for_status(status: ResultStatus, expected_role: str) -> None:
+    """Proves: STORY-063-AC-2"""
+    assert badge_role_for_status(status) == expected_role
+
+
+@pytest.mark.parametrize(
+    ("layer", "expected_role"),
+    [
+        (ResolutionLayer.KEYWORD, "info"),
+        (ResolutionLayer.COSINE, "info"),
+        (ResolutionLayer.JUDGE, "info"),
+        (ResolutionLayer.SKIP, "muted"),
+        (None, "muted"),
+    ],
+)
+def test_badge_role_for_layer(layer: ResolutionLayer | None, expected_role: str) -> None:
+    """Proves: STORY-063-AC-2"""
+    assert badge_role_for_layer(layer) == expected_role
