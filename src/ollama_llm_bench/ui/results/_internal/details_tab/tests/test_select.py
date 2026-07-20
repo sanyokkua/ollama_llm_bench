@@ -12,13 +12,15 @@ from ollama_llm_bench.ui.results._internal.details_tab.select import (
     decode_view_state,
     default_view_state,
     encode_view_state,
+    map_details_rows,
     offered_columns,
 )
-from ollama_llm_bench.ui.results._internal.details_tab.tests.conftest import make_result
+from ollama_llm_bench.ui.results._internal.details_tab.tests.conftest import make_result, make_task
 
 _GRADED_ONLY_COUNT = 8
 _TOTAL_COLUMNS = 24
 _TWO_DISTINCT_MODEL_KEYS = 2
+_TWO_ROWS = 2
 
 
 def test_graded_mode_offers_all_twenty_four_columns() -> None:
@@ -127,3 +129,53 @@ def test_encode_decode_view_state_round_trips() -> None:
     restored = decode_view_state(encode_view_state(state))
     # Assert
     assert restored == state
+
+
+def test_composite_key_keeps_rows_distinct() -> None:
+    """Proves: STORY-063-AC-1
+
+    Covers EC-RES-2. Two results share model_name "llama3" under two distinct
+    provider_ids; both rows must appear distinctly and the Models chip domain
+    (already proven separately in Task 2) must not merge them.
+    """
+    # Arrange
+    result_a = make_result(
+        result_id=1, provider_id="prov-a", provider_name="Ollama Local", model_name="llama3"
+    )
+    result_b = make_result(
+        result_id=2, provider_id="prov-b", provider_name="Ollama Remote", model_name="llama3"
+    )
+    task = make_task(task_id="task-1")
+    view_state = default_view_state(RunMode.GRADED)
+    # Act
+    vm = map_details_rows(
+        results=(result_a, result_b),
+        tasks_by_id={"task-1": task},
+        run_mode=RunMode.GRADED,
+        view_state=view_state,
+        score_display_format="decimal",
+    )
+    # Assert
+    assert len(vm.rows) == _TWO_ROWS
+    assert {row.result_id for row in vm.rows} == {1, 2}
+
+
+def test_ttft_none_renders_em_dash_not_zero() -> None:
+    """Proves: STORY-063
+
+    §3.2: a None cell renders an em dash, never 0. Covers DT-EC-1.
+    """
+    # Arrange
+    result = make_result(result_id=1, ttft_ms=None)
+    view_state = default_view_state(RunMode.GRADED)
+    # Act
+    vm = map_details_rows(
+        results=(result,),
+        tasks_by_id={},
+        run_mode=RunMode.GRADED,
+        view_state=view_state,
+        score_display_format="decimal",
+    )
+    ttft_index = view_state.columns.order.index(DetailsColumnKey.TTFT_MS)
+    # Assert
+    assert vm.rows[0].cells[ttft_index] == "—"
