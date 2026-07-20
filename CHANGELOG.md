@@ -28,9 +28,12 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   state. CSV and Markdown export via `ResultGateway.serialize_table(table="details")` mirrors
   the active filter state, visible columns, and sort order. Mounted into the existing
   `ResultController`/`ResultView` shell (STORY-061) via `DetailsTabController`/`DetailsTabView`.
-  Row-selection checkboxes for narrowing export to selected rows and live badge color updates
-  (pending a `theme_manager` field on `ResultCollaborators`) are deferred to follow-up stories.
-  Per `05_Result_Widget/tabs/details_tab.md` and `implementation_structure.md` §5.2.
+  Row-selection checkboxes for narrowing export to selected rows are deferred to a follow-up
+  story. Badge colour role mapping is implemented and tested, but no badge colour renders yet
+  in the running app: `ResultCollaborators` has no `theme_manager` field to thread a real
+  `ThemeManager` into the badge delegate, and wiring one requires a `compose.py` change out of
+  this story's reach — also deferred to a follow-up story. Per `05_Result_Widget/tabs/details_tab.md`
+  and `implementation_structure.md` §5.2.
 
 - Qt notification surface (`adapters/notification_service/`): the `NotificationService` Protocol
   (`show_info(text, duration_ms=5000)`, `show_warning(text, duration_ms=5000)`,

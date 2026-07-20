@@ -206,3 +206,22 @@ when more than one is ticked is not implemented by this story — see Notes.)
   `test_export_uses_details_table_when_details_tab_is_active`. Flagged here per the
   spec-conformance review's finding; a follow-up story should add the row-selection checkbox
   UI and widen the `ResultGateway#7b5` contract before this sub-requirement can be closed.
+
+- **AC-2's badge colour is not yet rendered in the running app or in any test.** `select.py`'s
+  `badge_role_for_status`/`badge_role_for_verdict`/`badge_role_for_layer` correctly compute the
+  colour role per `details_tab.md` §11's table, and `_BadgeDelegate` correctly paints that role
+  via `resolve_color` — but `ResultCollaborators` (`ui/results/models.py`) has no
+  `theme_manager` field, so `ResultController._mount_details_tab` always constructs
+  `DetailsTabView` with `theme_manager=None`, and `_BadgeDelegate.paint` falls through to plain
+  uncoloured text for every badge cell in production. This is more than "live theme-switch
+  refresh is deferred" (an earlier phrasing that undersold the gap, corrected here and in
+  `CHANGELOG.md` per the final whole-branch review): no badge colour renders at all yet. The
+  underlying compose-root wiring (`ResultCollaborators.theme_manager` plus its `compose.py`
+  population) is out of this story's reach for the same reason as the AC-5 gap above — this
+  story must not touch `compose.py`. A follow-up story should add
+  `ResultCollaborators.theme_manager`, wire a real `ThemeManager` through `compose.py`, and add
+  a delegate paint-path test constructing `_BadgeDelegate` with a real `ThemeManager` to prove a
+  coloured badge actually renders, closing AC-2's colour-rendering outcome end-to-end. The
+  role-mapping and cell-wiring themselves are correct and proven by
+  `test_status_verdict_badge_roles` and `select.py`'s unit tests — only the paint step is
+  unreached.
