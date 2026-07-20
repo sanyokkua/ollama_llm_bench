@@ -21,6 +21,7 @@ from ollama_llm_bench.backend.events import (
 )
 from ollama_llm_bench.ui.results._internal.details_tab import select
 from ollama_llm_bench.ui.results._internal.details_tab.select import (
+    DetailsChipDomains,
     DetailsColumnKey,
     DetailsSort,
     DetailsViewState,
@@ -54,8 +55,15 @@ class DetailsTabViewProtocol(Protocol):
     Task 9 lands, to match the sibling convention.
     """
 
-    def apply(self, view_model: DetailsViewModel, *, view_state: DetailsViewState) -> None:
-        """Render the derived ``DetailsViewModel`` against the given view state."""
+    def apply(
+        self,
+        view_model: DetailsViewModel,
+        *,
+        view_state: DetailsViewState,
+        domains: DetailsChipDomains,
+    ) -> None:
+        """Render the derived ``DetailsViewModel`` against the given view state and
+        the seven filter chips' current distinct-value domains."""
         ...
 
     def apply_no_run(self, message: str) -> None:
@@ -151,7 +159,8 @@ class DetailsTabController:
         view_model = msgspec.structs.replace(
             view_model, selected_result_id=self._selected_result_id, detail_panel=detail_panel
         )
-        self._view.apply(view_model, view_state=self._view_state)
+        domains = select.chip_domains(results=results, tasks_by_id=tasks_by_id)
+        self._view.apply(view_model, view_state=self._view_state, domains=domains)
 
     def on_chip_changed(self, chip: str, values: tuple[object, ...]) -> None:
         """A filter-bar chip's selection changed (§5); ``chip`` is one of the seven
