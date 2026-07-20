@@ -168,18 +168,18 @@ approximation.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-059.
-- [ ] EC-RUN-17, EC-RUN-18, EC-RUN-19, EC-RUN-23, and EC-PROV-1 each have a passing test.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the TaskInflight and
+- [x] Every acceptance criterion has a passing test that names STORY-059.
+- [x] EC-RUN-17, EC-RUN-18, EC-RUN-19, EC-RUN-23, and EC-PROV-1 each have a passing test.
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the TaskInflight and
   progress-sub-row states of `04_Progress_Widget/state_machine.md`.
-- [ ] An architecture test confirms the sub-controller depends only on `ProgressGateway` and
+- [x] An architecture test confirms the sub-controller depends only on `ProgressGateway` and
   `EventBus`, reads no verbosity setting for the sub-rows, and that the module references no
   `setStyleSheet`, embeds no colour literal, and imports no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/progress/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/progress/`.
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan
   clause and no orphan test for STORY-059.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
 
 ## Notes
