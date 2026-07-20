@@ -7,6 +7,7 @@ pattern from STORY-062.
 
 from ollama_llm_bench.backend.domain import (
     BenchmarkResult,
+    BenchmarkResultAttempt,
     BenchmarkTask,
     Difficulty,
     ResolutionLayer,
@@ -42,6 +43,7 @@ def make_result(  # noqa: PLR0913 -- test builder must expose every mapped field
     resolution_layer: ResolutionLayer | None = None,
     judge_reasoning: str | None = None,
     error_message: str | None = None,
+    attempts: tuple[BenchmarkResultAttempt, ...] = (),
 ) -> BenchmarkResult:
     """Build a minimal, valid ``BenchmarkResult`` for a Details-tab select.py test."""
     return BenchmarkResult(
@@ -66,6 +68,7 @@ def make_result(  # noqa: PLR0913 -- test builder must expose every mapped field
         resolution_layer=resolution_layer,
         judge_reasoning=judge_reasoning,
         error_message=error_message,
+        attempts=attempts,
     )
 
 

@@ -3,6 +3,8 @@
 import pytest
 
 from ollama_llm_bench.backend.domain import (
+    AttemptOutcome,
+    BenchmarkResultAttempt,
     ResolutionLayer,
     ResultStatus,
     RunMode,
@@ -27,6 +29,7 @@ _GRADED_ONLY_COUNT = 8
 _TOTAL_COLUMNS = 24
 _TWO_DISTINCT_MODEL_KEYS = 2
 _TWO_ROWS = 2
+_ATTEMPT_DURATION_MS = 1200
 
 
 def test_graded_mode_offers_all_twenty_four_columns() -> None:
@@ -191,6 +194,14 @@ def test_ttft_none_renders_em_dash_not_zero() -> None:
 def test_build_detail_panel_renders_ordered_sections_with_em_dashes() -> None:
     """Proves: STORY-063-AC-3"""
     # Arrange
+    attempt = BenchmarkResultAttempt(
+        attempt_index=1,
+        timeout_ms=5000,
+        duration_ms=_ATTEMPT_DURATION_MS,
+        outcome=AttemptOutcome.SUCCESS,
+        error_kind=None,
+        error_message=None,
+    )
     result = make_result(
         result_id=1,
         status=ResultStatus.COMPLETED,
@@ -200,6 +211,7 @@ def test_build_detail_panel_renders_ordered_sections_with_em_dashes() -> None:
         resolution_layer=ResolutionLayer.JUDGE,
         judge_reasoning="The response correctly answers the question.",
         cosine_similarity=None,
+        attempts=(attempt,),
     )
     task = make_task(task_id="task-1", golden_answer="The answer is 42.")
     # Act
@@ -233,3 +245,67 @@ def test_build_detail_panel_renders_ordered_sections_with_em_dashes() -> None:
         "Started at",
         "Finished at",
     ]
+
+
+def test_build_detail_panel_renders_em_dash_value_for_none_cosine_score() -> None:
+    """Proves: STORY-063-AC-3
+
+    The fixture's ``cosine_similarity=None`` must render as the em dash on the
+    identity grid's "Cosine Score" value, not merely appear as a labelled row.
+    """
+    # Arrange
+    result = make_result(result_id=1, cosine_similarity=None)
+    task = make_task(task_id="task-1")
+    # Act
+    panel = build_detail_panel(result=result, task=task, run_mode=RunMode.GRADED)
+    identity_by_label = dict(panel.identity_fields)
+    # Assert
+    assert identity_by_label["Cosine Score"] == "—"
+
+
+def test_build_detail_panel_phase_evaluations_include_keyword_and_judge_rows() -> None:
+    """Proves: STORY-063-AC-3
+
+    Covers ``_phase_evaluations``'s gated-row logic and ``_judge_phase_row``'s
+    PASS/FAIL sub-case: a fixture with ``keyword_verdict=PASS`` and
+    ``judge_verdict=PASS`` (no sanity check, no cosine score) must produce
+    exactly a Keyword row followed by a Judge row, in that order.
+    """
+    # Arrange
+    result = make_result(
+        result_id=1,
+        keyword_verdict=Verdict.PASS,
+        judge_verdict=Verdict.PASS,
+        resolution_layer=ResolutionLayer.JUDGE,
+        cosine_similarity=None,
+    )
+    task = make_task(task_id="task-1")
+    # Act
+    panel = build_detail_panel(result=result, task=task, run_mode=RunMode.GRADED)
+    # Assert
+    assert [row.phase_name for row in panel.phase_evaluations] == ["Keyword", "Judge"]
+    assert panel.phase_evaluations[1].outcome == "PASS"
+
+
+def test_build_detail_panel_maps_attempt_history_rows() -> None:
+    """Proves: STORY-063-AC-3
+
+    Covers ``_attempt_rows``'s field-by-field mapping from
+    ``BenchmarkResultAttempt`` to ``AttemptRow``.
+    """
+    # Arrange
+    attempt = BenchmarkResultAttempt(
+        attempt_index=1,
+        timeout_ms=5000,
+        duration_ms=_ATTEMPT_DURATION_MS,
+        outcome=AttemptOutcome.SUCCESS,
+        error_kind=None,
+        error_message=None,
+    )
+    result = make_result(result_id=1, attempts=(attempt,))
+    task = make_task(task_id="task-1")
+    # Act
+    panel = build_detail_panel(result=result, task=task, run_mode=RunMode.GRADED)
+    # Assert
+    assert len(panel.attempts) == 1
+    assert panel.attempts[0].duration_ms == _ATTEMPT_DURATION_MS
