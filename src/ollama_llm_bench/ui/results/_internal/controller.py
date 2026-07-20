@@ -25,11 +25,17 @@ from ollama_llm_bench.backend.events import (
     RunIdChangedEvent,
     RunStartedEvent,
 )
+from ollama_llm_bench.ui.results._internal.details_tab.controller import DetailsTabController
+from ollama_llm_bench.ui.results._internal.details_tab.view import DetailsTabView
 from ollama_llm_bench.ui.results._internal.footer import FooterController
 from ollama_llm_bench.ui.results._internal.summary_tab.controller import SummaryTabController
 from ollama_llm_bench.ui.results._internal.summary_tab.view import SummaryTabView
 from ollama_llm_bench.ui.results._internal.view_state_store import PerRunViewStateStore
-from ollama_llm_bench.ui.results.models import ResultCollaborators, ResultViewModel
+from ollama_llm_bench.ui.results.models import (
+    ChartDrilldownRequest,
+    ResultCollaborators,
+    ResultViewModel,
+)
 
 if TYPE_CHECKING:
     # Only for the type annotation on `_view` -- view.py imports this module for
@@ -59,6 +65,11 @@ class ResultController:
             bus=collaborators.bus,
             view_state_store=self.view_state_store,
         )
+        self._details_tab = DetailsTabController(
+            gateway=collaborators.gateway,
+            bus=collaborators.bus,
+            view_state_store=self.view_state_store,
+        )
         self._selected_run_id: RunId | None = None
         self._user_locked = False
         self._active_tab = _DEFAULT_TAB
@@ -66,6 +77,7 @@ class ResultController:
         self._live_run_id: RunId | None = None
         self._view: ResultView | None = None
         self._summary_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
+        self._details_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
         logger.debug("result_controller_constructed")
 
     def bind(self, view: "ResultView") -> None:
@@ -81,6 +93,7 @@ class ResultController:
         bus.subscribe(SIGNAL_RUN_FAILED, self._on_run_terminal, owner=view)
         self._footer.bind(view, on_view_model_changed=self._on_footer_view_model_changed)
         self._mount_summary_tab(view)
+        self._mount_details_tab(view)
 
     def _mount_summary_tab(self, view: "ResultView") -> None:
         summary_view = SummaryTabView(platform_kind=self._collaborators.platform_kind)
@@ -90,6 +103,15 @@ class ResultController:
         layout.addWidget(summary_view)
         summary_view.bind_controller(self._summary_tab)
         self._summary_tab.bind(summary_view)
+
+    def _mount_details_tab(self, view: "ResultView") -> None:
+        details_view = DetailsTabView(platform_kind=self._collaborators.platform_kind)
+        host = view.tab_host("details")
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(details_view)
+        details_view.bind_controller(self._details_tab)
+        self._details_tab.bind(details_view)
 
     def load_initial_state(self) -> None:
         """Resolve the ``Loading`` state on mount (state_machine.md §1)."""
@@ -108,6 +130,7 @@ class ResultController:
             active_tab=self._active_tab,
             live=self._live,
         )
+        self._details_tab.set_run_terminal_state(is_terminal=not self._live)
         self._push_view_model()
 
     def on_dropdown_changed(self, run_id: RunId) -> None:
@@ -148,6 +171,17 @@ class ResultController:
         a sibling widget wanting the current selection without an event round-trip)."""
         return self._selected_run_id
 
+    def apply_chart_drilldown(self, request: ChartDrilldownRequest) -> None:
+        """In-process chart-click drill-down entry point (details_tab.md §10).
+
+        Switches the visible tab to Details and applies the drill-down filter --
+        not an Event Bus signal; the (future, STORY-064) Charts tab controller calls
+        this directly on the mounted ``ResultController``.
+        """
+        logger.debug("result_controller_drilldown_received", provider_id=request.provider_id)
+        self.on_tab_changed("details")
+        self._details_tab.apply_drilldown_filter(request)
+
     def _on_footer_view_model_changed(self, _footer_vm: object) -> None:
         # Another footer instance changed the shared setting; rebuild the full
         # ResultViewModel so this widget's own footer stays in sync (EC-WS-1).
@@ -181,16 +215,19 @@ class ResultController:
         self._live_run_id = payload.run_id
         if not self._user_locked:
             self._selected_run_id = payload.run_id
+        self._details_tab.set_run_terminal_state(is_terminal=False)
         self._push_view_model()
 
     def _on_run_terminal(self, _payload: object) -> None:
         logger.debug("result_event_received", signal_name="run_terminal")
         self._live = False
         self._live_run_id = None
+        self._details_tab.set_run_terminal_state(is_terminal=True)
         self._push_view_model()
 
     def _push_view_model(self) -> None:
         self._sync_summary_tab()
+        self._sync_details_tab()
         if self._view is None:
             return
         self._view.apply(self._build_view_model())
@@ -213,6 +250,22 @@ class ResultController:
             return
         self._summary_tab_context = context
         self._summary_tab.set_run_context(run_id=self._selected_run_id, run_mode=run_mode)
+
+    def _sync_details_tab(self) -> None:
+        """Re-load the Details tab's run context whenever the selected run changes.
+
+        Mirrors ``_sync_summary_tab``'s change-detection choke-point exactly.
+        """
+        run_mode = (
+            self._collaborators.gateway.get_run(self._selected_run_id).run_mode
+            if self._selected_run_id is not None
+            else None
+        )
+        context = (self._selected_run_id, run_mode)
+        if context == self._details_tab_context:
+            return
+        self._details_tab_context = context
+        self._details_tab.set_run_context(run_id=self._selected_run_id, run_mode=run_mode)
 
     def _build_view_model(self) -> ResultViewModel:
         runs = self._collaborators.gateway.list_runs()
