@@ -173,3 +173,20 @@ ticked).
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+- **§3/§4 column-6 naming ambiguity, resolved.** `details_tab.md` §3's column-reference table
+  lists column #6 as a second, literally-duplicate "Category" row (same source field,
+  `BenchmarkTask.category`, as column #3) — almost certainly a copy/paste artifact in the spec
+  rather than an intentional duplicate column. §4's mode-visibility table, however, names that
+  same slot in its column-group row as `"...Difficulty, Type"` — not "Category" a second
+  time — and §6's per-column-filter prose independently references `Type` as a real,
+  chip-less, right-click-filterable column ("the only way to narrow a column that has no
+  chip — for example `Type` or `Sub-category`"). Per the user's explicit decision during
+  planning, column #6 is implemented as `DetailsColumnKey.TYPE`, mapped to
+  `BenchmarkTask.task_origin` (the task's origin — `FILE` vs `SYNTHETIC` — the one
+  `BenchmarkTask` field with no other column already covering it), matching §4's "Type"
+  naming and confirmed by §6's independent reference. This resolution was executed in code
+  during implementation but not previously recorded in this story file; it is documented here
+  for traceability, per the spec-conformance review that flagged the gap.
