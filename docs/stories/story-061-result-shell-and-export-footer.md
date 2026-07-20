@@ -1,7 +1,7 @@
 ---
 id: STORY-061
 title: Build the Result widget shell — run selector, tab strip, per-run view-state store, and the export footer
-status: ready
+status: done
 spec_clauses:
   - 05_Result_Widget/description.md#4-tab-strip-and-the-four-tabs
   - 05_Result_Widget/description.md#51-per-tab-export-button-cluster
@@ -192,17 +192,17 @@ in `structlog.testing.capture_logs()` and asserting no captured entry's `log_lev
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-061.
-- [ ] EC-RES-5, EC-RES-6, and EC-WS-1 each have a passing test.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the Loading, NoRun,
+- [x] Every acceptance criterion has a passing test that names STORY-061.
+- [x] EC-RES-5, EC-RES-6, and EC-WS-1 each have a passing test.
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the Loading, NoRun,
   RunSelected, and live states of `05_Result_Widget/state_machine.md` that the shell owns.
-- [ ] An architecture test confirms the parent controller depends only on `ResultGateway` (plus
+- [x] An architecture test confirms the parent controller depends only on `ResultGateway` (plus
   the retained UI helpers), that it reads run-active state from the shared source, and that
   the module references no `setStyleSheet`, embeds no colour literal, and imports no
   `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/results/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/results/`.
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan
   clause and no orphan test for STORY-061.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.

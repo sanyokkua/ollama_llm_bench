@@ -1,9 +1,11 @@
 """Concrete per-OS ``FileSystemActions`` (08-E §21c, 08-K §5)."""
 
 from datetime import datetime
+import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 
 from ollama_llm_bench.backend.errors import OsAdapterError
 from ollama_llm_bench.backend.infra import run_log_path
@@ -48,6 +50,35 @@ class _AppDataRootView:
     @property
     def app_data_root(self) -> Path:
         return self._app_data_root
+
+
+def _first_free_path(directory: Path, filename: str) -> Path:
+    """Apply the numeric-suffix collision rule (05_EXPORT_FORMATS.md §2.2)."""
+    candidate = directory / filename
+    if not candidate.exists():
+        return candidate
+    stem, suffix = candidate.stem, candidate.suffix
+    index = 2
+    while True:
+        candidate = directory / f"{stem}_{index}{suffix}"
+        if not candidate.exists():
+            return candidate
+        index += 1
+
+
+def _atomic_write(destination: Path, content: str) -> None:
+    """Write ``content`` to a temp file beside ``destination``, then rename atomically.
+
+    Leaves no partial file on failure (EC-RES-5).
+    """
+    fd, tmp_name = tempfile.mkstemp(dir=destination.parent, prefix=".export_tmp_")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+        os.replace(tmp_name, destination)
+    except OSError as exc:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise OsAdapterError(message=f"failed to write export file: {destination}") from exc
 
 
 def _reveal_command(kind: PlatformKind, path: str) -> list[str]:
@@ -110,3 +141,23 @@ class QtFileSystemActions:
         profile = make_platform_detector().detect()
         app_data_root_view = _AppDataRootView(profile.app_data_root)
         return run_log_path(app_data_root_view, run_id=str(run_id), unix_ts=unix_ts)
+
+    def write_export_file(self, *, filename: str, content: str) -> str:
+        exports_dir = Path(self.exports_folder_path())
+        final_path = _first_free_path(exports_dir, filename)
+        _atomic_write(final_path, content)
+        return str(final_path)
+
+    def write_text_file(self, *, path: str, content: str) -> None:
+        _atomic_write(Path(path), content)
+
+    def exports_folder_path(self) -> str:
+        profile = make_platform_detector().detect()
+        exports_dir = profile.app_data_root / "exports"
+        try:
+            exports_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise OsAdapterError(
+                message=f"could not create the exports folder: {exports_dir}"
+            ) from exc
+        return str(exports_dir)

@@ -81,6 +81,15 @@ class _FakeFileSystemActions:
     def run_log_path_str(self, *, run_id: int, started_at: str) -> str:
         return ""
 
+    def write_export_file(self, *, filename: str, content: str) -> str:
+        raise NotImplementedError
+
+    def write_text_file(self, *, path: str, content: str) -> None:
+        raise NotImplementedError
+
+    def exports_folder_path(self) -> str:
+        raise NotImplementedError
+
 
 class _FakeResumeGateway:
     def __init__(

@@ -62,3 +62,62 @@ class FileSystemActions(Protocol):
             The derived absolute log-file path, as a string.
         """
         ...
+
+    def write_export_file(self, *, filename: str, content: str) -> str:
+        """Write ``content`` atomically into the exports folder
+        ``<app-data>/exports/`` (STORY-061 extension; 10_Domain_and_Data/
+        05_EXPORT_FORMATS.md §11).
+
+        fast-synchronous; must be called on the Qt main thread. Creates the
+        exports folder on first use. Applies the numeric-suffix collision
+        rule (§2.2) when ``filename`` already exists in the folder. Writes to
+        a temporary file in the same folder and atomically renames it into
+        place, so a failed write never leaves a partial file (EC-RES-5).
+
+        Args:
+            filename: The canonical export filename, already composed by the
+                ``ExportFilenameHelper``.
+            content: The full UTF-8 file content to write.
+
+        Returns:
+            The absolute path of the file actually written, after the
+            collision-suffix rule is applied.
+
+        Raises:
+            OsAdapterError: The exports folder could not be created, or the
+                write failed (permission denied, disk full).
+        """
+        ...
+
+    def exports_folder_path(self) -> str:
+        """Return the absolute exports-folder path ``<app-data>/exports/``
+        (STORY-061 extension), creating it if it does not yet exist.
+
+        fast-synchronous; must be called on the Qt main thread.
+
+        Returns:
+            The absolute exports-folder path, guaranteed to exist on return.
+
+        Raises:
+            OsAdapterError: The folder could not be created.
+        """
+        ...
+
+    def write_text_file(self, *, path: str, content: str) -> None:
+        """Write ``content`` atomically to an arbitrary, already-chosen
+        ``path`` (STORY-061 extension) -- the indirect Save Picker export
+        flow, where the user (and the OS dialog's own overwrite confirmation)
+        already resolved the destination and any collision.
+
+        fast-synchronous; must be called on the Qt main thread. Writes to a
+        temporary file in the same folder and atomically renames it into
+        place, so a failed write never leaves a partial file (EC-RES-5).
+
+        Args:
+            path: The absolute destination path chosen by the native picker.
+            content: The full UTF-8 file content to write.
+
+        Raises:
+            OsAdapterError: The write failed (permission denied, disk full).
+        """
+        ...

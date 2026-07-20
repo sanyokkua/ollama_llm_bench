@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-20T13:50:52Z'
+generated_at: '2026-07-20T15:16:14Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4094,7 +4094,7 @@ stories:
         - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_verbosity_change_while_viewing_past_run_preserves_replayed_lines
   STORY-061:
     title: Build the Result widget shell — run selector, tab strip, per-run view-state store, and the export footer
-    status: ready
+    status: done
     spec_clauses:
     - 05_Result_Widget/description.md#12-event-bus-integration
     - 05_Result_Widget/description.md#4-tab-strip-and-the-four-tabs
@@ -4114,19 +4114,37 @@ stories:
     - EC-WS-1
     acceptance_criteria:
       STORY-061-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_manual_selection_while_idle_locks_against_later_auto_jump
+        - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_run_selector_auto_jump_and_user_lock
       STORY-061-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_dropdown_change_emits_and_external_selection_syncs
       STORY-061-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[charts-expected_buttons2]
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[details-expected_buttons1]
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[run_analysis-expected_buttons3]
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[summary-expected_buttons0]
       STORY-061-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_mount_while_run_incomplete_seeds_live_and_disables_exports
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_exports_disabled_for_empty_run_with_no_completed_results
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_exports_disabled_while_run_non_terminal
       STORY-061-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_app_settings_changed_syncs_footer_across_two_result_widgets
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_click_empty_sanitised_name_falls_back_to_run_id
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_click_write_failure_keeps_toggle_on_and_shows_error
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_save_destination_toggle_direct_vs_picker
+        - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_save_destination_toggle_parity_across_two_footer_instances
       STORY-061-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_view_state_store.py::test_first_open_defaults_vs_reopen_restore
+        - tests/architecture/test_result_widget_boundaries.py::test_view_state_store_persists_only_through_the_gateway
       STORY-061-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_result_widget_constructs_and_shows_with_no_error_logs
   STORY-062:
     title: Build the Result widget Summary tab — per-model aggregation, mode-aware columns, filters, sorting, and export
     status: ready
@@ -7200,11 +7218,47 @@ edge_cases:
   EC-RES-5:
     stories:
     - STORY-061
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_app_settings_changed_syncs_footer_across_two_result_widgets
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_dropdown_change_emits_and_external_selection_syncs
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_manual_selection_while_idle_locks_against_later_auto_jump
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_mount_while_run_incomplete_seeds_live_and_disables_exports
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_result_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_run_selector_auto_jump_and_user_lock
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_click_empty_sanitised_name_falls_back_to_run_id
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_click_write_failure_keeps_toggle_on_and_shows_error
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[charts-expected_buttons2]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[details-expected_buttons1]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[run_analysis-expected_buttons3]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[summary-expected_buttons0]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_exports_disabled_for_empty_run_with_no_completed_results
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_exports_disabled_while_run_non_terminal
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_save_destination_toggle_direct_vs_picker
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_save_destination_toggle_parity_across_two_footer_instances
+    - src/ollama_llm_bench/ui/results/tests/test_view_state_store.py::test_first_open_defaults_vs_reopen_restore
+    - tests/architecture/test_result_widget_boundaries.py::test_view_state_store_persists_only_through_the_gateway
   EC-RES-6:
     stories:
     - STORY-061
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_app_settings_changed_syncs_footer_across_two_result_widgets
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_dropdown_change_emits_and_external_selection_syncs
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_manual_selection_while_idle_locks_against_later_auto_jump
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_mount_while_run_incomplete_seeds_live_and_disables_exports
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_result_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_run_selector_auto_jump_and_user_lock
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_click_empty_sanitised_name_falls_back_to_run_id
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_click_write_failure_keeps_toggle_on_and_shows_error
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[charts-expected_buttons2]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[details-expected_buttons1]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[run_analysis-expected_buttons3]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[summary-expected_buttons0]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_exports_disabled_for_empty_run_with_no_completed_results
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_exports_disabled_while_run_non_terminal
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_save_destination_toggle_direct_vs_picker
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_save_destination_toggle_parity_across_two_footer_instances
+    - src/ollama_llm_bench/ui/results/tests/test_view_state_store.py::test_first_open_defaults_vs_reopen_restore
+    - tests/architecture/test_result_widget_boundaries.py::test_view_state_store_persists_only_through_the_gateway
   EC-RUN-1:
     stories:
     - STORY-055
@@ -7764,7 +7818,25 @@ edge_cases:
   EC-WS-1:
     stories:
     - STORY-061
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_app_settings_changed_syncs_footer_across_two_result_widgets
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_dropdown_change_emits_and_external_selection_syncs
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_manual_selection_while_idle_locks_against_later_auto_jump
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_mount_while_run_incomplete_seeds_live_and_disables_exports
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_result_widget_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_run_selector_auto_jump_and_user_lock
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_click_empty_sanitised_name_falls_back_to_run_id
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_click_write_failure_keeps_toggle_on_and_shows_error
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[charts-expected_buttons2]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[details-expected_buttons1]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[run_analysis-expected_buttons3]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_export_cluster_per_active_tab[summary-expected_buttons0]
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_exports_disabled_for_empty_run_with_no_completed_results
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_exports_disabled_while_run_non_terminal
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_save_destination_toggle_direct_vs_picker
+    - src/ollama_llm_bench/ui/results/tests/test_footer.py::test_save_destination_toggle_parity_across_two_footer_instances
+    - src/ollama_llm_bench/ui/results/tests/test_view_state_store.py::test_first_open_defaults_vs_reopen_restore
+    - tests/architecture/test_result_widget_boundaries.py::test_view_state_store_persists_only_through_the_gateway
   EC-WS-2:
     stories:
     - STORY-053
