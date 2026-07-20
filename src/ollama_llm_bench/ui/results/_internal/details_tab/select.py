@@ -21,6 +21,7 @@ from ollama_llm_bench.backend.domain import (
 )
 from ollama_llm_bench.ui.results.models import (
     AttemptRow,
+    ChartDrilldownRequest,
     DetailRowViewModel,
     DetailsViewModel,
     PhaseEvaluationRow,
@@ -350,6 +351,31 @@ def default_view_state(run_mode: RunMode) -> DetailsViewState:
         columns=DetailsColumnLayout(visible=visible, order=offered),
         sort=DetailsSort(column=DetailsColumnKey.TIME_MS, descending=True),
     )
+
+
+def apply_drilldown(state: DetailsViewState, request: ChartDrilldownRequest) -> DetailsViewState:
+    """Apply a chart-click drill-down on top of the current view state (details_tab.md#10).
+
+    Replaces the Models/Tasks/Status/Verdict chips the request narrows; every other
+    filter and the column/sort layout are left untouched. Per DT-EC-2, the drill-down
+    filter replaces any conflicting chip rather than composing with it.
+    """
+    models = state.filters.models
+    if request.provider_id is not None and request.model_name is not None:
+        models = ((request.provider_id, request.model_name),)
+    tasks = state.filters.tasks
+    if request.task_id is not None:
+        tasks = (request.task_id,)
+    statuses = state.filters.statuses
+    if request.status is not None:
+        statuses = (ResultStatus(request.status),)
+    verdicts = state.filters.verdicts
+    if request.verdict is not None:
+        verdicts = (Verdict(request.verdict),)
+    new_filters = msgspec.structs.replace(
+        state.filters, models=models, tasks=tasks, statuses=statuses, verdicts=verdicts
+    )
+    return msgspec.structs.replace(state, filters=new_filters)
 
 
 def encode_view_state(state: DetailsViewState) -> str:

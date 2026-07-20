@@ -12,6 +12,7 @@ from ollama_llm_bench.backend.domain import (
 )
 from ollama_llm_bench.ui.results._internal.details_tab.select import (
     DetailsColumnKey,
+    apply_drilldown,
     badge_role_for_layer,
     badge_role_for_status,
     badge_role_for_verdict,
@@ -24,6 +25,7 @@ from ollama_llm_bench.ui.results._internal.details_tab.select import (
     offered_columns,
 )
 from ollama_llm_bench.ui.results._internal.details_tab.tests.conftest import make_result, make_task
+from ollama_llm_bench.ui.results.models import ChartDrilldownRequest
 
 _GRADED_ONLY_COUNT = 8
 _TOTAL_COLUMNS = 24
@@ -309,3 +311,15 @@ def test_build_detail_panel_maps_attempt_history_rows() -> None:
     # Assert
     assert len(panel.attempts) == 1
     assert panel.attempts[0].duration_ms == _ATTEMPT_DURATION_MS
+
+
+def test_single_result_drilldown_narrows_to_one_model_and_task() -> None:
+    """Proves: STORY-063-AC-4"""
+    # Arrange
+    state = default_view_state(RunMode.GRADED)
+    request = ChartDrilldownRequest(provider_id="prov-a", model_name="llama3", task_id="task-7")
+    # Act
+    new_state = apply_drilldown(state, request)
+    # Assert
+    assert new_state.filters.models == (("prov-a", "llama3"),)
+    assert new_state.filters.tasks == ("task-7",)
