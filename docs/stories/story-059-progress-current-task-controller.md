@@ -9,7 +9,7 @@ spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
   - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#69-live-inference-progress-emission
-  - 08_Cross_Cutting/08-Q_event_payload_schemas.md#41a-inferenceprogressevent-_inference_progress
+  - 08_Cross_Cutting/08-Q_event_payload_schemas.md#41a-inferenceprogressevent--_inference_progress
 modules:
   - ui/progress/
   - backend/events/
