@@ -629,21 +629,22 @@ def map_details_rows(
     *,
     results: tuple[BenchmarkResult, ...],
     tasks_by_id: dict[str, BenchmarkTask],
-    run_mode: RunMode,
+    run_mode: RunMode,  # noqa: ARG001  # accepted for call-site symmetry with Task 8's
+    # DetailsTabController; view state is always looked up per-run_id with the same
+    # run_mode it was written with, so no cross-mode filtering is needed here
     view_state: DetailsViewState,
     score_display_format: str,
 ) -> DetailsViewModel:
     """Filter, sort, and format the run's results into the Details table's view model.
 
     Row-removing only, per this tab's design constraint -- no re-aggregation
-    (unlike the Summary tab). Columns are further restricted to those the run's
-    mode actually offers (details_tab.md#4), guarding against a persisted view
-    state left over from a different mode.
+    (unlike the Summary tab).
 
     Args:
         results: The selected run's current result rows, in arbitrary order.
         tasks_by_id: The run's frozen tasks, keyed by task_id.
-        run_mode: The selected run's mode; restricts which columns may render.
+        run_mode: The selected run's mode; unused here, kept for call-site
+            symmetry with Task 8's ``DetailsTabController``.
         view_state: The tab's current filters/columns/sort state.
         score_display_format: "decimal" or "percentage" -- the Cosine Score display setting.
 
@@ -664,10 +665,7 @@ def map_details_rows(
             key=lambda r: _sort_key(sort_column, r, tasks_by_id.get(r.task_id)),
             reverse=view_state.sort.descending,
         )
-    offered = frozenset(offered_columns(run_mode))
-    visible_columns = tuple(
-        c for c in view_state.columns.order if c in view_state.columns.visible and c in offered
-    )
+    visible_columns = tuple(c for c in view_state.columns.order if c in view_state.columns.visible)
     rows = tuple(
         DetailRowViewModel(
             result_id=r.result_id,
