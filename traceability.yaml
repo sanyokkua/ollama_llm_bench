@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-20T17:10:25Z'
+generated_at: '2026-07-20T21:13:55Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4202,15 +4202,45 @@ stories:
     - EC-RES-2
     acceptance_criteria:
       STORY-063-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_chip_domains_lists_two_providers_of_the_same_model_separately
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_composite_key_keeps_rows_distinct
       STORY-063-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[None-muted]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[cosine-info]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[judge-info]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[keyword-info]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[skip-muted]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_cosine_check-info]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_judge_check-info]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_keyword_check-info]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[completed-success]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[errored-error]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_inference-error]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_judge_timeout-error]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_provider-error]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_timeout-error]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[pending-info]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[running_inference-info]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[None-muted]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[fail-error]
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[pass-success]
+        - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_status_verdict_badge_roles
       STORY-063-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_maps_attempt_history_rows
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_phase_evaluations_include_keyword_and_judge_rows
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_renders_em_dash_value_for_none_cosine_score
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_renders_ordered_sections_with_em_dashes
+        - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_task_detail_panel_renders_full_record
       STORY-063-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_single_result_drilldown_narrows_to_one_model_and_task
+        - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_chart_drilldown_applies_and_persists_filter
       STORY-063-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_export_uses_details_table_when_details_tab_is_active
   STORY-064:
     title: Build the Result widget Charts tab — mode-aware chart set, navigation, filters, drill-down, detach, and image export
     status: ready
@@ -7124,10 +7154,40 @@ edge_cases:
     - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
     - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
     - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[None-muted]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[cosine-info]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[judge-info]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[keyword-info]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[skip-muted]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_cosine_check-info]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_judge_check-info]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_keyword_check-info]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[completed-success]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[errored-error]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_inference-error]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_judge_timeout-error]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_provider-error]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_timeout-error]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[pending-info]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[running_inference-info]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[None-muted]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[fail-error]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[pass-success]
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_maps_attempt_history_rows
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_phase_evaluations_include_keyword_and_judge_rows
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_renders_em_dash_value_for_none_cosine_score
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_renders_ordered_sections_with_em_dashes
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_chip_domains_lists_two_providers_of_the_same_model_separately
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_composite_key_keeps_rows_distinct
+    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_single_result_drilldown_narrows_to_one_model_and_task
     - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_empty_aggregate_renders_em_dash
     - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_models_filter_removes_whole_rows_rather_than_reaggregating
     - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_row_scoped_filter_reaggregates
     - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_same_model_two_providers_stay_distinct
+    - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_chart_drilldown_applies_and_persists_filter
+    - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_export_uses_details_table_when_details_tab_is_active
+    - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_status_verdict_badge_roles
+    - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_task_detail_panel_renders_full_record
     - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[csv]
     - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[markdown]
     - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[graded]
