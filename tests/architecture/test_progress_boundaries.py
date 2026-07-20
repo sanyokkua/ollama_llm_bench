@@ -22,6 +22,7 @@ _MODULE_ROOT = _PACKAGE_ROOT / "ui" / "progress"
 
 _CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "controller.py"
 _COUNTERS_CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "counters_controller.py"
+_CURRENT_TASK_CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "current_task_controller.py"
 _STABILITY_CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "stability_controller.py"
 _VIEW_FILE = _MODULE_ROOT / "_internal" / "view.py"
 
@@ -139,7 +140,12 @@ def test_sub_controllers_never_import_adaptive_timeout_or_circuit_breaker() -> N
     """
     # Arrange / Act
     offenders: dict[str, list[str]] = {}
-    for source_file in (_COUNTERS_CONTROLLER_FILE, _STABILITY_CONTROLLER_FILE, _CONTROLLER_FILE):
+    for source_file in (
+        _COUNTERS_CONTROLLER_FILE,
+        _CURRENT_TASK_CONTROLLER_FILE,
+        _STABILITY_CONTROLLER_FILE,
+        _CONTROLLER_FILE,
+    ):
         tree = ast.parse(source_file.read_text(encoding="utf-8"), filename=str(source_file))
         imported_modules = _imported_modules(tree)
         hits = sorted(
@@ -151,6 +157,39 @@ def test_sub_controllers_never_import_adaptive_timeout_or_circuit_breaker() -> N
             offenders[str(source_file.relative_to(_PACKAGE_ROOT))] = hits
     # Assert
     assert offenders == {}
+
+
+def test_current_task_controller_depends_only_on_declared_collaborators() -> None:
+    """Proves: STORY-059 Definition of done
+
+    ``_internal/current_task_controller.py`` imports only
+    ``backend.domain``/``backend.events`` -- never a raw backend Store/Service
+    Protocol, and never ``AdaptiveTimeoutService``/the circuit breaker (D-R-06).
+    """
+    # Arrange
+    tree = ast.parse(
+        _CURRENT_TASK_CONTROLLER_FILE.read_text(encoding="utf-8"),
+        filename=str(_CURRENT_TASK_CONTROLLER_FILE),
+    )
+    imported_modules = _imported_modules(tree)
+    # Act
+    backend_imports = set(  # noqa: C401  # avoids braces in patch
+        m for m in imported_modules if m.startswith("ollama_llm_bench.backend.")
+    )
+    disallowed = backend_imports - _ALLOWED_CONTROLLER_BACKEND_IMPORTS
+    # Assert
+    assert disallowed == set()
+
+
+def test_current_task_controller_never_reads_run_log_verbosity() -> None:
+    """Proves: STORY-059 Definition of done
+
+    Both progress sub-rows are verbosity-independent (description.md sec 7.1.3;
+    STORY-059 design constraints) -- the source text never references
+    ``run_log_verbosity``.
+    """
+    # Assert
+    assert "run_log_verbosity" not in _CURRENT_TASK_CONTROLLER_FILE.read_text(encoding="utf-8")
 
 
 def test_view_imports_no_backend_service_symbol() -> None:
