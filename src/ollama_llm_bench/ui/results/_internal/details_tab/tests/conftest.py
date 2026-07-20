@@ -1,9 +1,14 @@
-"""Shared test builders for the Details tab's pure select.py tests.
+"""Shared test builders and fakes for the Details tab's tests.
 
 Field names verified against ``backend/domain/models.py`` directly (STORY-063 task 2);
 mirrors ``ui/results/_internal/summary_tab/tests/conftest.py``'s builder-function
-pattern from STORY-062.
+pattern from STORY-062. ``fake_gateway``/``fake_event_bus`` reuse the ``FakeResultGateway``/
+``FakeEventBus`` test doubles from ``ui/results/tests/conftest.py`` (STORY-063 task 8) --
+that directory is not an ancestor of this one, so the fakes are imported explicitly and
+wrapped in local fixtures rather than relying on pytest's directory-scoped auto-discovery.
 """
+
+import pytest
 
 from ollama_llm_bench.backend.domain import (
     BenchmarkResult,
@@ -15,8 +20,20 @@ from ollama_llm_bench.backend.domain import (
     TaskOrigin,
     Verdict,
 )
+from ollama_llm_bench.ui.results.tests.conftest import FakeEventBus, FakeResultGateway
 
 __all__: list[str] = ["make_result", "make_task"]
+
+
+@pytest.fixture
+def fake_gateway() -> FakeResultGateway:
+    return FakeResultGateway()
+
+
+@pytest.fixture
+def fake_event_bus() -> FakeEventBus:
+    return FakeEventBus()
+
 
 _CREATED_AT = "2026-07-20T00:00:00Z"
 
