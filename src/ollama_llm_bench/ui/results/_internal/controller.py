@@ -10,9 +10,10 @@ states), §2 (run-active overlay), §4 (dropdown auto-jump). Depends only on
 
 from typing import TYPE_CHECKING
 
+from PySide6.QtWidgets import QVBoxLayout
 import structlog
 
-from ollama_llm_bench.backend.domain import BenchmarkRun, RunId, RunStatus
+from ollama_llm_bench.backend.domain import BenchmarkRun, RunId, RunMode, RunStatus
 from ollama_llm_bench.backend.events import (
     SIGNAL_RUN_FAILED,
     SIGNAL_RUN_FINISHED,
@@ -25,6 +26,8 @@ from ollama_llm_bench.backend.events import (
     RunStartedEvent,
 )
 from ollama_llm_bench.ui.results._internal.footer import FooterController
+from ollama_llm_bench.ui.results._internal.summary_tab.controller import SummaryTabController
+from ollama_llm_bench.ui.results._internal.summary_tab.view import SummaryTabView
 from ollama_llm_bench.ui.results._internal.view_state_store import PerRunViewStateStore
 from ollama_llm_bench.ui.results.models import ResultCollaborators, ResultViewModel
 
@@ -51,12 +54,18 @@ class ResultController:
         self._collaborators = collaborators
         self.view_state_store = PerRunViewStateStore(gateway=collaborators.gateway)
         self._footer = FooterController(collaborators=collaborators)
+        self._summary_tab = SummaryTabController(
+            gateway=collaborators.gateway,
+            bus=collaborators.bus,
+            view_state_store=self.view_state_store,
+        )
         self._selected_run_id: RunId | None = None
         self._user_locked = False
         self._active_tab = _DEFAULT_TAB
         self._live = False
         self._live_run_id: RunId | None = None
         self._view: ResultView | None = None
+        self._summary_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
         logger.debug("result_controller_constructed")
 
     def bind(self, view: "ResultView") -> None:
@@ -71,6 +80,16 @@ class ResultController:
         bus.subscribe(SIGNAL_RUN_STOPPED, self._on_run_terminal, owner=view)
         bus.subscribe(SIGNAL_RUN_FAILED, self._on_run_terminal, owner=view)
         self._footer.bind(view, on_view_model_changed=self._on_footer_view_model_changed)
+        self._mount_summary_tab(view)
+
+    def _mount_summary_tab(self, view: "ResultView") -> None:
+        summary_view = SummaryTabView(platform_kind=self._collaborators.platform_kind)
+        host = view.tab_host("summary")
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(summary_view)
+        summary_view.bind_controller(self._summary_tab)
+        self._summary_tab.bind(summary_view)
 
     def load_initial_state(self) -> None:
         """Resolve the ``Loading`` state on mount (state_machine.md §1)."""
@@ -171,9 +190,29 @@ class ResultController:
         self._push_view_model()
 
     def _push_view_model(self) -> None:
+        self._sync_summary_tab()
         if self._view is None:
             return
         self._view.apply(self._build_view_model())
+
+    def _sync_summary_tab(self) -> None:
+        """Re-load the Summary tab's run context whenever the selected run changes.
+
+        The single choke-point every ``_selected_run_id``-affecting event routes
+        through (``load_initial_state``, ``on_dropdown_changed``,
+        ``_on_run_list_changed``, ``_on_external_run_id_changed``,
+        ``_on_run_started``) -- avoids duplicating this call at each of those sites.
+        """
+        run_mode = (
+            self._collaborators.gateway.get_run(self._selected_run_id).run_mode
+            if self._selected_run_id is not None
+            else None
+        )
+        context = (self._selected_run_id, run_mode)
+        if context == self._summary_tab_context:
+            return
+        self._summary_tab_context = context
+        self._summary_tab.set_run_context(run_id=self._selected_run_id, run_mode=run_mode)
 
     def _build_view_model(self) -> ResultViewModel:
         runs = self._collaborators.gateway.list_runs()

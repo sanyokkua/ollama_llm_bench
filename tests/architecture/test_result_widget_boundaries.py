@@ -23,6 +23,9 @@ _CONTROLLER_FILE = _MODULE_ROOT / "_internal" / "controller.py"
 _FOOTER_FILE = _MODULE_ROOT / "_internal" / "footer.py"
 _VIEW_FILE = _MODULE_ROOT / "_internal" / "view.py"
 _VIEW_STATE_STORE_FILE = _MODULE_ROOT / "_internal" / "view_state_store.py"
+_SUMMARY_TAB_ROOT = _MODULE_ROOT / "_internal" / "summary_tab"
+_SUMMARY_SELECT_FILE = _SUMMARY_TAB_ROOT / "select.py"
+_SUMMARY_CONTROLLER_FILE = _SUMMARY_TAB_ROOT / "controller.py"
 
 _FORBIDDEN_CONCURRENCY_ROOTS = ("asyncio", "anyio", "qasync")
 _ALLOWED_BACKEND_IMPORTS = {
@@ -207,3 +210,66 @@ def test_view_state_store_persists_only_through_the_gateway() -> None:
     backend_imports = {m for m in imported_modules if m.startswith("ollama_llm_bench.backend.")}
     # Assert
     assert backend_imports == {"ollama_llm_bench.backend.domain"}
+
+
+def test_summary_tab_select_imports_no_qt_symbol() -> None:
+    """Proves: STORY-062
+
+    ``_internal/summary_tab/select.py`` is a pure ``(inputs) -> SummaryViewModel``
+    function -- it imports no ``PySide6`` symbol and holds no Qt/store dependency.
+    """
+    # Arrange
+    tree = ast.parse(
+        _SUMMARY_SELECT_FILE.read_text(encoding="utf-8"), filename=str(_SUMMARY_SELECT_FILE)
+    )
+    imported_modules = _imported_modules(tree)
+    # Act
+    qt_imports = {m for m in imported_modules if m.startswith("PySide6")}
+    # Assert
+    assert qt_imports == set()
+
+
+def test_summary_tab_controller_depends_only_on_declared_collaborators() -> None:
+    """Proves: STORY-062
+
+    ``_internal/summary_tab/controller.py`` reaches backend data only through
+    ``ResultGateway``, the ``EventBus``, and the shared ``PerRunViewStateStore``
+    (D-R-06) -- never a raw backend Store/Service Protocol.
+    """
+    # Arrange
+    tree = ast.parse(
+        _SUMMARY_CONTROLLER_FILE.read_text(encoding="utf-8"), filename=str(_SUMMARY_CONTROLLER_FILE)
+    )
+    imported_modules = _imported_modules(tree)
+    # Act
+    first_party_imports = {m for m in imported_modules if m.startswith("ollama_llm_bench.")}
+    disallowed = first_party_imports - {
+        "ollama_llm_bench.backend.domain",
+        "ollama_llm_bench.backend.events",
+        "ollama_llm_bench.ui.results.protocols",
+        "ollama_llm_bench.ui.results._internal.summary_tab",
+        "ollama_llm_bench.ui.results._internal.summary_tab.select",
+        "ollama_llm_bench.ui.results._internal.summary_tab.view",
+        "ollama_llm_bench.ui.results._internal.view_state_store",
+    }
+    # Assert
+    assert disallowed == set()
+
+
+def test_summary_tab_has_no_setstylesheet_colour_literal_or_forbidden_concurrency() -> None:
+    """Proves: STORY-062 Definition of done
+
+    No file under ``_internal/summary_tab/`` calls ``setStyleSheet``, embeds a
+    colour literal, or imports ``asyncio``/``anyio``/``qasync``.
+    """
+    # Arrange / Act
+    offenders: list[str] = []
+    for source_file in sorted(_SUMMARY_TAB_ROOT.rglob("*.py")):
+        tree = ast.parse(source_file.read_text(encoding="utf-8"), filename=str(source_file))
+        calls_setstylesheet, imports_forbidden = _imports_setstylesheet_or_forbidden_concurrency(
+            tree
+        )
+        if calls_setstylesheet or imports_forbidden or _embeds_colour_literal(tree):
+            offenders.append(str(source_file.relative_to(_PACKAGE_ROOT)))
+    # Assert
+    assert offenders == []

@@ -38,4 +38,11 @@ def render_stylesheet(tokens: ThemeTokens) -> str:
         'QPushButton[role="primary-button"]:disabled {\n'
         f"    background-color: {tokens.colors.primary_disabled};\n"
         "}\n"
+        "\n"
+        'QPushButton[role="filter-chip-active"] {\n'
+        f"    background-color: {tokens.colors.bg_selected};\n"
+        f"    border: {tokens.border.width_active}px solid {tokens.colors.border_focus};\n"
+        f"    border-radius: {tokens.radius.md}px;\n"
+        f"    padding: {tokens.spacing.sm}px {tokens.spacing.md}px;\n"
+        "}\n"
     )

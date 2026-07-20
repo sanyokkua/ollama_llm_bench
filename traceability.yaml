@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-20T15:16:14Z'
+generated_at: '2026-07-20T17:10:25Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4147,7 +4147,7 @@ stories:
         - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_result_widget_constructs_and_shows_with_no_error_logs
   STORY-062:
     title: Build the Result widget Summary tab — per-model aggregation, mode-aware columns, filters, sorting, and export
-    status: ready
+    status: done
     spec_clauses:
     - 05_Result_Widget/implementation_structure.md#51-summarytabcontroller
     - 05_Result_Widget/tabs/summary_tab.md#11-export
@@ -4165,15 +4165,24 @@ stories:
     - EC-RES-2
     acceptance_criteria:
       STORY-062-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_same_model_two_providers_stay_distinct
       STORY-062-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[graded]
+        - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[synthetic]
+        - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[tasks]
       STORY-062-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_empty_aggregate_renders_em_dash
       STORY-062-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_models_filter_removes_whole_rows_rather_than_reaggregating
+        - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_row_scoped_filter_reaggregates
       STORY-062-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[csv]
+        - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[markdown]
   STORY-063:
     title: Build the Result widget Details tab — per-result rows, mode-aware columns, the Task Detail Panel, drill-down, and export
     status: ready
@@ -7066,6 +7075,15 @@ edge_cases:
     - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[time_vs_tokens_scatter]
     - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[tokens_per_task_box]
     - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[verdict_counts_stacked]
+    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_empty_aggregate_renders_em_dash
+    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_models_filter_removes_whole_rows_rather_than_reaggregating
+    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_row_scoped_filter_reaggregates
+    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_same_model_two_providers_stay_distinct
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[csv]
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[markdown]
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[graded]
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[synthetic]
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[tasks]
     - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[fake]
     - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[real]
     - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_cosine_by_model]
@@ -7106,6 +7124,15 @@ edge_cases:
     - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
     - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
     - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
+    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_empty_aggregate_renders_em_dash
+    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_models_filter_removes_whole_rows_rather_than_reaggregating
+    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_row_scoped_filter_reaggregates
+    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_same_model_two_providers_stay_distinct
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[csv]
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[markdown]
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[graded]
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[synthetic]
+    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[tasks]
   EC-RES-3:
     stories:
     - STORY-065

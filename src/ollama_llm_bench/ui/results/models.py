@@ -17,7 +17,12 @@ from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.results.protocols import ExportFilenameHelper, ResultGateway
 from ollama_llm_bench.ui.theme import PlatformKind
 
-__all__: list[str] = ["FooterViewModel", "ResultCollaborators", "ResultViewModel"]
+__all__: list[str] = [
+    "FooterViewModel",
+    "ResultCollaborators",
+    "ResultViewModel",
+    "SummaryViewModel",
+]
 
 
 class ResultCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
@@ -52,3 +57,11 @@ class ResultViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     selected_run_id: RunId | None
     active_tab: str  # "summary" | "details" | "charts" | "run_analysis"
     footer: FooterViewModel
+
+
+class SummaryViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The Summary tab's render state (STORY-062; implementation_structure.md §6)."""
+
+    columns: tuple[str, ...]  # mode-offered, visible, in order; header text incl. sort caret
+    rows: tuple[tuple[str, ...], ...]  # one tuple per surviving (provider, model) group
+    empty_state_message: str | None

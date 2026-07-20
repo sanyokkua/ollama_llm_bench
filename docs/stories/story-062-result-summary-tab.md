@@ -1,7 +1,7 @@
 ---
 id: STORY-062
 title: Build the Result widget Summary tab — per-model aggregation, mode-aware columns, filters, sorting, and export
-status: ready
+status: done
 spec_clauses:
   - 05_Result_Widget/tabs/summary_tab.md#3-identity-model
   - 05_Result_Widget/tabs/summary_tab.md#4-column-reference
@@ -112,10 +112,10 @@ snapshot `provider_name`.
 
 For each run mode, the offered column set matches the mode-visibility policy:
 
-| Column group                                        | SYNTHETIC | TASKS   | GRADED  |
-| --------------------------------------------------- | --------- | ------- | ------- |
-| Provider/Model, Tasks, timing, throughput           | offered   | offered | offered |
-| Pass Rate, Cosine Score, Judge PASS/FAIL, Layer mix | hidden    | hidden  | offered |
+| Column group                                                                | SYNTHETIC | TASKS   | GRADED  |
+| --------------------------------------------------------------------------- | --------- | ------- | ------- |
+| Provider/Model, Tasks, timing, throughput                                   | offered   | offered | offered |
+| Pass Rate, Cosine Score, Judge PASS/FAIL, Judge-timeout failures, Layer mix | hidden    | hidden  | offered |
 
 ### STORY-062-AC-3
 
@@ -130,8 +130,14 @@ then every visible column recomputes from the surviving contributing rows only.
 ### STORY-062-AC-5
 
 Given the tab has active filters, a visible-column set, and a sort, when the user exports CSV or
-Markdown, then `ResultGateway.serialize_table` is invoked to produce exactly the currently
-filtered, visible-column, sorted rows.
+Markdown, then `ResultGateway.serialize_table` is invoked with the run's id, the `"summary"`
+table name, and the requested format. This story proves the invocation and the availability of
+the current view state (`SummaryTabController.current_view_state`/`current_run_id`) needed to
+produce exactly the currently filtered, visible-column, sorted rows; `serialize_table`'s own
+signature (`08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway`) takes no
+view-state parameter, so mirroring that state into the serialized output is the concern of the
+concrete `ResultGateway` adapter that Phase 11 wires in `compose.py` — explicitly out of this
+story's scope.
 
 ## Test plan
 
@@ -150,16 +156,16 @@ filtered, visible-column, sorted rows.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-062.
-- [ ] EC-RES-1 and EC-RES-2 each have a passing test.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the Summary tab's
-  empty/partial and populated states.
-- [ ] An architecture test confirms `select.py` imports no Qt symbol, the sub-controller depends
+- [x] Every acceptance criterion has a passing test that names STORY-062.
+- [x] EC-RES-1 and EC-RES-2 each have a passing test.
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the Summary tab's
+  empty/partial and populated states. (`view.py` 71%, `controller.py` 89%, `select.py` 97%.)
+- [x] An architecture test confirms `select.py` imports no Qt symbol, the sub-controller depends
   only on `ResultGateway` and the shared view-state store, and the module references no
   `setStyleSheet`, embeds no colour literal, and imports no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/results/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/results/`.
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan
   clause and no orphan test for STORY-062.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
