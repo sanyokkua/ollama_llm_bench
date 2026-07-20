@@ -37,6 +37,7 @@ from ollama_llm_bench.backend.events import (
 )
 from ollama_llm_bench.backend.log_formatting import LogFormatter
 from ollama_llm_bench.ui.progress._internal.counters_controller import CountersController
+from ollama_llm_bench.ui.progress._internal.current_task_controller import CurrentTaskController
 from ollama_llm_bench.ui.progress._internal.select import (
     select_header,
     terminal_stage_for_run_status,
@@ -100,6 +101,7 @@ class ProgressController:
         self._reconcile_timer: QTimer | None = None
         self._draining_intent: _DrainingIntent | None = None
         self.counters = CountersController(gateway=gateway, event_bus=event_bus)
+        self.current_task = CurrentTaskController(gateway=gateway, event_bus=event_bus)
         self.stability = StabilityController(gateway=gateway, event_bus=event_bus)
         logger.debug("progress_controller_constructed")
 
@@ -107,6 +109,7 @@ class ProgressController:
         """Subscribe to the Event Bus, owner-bound to ``view``'s lifetime; wire clicks."""
         self._view = view
         self.counters.bind(view)
+        self.current_task.bind(view)
         self.stability.bind(view)
         bus = self._event_bus
         bus.subscribe(SIGNAL_RUN_STARTED, self._on_run_started, owner=view)
