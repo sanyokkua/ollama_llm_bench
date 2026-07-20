@@ -1,6 +1,6 @@
 """Colocated view tests for ``ui/progress/`` (STORY-058-AC-1, AC-2, AC-7)."""
 
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from PySide6.QtWidgets import QFormLayout, QLabel, QPushButton, QToolButton, QWidget
 import pytest
@@ -8,13 +8,21 @@ from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 import structlog
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 from ollama_llm_bench.backend.domain import ResultStatus
 from ollama_llm_bench.backend.log_formatting import LogFormatter
 from ollama_llm_bench.ui.progress import make_progress_widget
 from ollama_llm_bench.ui.progress._internal.select import select_header
 from ollama_llm_bench.ui.progress._internal.theme_lookup import resolve_theme_tokens
 from ollama_llm_bench.ui.progress._internal.view import ProgressView
-from ollama_llm_bench.ui.progress.models import CountersViewModel, CurrentTaskViewModel, HeaderAffordances, RunStage
+from ollama_llm_bench.ui.progress.models import (
+    CountersViewModel,
+    CurrentTaskViewModel,
+    HeaderAffordances,
+    RunStage,
+)
 from ollama_llm_bench.ui.progress.testing import FakeProgressGateway
 from ollama_llm_bench.ui.progress.tests.conftest import FakeEventBus
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager, resolve_color
@@ -231,7 +239,7 @@ def test_run_name_label_renders_via_apply_header(qtbot: QtBot) -> None:
     assert label.text() == "Nightly Run"
 
 
-def _current_task_vm(
+def _current_task_vm(  # noqa: PLR0913  # test fixture builder; six independently-optional toggles
     *,
     retry_active: bool = False,
     retry_label: str | None = None,
@@ -307,9 +315,7 @@ def test_inference_progress_row_shown_with_label_when_visible(qtbot: QtBot) -> N
     )
 
     # Assert
-    label = cast(
-        "QLabel", view.findChild(QLabel, "progress.current_task.inference_progress")
-    )
+    label = cast("QLabel", view.findChild(QLabel, "progress.current_task.inference_progress"))
     assert label.text() == "Generating — 184 tokens · 5.6 s elapsed"
     assert label.isVisible()
 
@@ -348,11 +354,11 @@ def test_retry_line_renders_in_error_tone_when_active(qtbot: QtBot) -> None:
     )
 
     # Assert
-    container = view.findChild(QWidget, "progress.current_task.retry")
+    container = cast("QWidget | None", view.findChild(QWidget, "progress.current_task.retry"))
     assert container is not None
+    labels = cast("Iterable[QLabel]", container.findChildren(QLabel))
     assert any(
-        isinstance(child, QLabel) and child.text() == "2/3 - Connection refused"
-        for child in container.findChildren(QLabel)
+        isinstance(child, QLabel) and child.text() == "2/3 - Connection refused" for child in labels
     )
 
 
@@ -370,6 +376,6 @@ def test_retry_line_clears_when_not_active(qtbot: QtBot) -> None:
     view.apply_current_task(_current_task_vm(retry_active=False, retry_label=None))
 
     # Assert
-    container = view.findChild(QWidget, "progress.current_task.retry")
+    container = cast("QWidget | None", view.findChild(QWidget, "progress.current_task.retry"))
     assert container is not None
-    assert container.findChildren(QLabel) == []
+    assert list(cast("Iterable[QLabel]", container.findChildren(QLabel))) == []
