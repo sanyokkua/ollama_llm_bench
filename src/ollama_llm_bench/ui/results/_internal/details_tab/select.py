@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Final
 
 import msgspec
+import msgspec.json
 
 from ollama_llm_bench.backend.domain import (
     BenchmarkResult,
@@ -273,3 +274,81 @@ def chip_domains(
             )
         ),
     )
+
+
+class ColumnFilterEntry(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One per-column filter: the set of values still allowed through for that column."""
+
+    column: DetailsColumnKey
+    allowed_values: tuple[str, ...]
+
+
+class DetailsFilters(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The seven filter-bar chips' current selections (details_tab.md#5). Empty means 'all'."""
+
+    models: tuple[tuple[str, str], ...] = ()
+    tasks: tuple[str, ...] = ()
+    categories: tuple[str, ...] = ()
+    statuses: tuple[ResultStatus, ...] = ()
+    verdicts: tuple[Verdict | None, ...] = ()
+    layers: tuple[ResolutionLayer | None, ...] = ()
+    difficulties: tuple[Difficulty, ...] = ()
+    column_filters: tuple[ColumnFilterEntry, ...] = ()
+
+    def is_default(self) -> bool:
+        """True when every chip and every per-column filter is at 'all selected'."""
+        return not any(
+            (
+                self.models,
+                self.tasks,
+                self.categories,
+                self.statuses,
+                self.verdicts,
+                self.layers,
+                self.difficulties,
+                self.column_filters,
+            )
+        )
+
+
+class DetailsColumnLayout(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Column visibility and order (details_tab.md#7). PROVIDER_MODEL is always first."""
+
+    visible: tuple[DetailsColumnKey, ...]
+    order: tuple[DetailsColumnKey, ...]
+
+
+class DetailsSort(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The active sort (details_tab.md#8). `column=None` means no sort (insertion order)."""
+
+    column: DetailsColumnKey | None
+    descending: bool
+
+
+class DetailsViewState(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The Details tab's full persisted per-run view state (details_tab.md#15)."""
+
+    filters: DetailsFilters
+    columns: DetailsColumnLayout
+    sort: DetailsSort
+
+
+def default_view_state(run_mode: RunMode) -> DetailsViewState:
+    """The built-in default: all filters selected, mode's default columns, Time-descending sort."""
+    offered = offered_columns(run_mode)
+    visible = tuple(c for c in offered if c in default_visible_columns(run_mode))
+    return DetailsViewState(
+        filters=DetailsFilters(),
+        columns=DetailsColumnLayout(visible=visible, order=offered),
+        sort=DetailsSort(column=DetailsColumnKey.TIME_MS, descending=True),
+    )
+
+
+def encode_view_state(state: DetailsViewState) -> str:
+    """Serialize a view state to the string persisted via ResultGateway.set_setting."""
+    return msgspec.json.encode(state).decode("utf-8")
+
+
+def decode_view_state(raw: str) -> DetailsViewState:
+    """Deserialize a view state previously produced by encode_view_state."""
+    return msgspec.json.decode(raw.encode("utf-8"), type=DetailsViewState)

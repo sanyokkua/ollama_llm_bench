@@ -9,6 +9,9 @@ from ollama_llm_bench.ui.results._internal.details_tab.select import (
     badge_role_for_status,
     badge_role_for_verdict,
     chip_domains,
+    decode_view_state,
+    default_view_state,
+    encode_view_state,
     offered_columns,
 )
 from ollama_llm_bench.ui.results._internal.details_tab.tests.conftest import make_result
@@ -105,3 +108,22 @@ def test_badge_role_for_status(status: ResultStatus, expected_role: str) -> None
 def test_badge_role_for_layer(layer: ResolutionLayer | None, expected_role: str) -> None:
     """Proves: STORY-063-AC-2"""
     assert badge_role_for_layer(layer) == expected_role
+
+
+def test_default_view_state_selects_time_descending_sort() -> None:
+    """Proves: STORY-063"""
+    # Arrange / Act
+    state = default_view_state(RunMode.GRADED)
+    # Assert
+    assert state.sort.column == DetailsColumnKey.TIME_MS
+    assert state.sort.descending is True
+
+
+def test_encode_decode_view_state_round_trips() -> None:
+    """Proves: STORY-063"""
+    # Arrange
+    state = default_view_state(RunMode.GRADED)
+    # Act
+    restored = decode_view_state(encode_view_state(state))
+    # Assert
+    assert restored == state
