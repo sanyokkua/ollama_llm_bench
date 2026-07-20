@@ -91,6 +91,7 @@ def _emit_progress_during_impl(  # noqa: PLR0913  # mirrors 04_EVALUATION_PIPELI
                 tokens_received=tokens_received if first_token_received else None,
                 first_token_received=first_token_received,
                 timestamp_ms=int(datetime.fromisoformat(clock.now_utc()).timestamp() * 1000),
+                tokens_estimated=token_source == "estimate",  # noqa: S105  # a token-count-source label
             ),
         )
 

@@ -8,8 +8,11 @@ spec_clauses:
   - 04_Progress_Widget/implementation_structure.md#42-currenttaskcontroller
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+  - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#69-live-inference-progress-emission
+  - 08_Cross_Cutting/08-Q_event_payload_schemas.md#41a-inferenceprogressevent-_inference_progress
 modules:
   - ui/progress/
+  - backend/events/
 acceptance_criteria:
   - STORY-059-AC-1
   - STORY-059-AC-2
@@ -177,3 +180,16 @@ approximation.
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+This story includes a small additive backend change: the `tokens_estimated: bool = False` field
+is added to `InferenceProgressEvent` in `backend/events/`. This change is purely additive — the
+field is optional with a default value, so existing STORY-030/STORY-035 tests that construct
+`InferenceProgressEvent` without it are unaffected by msgspec's evolution rules. The `backend/events/`
+module is therefore cited in the `modules:` front-matter even though most of the story's implementation
+is in the UI layer.
+
+Note: the `backend/inference_progress/` module is missing entirely from
+`docs/v3_specification/14_Process_and_Traceability/01_MODULE_INVENTORY.md`, a pre-existing gap in
+the vendored specification unrelated to this story.

@@ -394,6 +394,12 @@ class InferenceProgressEvent(msgspec.Struct, frozen=True, kw_only=True, gc=False
     ``timestamp_ms`` is a unix-millisecond UTC integer (the other documented
     carve-out from the ``Iso8601Utc`` convention, §1) because it is a
     high-frequency liveness field, not a display/persistence timestamp.
+
+    ``tokens_estimated`` is an additive field (STORY-059): ``True`` when the
+    call's running ``tokens_received`` count for this snapshot came from the
+    4-character heuristic rather than a provider-reported per-chunk/running
+    count (``11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md`` §6.5a).
+    Named to match the existing ``BenchmarkResult.tokens_estimated`` field.
     """
 
     context: InferenceContext
@@ -406,6 +412,7 @@ class InferenceProgressEvent(msgspec.Struct, frozen=True, kw_only=True, gc=False
     tokens_received: int | None = None
     first_token_received: bool
     timestamp_ms: int
+    tokens_estimated: bool = False
 
 
 class InferenceCompletedEvent(msgspec.Struct, frozen=True, kw_only=True, gc=False):

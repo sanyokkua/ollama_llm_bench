@@ -283,3 +283,101 @@ def test_propagates_a_taxonomy_leaf_raised_by_the_stream_unchanged() -> None:
             event_bus=bus,
             token=_make_token(clock),
         )
+
+
+def test_tokens_estimated_true_on_the_immediate_first_token_emission() -> None:
+    """The immediate first-token emission always reports the heuristic default,
+    since the token-source decision for that chunk has not yet been recorded."""
+    clock = _ManualClock()
+    bus = _RecordingEventBus()
+    chat_stream = _FakeChatStream(
+        chunks=(ChatChunk(content="Paris", delta_tokens=1),),
+        response=ChatResponse(text="Paris", total_time_ms=100),
+    )
+
+    emit_progress_during(
+        chat_stream,
+        context=InferenceContext.BENCHMARK_TASK,
+        run_id=_RUN_ID,
+        result_id=_RESULT_ID,
+        task_id=_TASK_ID,
+        provider_id=_PROVIDER_ID,
+        model_name=_MODEL_NAME,
+        clock=clock,
+        event_bus=bus,
+        token=_make_token(clock),
+    )
+
+    assert bus.emitted[0][1].tokens_estimated is True
+
+
+def test_tokens_estimated_false_once_delta_tokens_has_been_observed() -> None:
+    """A later, cadence-triggered emission reports `tokens_estimated=False` once an
+    earlier chunk in the same call has carried a real `delta_tokens` count."""
+    clock = _ManualClock()
+    bus = _RecordingEventBus()
+    second_chunk_index = 2
+
+    class _CadenceStream:
+        def __init__(self) -> None:
+            self._chunks = [
+                ChatChunk(content="A", delta_tokens=1),
+                ChatChunk(content="B", delta_tokens=1),
+            ]
+            self._index = 0
+
+        def __iter__(self) -> Iterator[ChatChunk]:
+            return self
+
+        def __next__(self) -> ChatChunk:
+            if self._index >= len(self._chunks):
+                raise StopIteration
+            chunk = self._chunks[self._index]
+            self._index += 1
+            if self._index == second_chunk_index:
+                clock.advance(1500)
+            return chunk
+
+        def trailing_response(self) -> ChatResponse:
+            return ChatResponse(text="AB", total_time_ms=1500)
+
+    emit_progress_during(
+        _CadenceStream(),
+        context=InferenceContext.BENCHMARK_TASK,
+        run_id=_RUN_ID,
+        result_id=_RESULT_ID,
+        task_id=_TASK_ID,
+        provider_id=_PROVIDER_ID,
+        model_name=_MODEL_NAME,
+        clock=clock,
+        event_bus=bus,
+        token=_make_token(clock),
+    )
+
+    assert bus.emitted[1][1].tokens_estimated is False
+
+
+def test_tokens_estimated_true_when_no_chunk_ever_reports_delta_tokens() -> None:
+    """A stream whose chunks never carry `delta_tokens` keeps every emission on
+    the 4-char heuristic (EC-RUN-17)."""
+    clock = _ManualClock()
+    bus = _RecordingEventBus()
+    chat_stream = _FakeChatStream(
+        chunks=(ChatChunk(content="Paris", delta_tokens=None),),
+        response=ChatResponse(text="Paris", total_time_ms=100),
+    )
+
+    emit_progress_during(
+        chat_stream,
+        context=InferenceContext.BENCHMARK_TASK,
+        run_id=_RUN_ID,
+        result_id=_RESULT_ID,
+        task_id=_TASK_ID,
+        provider_id=_PROVIDER_ID,
+        model_name=_MODEL_NAME,
+        clock=clock,
+        event_bus=bus,
+        token=_make_token(clock),
+    )
+
+    assert bus.emitted[0][1].tokens_estimated is True

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-19T21:05:45Z'
+generated_at: '2026-07-20T09:01:10Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4001,7 +4001,10 @@ stories:
     - 04_Progress_Widget/implementation_structure.md#42-currenttaskcontroller
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
+    - 08_Cross_Cutting/08-Q_event_payload_schemas.md#41a-inferenceprogressevent-_inference_progress
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#69-live-inference-progress-emission
     modules:
+    - backend/events/
     - ui/progress/
     edge_cases:
     - EC-PROV-1
@@ -5010,6 +5013,9 @@ clauses:
   08_Cross_Cutting/08-Q_event_payload_schemas.md#1-conventions:
     stories:
     - STORY-003
+  08_Cross_Cutting/08-Q_event_payload_schemas.md#41a-inferenceprogressevent-_inference_progress:
+    stories:
+    - STORY-059
   08_Cross_Cutting/08-Q_event_payload_schemas.md#6-table-and-chart-data-payloads:
     stories:
     - STORY-046
@@ -5297,6 +5303,9 @@ clauses:
   11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#66-stage-5--verdict-combination:
     stories:
     - STORY-028
+  11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#69-live-inference-progress-emission:
+    stories:
+    - STORY-059
   11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#7-configuration:
     stories:
     - STORY-028
@@ -7663,6 +7672,7 @@ modules:
   backend/events/:
     stories:
     - STORY-003
+    - STORY-059
   backend/html_rendering/:
     stories:
     - STORY-032
