@@ -294,3 +294,42 @@ detached window does not change the parent and is not written to the per-run vie
   This is documented here as a real, load-bearing implementation decision rather than a
   simplification — the fixed `2400 x 1600` export resolution and theme-token palette
   requirements (charts_tab.md §12, EC-RES-4) are otherwise unaffected.
+
+- **Spec-conformance review fixes (post-implementation).** An independent
+  `spec-conformance-reviewer` pass returned "CONFORMS WITH CONCERNS" — all six ACs and
+  EC-RES-4 genuinely passed, but six issues were found and have since been fixed in this same
+  story:
+
+  1. **Export filename missing the chart-kind slug (§12, real gap).** `FooterController`'s
+     Chart export branch always composed `<run>_Chart.<ext>`, colliding every chart kind's
+     export onto one filename. `ChartsTabController` now exposes `current_chart_kind()`, the
+     locally-declared `ChartExportSourceProtocol` gained the same method, and
+     `FooterController._resolve_export_payload` threads it into the composed `kind` as
+     `Chart_<chart-slug>`, matching `<effective_run_name>_Chart_<chart-slug>.<png|svg>`.
+  1. **Missing `_chart_data_changed` subscription (implementation_structure.md §5.3, real
+     gap).** `ChartsTabController.bind()` now subscribes to `SIGNAL_CHART_DATA_CHANGED`
+     (`_on_chart_data_changed`, guarded on the event's `run_id`), matching
+     `DetailsTabController`'s/`SummaryTabController`'s sibling pattern. `bind()` gained an
+     optional `owner` parameter (defaulting to the bound view) so `DetachedChartWindow` can
+     bind the subscription's lifetime to its own dialog rather than its inner `ChartsTabView`,
+     per the story's own "owner-bound to itself" scope bullet.
+  1. **Malformed `Proves:` docstring.** `test_default_view_state_seeds_first_offered_kind`'s
+     invented `EC-RES-4-adjacent` id was removed; the test is an ordinary untracked unit test
+     with no traceability claim, matching sibling suites' precedent.
+  1. **Missing §11 overall-empty and GRADED-only defence messages.** `select.py` now resolves
+     the canvas empty-state message in the spec's precedence order: the GRADED-only defence
+     message when the active chart kind is not offered by the run's mode at all (defensive),
+     the overall `"Charts require at least one completed task."` message when every
+     mode-offered chart is empty, else the active chart's own kind-specific message.
+  1. **Meta-line mode casing.** The shared meta line's `Mode:` token now renders
+     `inputs.run_mode.value.upper()` (`Mode: GRADED`), matching the mockup's canonical form; no
+     existing display-label helper existed elsewhere in this codebase to reuse.
+  1. **Chart 11 missing low-sample hatch.** `painting._draw_grouped_points`
+     (`SPEED_VS_QUALITY_SCATTER`) now checks `y_series.low_sample_flags[index]` and calls
+     `draw_low_sample_hatch` for a low-sample model point instead of a plain ellipse, matching
+     the bar-chart/grouped-bar-chart contract already enforced for the other chart shapes.
+
+  All six fixes are covered by new/updated tests in `test_footer.py`/`test_charts_tab.py`; the
+  full `ui/results/` and `adapters/file_system_actions/` suites, `mypy --strict`, `ruff`, and
+  the architecture-test suite stay green, and `just trace-check`'s pre-existing 17-item gap
+  list is unchanged (verified by `git stash` diff before/after).
