@@ -9,13 +9,15 @@ from PySide6.QtWidgets import QListWidget, QPushButton
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.adapters.native_pickers.testing import FakeNativePickers
-from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader, FakeTaskFileValidator
+from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader
 from ollama_llm_bench.backend.yaml_formatter import make_yaml_formatter
 from ollama_llm_bench.ui.task_editor import TaskEditorCollaborators, make_task_editor_workspace
 from ollama_llm_bench.ui.task_editor.testing import FakeFileChangeWatcher, FakeTaskEditorGateway
 from ollama_llm_bench.ui.task_editor.tests.conftest import (
+    FakeClipboard,
     FakeEventBus,
     FakeFileSystemActions,
+    ScratchAwareTaskFileValidator,
     make_clean_validation_result,
 )
 
@@ -36,7 +38,7 @@ def test_add_and_duplicate_task_id_generation(qtbot: QtBot, tmp_path: Path) -> N
     source_path.write_text(
         "tasks:\n  - task_id: existing_one\n    question: Q?\n", encoding="utf-8"
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(
         str(source_path), make_clean_validation_result(str(source_path))
     )
@@ -49,6 +51,7 @@ def test_add_and_duplicate_task_id_generation(qtbot: QtBot, tmp_path: Path) -> N
         yaml_formatter=make_yaml_formatter(),
         file_change_watcher=FakeFileChangeWatcher(),
         native_pickers=native_pickers,
+        clipboard=FakeClipboard(),
         file_system_actions=FakeFileSystemActions(),
     )
     widget = make_task_editor_workspace(bus=FakeEventBus(), collaborators=collaborators)

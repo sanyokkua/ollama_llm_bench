@@ -1,7 +1,7 @@
 ---
 id: STORY-069
 title: Build the Task Editor field editor, YAML preview, save/validation cascade, and confirmation dialogs
-status: ready
+status: done
 spec_clauses:
   - 09_Task_Editor/description.md#35-field-editor-pane
   - 09_Task_Editor/description.md#36-yaml-preview-side-panel
@@ -171,18 +171,73 @@ keeps the editor unchanged.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-069.
-- [ ] EC-WS-3 has a passing test.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the per-file-validation
+- [x] Every acceptance criterion has a passing test that names STORY-069.
+- [x] EC-WS-3 has a passing test.
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the per-file-validation
   (Valid / Warnings / Errors), per-field-validation, and YAML-preview (Hidden / Shown) states
-  of `09_Task_Editor/state_machine.md`.
-- [ ] An architecture test confirms the controller never serializes/parses/validates YAML itself
+  of `09_Task_Editor/state_machine.md`. Verified via `just coverage-layers`: `ui/task_editor/ _internal/controller.py` reaches 100% branch coverage (the aggregate controller/
+  view_model_select gate passes at 92%, ≥85%); `_internal/view.py` reaches 90% (aggregate
+  widget gate passes at 88%, ≥60%).
+- [x] An architecture test confirms the controller never serializes/parses/validates YAML itself
   (delegating to the Protocols), depends only on `TaskEditorGateway` plus the declared
   helpers, and that the module references no `setStyleSheet`, embeds no colour literal, and
-  imports no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/task_editor/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan clause
-  and no orphan test for STORY-069.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+  imports no `asyncio`. Added `test_no_file_imports_the_real_yaml_parse_or_dump_engine` to
+  `tests/architecture/test_task_editor_module.py`, asserting no file imports `ruamel.yaml`'s
+  `YAML` parser/dumper (only `ruamel.yaml.comments`'s data-container types, used solely to
+  mutate an already-parsed document, are permitted).
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/task_editor/`.
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan clause
+  and no orphan test for STORY-069. `just trace-check` shows exactly 3 failures, all confirmed
+  pre-existing and unrelated to STORY-069 (`EC-PERSIST-6`/`EC-PROV-1a`/`EC-RUN-1a` — verified
+  by reproducing the same 3 failures against the pre-STORY-069 baseline).
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+- **Deferred to a `ui/main_window/`-scoped follow-up story:** the real cross-module wiring of
+  the leave/quit guard. `confirm_and_prepare_leave()`/`confirm_and_prepare_quit()` are built and
+  proven entirely inside `ui/task_editor/`'s own controller, but `ui/main_window/ _internal/close_handler.py`'s `dirty_buffer_count` seam is still the STORY-068-era
+  always-zero default, and `_confirm_unsaved_buffers`'s "Save All" choice does not actually
+  save anything (a pre-existing bug noted by STORY-068, still unfixed). `MainWindowController ._on_workspace_switch_requested` likewise has no pre-switch guard call yet. Wiring both
+  requires editing `ui/main_window/`, outside this story's `modules:` front-matter.
+- **`compose.py` wiring** of the widened `TaskEditorCollaborators` (now including `clipboard`)
+  is Phase 11's job, per this story's explicit scope boundary — `compose.py` was not touched.
+- **Backend validation-rule gap (pre-existing, outside `modules: [ui/task_editor/]`):** the real
+  `TaskFileValidator`/cascade (`backend/task_files/_internal/cascade.py`) implements only the
+  seven STORY-031 rules — it has no `empty_task_id`/`empty_golden_answer`/`invalid_difficulty`
+  field-level rule yet, only `empty_question`. AC-2's "empty `task_id` or `golden_answer`"
+  wording is satisfied at the UI-mapping layer (verified end-to-end with the real validator for
+  `question`, and with a fake `FileValidationResult` for `task_id`/`golden_answer` — the
+  mapping code path is identical regardless of which field a `ValidationIssue.field_name`
+  names). Completing the backend rule set is a `backend/task_files/`-scoped follow-up.
+- **No custom Popover overlay widget.** The Field Row help affordance is a round `?`
+  `QToolButton` with a hover tooltip plus a click-triggered `QMessageBox.information` — not a
+  bespoke popover surface. `TaskEditorCollaborators` deliberately carries no `ThemeManager`
+  (STORY-068 decision), and no popover-widget precedent exists elsewhere in the codebase yet;
+  the reserved `popover_blur`/`popover_offset_y` theme tokens remain unused pending a future
+  dedicated Popover widget story.
+- **Field-editor pane rebuild, not incremental diff.** `FieldEditorWidget.apply()` fully
+  rebuilds its row widgets on every push (matching `files_pane.py`/`tasks_pane.py`'s own
+  clear-and-rebuild precedent), which resets widget identity (and therefore focus/cursor
+  position) on every validation-debounce/blur-triggered re-render. This is safe by construction
+  today — a re-render only ever follows a debounce timeout (the user already paused) or a
+  focus-loss commit (the user already left the field) — but a future story adding incremental
+  per-row diffing would improve continuous-typing UX further.
+- **`ui.task_editor_last_folder` default-folder pre-fill** (`08-C_settings_hierarchy.md`) is
+  still unwired — `NativePickers` calls in this controller pass no `start_dir`. Not cited by any
+  STORY-069 acceptance criterion; noted as a small, low-risk follow-up alongside the above.
+- **Chip-input affordances diverge slightly from `field_reference.md`'s literal wording.** The
+  spec describes an inline "Add" button and a per-chip "x" remove glyph; the implementation
+  provides comma/Enter-to-add plus a single "Remove" button acting on the selected list row.
+  Add/remove/paste-split all function (satisfying AC-1's own wording), so this is a minor
+  UI-fidelity gap flagged by the independent spec-conformance review, not a defect — worth a
+  small follow-up to match the literal per-chip affordance.
+- **Save All during the leave/quit guard does not name which file(s) blocked it.** When
+  `confirm_and_prepare_leave`/`confirm_and_prepare_quit`'s Save All choice leaves one or more
+  hard-error files still dirty, the switch/quit is correctly held (returns `False`), but no
+  message currently tells the user which file(s) are still blocking it — flagged by the
+  independent spec-conformance review as a minor UX gap. Bundle this with the
+  `ui/main_window/`-scoped follow-up story above, since surfacing it usefully needs that
+  story's cross-module wiring anyway.

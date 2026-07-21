@@ -1,4 +1,4 @@
-"""Shared fixtures and fakes for ``ui/task_editor/tests/`` (STORY-068).
+"""Shared fixtures and fakes for ``ui/task_editor/tests/`` (STORY-068, STORY-069).
 
 Mirrors ``ui/results/tests/conftest.py``'s in-process synchronous ``EventBus`` test
 double (immediate delivery) and ``ui/resume_benchmark/tests/test_controller.py``'s
@@ -8,10 +8,11 @@ fakes where they exist (``adapters.native_pickers.testing.FakeNativePickers``,
 real ``backend.yaml_formatter`` -- Form B/C conversion and comment/unknown-key
 preservation are that module's own job, so AC-5 exercises it for real rather than
 faking it away) and this module's own ``testing.FakeTaskEditorGateway``/
-``FakeFileChangeWatcher``. No fake for ``EventBus``/``FileSystemActions`` exists
-elsewhere in the codebase (verified by repository grep before writing this file),
-so both are declared locally here, exactly as ``ui/results/tests/conftest.py`` and
-``ui/resume_benchmark/tests/test_controller.py`` do for their own modules.
+``FakeFileChangeWatcher``. No fake for ``EventBus``/``FileSystemActions``/``Clipboard``
+exists elsewhere in the codebase (verified by repository grep before writing this
+file), so all three are declared locally here, exactly as ``ui/results/tests/
+conftest.py`` and ``ui/resume_benchmark/tests/test_controller.py`` do for their own
+modules -- ``FakeClipboard`` mirrors ``ui/results/tests/conftest.py``'s own.
 """
 
 from collections.abc import Callable
@@ -25,17 +26,53 @@ from ollama_llm_bench.backend.events import Subscription
 from ollama_llm_bench.backend.task_files import FileValidationResult, ValidationSeverity
 from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader, FakeTaskFileValidator
 from ollama_llm_bench.backend.yaml_formatter import make_yaml_formatter
+from ollama_llm_bench.ui.task_editor._internal.buffer import scratch_path_for_source
 from ollama_llm_bench.ui.task_editor._internal.controller import TaskEditorController
 from ollama_llm_bench.ui.task_editor._internal.view import TaskEditorView
 from ollama_llm_bench.ui.task_editor.models import TaskEditorCollaborators
 from ollama_llm_bench.ui.task_editor.testing import FakeFileChangeWatcher, FakeTaskEditorGateway
 
 __all__: list[str] = [
+    "FakeClipboard",
     "FakeEventBus",
     "FakeFileSystemActions",
+    "ScratchAwareTaskFileValidator",
     "make_bound_task_editor_controller",
     "make_clean_validation_result",
 ]
+
+
+class FakeClipboard:
+    """An in-memory ``Clipboard`` fake recording every ``copy_text`` call."""
+
+    def __init__(self) -> None:
+        self.copied: list[str] = []
+
+    def copy_text(self, text: str) -> None:
+        self.copied.append(text)
+
+
+class ScratchAwareTaskFileValidator:
+    """Wraps ``FakeTaskFileValidator`` so a result registered by a file's real
+    source path is transparently also reachable by that source's deterministic
+    scratch path (``_internal/buffer.py``'s materialize-then-validate seam,
+    STORY-069) -- every test in this package registers results by source path,
+    exactly as the STORY-068 tests already did, with no call-site changes."""
+
+    def __init__(self) -> None:
+        self._inner = FakeTaskFileValidator()
+
+    def validate(self, source_path: str, /) -> FileValidationResult:
+        return self._inner.validate(source_path)
+
+    def set_validation_result(self, source_path: str, result: FileValidationResult) -> None:
+        """Register ``result`` under both ``source_path`` and its scratch path."""
+        self._inner.set_validation_result(source_path, result)
+        self._inner.set_validation_result(scratch_path_for_source(source_path), result)
+
+    @property
+    def recorded_validations(self) -> list[str]:
+        return self._inner.recorded_validations
 
 
 class _FakeSubscription:
@@ -159,8 +196,13 @@ def fake_native_pickers() -> FakeNativePickers:
 
 
 @pytest.fixture
-def fake_task_file_validator() -> FakeTaskFileValidator:
-    return FakeTaskFileValidator()
+def fake_task_file_validator() -> ScratchAwareTaskFileValidator:
+    return ScratchAwareTaskFileValidator()
+
+
+@pytest.fixture
+def fake_clipboard() -> FakeClipboard:
+    return FakeClipboard()
 
 
 @pytest.fixture
@@ -168,7 +210,8 @@ def task_editor_collaborators(
     fake_gateway: FakeTaskEditorGateway,
     fake_file_change_watcher: FakeFileChangeWatcher,
     fake_native_pickers: FakeNativePickers,
-    fake_task_file_validator: FakeTaskFileValidator,
+    fake_task_file_validator: ScratchAwareTaskFileValidator,
+    fake_clipboard: FakeClipboard,
 ) -> TaskEditorCollaborators:
     return TaskEditorCollaborators(
         gateway=fake_gateway,
@@ -177,5 +220,6 @@ def task_editor_collaborators(
         yaml_formatter=make_yaml_formatter(),
         file_change_watcher=fake_file_change_watcher,
         native_pickers=fake_native_pickers,
+        clipboard=fake_clipboard,
         file_system_actions=FakeFileSystemActions(),
     )

@@ -53,11 +53,19 @@ def test_empty_to_with_files_transition() -> None:
     """
     # Arrange / Act
     empty_view_model = select_task_editor_view_model(
-        buffers=(), active_buffer_index=None, active_task_index=None, preview_shown=False
+        buffers=(),
+        active_buffer_index=None,
+        active_task_index=None,
+        preview_shown=False,
+        preview_text="",
     )
     buffer = _make_empty_buffer("/tasks/first.yaml")
     with_files_view_model = select_task_editor_view_model(
-        buffers=(buffer,), active_buffer_index=0, active_task_index=None, preview_shown=False
+        buffers=(buffer,),
+        active_buffer_index=0,
+        active_task_index=None,
+        preview_shown=False,
+        preview_text="",
     )
 
     # Assert
@@ -91,7 +99,11 @@ def test_save_all_count_counts_dirty_error_file_but_disables_save_all() -> None:
 
     # Act
     view_model = select_task_editor_view_model(
-        buffers=(buffer,), active_buffer_index=0, active_task_index=None, preview_shown=False
+        buffers=(buffer,),
+        active_buffer_index=0,
+        active_task_index=None,
+        preview_shown=False,
+        preview_text="",
     )
 
     # Assert
@@ -115,7 +127,11 @@ def test_save_all_count_and_enabled_with_mixed_dirty_files() -> None:
 
     # Act
     view_model = select_task_editor_view_model(
-        buffers=dirty_buffers, active_buffer_index=0, active_task_index=None, preview_shown=False
+        buffers=dirty_buffers,
+        active_buffer_index=0,
+        active_task_index=None,
+        preview_shown=False,
+        preview_text="",
     )
 
     # Assert

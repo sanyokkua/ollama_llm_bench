@@ -1,6 +1,6 @@
 """Files pane -- flat buffer list, per-file badges, drag-drop, context menu, footer
-open/create controls, and the in-use-by-run marker (STORY-068; ``description.md``
-§3.3, §7, §9 EC-TE-07).
+open/create controls, and the in-use-by-run marker (STORY-068, STORY-069;
+``description.md`` §3.3, §7, §9 EC-TE-07).
 
 The badge is rendered as a short text glyph (no colour channel) so the row's state is
 legible with no ``ThemeManager`` collaborator -- ``TaskEditorCollaborators`` (STORY-068
@@ -9,12 +9,19 @@ channel per ``08-L_ui_standardization.md``, so a text-only badge is spec-conform
 its own. The context menu is intentionally partial -- see the story's Notes section for
 which ``description.md`` §3.3 items are wired this story and why.
 
+A row that is simultaneously dirty and carries a validation warning/error shows **both**
+indicators at once (STORY-069 design decision) -- the validation badge and a separate
+``[unsaved]`` marker -- rather than STORY-068's collapsed single-badge precedence for
+that one combination. Reload-pending still takes sole precedence over everything else
+(a conflict the user must resolve before anything else is meaningful), matching
+STORY-068's original precedence for that one case.
+
 The in-use-by-run marker is orthogonal to the validation/dirty badge -- ``description.md``
 §9 EC-TE-07 says a file being read by an active run "carries an in-use banner", independent
 of whether that same file is also dirty (a running benchmark already cached its tasks at
 run-start, so editing the file while it is in-use is permitted). It is therefore rendered
 as a second, always-appended glyph rather than folded into ``badge_text_for_row``'s
-single-glyph precedence chain.
+precedence chain.
 """
 
 from PySide6.QtCore import QPoint, Signal
@@ -42,22 +49,28 @@ _BADGE_DIRTY = "[dirty]"
 _BADGE_CLEAN = "[clean]"
 _IN_USE_MARKER = "[in use]"
 _IN_USE_TOOLTIP_SUFFIX = "\n\nIn use by a running benchmark."
+_VALIDATION_BADGE_BY_STATE: dict[ValidationState, str] = {
+    ValidationState.CLEAN: _BADGE_CLEAN,
+    ValidationState.INFO: _BADGE_CLEAN,
+    ValidationState.WARNING: _BADGE_WARNING,
+    ValidationState.ERROR: _BADGE_ERROR,
+}
 
 
 def badge_text_for_row(row: FileRowViewModel) -> str:
-    """Resolve one file row's displayed badge glyph (STORY-068-AC-2).
+    """Resolve one file row's displayed badge glyph(s) (STORY-068-AC-2, STORY-069).
 
-    Precedence: reload-pending > error/warning > dirty > clean.
+    Precedence: reload-pending alone > (error/warning/clean, plus a simultaneous
+    ``[dirty]`` marker when the row is also dirty).
     """
     if row.is_external_changed:
         return _BADGE_RELOAD_PENDING
-    if row.validation_state is ValidationState.ERROR:
-        return _BADGE_ERROR
-    if row.validation_state is ValidationState.WARNING:
-        return _BADGE_WARNING
+    validation_badge = _VALIDATION_BADGE_BY_STATE[row.validation_state]
+    if row.is_dirty and row.validation_state in (ValidationState.WARNING, ValidationState.ERROR):
+        return f"{validation_badge} {_BADGE_DIRTY}"
     if row.is_dirty:
         return _BADGE_DIRTY
-    return _BADGE_CLEAN
+    return validation_badge
 
 
 def row_label_for_row(row: FileRowViewModel) -> str:

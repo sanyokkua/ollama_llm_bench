@@ -1,5 +1,6 @@
 """The in-memory buffer model: the round-trip YAML document handle, the draft task
-list, the dirty flag (STORY-068-AC-3, AC-5, AC-6).
+list, the dirty flag, and the per-buffer scratch-file materialization seam
+(STORY-068-AC-3, AC-5, AC-6; STORY-069-AC-2, AC-5).
 
 ``TaskBuffer`` is a strictly private, mutable per-module type (coding-style.md's
 ``@dataclass``-for-``_internal``-only exception) -- it never crosses the module
@@ -8,30 +9,53 @@ only consumers. Form B/Form C -> Form A conversion and comment/unknown-key prese
 are ``YamlFormatter.load_document``'s job (STORY-068-AC-5) -- every function here
 only extracts and mutates the already-converted ``document["tasks"]`` sequence, never
 re-implementing shape detection of its own.
+
+Neither ``TaskFileValidator.validate()`` nor ``YamlFormatter`` can operate on
+in-memory, unsaved content directly (``validate()`` re-reads and re-parses from disk;
+``YamlFormatter`` has no pure serialize-to-string method). ``materialize_to_scratch``
+resolves this entirely inside ``ui/task_editor/`` by writing the buffer's current
+in-memory document to a lazily-created, per-buffer temp file through the real
+``YamlFormatter.save`` -- reusing the real Formatter/Validator code paths verbatim
+and producing exactly "the YAML that Save would write," per this file's owning
+story's design.
 """
 
 import copy
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
+import tempfile
 
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from ollama_llm_bench.backend.domain import Difficulty
-from ollama_llm_bench.backend.task_files import FileValidationResult
+from ollama_llm_bench.backend.task_files import FileValidationResult, ValidationSeverity
 from ollama_llm_bench.backend.yaml_formatter import TaskFileDocument, YamlFormatter
 
 __all__: list[str] = [
     "TaskBuffer",
     "add_task",
+    "close_scratch",
+    "commit_boolean_field",
     "commit_field_edit",
     "duplicate_task",
     "filename_stem",
+    "is_saveable",
     "load_buffer",
+    "materialize_to_scratch",
     "move_task",
     "remove_tasks",
+    "scratch_path_for",
+    "scratch_path_for_source",
+    "set_chip_values",
+    "task_at",
     "task_count",
     "task_ids",
 ]
+
+_SCRATCH_PREFIX = "ollama_llm_bench_task_editor_"
+_SCRATCH_SUFFIX = ".yaml"
+_SCRATCH_DIGEST_LENGTH = 16
 
 
 @dataclass
@@ -44,6 +68,7 @@ class TaskBuffer:
     is_external_changed: bool = False
     is_in_use_by_run: bool = False
     validation: FileValidationResult | None = None
+    scratch_path: str | None = None
 
 
 def load_buffer(*, source_path: str, yaml_formatter: YamlFormatter) -> TaskBuffer:
@@ -76,6 +101,11 @@ def task_count(buffer: TaskBuffer) -> int:
 def task_ids(buffer: TaskBuffer) -> tuple[str, ...]:
     """Return every task's ``task_id`` in file order."""
     return tuple(str(task.get("task_id", "")) for task in _tasks_sequence(buffer))
+
+
+def task_at(buffer: TaskBuffer, index: int) -> CommentedMap:
+    """Return the raw task mapping at ``index`` (for field-row selection/commits)."""
+    return _tasks_sequence(buffer)[index]  # type: ignore[no-any-return]  # ruamel stub gap
 
 
 def filename_stem(buffer: TaskBuffer) -> str:
@@ -197,3 +227,102 @@ def commit_field_edit(
     tasks = _tasks_sequence(buffer)
     tasks[task_index][field_name] = draft_text
     buffer.is_dirty = True
+
+
+def commit_boolean_field(
+    buffer: TaskBuffer, *, task_index: int, field_name: str, value: bool
+) -> None:
+    """Commit a checkbox field edit as a real Python ``bool`` (STORY-069-AC-1).
+
+    Writing a real ``bool`` (not a string) keeps ``cosine_enabled: true`` a YAML
+    boolean scalar on save, never a quoted ``'true'`` string.
+
+    Args:
+        buffer: The buffer holding the edited task; marked dirty on return.
+        task_index: The zero-based index of the task the field belongs to.
+        field_name: The boolean task field's YAML key (``cosine_enabled``).
+        value: The checkbox's new state.
+    """
+    tasks = _tasks_sequence(buffer)
+    tasks[task_index][field_name] = value
+    buffer.is_dirty = True
+
+
+def set_chip_values(
+    buffer: TaskBuffer, *, task_index: int, field_name: str, values: tuple[str, ...]
+) -> None:
+    """Replace a term-list field's whole chip set (STORY-069-AC-1).
+
+    Args:
+        buffer: The buffer holding the edited task; marked dirty on return.
+        task_index: The zero-based index of the task the field belongs to.
+        field_name: The nested term-list key (``exact``, ``semantic``, ``forbidden``).
+        values: The field's complete new chip list, replacing whatever was there.
+    """
+    tasks = _tasks_sequence(buffer)
+    task = tasks[task_index]
+    required_terms = task.get("required_terms")
+    if not isinstance(required_terms, CommentedMap):
+        required_terms = CommentedMap()
+        task["required_terms"] = required_terms
+    chip_sequence = CommentedSeq()
+    chip_sequence.extend(values)
+    required_terms[field_name] = chip_sequence
+    buffer.is_dirty = True
+
+
+def is_saveable(buffer: TaskBuffer) -> bool:
+    """Return whether ``buffer`` has no hard error and can be written by Save."""
+    return buffer.validation is None or buffer.validation.severity is not ValidationSeverity.ERROR
+
+
+def scratch_path_for_source(source_path: str) -> str:
+    """Return the deterministic scratch-file path a buffer for ``source_path``
+    uses, without requiring a ``TaskBuffer`` instance.
+
+    Deterministic (a stable hash of ``source_path``, not a random temp name) so a
+    test can precompute the same path to pre-register a fake validator's result
+    before the buffer exists. Lives in the real OS temp directory -- never a
+    sibling of ``source_path`` -- so it can never be picked up by Open Folder's
+    top-level ``.yaml``/``.yml`` scan.
+    """
+    digest = hashlib.sha256(source_path.encode("utf-8")).hexdigest()[:_SCRATCH_DIGEST_LENGTH]
+    return str(Path(tempfile.gettempdir()) / f"{_SCRATCH_PREFIX}{digest}{_SCRATCH_SUFFIX}")
+
+
+def scratch_path_for(buffer: TaskBuffer) -> str:
+    """Return ``buffer``'s lazily-computed scratch-file path (see
+    ``scratch_path_for_source``), used to materialize the buffer's exact current
+    in-memory state for validation and preview passes that need real file content
+    (see this module's docstring).
+    """
+    if buffer.scratch_path is None:
+        buffer.scratch_path = scratch_path_for_source(buffer.source_path)
+    return buffer.scratch_path
+
+
+def materialize_to_scratch(
+    buffer: TaskBuffer, *, yaml_formatter: YamlFormatter, format_on_save: bool
+) -> str:
+    """Write ``buffer``'s current in-memory document to its scratch file and
+    return the resulting text -- exactly "the YAML that Save would write."
+
+    Args:
+        buffer: The buffer whose current document is materialized.
+        yaml_formatter: The real ``YamlFormatter``, used for the scratch write.
+        format_on_save: Whether canonical field ordering/style normalization
+            applies (mirrors the ``task_editor.auto_format_on_save`` setting).
+
+    Returns:
+        The scratch file's full text content after the write.
+    """
+    path = scratch_path_for(buffer)
+    yaml_formatter.save(document=buffer.document, target_path=path, format_on_save=format_on_save)
+    return Path(path).read_text(encoding="utf-8")
+
+
+def close_scratch(buffer: TaskBuffer) -> None:
+    """Delete ``buffer``'s scratch file, if one was ever created (buffer close)."""
+    if buffer.scratch_path is not None:
+        Path(buffer.scratch_path).unlink(missing_ok=True)
+        buffer.scratch_path = None

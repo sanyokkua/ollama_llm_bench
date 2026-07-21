@@ -1,17 +1,21 @@
-"""Dependency bundle and view-model struct family for ``ui/task_editor/`` (STORY-068).
+"""Dependency bundle and view-model struct family for ``ui/task_editor/`` (STORY-068,
+STORY-069).
 
 Source of truth: ``docs/v3_specification/09_Task_Editor/implementation_structure.md``
-§4 (view-model structs, declared verbatim below). Only this story's shell fields are
-populated -- ``field_rows`` stays ``()``, ``preview_shown`` stays ``False``, and
-``preview_text`` stays ``""`` until STORY-069 builds the Field-editor pane and the
-YAML preview, mirroring how ``ui/results/models.py`` declares its full parent-shell
-struct family while individual tabs populate their own slices.
+§4 (view-model structs, declared verbatim below). STORY-069 populates ``field_rows``,
+``preview_shown``, and ``preview_text`` for real (the Field-editor pane, the Save/
+validation-cascade integration, and the YAML preview panel), and widens
+``TaskEditorCollaborators`` by exactly one field (``clipboard``) for the preview
+panel's Copy YAML action -- Save already had ``yaml_formatter``, validation already
+had ``task_file_validator``; no ``ValidationCascade`` Protocol exists anywhere in the
+spec tree (verified by repository grep), so none is added here.
 """
 
 from enum import StrEnum
 
 import msgspec
 
+from ollama_llm_bench.adapters.clipboard import Clipboard
 from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.backend.task_files import TaskFileLoader, TaskFileValidator
@@ -41,8 +45,11 @@ class ValidationState(StrEnum):
 
 
 class FieldControlKind(StrEnum):
-    """The Field Row input-control kind (§4; populated by STORY-069's Field-editor
-    pane)."""
+    """The Field Row input-control kind (§4; §3.5.1). ``BOOLEAN`` is a STORY-069
+    addition -- ``cosine_enabled`` is the only field mapped to it (a UI-layer
+    view-model enum only, never persisted to SQLite or serialized to YAML by name,
+    so adding a member is a safe additive change). ``OPEN_COMBO`` stays
+    declared-but-unused -- no field maps to it."""
 
     IDENTIFIER = "identifier"
     SHORT_TEXT = "short_text"
@@ -50,14 +57,15 @@ class FieldControlKind(StrEnum):
     ENUM = "enum"
     OPEN_COMBO = "open_combo"
     CHIP_LIST = "chip_list"
+    BOOLEAN = "boolean"
 
 
 class TaskEditorCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     """Dependency bundle for ``make_task_editor_workspace`` (coding-style.md's
     4-parameter hard maximum). ``EventBus`` is passed to the factory separately
-    (``implementation_structure.md`` §2); ``validation_cascade`` is withheld until
-    STORY-069 widens this bundle, and ``yaml_formatter`` is used only for
-    ``.load_document()`` this story -- ``.save()`` stays unused until STORY-069."""
+    (``implementation_structure.md`` §2). ``clipboard`` is STORY-069's one addition,
+    for the YAML preview panel's Copy YAML action; ``yaml_formatter.save()`` is now
+    used for real (scratch materialization and the real Save)."""
 
     gateway: TaskEditorGateway
     task_file_loader: TaskFileLoader
@@ -66,6 +74,7 @@ class TaskEditorCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=Fals
     file_change_watcher: FileChangeWatcher
     native_pickers: NativePickers
     file_system_actions: FileSystemActions
+    clipboard: Clipboard
 
 
 class FileRowViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
@@ -91,8 +100,9 @@ class TaskRowViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 
 class FieldRowViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """One Field-editor row (§4). Not populated until STORY-069 -- this story's
-    ``TaskEditorViewModel.field_rows`` is always ``()``."""
+    """One Field-editor row (§4, §3.5.1). ``value`` carries the field's current
+    scalar text (or ``"true"``/``"false"`` for a ``BOOLEAN`` field); ``chip_values``
+    is populated only for a ``CHIP_LIST`` field."""
 
     field_name: str
     label: str
@@ -109,10 +119,8 @@ class FieldRowViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 class ToolbarViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     """The Editor Toolbar's render state (§4, §3.2). ``save_enabled``/
-    ``save_all_enabled`` are computed honestly from the buffers, but the toolbar
-    view renders Save/Save All disabled regardless this story (STORY-068 design
-    decision: they are fixed, permanent toolbar members with no working action
-    until STORY-069)."""
+    ``save_all_enabled``/``save_all_count`` now drive real Save/Save All actions
+    (STORY-069)."""
 
     save_enabled: bool
     save_all_enabled: bool

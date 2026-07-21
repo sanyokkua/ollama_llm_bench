@@ -11,6 +11,7 @@ handlers.
 
 from pathlib import Path
 
+import pytest
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.adapters.native_pickers.testing import FakeNativePickers
@@ -20,12 +21,15 @@ from ollama_llm_bench.backend.events import (
     AppSettingsChangedEvent,
     RunRenamedEvent,
 )
-from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader, FakeTaskFileValidator
+from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader
 from ollama_llm_bench.backend.yaml_formatter import make_yaml_formatter
+from ollama_llm_bench.ui.task_editor._internal import dialogs
 from ollama_llm_bench.ui.task_editor.models import TaskEditorCollaborators
 from ollama_llm_bench.ui.task_editor.testing import FakeFileChangeWatcher, FakeTaskEditorGateway
 from ollama_llm_bench.ui.task_editor.tests.conftest import (
+    FakeClipboard,
     FakeFileSystemActions,
+    ScratchAwareTaskFileValidator,
     make_bound_task_editor_controller,
     make_clean_validation_result,
 )
@@ -37,7 +41,7 @@ _TWO_BUFFERS_OR_TASKS = 2
 def _collaborators(
     *,
     native_pickers: FakeNativePickers,
-    validator: FakeTaskFileValidator,
+    validator: ScratchAwareTaskFileValidator,
     file_system_actions: FakeFileSystemActions | None = None,
 ) -> TaskEditorCollaborators:
     return TaskEditorCollaborators(
@@ -47,6 +51,7 @@ def _collaborators(
         yaml_formatter=make_yaml_formatter(),
         file_change_watcher=FakeFileChangeWatcher(),
         native_pickers=native_pickers,
+        clipboard=FakeClipboard(),
         file_system_actions=file_system_actions or FakeFileSystemActions(),
     )
 
@@ -64,7 +69,7 @@ def test_open_folder_opens_every_top_level_yaml_file_and_ignores_other_extension
         "tasks:\n  - task_id: b1\n    question: Qb?\n", encoding="utf-8"
     )
     (tmp_path / "notes.txt").write_text("not a task file", encoding="utf-8")
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(
         str(tmp_path / "a.yaml"), make_clean_validation_result(str(tmp_path / "a.yaml"))
     )
@@ -96,7 +101,7 @@ def test_open_folder_is_a_noop_when_the_user_cancels(qtbot: QtBot) -> None:
     controller, _bus = make_bound_task_editor_controller(
         qtbot=qtbot,
         collaborators=_collaborators(
-            native_pickers=native_pickers, validator=FakeTaskFileValidator()
+            native_pickers=native_pickers, validator=ScratchAwareTaskFileValidator()
         ),
     )
 
@@ -112,7 +117,7 @@ def test_new_file_writes_seed_yaml_and_opens_it(qtbot: QtBot, tmp_path: Path) ->
     and then opens the freshly written file as a buffer."""
     # Arrange
     target_path = str(tmp_path / "tasks.yaml")
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(target_path, make_clean_validation_result(target_path))
     native_pickers = FakeNativePickers()
     native_pickers.set_save_result(target_path)
@@ -142,7 +147,7 @@ def test_new_file_is_a_noop_when_the_user_cancels(qtbot: QtBot) -> None:
         qtbot=qtbot,
         collaborators=_collaborators(
             native_pickers=FakeNativePickers(),
-            validator=FakeTaskFileValidator(),
+            validator=ScratchAwareTaskFileValidator(),
             file_system_actions=file_system_actions,
         ),
     )
@@ -169,7 +174,7 @@ def test_recent_file_clicked_selects_an_already_open_buffer_without_reopening(
     (tmp_path / "second.yaml").write_text(
         "tasks:\n  - task_id: s1\n    question: Q?\n", encoding="utf-8"
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(first_path, make_clean_validation_result(first_path))
     validator.set_validation_result(second_path, make_clean_validation_result(second_path))
     native_pickers = FakeNativePickers()
@@ -202,7 +207,7 @@ def test_files_dropped_recurses_folders_opens_yaml_and_ignores_other_extensions(
     standalone_yaml.write_text("tasks:\n  - task_id: s1\n    question: Q?\n", encoding="utf-8")
     ignored_file = tmp_path / "ignored.txt"
     ignored_file.write_text("not yaml", encoding="utf-8")
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(
         str(nested_yaml), make_clean_validation_result(str(nested_yaml))
     )
@@ -236,7 +241,7 @@ def test_file_row_selected_switches_the_active_file(qtbot: QtBot, tmp_path: Path
     (tmp_path / "b.yaml").write_text(
         "tasks:\n  - task_id: b1\n    question: Q?\n", encoding="utf-8"
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(path_a, make_clean_validation_result(path_a))
     validator.set_validation_result(path_b, make_clean_validation_result(path_b))
     native_pickers = FakeNativePickers()
@@ -267,7 +272,7 @@ def test_task_row_selected_updates_active_task_and_ignores_out_of_range(
         "tasks:\n  - task_id: t1\n    question: Q1?\n  - task_id: t2\n    question: Q2?\n",
         encoding="utf-8",
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(source_path, make_clean_validation_result(source_path))
     native_pickers = FakeNativePickers()
     native_pickers.set_open_file_result((source_path,))
@@ -298,7 +303,7 @@ def test_remove_tasks_clicked_removes_selected_tasks_and_resets_active_index(
         "tasks:\n  - task_id: t1\n    question: Q1?\n  - task_id: t2\n    question: Q2?\n",
         encoding="utf-8",
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(source_path, make_clean_validation_result(source_path))
     native_pickers = FakeNativePickers()
     native_pickers.set_open_file_result((source_path,))
@@ -327,7 +332,7 @@ def test_move_task_clicked_reorders_the_active_buffers_tasks(qtbot: QtBot, tmp_p
         "tasks:\n  - task_id: t1\n    question: Q1?\n  - task_id: t2\n    question: Q2?\n",
         encoding="utf-8",
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(source_path, make_clean_validation_result(source_path))
     native_pickers = FakeNativePickers()
     native_pickers.set_open_file_result((source_path,))
@@ -347,14 +352,16 @@ def test_move_task_clicked_reorders_the_active_buffers_tasks(qtbot: QtBot, tmp_p
 
 
 def test_reload_clicked_noop_when_dirty_and_reloads_from_disk_when_clean(
-    qtbot: QtBot, tmp_path: Path
+    qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Reload is a no-op while the active buffer is dirty; once clean, it
-    reloads the buffer's content from disk."""
+    """Reload is a no-op while the active buffer is dirty and the user cancels the
+    reload-confirmation dialog (EC-TE-09); once clean, it reloads the buffer's
+    content from disk with no confirmation needed."""
     # Arrange
+    monkeypatch.setattr(dialogs, "confirm_reload", lambda: False)
     source_path = tmp_path / "reloadable.yaml"
     source_path.write_text("tasks:\n  - task_id: t1\n    question: Old?\n", encoding="utf-8")
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(
         str(source_path), make_clean_validation_result(str(source_path))
     )
@@ -389,14 +396,15 @@ def test_reload_clicked_noop_when_dirty_and_reloads_from_disk_when_clean(
 
 
 def test_reload_from_disk_context_menu_noop_when_dirty_or_out_of_range(
-    qtbot: QtBot, tmp_path: Path
+    qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The context-menu Reload from Disk action is a no-op for an out-of-range
-    index and for a dirty buffer."""
+    index and for a dirty buffer whose reload-confirmation is cancelled."""
     # Arrange
+    monkeypatch.setattr(dialogs, "confirm_reload", lambda: False)
     source_path = tmp_path / "reloadable.yaml"
     source_path.write_text("tasks:\n  - task_id: t1\n    question: Old?\n", encoding="utf-8")
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(
         str(source_path), make_clean_validation_result(str(source_path))
     )
@@ -420,11 +428,13 @@ def test_reload_from_disk_context_menu_noop_when_dirty_or_out_of_range(
 
 
 def test_close_file_clicked_noop_when_dirty_closes_and_reindexes_when_clean(
-    qtbot: QtBot, tmp_path: Path
+    qtbot: QtBot, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Close is a no-op for a dirty buffer; for a clean buffer it closes and
-    reindexes the active selection."""
+    """Close is a no-op for a dirty buffer whose close-confirmation is cancelled;
+    for a clean buffer it closes with no confirmation and reindexes the active
+    selection."""
     # Arrange
+    monkeypatch.setattr(dialogs, "confirm_close", lambda _name: "cancel")
     path_a = str(tmp_path / "a.yaml")
     path_b = str(tmp_path / "b.yaml")
     (tmp_path / "a.yaml").write_text(
@@ -433,7 +443,7 @@ def test_close_file_clicked_noop_when_dirty_closes_and_reindexes_when_clean(
     (tmp_path / "b.yaml").write_text(
         "tasks:\n  - task_id: b1\n    question: Q?\n", encoding="utf-8"
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(path_a, make_clean_validation_result(path_a))
     validator.set_validation_result(path_b, make_clean_validation_result(path_b))
     native_pickers = FakeNativePickers()
@@ -478,7 +488,7 @@ def test_close_others_clicked_skips_dirty_buffers(qtbot: QtBot, tmp_path: Path) 
     (tmp_path / "c.yaml").write_text(
         "tasks:\n  - task_id: c1\n    question: Q?\n", encoding="utf-8"
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(path_a, make_clean_validation_result(path_a))
     validator.set_validation_result(path_b, make_clean_validation_result(path_b))
     validator.set_validation_result(path_c, make_clean_validation_result(path_c))
@@ -509,7 +519,7 @@ def test_reveal_in_file_manager_clicked_calls_file_system_actions(
     (tmp_path / "revealed.yaml").write_text(
         "tasks:\n  - task_id: t1\n    question: Q?\n", encoding="utf-8"
     )
-    validator = FakeTaskFileValidator()
+    validator = ScratchAwareTaskFileValidator()
     validator.set_validation_result(source_path, make_clean_validation_result(source_path))
     native_pickers = FakeNativePickers()
     native_pickers.set_open_file_result((source_path,))
@@ -540,7 +550,7 @@ def test_app_settings_changed_and_run_renamed_events_are_logged_no_ops(qtbot: Qt
     controller, bus = make_bound_task_editor_controller(
         qtbot=qtbot,
         collaborators=_collaborators(
-            native_pickers=FakeNativePickers(), validator=FakeTaskFileValidator()
+            native_pickers=FakeNativePickers(), validator=ScratchAwareTaskFileValidator()
         ),
     )
 

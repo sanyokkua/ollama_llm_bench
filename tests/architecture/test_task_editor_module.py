@@ -1,4 +1,4 @@
-"""Architecture tests for ``ui/task_editor/`` (STORY-068 Definition of done).
+"""Architecture tests for ``ui/task_editor/`` (STORY-068, STORY-069 Definition of done).
 
 Asserts: no ``setStyleSheet`` call, no colour literal, no ``asyncio``/``anyio``/
 ``qasync`` import anywhere in the module; ``_internal/controller.py`` imports
@@ -7,7 +7,14 @@ only its own ``TaskEditorGateway`` plus the declared non-store helpers
 ``FileChangeWatcher``, ``NativePickers``, ``FileSystemActions``) and its own
 ``models``/``protocols`` -- never a raw ``SettingsService``/``WorkspaceStore``/
 ``RunRegistryStore`` Protocol (D-R-06); ``_internal/view.py`` imports no
-Gateway/EventBus/backend symbol (the passive-View rule).
+Gateway/EventBus/backend symbol (the passive-View rule); no file in the module
+imports the real YAML parse/dump engine (``ruamel.yaml``'s ``YAML`` class) --
+every load/save is delegated to ``YamlFormatter``/``TaskFileValidator``
+(STORY-069's own controller docstring claim). ``ruamel.yaml.comments`` is the
+one allowed exception: ``_internal/buffer.py`` imports only its
+``CommentedMap``/``CommentedSeq`` data-container types to mutate an
+already-parsed document in place -- never to parse or serialize YAML text
+itself.
 """
 
 import ast
@@ -38,6 +45,7 @@ _FORBIDDEN_STORE_MODULES = (
     "ollama_llm_bench.backend.settings",
 )
 _HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
+_ALLOWED_RUAMEL_IMPORT = "ruamel.yaml.comments"
 
 
 def _iter_source_files() -> list[Path]:
@@ -186,3 +194,30 @@ def test_view_imports_no_backend_service_symbol() -> None:
     }
     # Assert
     assert backend_service_imports == set()
+
+
+def test_no_file_imports_the_real_yaml_parse_or_dump_engine() -> None:
+    """Proves: STORY-069 Definition of done
+
+    No file in ``ui/task_editor/`` imports ``ruamel.yaml``'s ``YAML``
+    parser/dumper (or any other ``ruamel.yaml`` submodule) directly -- every
+    YAML load/save is delegated to the ``YamlFormatter``/``TaskFileValidator``
+    Protocols. ``ruamel.yaml.comments`` (``CommentedMap``/``CommentedSeq``,
+    used only to mutate an already-parsed document in place) is the sole
+    permitted import, matching ``_internal/buffer.py``'s own docstring claim.
+    """
+    # Arrange / Act
+    offenders: dict[str, list[str]] = {}
+    for source_file in _iter_source_files():
+        tree = ast.parse(source_file.read_text(encoding="utf-8"), filename=str(source_file))
+        imported_modules = _imported_modules(tree)
+        hits = sorted(
+            module
+            for module in imported_modules
+            if (module == "ruamel.yaml" or module.startswith("ruamel.yaml."))
+            and module != _ALLOWED_RUAMEL_IMPORT
+        )
+        if hits:
+            offenders[str(source_file.relative_to(_PACKAGE_ROOT))] = hits
+    # Assert
+    assert offenders == {}

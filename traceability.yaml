@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T19:20:52Z'
+generated_at: '2026-07-21T21:11:14Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4500,7 +4500,7 @@ stories:
         - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_task_editor_workspace_constructs_and_shows_with_no_error_logs
   STORY-069:
     title: Build the Task Editor field editor, YAML preview, save/validation cascade, and confirmation dialogs
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway
@@ -4516,17 +4516,31 @@ stories:
     - EC-WS-3
     acceptance_criteria:
       STORY-069-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_chip_input_supports_add_remove_and_paste_split
+        - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[cosine_enabled]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[difficulty]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[question]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[required_terms]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[task_id]
       STORY-069-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_empty_question_via_real_validator_disables_save
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[golden_answer]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[question]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[task_id]
       STORY-069-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_skips_hard_error_files
       STORY-069-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_successful_save_emits_task_file_changed
       STORY-069-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_yaml_preview.py::test_preview_renders_for_hard_error_file
       STORY-069-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_dialogs.py::test_dirty_leave_shows_save_choice_dialog
   STORY-070:
     title: Build the About dialog and the generic Error dialog
     status: ready
@@ -8334,7 +8348,21 @@ edge_cases:
   EC-WS-3:
     stories:
     - STORY-069
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_empty_question_via_real_validator_disables_save
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[golden_answer]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[question]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[task_id]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_skips_hard_error_files
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_successful_save_emits_task_file_changed
+    - src/ollama_llm_bench/ui/task_editor/tests/test_dialogs.py::test_dirty_leave_shows_save_choice_dialog
+    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_chip_input_supports_add_remove_and_paste_split
+    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[cosine_enabled]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[difficulty]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[question]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[required_terms]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[task_id]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_yaml_preview.py::test_preview_renders_for_hard_error_file
   EC-WS-4:
     stories:
     - STORY-068
