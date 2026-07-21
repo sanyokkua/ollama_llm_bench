@@ -23,6 +23,7 @@ from ollama_llm_bench.backend.domain import (
     ProviderTestStatus,
     ReadinessState,
 )
+from ollama_llm_bench.backend.errors import PersistenceError
 from ollama_llm_bench.backend.events import SIGNAL_APP_READINESS_CHANGED, AppReadinessChangedEvent
 from ollama_llm_bench.ui.settings_dialog._internal.controller import SettingsController
 from ollama_llm_bench.ui.settings_dialog._internal.general_tab.controller import (
@@ -376,11 +377,44 @@ def test_save_writes_providers_and_settings_atomically_then_emits_events_and_cle
     controller._general_tab_controller.set_value("ui.theme", "dark")
     controller.on_save_clicked()
 
-    assert gateway.replace_providers_calls == [(PROVIDER_A,)]
-    assert gateway.upsert_settings_calls[-1]["ui.theme"] == "dark"
+    assert gateway.save_all_calls[-1][0] == (PROVIDER_A,)
+    assert gateway.save_all_calls[-1][1]["ui.theme"] == "dark"
     assert bus.emitted_signal_names().count("_provider_registry_reloaded") == 1
     assert bus.emitted_signal_names().count("_app_settings_changed") == 1
     assert controller.is_dirty is False
+
+
+def test_save_failure_leaves_dialog_dirty_and_shows_error(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067 atomic-Save spec-conformance fix.
+
+    A ``save_all`` failure surfaces an error notification, writes nothing
+    (proven at the Fake level by ``test_fake_gateway.py``), and leaves the
+    dialog dirty -- mirroring the error handling Reset now also carries.
+    """
+    gateway = FakeSettingsGateway()
+    gateway.set_providers((PROVIDER_A,))
+    gateway.raise_on_next_save_all(PersistenceError(message="disk full"))
+    notifications = FakeNotificationService()
+    dialog = make_settings_dialog(
+        collaborators=SettingsDialogCollaborators(
+            gateway=gateway,
+            event_bus=FakeEventBus(),
+            native_pickers=FakeNativePickers(),
+            clipboard=mocker.Mock(spec=Clipboard),
+            file_system_actions=mocker.Mock(spec=FileSystemActions),
+            notifications=notifications,
+        )
+    )
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+    controller._general_tab_controller.set_value("ui.theme", "dark")
+
+    controller.on_save_clicked()
+
+    assert notifications.error_calls
+    assert controller.is_dirty is True
 
 
 def test_save_writes_nothing_when_a_hard_error_is_present(
@@ -428,10 +462,49 @@ def test_reset_confirmed_wipes_and_reseeds_atomically(qtbot: QtBot, mocker: Mock
 
     controller.on_reset_clicked()
 
-    assert len(gateway.replace_providers_calls) == 1
-    assert gateway.upsert_settings_calls[-1]["ui.theme"] == "system"  # discarded, reset to default
+    assert len(gateway.reset_to_defaults_calls) == 1
+    # discarded, reset to default (the Fake clears settings; the General tab's
+    # reload() falls through to its own known default for an absent key)
+    assert controller._general_tab_controller.values_for_save()["ui.theme"] == "system"
     assert bus.emitted_signal_names().count("_provider_registry_reloaded") == 1
     assert bus.emitted_signal_names().count("_app_settings_changed") == 1
+
+
+def test_reset_failure_leaves_dialog_dirty_and_shows_error(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067 atomic-Reset spec-conformance fix.
+
+    A ``reset_to_defaults`` failure surfaces an error notification instead of
+    crashing (Reset previously had no error handling at all) and leaves the
+    dialog's unsaved edits intact.
+    """
+    gateway = FakeSettingsGateway()
+    gateway.raise_on_next_reset_to_defaults(PersistenceError(message="disk full"))
+    notifications = FakeNotificationService()
+    dialog = make_settings_dialog(
+        collaborators=SettingsDialogCollaborators(
+            gateway=gateway,
+            event_bus=FakeEventBus(),
+            native_pickers=FakeNativePickers(),
+            clipboard=mocker.Mock(spec=Clipboard),
+            file_system_actions=mocker.Mock(spec=FileSystemActions),
+            notifications=notifications,
+        )
+    )
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+    controller._general_tab_controller.set_value("ui.theme", "dark")
+    fake_confirmation_dialog = mocker.Mock(confirmed=True)
+    mocker.patch(
+        "ollama_llm_bench.ui.settings_dialog._internal.controller.make_reset_confirmation_dialog",
+        return_value=fake_confirmation_dialog,
+    )
+
+    controller.on_reset_clicked()
+
+    assert notifications.error_calls
+    assert controller._general_tab_controller.values_for_save()["ui.theme"] == "dark"
 
 
 def test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open(

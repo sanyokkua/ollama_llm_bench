@@ -217,14 +217,16 @@ class SettingsController:
         return str(Path(self._file_system_actions.exports_folder_path()).parent)
 
     def on_save_clicked(self) -> None:
-        """Commit both tabs atomically through the Gateway (§6; STORY-067-AC-3)."""
+        """Commit both tabs in one atomic Gateway transaction (§6; STORY-067-AC-3)."""
         findings = self._current_findings()
         if not save_enabled(findings, is_dirty=self.is_dirty):
             logger.debug("settings_save_blocked", finding_count=len(findings))
             return
         try:
-            self._gateway.replace_providers(self.providers_controller.working_configs)
-            self._gateway.upsert_settings(self._general_tab_controller.values_for_save())
+            self._gateway.save_all(
+                providers=self.providers_controller.working_configs,
+                settings_values=self._general_tab_controller.values_for_save(),
+            )
         except PersistenceError as exc:
             logger.warning("settings_save_failed", error=str(exc))
             self._notifications.show_error("Settings could not be saved.")
@@ -304,17 +306,19 @@ class SettingsController:
         self._push_chrome()
 
     def on_reset_clicked(self) -> None:
-        """Wipe and re-seed the whole configuration on confirm (§9; STORY-067-AC-5)."""
+        """Wipe and re-seed the whole configuration on confirm, in one atomic
+        Gateway transaction (§9; STORY-067-AC-5)."""
         confirmation_dialog = make_reset_confirmation_dialog()
         confirmation_dialog.exec()
         if not confirmation_dialog.confirmed:
             return
         bundled_providers = _bundled_default_provider_drafts()
-        self._gateway.replace_providers(bundled_providers)
-        self._gateway.upsert_settings(
-            self._general_tab_controller.values_for_reset_defaults()
-            | {"embedding.selected_provider_name": "", "embedding.selected_model_name": ""}
-        )
+        try:
+            self._gateway.reset_to_defaults(bundled_providers=bundled_providers)
+        except PersistenceError as exc:
+            logger.warning("settings_reset_failed", error=str(exc))
+            self._notifications.show_error("Settings could not be reset.")
+            return
         self._emit_registry_reloaded(provider_count=len(bundled_providers), reload_cause="reset")
         self._emit_settings_changed(
             changed_keys=(

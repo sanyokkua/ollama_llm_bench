@@ -19,6 +19,16 @@ shaped after ``ImportExportService``'s real signatures
 ``build_provider_import_preview``, ``apply_provider_import``,
 ``export_settings``, ``export_providers``), returning the locally-redeclared
 DTOs in ``.models`` rather than ``backend.import_export.models``.
+
+**Atomic Save/Reset (spec-conformance amendment).** Save and Reset each span
+two independent stores (``ProvidersStore``/``AppSettingsStore``); calling
+``replace_providers`` then ``upsert_settings`` as two independent Gateway
+calls cannot express "all-or-nothing" -- a failure after the first call
+commits leaves the two stores inconsistent. ``save_all``/``reset_to_defaults``
+below give the concrete Phase 11 adapter a single call to wrap in one real
+database transaction, making true atomicity possible where two void calls
+could not; this UI module cannot enforce the concrete adapter's transaction
+itself, but the Protocol's shape is what makes it possible.
 """
 
 from typing import TYPE_CHECKING, Protocol
@@ -251,5 +261,60 @@ class SettingsGateway(Protocol):
 
         Raises:
             PersistenceError: The underlying read failed.
+        """
+        ...
+
+    def save_all(
+        self, *, providers: tuple[ProviderConfig, ...], settings_values: dict[SettingKey, str]
+    ) -> None:
+        """Commit the working provider catalog and settings values in one
+        atomic transaction (``description.md`` §6; STORY-067-AC-3).
+
+        blocking. All-or-nothing: the concrete Phase 11 adapter wraps both the
+        ``ProvidersStore.replace_providers`` write and the
+        ``AppSettingsStore.upsert_settings`` write in one real database
+        transaction. On failure, neither store is modified -- this is a
+        contract the concrete adapter must honor; this Protocol method's
+        single-call shape is what makes that atomicity possible, where two
+        independent void calls (``replace_providers`` then
+        ``upsert_settings``) could not express "all-or-nothing".
+
+        Args:
+            providers: The full working provider catalog to persist.
+            settings_values: The full General-tab working-copy value map to
+                merge into ``AppSettingsStore`` (the settings half of Save).
+
+        Raises:
+            PersistenceError: The underlying write failed; neither store was
+                modified.
+        """
+        ...
+
+    def reset_to_defaults(self, *, bundled_providers: tuple[ProviderConfig, ...]) -> None:
+        """Wipe and re-seed the whole configuration in one atomic transaction
+        (``sub_dialogs/reset_confirmation.md`` §4, §6, §7; STORY-067-AC-5).
+
+        blocking. All-or-nothing: the concrete Phase 11 adapter deletes every
+        ``providers`` and ``app_settings`` row, then re-seeds
+        ``bundled_providers`` and re-seeds **every** ``app_settings`` key to
+        its in-code default -- not only the General tab's own registry keys.
+        The exhaustive in-code defaults table already exists as
+        ``backend.settings._internal.registry.DEFAULTS`` (currently
+        ``_internal``-only, not part of ``backend.settings``'s public
+        surface); the concrete adapter is expected to reseed against that
+        table (or an equivalent it promotes to a public export), covering
+        every opaque UI-state key (``ui.window_geometry``,
+        ``benchmark.last_mode``, ``ui.splitter_sizes``, etc.) this UI module
+        has no visibility into -- this UI module supplies only the bundled
+        provider drafts; it is not able to enumerate the full settings
+        registry itself.
+
+        Args:
+            bundled_providers: The three freshly-seeded bundled local
+                providers (``sub_dialogs/reset_confirmation.md`` §6).
+
+        Raises:
+            PersistenceError: The underlying write failed; the prior
+                configuration is left intact.
         """
         ...

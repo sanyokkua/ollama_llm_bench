@@ -7,6 +7,15 @@ fake-construction pattern already used by ``ui.new_benchmark.testing``'s
 ``FakeNewBenchmarkGateway``. STORY-067 adds call-tracking lists for the two
 Save/Reset write methods (so a test can assert the atomic transaction actually
 invoked both) plus scriptable fakes for the six Import/Export methods.
+
+``save_all``/``reset_to_defaults`` (spec-conformance amendment) model
+atomicity the same way ``replace_providers``/``upsert_settings`` already do: a
+scripted raise (``raise_on_next_save_all``/``raise_on_next_reset_to_defaults``)
+fires *before* any state mutation, so a test can assert the Fake's recorded
+state is completely unchanged on a scripted failure. ``replace_providers`` and
+``upsert_settings`` are kept as separately callable methods -- Import still
+calls ``upsert_settings`` via ``apply_settings_import`` -- but Save/Reset now
+call only the two new atomic methods.
 """
 
 from typing import TYPE_CHECKING
@@ -55,6 +64,13 @@ class FakeSettingsGateway:
         upsert_settings_calls: Every ``values`` dict passed to a successful
             ``upsert_settings`` call (including via ``apply_settings_import``),
             in call order (STORY-067); a scripted raise is not recorded.
+        save_all_calls: Every ``(providers, settings_values)`` pair passed to
+            a successful ``save_all`` call, in call order; a scripted raise
+            (``raise_on_next_save_all``) is not recorded and mutates no state.
+        reset_to_defaults_calls: Every ``bundled_providers`` tuple passed to a
+            successful ``reset_to_defaults`` call, in call order; a scripted
+            raise (``raise_on_next_reset_to_defaults``) is not recorded and
+            mutates no state.
     """
 
     def __init__(self) -> None:
@@ -69,8 +85,12 @@ class FakeSettingsGateway:
         self.recorded_discover_models_calls: list[str] = []
         self.replace_providers_calls: list[tuple[ProviderConfig, ...]] = []
         self.upsert_settings_calls: list[dict[SettingKey, str]] = []
+        self.save_all_calls: list[tuple[tuple[ProviderConfig, ...], dict[SettingKey, str]]] = []
+        self.reset_to_defaults_calls: list[tuple[ProviderConfig, ...]] = []
         self._raise_on_next_replace_providers: Exception | None = None
         self._raise_on_next_upsert_settings: Exception | None = None
+        self._raise_on_next_save_all: Exception | None = None
+        self._raise_on_next_reset_to_defaults: Exception | None = None
         self._settings_import_preview: SettingsImportPreview | None = None
         self._provider_import_preview: ProviderImportPreview | None = None
         self._settings_import_result: SettingsImportResult | None = None
@@ -138,6 +158,16 @@ class FakeSettingsGateway:
         """Test helper: make the next ``upsert_settings`` call raise ``exc``."""
         self._raise_on_next_upsert_settings = exc
 
+    def raise_on_next_save_all(self, exc: Exception) -> None:
+        """Test helper: make the next ``save_all`` call raise ``exc`` before
+        mutating any state."""
+        self._raise_on_next_save_all = exc
+
+    def raise_on_next_reset_to_defaults(self, exc: Exception) -> None:
+        """Test helper: make the next ``reset_to_defaults`` call raise ``exc``
+        before mutating any state."""
+        self._raise_on_next_reset_to_defaults = exc
+
     def list_providers(self) -> tuple[ProviderConfig, ...]:
         return self._providers
 
@@ -169,6 +199,24 @@ class FakeSettingsGateway:
 
     def get_resolved_str(self, key: SettingKey) -> str:
         return self._settings.get(key, "")
+
+    def save_all(
+        self, *, providers: tuple[ProviderConfig, ...], settings_values: dict[SettingKey, str]
+    ) -> None:
+        if self._raise_on_next_save_all is not None:
+            exc, self._raise_on_next_save_all = self._raise_on_next_save_all, None
+            raise exc
+        self.save_all_calls.append((providers, dict(settings_values)))
+        self._providers = providers
+        self._settings.update(settings_values)
+
+    def reset_to_defaults(self, *, bundled_providers: tuple[ProviderConfig, ...]) -> None:
+        if self._raise_on_next_reset_to_defaults is not None:
+            exc, self._raise_on_next_reset_to_defaults = self._raise_on_next_reset_to_defaults, None
+            raise exc
+        self.reset_to_defaults_calls.append(bundled_providers)
+        self._providers = bundled_providers
+        self._settings = {}
 
     def list_model_capabilities(
         self,
