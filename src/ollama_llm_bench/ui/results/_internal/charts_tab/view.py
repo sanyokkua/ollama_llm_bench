@@ -147,8 +147,6 @@ class _ChartCanvas(QWidget):
         painter = QPainter(self)
         tokens = self._tokens()
         rect = QRectF(0, 0, self.width(), self.height())
-        self._hit_regions = []
-        self._point_regions = []
         vm = self._view_model
         if vm is None:
             if self._no_run_message is not None:
@@ -164,7 +162,7 @@ class _ChartCanvas(QWidget):
             painter.end()
             return
         if vm.heatmap_data is not None:
-            self._paint_heatmap(painter, rect=rect, data=vm.heatmap_data, tokens=tokens)
+            painting.draw_heatmap(painter, rect=rect, data=vm.heatmap_data, tokens=tokens)
         elif vm.chart_data is not None:
             self._paint_chart_data(painter, rect=rect, tokens=tokens, vm=vm)
         painter.end()
@@ -178,28 +176,43 @@ class _ChartCanvas(QWidget):
             painting.draw_stacked_bar_chart(
                 painter, rect=rect, data=data, tokens=tokens, hidden_series=vm.hidden_series
             )
-            self._index_stacked_hits(rect=rect, vm=vm)
             return
         if vm.chart_kind in _BAR_KINDS:
             painting.draw_bar_chart(painter, rect=rect, data=data, tokens=tokens)
-            self._index_bar_hits(rect=rect, vm=vm)
             return
         if vm.chart_kind is ChartKind.PER_CATEGORY_BAR:
             painting.draw_grouped_bar_chart(painter, rect=rect, data=data, tokens=tokens)
-            self._index_grouped_bar_hits(rect=rect, vm=vm)
             return
         if vm.chart_kind in _SCATTER_KINDS:
             painting.draw_scatter_chart(painter, rect=rect, data=data, tokens=tokens)
-            self._index_scatter_hits(rect=rect, vm=vm)
             return
         if vm.chart_kind is ChartKind.TOKENS_PER_TASK_BOX:
             painting.draw_box_plot(painter, rect=rect, data=data, tokens=tokens)
 
-    def _paint_heatmap(
-        self, painter: QPainter, *, rect: QRectF, data: HeatmapData, tokens: ThemeTokens
-    ) -> None:
-        painting.draw_heatmap(painter, rect=rect, data=data, tokens=tokens)
-        self._index_heatmap_hits(rect=rect, data=data)
+    def _recompute_hit_regions(self) -> None:
+        """Rebuild the click hit-test geometry from the current widget size and
+        the cached view model -- computed fresh on every click (not cached from
+        the last paint) so hit-testing never depends on paint-cycle timing,
+        including against a canvas that has not yet been shown/painted."""
+        self._hit_regions = []
+        self._point_regions = []
+        vm = self._view_model
+        if vm is None or vm.empty_state_message is not None:
+            return
+        rect = QRectF(0, 0, self.width(), self.height())
+        if vm.heatmap_data is not None:
+            self._index_heatmap_hits(rect=rect, data=vm.heatmap_data)
+            return
+        if vm.chart_data is None:
+            return
+        if vm.chart_kind in _STACKED_KINDS:
+            self._index_stacked_hits(rect=rect, vm=vm)
+        elif vm.chart_kind in _BAR_KINDS:
+            self._index_bar_hits(rect=rect, vm=vm)
+        elif vm.chart_kind is ChartKind.PER_CATEGORY_BAR:
+            self._index_grouped_bar_hits(rect=rect, vm=vm)
+        elif vm.chart_kind in _SCATTER_KINDS:
+            self._index_scatter_hits(rect=rect, vm=vm)
 
     def _resolve_model(self, vm: ChartsViewModel, label: str) -> tuple[str, str] | None:
         for provider_id, model_name, provider_name in vm.filter_domains.models:
@@ -325,6 +338,7 @@ class _ChartCanvas(QWidget):
 
     @override
     def mousePressEvent(self, event: QMouseEvent) -> None:
+        self._recompute_hit_regions()
         position = event.position()
         for point, request in self._point_regions:
             if (point - position).manhattanLength() <= _POINT_HIT_RADIUS:
