@@ -121,3 +121,50 @@ class FileSystemActions(Protocol):
             OsAdapterError: The write failed (permission denied, disk full).
         """
         ...
+
+    def write_export_file_bytes(self, *, filename: str, content: bytes) -> str:
+        """Write raw ``content`` atomically into the exports folder
+        ``<app-data>/exports/`` (STORY-064 extension; 10_Domain_and_Data/
+        05_EXPORT_FORMATS.md §11) -- the binary counterpart of
+        ``write_export_file``, used for the Charts tab's PNG export.
+
+        fast-synchronous; must be called on the Qt main thread. Creates the
+        exports folder on first use. Applies the identical numeric-suffix
+        collision rule (§2.2) when ``filename`` already exists in the
+        folder. Writes to a temporary file in the same folder and atomically
+        renames it into place, so a failed write never leaves a partial file
+        (EC-RES-5).
+
+        Args:
+            filename: The canonical export filename, already composed by the
+                ``ExportFilenameHelper``.
+            content: The full binary file content to write.
+
+        Returns:
+            The absolute path of the file actually written, after the
+            collision-suffix rule is applied.
+
+        Raises:
+            OsAdapterError: The exports folder could not be created, or the
+                write failed (permission denied, disk full).
+        """
+        ...
+
+    def write_binary_file(self, *, path: str, content: bytes) -> None:
+        """Write raw ``content`` atomically to an arbitrary, already-chosen
+        ``path`` (STORY-064 extension) -- the binary counterpart of
+        ``write_text_file``, used for the Charts tab's indirect Save Picker
+        PNG export flow.
+
+        fast-synchronous; must be called on the Qt main thread. Writes to a
+        temporary file in the same folder and atomically renames it into
+        place, so a failed write never leaves a partial file (EC-RES-5).
+
+        Args:
+            path: The absolute destination path chosen by the native picker.
+            content: The full binary file content to write.
+
+        Raises:
+            OsAdapterError: The write failed (permission denied, disk full).
+        """
+        ...

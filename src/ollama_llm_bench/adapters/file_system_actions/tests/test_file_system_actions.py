@@ -251,3 +251,72 @@ def test_write_text_file_writes_to_arbitrary_chosen_path(tmp_path: Path) -> None
     actions.write_text_file(path=str(destination), content="# Title\n")
     # Assert
     assert destination.read_text(encoding="utf-8") == "# Title\n"
+
+
+def test_write_export_file_bytes_writes_raw_bytes_atomically(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-064 (FileSystemActions bytes-export extension)
+
+    write_export_file_bytes creates the exports folder on first use and
+    writes the exact raw bytes to ``<app-data>/exports/<filename>``.
+    """
+    # Arrange
+    exports_root = tmp_path / "app-data"
+    mocker.patch(
+        f"{_INTERNAL}.make_platform_detector",
+        return_value=mocker.Mock(detect=lambda: mocker.Mock(app_data_root=exports_root)),
+    )
+    actions = QtFileSystemActions(platform_identifier="linux")
+    payload = b"\x89PNG\r\n\x1a\n\x00\x01\x02"
+    # Act
+    written_path = actions.write_export_file_bytes(
+        filename="Run_1_Chart_avg_ttft.png", content=payload
+    )
+    # Assert
+    assert Path(written_path) == exports_root / "exports" / "Run_1_Chart_avg_ttft.png"
+    assert Path(written_path).read_bytes() == payload
+
+
+def test_write_export_file_bytes_applies_collision_suffix(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-064 (FileSystemActions bytes-export extension)
+
+    A filename collision in the exports folder is resolved by appending the
+    first free numeric suffix (05_EXPORT_FORMATS.md §2.2) -- identical rule
+    to the string-content ``write_export_file``.
+    """
+    # Arrange
+    exports_root = tmp_path / "app-data"
+    mocker.patch(
+        f"{_INTERNAL}.make_platform_detector",
+        return_value=mocker.Mock(detect=lambda: mocker.Mock(app_data_root=exports_root)),
+    )
+    (exports_root / "exports").mkdir(parents=True)
+    (exports_root / "exports" / "My_Run_Chart_avg_ttft.png").write_bytes(b"existing")
+    actions = QtFileSystemActions(platform_identifier="linux")
+    # Act
+    written_path = actions.write_export_file_bytes(
+        filename="My_Run_Chart_avg_ttft.png", content=b"new"
+    )
+    # Assert
+    assert Path(written_path) == exports_root / "exports" / "My_Run_Chart_avg_ttft_2.png"
+
+
+def test_write_binary_file_to_chosen_path(tmp_path: Path) -> None:
+    """Proves: STORY-064 (FileSystemActions bytes-export extension)
+
+    write_binary_file writes raw bytes atomically to an arbitrary path
+    already chosen by the native Save Picker -- no exports-folder or
+    collision logic, mirroring write_text_file's contract for bytes payloads.
+    """
+    # Arrange
+    destination = tmp_path / "Desktop" / "chosen_chart.svg"
+    destination.parent.mkdir()
+    actions = QtFileSystemActions(platform_identifier="linux")
+    payload = b"<svg></svg>"
+    # Act
+    actions.write_binary_file(path=str(destination), content=payload)
+    # Assert
+    assert destination.read_bytes() == payload

@@ -81,6 +81,23 @@ def _atomic_write(destination: Path, content: str) -> None:
         raise OsAdapterError(message=f"failed to write export file: {destination}") from exc
 
 
+def _atomic_write_bytes(destination: Path, content: bytes) -> None:
+    """Write raw ``content`` to a temp file beside ``destination``, then rename atomically.
+
+    The binary counterpart of ``_atomic_write`` (STORY-064) -- identical
+    temp-file-then-rename structure, only the open mode and payload type differ.
+    Leaves no partial file on failure (EC-RES-5).
+    """
+    fd, tmp_name = tempfile.mkstemp(dir=destination.parent, prefix=".export_tmp_")
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(content)
+        os.replace(tmp_name, destination)
+    except OSError as exc:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise OsAdapterError(message=f"failed to write export file: {destination}") from exc
+
+
 def _reveal_command(kind: PlatformKind, path: str) -> list[str]:
     """Build the per-OS reveal command (08-K §5). UNKNOWN falls back to Linux."""
     if kind is PlatformKind.MACOS:
@@ -150,6 +167,15 @@ class QtFileSystemActions:
 
     def write_text_file(self, *, path: str, content: str) -> None:
         _atomic_write(Path(path), content)
+
+    def write_export_file_bytes(self, *, filename: str, content: bytes) -> str:
+        exports_dir = Path(self.exports_folder_path())
+        final_path = _first_free_path(exports_dir, filename)
+        _atomic_write_bytes(final_path, content)
+        return str(final_path)
+
+    def write_binary_file(self, *, path: str, content: bytes) -> None:
+        _atomic_write_bytes(Path(path), content)
 
     def exports_folder_path(self) -> str:
         profile = make_platform_detector().detect()
