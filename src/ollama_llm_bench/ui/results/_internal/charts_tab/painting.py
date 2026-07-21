@@ -17,9 +17,11 @@ drawing helper's own parameter count within the project's limit.
 """
 
 from dataclasses import dataclass
+from pathlib import Path
+import tempfile
 
-from PySide6.QtCore import QBuffer, QByteArray, QPointF, QRect, QRectF, Qt
-from PySide6.QtGui import QBrush, QColor, QPainter, QPen, QPixmap
+from PySide6.QtCore import QPointF, QRect, QRectF, Qt
+from PySide6.QtGui import QBrush, QColor, QImage, QPainter, QPen
 from PySide6.QtSvg import QSvgGenerator
 
 from ollama_llm_bench.backend.domain import ChartData, ChartKind, ChartSeries, HeatmapData
@@ -592,39 +594,51 @@ def render_chart_png(
     *, chart_kind: ChartKind, data: ChartData | HeatmapData, tokens: ThemeTokens
 ) -> bytes:
     """Render the active chart off-screen at the fixed export resolution as PNG bytes
-    (charts_tab.md#12): the active theme's palette, not the OS palette (EC-RES-4)."""
-    pixmap = QPixmap(EXPORT_WIDTH, EXPORT_HEIGHT)
-    painter = QPainter(pixmap)
+    (charts_tab.md#12): the active theme's palette, not the OS palette (EC-RES-4).
+
+    Uses ``QImage`` (pure raster, no platform pixmap backend) rather than
+    ``QPixmap`` -- more robust for off-screen/headless rendering, which this
+    export path always is (charts_tab.md#12's fixed off-screen resolution).
+    """
+    image = QImage(EXPORT_WIDTH, EXPORT_HEIGHT, QImage.Format.Format_ARGB32)
+    painter = QPainter(image)
     try:
         _paint_export(painter, chart_kind=chart_kind, data=data, tokens=tokens)
     finally:
         painter.end()
-    byte_array = QByteArray()
-    buffer = QBuffer(byte_array)
-    buffer.open(QBuffer.OpenModeFlag.WriteOnly)
+    path = Path(tempfile.mkstemp(suffix=".png")[1])
     try:
-        pixmap.save(buffer, "PNG")
+        image.save(str(path), format=b"PNG")
+        return path.read_bytes()
     finally:
-        buffer.close()
-    return bytes(byte_array.data())
+        path.unlink(missing_ok=True)
 
 
 def render_chart_svg(
     *, chart_kind: ChartKind, data: ChartData | HeatmapData, tokens: ThemeTokens
 ) -> bytes:
     """Render the active chart off-screen at the fixed export resolution as SVG bytes
-    (charts_tab.md#12): the active theme's palette, not the OS palette (EC-RES-4)."""
-    byte_array = QByteArray()
-    buffer = QBuffer(byte_array)
-    buffer.open(QBuffer.OpenModeFlag.WriteOnly)
-    generator = QSvgGenerator()
-    generator.setOutputDevice(buffer)
-    generator.setSize(QRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT).size())
-    generator.setViewBox(QRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT))
-    painter = QPainter(generator)
+    (charts_tab.md#12): the active theme's palette, not the OS palette (EC-RES-4).
+
+    Writes to a temporary file via ``QSvgGenerator.setFileName`` rather than an
+    in-memory ``QBuffer`` -- the standard, well-supported ``QSvgGenerator``
+    output path; a ``QBuffer``-backed ``QIODevice`` output was found to corrupt
+    the process's Qt paint-engine state for a later off-screen render in the
+    same process (observed as an intermittent segfault in a later
+    ``QPixmap``/``QImage`` construction, reproducible only when both export
+    paths ran in the same pytest session).
+    """
+    path = Path(tempfile.mkstemp(suffix=".svg")[1])
     try:
-        _paint_export(painter, chart_kind=chart_kind, data=data, tokens=tokens)
+        generator = QSvgGenerator()
+        generator.setFileName(str(path))
+        generator.setSize(QRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT).size())
+        generator.setViewBox(QRect(0, 0, EXPORT_WIDTH, EXPORT_HEIGHT))
+        painter = QPainter(generator)
+        try:
+            _paint_export(painter, chart_kind=chart_kind, data=data, tokens=tokens)
+        finally:
+            painter.end()
+        return path.read_bytes()
     finally:
-        painter.end()
-    buffer.close()
-    return bytes(byte_array.data())
+        path.unlink(missing_ok=True)
