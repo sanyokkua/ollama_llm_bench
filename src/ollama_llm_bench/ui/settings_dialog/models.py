@@ -15,6 +15,10 @@ from enum import StrEnum
 
 import msgspec
 
+from ollama_llm_bench.adapters.clipboard import Clipboard
+from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
+from ollama_llm_bench.adapters.native_pickers import NativePickers
+from ollama_llm_bench.adapters.notification_service import NotificationService
 from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
     ModelName,
@@ -26,6 +30,7 @@ from ollama_llm_bench.backend.domain import (
 )
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.settings_dialog.protocols import SettingsGateway
+from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
 __all__: list[str] = [
     "DialogChromeViewModel",
@@ -37,6 +42,7 @@ __all__: list[str] = [
     "ProviderImportPreviewRow",
     "ProviderImportResult",
     "ProviderRow",
+    "SettingsDialogCollaborators",
     "SettingsImportPreview",
     "SettingsImportPreviewRow",
     "SettingsImportResult",
@@ -237,3 +243,36 @@ class DialogChromeViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False)
     save_state_text: str
     dirty: bool
     save_enabled: bool
+
+
+class SettingsDialogCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Bundles ``make_settings_dialog``'s collaborators (coding-style.md's
+    4-parameter hard maximum) -- one field per Protocol the module inventory
+    row for ``ui/settings_dialog/`` names. Declared here (not in ``api.py``) so
+    ``_internal/controller.py`` can depend on it directly without an
+    ``_internal`` -> ``..api`` import cycle (``project-structure.md``); ``api.py``
+    re-exports it unchanged.
+
+    Attributes:
+        gateway: The dialog's own ``SettingsGateway`` (D-R-06).
+        event_bus: Emits ``_provider_registry_reloaded``/``_app_settings_changed``
+            (STORY-067); subscribed to ``_app_readiness_changed`` (STORY-066).
+        native_pickers: The Export save picker / Import file picker (STORY-067).
+        clipboard: The Copy App-folder-path action (STORY-067).
+        file_system_actions: The three Open-folder buttons (STORY-067).
+        notifications: The save/export/import/reset toasts and the row-level
+            Test-connection gate-busy warning (STORY-066-AC-6).
+        theme_manager: Resolves theme roles for the Health Dot / Auth badge /
+            row-action delegates.
+        platform_kind: The host platform classification passed alongside
+            ``theme_manager`` to every themed custom-painted primitive.
+    """
+
+    gateway: SettingsGateway
+    event_bus: EventBus
+    native_pickers: NativePickers
+    clipboard: Clipboard
+    file_system_actions: FileSystemActions
+    notifications: NotificationService
+    theme_manager: ThemeManager | None = None
+    platform_kind: PlatformKind = PlatformKind.UNKNOWN

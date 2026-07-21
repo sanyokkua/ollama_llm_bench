@@ -8,15 +8,12 @@ declares the collaborators a later composition-root story wires.
 """
 
 import icontract
-import msgspec
 from PySide6.QtWidgets import QDialog, QWidget
 
-from ollama_llm_bench.adapters.clipboard import Clipboard
-from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
-from ollama_llm_bench.adapters.native_pickers import NativePickers
-from ollama_llm_bench.adapters.notification_service import NotificationService
-from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.settings_dialog._internal.controller import SettingsController
+from ollama_llm_bench.ui.settings_dialog._internal.general_tab.controller import (
+    GeneralTabController,
+)
 from ollama_llm_bench.ui.settings_dialog._internal.providers_tab.controller import (
     ProvidersTabController,
 )
@@ -25,46 +22,12 @@ from ollama_llm_bench.ui.settings_dialog._internal.providers_tab.embedding_secti
 )
 from ollama_llm_bench.ui.settings_dialog._internal.providers_tab.view import ProvidersTabWidget
 from ollama_llm_bench.ui.settings_dialog._internal.view import SettingsDialogView
-from ollama_llm_bench.ui.settings_dialog.models import EmbeddingSectionCollaborators
-from ollama_llm_bench.ui.settings_dialog.protocols import SettingsGateway
-from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
+from ollama_llm_bench.ui.settings_dialog.models import (
+    EmbeddingSectionCollaborators,
+    SettingsDialogCollaborators,
+)
 
 __all__: list[str] = ["SettingsDialogCollaborators", "make_settings_dialog"]
-
-
-class SettingsDialogCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Bundles ``make_settings_dialog``'s collaborators (coding-style.md's
-    4-parameter hard maximum) -- one field per Protocol the module inventory
-    row for ``ui/settings_dialog/`` names (``EventBus``, ``NotificationService``,
-    ``NativePickers``, ``Clipboard``, ``FileSystemActions``), even though this
-    story's controller and sub-dialog actively call only ``EventBus`` and
-    ``NotificationService`` -- the other three are retained collaborators
-    STORY-067's General tab (Open-folder buttons, Export/Import pickers,
-    Copy-path) uses without re-touching this factory's signature.
-
-    Attributes:
-        gateway: The dialog's own ``SettingsGateway`` (D-R-06).
-        event_bus: Emits ``_provider_registry_reloaded``/``_app_settings_changed``
-            (STORY-067); subscribed to ``_app_readiness_changed`` this story.
-        native_pickers: The Export save picker / Import file picker (STORY-067).
-        clipboard: The Copy App-folder-path action (STORY-067).
-        file_system_actions: The three Open-folder buttons (STORY-067).
-        notifications: The save/export/import/reset toasts and the row-level
-            Test-connection gate-busy warning (STORY-066-AC-6).
-        theme_manager: Resolves theme roles for the Health Dot / Auth badge /
-            row-action delegates.
-        platform_kind: The host platform classification passed alongside
-            ``theme_manager`` to every themed custom-painted primitive.
-    """
-
-    gateway: SettingsGateway
-    event_bus: EventBus
-    native_pickers: NativePickers
-    clipboard: Clipboard
-    file_system_actions: FileSystemActions
-    notifications: NotificationService
-    theme_manager: ThemeManager | None = None
-    platform_kind: PlatformKind = PlatformKind.UNKNOWN
 
 
 @icontract.require(
@@ -123,12 +86,14 @@ def make_settings_dialog(
         platform_kind=collaborators.platform_kind,
     )
     providers_controller.bind(providers_tab)
+    general_tab_controller = GeneralTabController(gateway=collaborators.gateway)
     dialog = SettingsDialogView(providers_tab=providers_tab, parent=parent)
     controller = SettingsController(
-        gateway=collaborators.gateway,
-        event_bus=collaborators.event_bus,
+        collaborators=collaborators,
         providers_controller=providers_controller,
+        general_tab_controller=general_tab_controller,
     )
     controller.bind_view(dialog)
+    dialog._controller = controller
     controller.load()
     return dialog

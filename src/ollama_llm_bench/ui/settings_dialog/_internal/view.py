@@ -9,6 +9,8 @@ STORY-067's (the atomic transactions they commit are out of this story's
 scope); only the save-state indicator and Close are rendered this story.
 """
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -22,6 +24,9 @@ from PySide6.QtWidgets import (
 from ollama_llm_bench.ui.settings_dialog._internal.providers_tab.view import ProvidersTabWidget
 from ollama_llm_bench.ui.settings_dialog.models import DialogChromeViewModel
 
+if TYPE_CHECKING:
+    from ollama_llm_bench.ui.settings_dialog._internal.controller import SettingsController
+
 __all__: list[str] = ["SettingsDialogView"]
 
 
@@ -33,6 +38,7 @@ class SettingsDialogView(QDialog):
         self.setObjectName("settings_dialog.view")
         self.setWindowTitle("Settings")
         self._providers_tab = providers_tab
+        self._controller: SettingsController | None = None
         self._build_ui()
 
     def _build_ui(self) -> None:

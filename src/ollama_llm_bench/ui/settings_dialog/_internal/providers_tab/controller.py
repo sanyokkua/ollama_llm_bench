@@ -108,6 +108,12 @@ class ProvidersTabController:
             config != self._original_by_id.get(config.provider_id) for config in self._configs
         ) or len(self._configs) != len(self._original_by_id)
 
+    @property
+    def working_configs(self) -> tuple[ProviderConfig, ...]:
+        """The current in-memory provider catalog (STORY-067 Save/Reset/
+        validation read this to assemble the atomic-transaction payload)."""
+        return self._configs
+
     def bind(self, view: ProvidersTabWidget) -> None:
         """Wire the view's Qt signals to this controller's handlers."""
         self._view = view

@@ -1,8 +1,8 @@
 """Tests for ``SettingsController``/``ProvidersTabController`` and the dialog
-shell factory (STORY-066-AC-6, AC-7, AC-8).
+shell factory (STORY-066-AC-6, AC-7, AC-8; extended by STORY-067).
 """
 
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import msgspec
 from PySide6.QtCore import QAbstractTableModel
@@ -25,6 +25,9 @@ from ollama_llm_bench.backend.domain import (
 )
 from ollama_llm_bench.backend.events import SIGNAL_APP_READINESS_CHANGED, AppReadinessChangedEvent
 from ollama_llm_bench.ui.settings_dialog._internal.controller import SettingsController
+from ollama_llm_bench.ui.settings_dialog._internal.general_tab.controller import (
+    GeneralTabController,
+)
 from ollama_llm_bench.ui.settings_dialog._internal.providers_tab.controller import (
     ProvidersTabController,
 )
@@ -35,6 +38,9 @@ from ollama_llm_bench.ui.settings_dialog.api import (
 from ollama_llm_bench.ui.settings_dialog.models import DialogChromeViewModel
 from ollama_llm_bench.ui.settings_dialog.testing import FakeSettingsGateway
 from ollama_llm_bench.ui.settings_dialog.tests.conftest import PROVIDER_A, FakeEventBus
+
+if TYPE_CHECKING:
+    from ollama_llm_bench.ui.settings_dialog._internal.view import SettingsDialogView
 
 
 class _RowsExposingModel:
@@ -48,6 +54,15 @@ def _rows(model: QAbstractTableModel) -> tuple[ProviderTableRow, ...]:
     return cast("_RowsExposingModel", model).rows
 
 
+def _controller_of(dialog: object) -> SettingsController:
+    """STORY-067 test helper: reach the constructed ``SettingsController``
+    behind a ``make_settings_dialog`` ``QDialog`` (its public return type
+    carries no ``_controller`` attribute -- this cast is test-only)."""
+    controller = cast("SettingsDialogView", dialog)._controller
+    assert controller is not None
+    return controller
+
+
 class _FakeChromeApplier:
     """A minimal ``_ChromeApplier`` test double -- records every chrome push."""
 
@@ -56,6 +71,24 @@ class _FakeChromeApplier:
 
     def apply_chrome(self, chrome: DialogChromeViewModel) -> None:
         self.applied.append(chrome)
+
+
+def _make_collaborators(
+    *,
+    gateway: FakeSettingsGateway,
+    event_bus: FakeEventBus | None = None,
+    mocker: MockerFixture,
+) -> SettingsDialogCollaborators:
+    """Shared STORY-067 test helper: the full ``SettingsDialogCollaborators``
+    bundle a fake ``SettingsGateway`` needs to drive ``make_settings_dialog``."""
+    return SettingsDialogCollaborators(
+        gateway=gateway,
+        event_bus=event_bus if event_bus is not None else FakeEventBus(),
+        native_pickers=FakeNativePickers(),
+        clipboard=mocker.Mock(spec=Clipboard),
+        file_system_actions=mocker.Mock(spec=FileSystemActions),
+        notifications=FakeNotificationService(),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -155,7 +188,7 @@ def test_test_connection_gate_busy_notifies_and_leaves_health_unchanged() -> Non
 # ---------------------------------------------------------------------------
 
 
-def test_auto_check_on_open_requests_probe_all() -> None:
+def test_auto_check_on_open_requests_probe_all(mocker: MockerFixture) -> None:
     """Proves: STORY-066-AC-7
 
     Given the Settings dialog opens, when it enters its Opening state, then
@@ -168,7 +201,9 @@ def test_auto_check_on_open_requests_probe_all() -> None:
         gateway=gateway, event_bus=FakeEventBus(), notifications=FakeNotificationService()
     )
     controller = SettingsController(
-        gateway=gateway, event_bus=FakeEventBus(), providers_controller=providers_controller
+        collaborators=_make_collaborators(gateway=gateway, mocker=mocker),
+        providers_controller=providers_controller,
+        general_tab_controller=GeneralTabController(gateway=gateway),
     )
     # Act
     controller.load()
@@ -177,7 +212,7 @@ def test_auto_check_on_open_requests_probe_all() -> None:
     assert providers_controller.table_model.rowCount() == 1
 
 
-def test_readiness_refresh_repaints_health_from_fresh_gateway_read() -> None:
+def test_readiness_refresh_repaints_health_from_fresh_gateway_read(mocker: MockerFixture) -> None:
     """Proves: STORY-066-AC-7
 
     Given a readiness probe resolves, when ``_app_readiness_changed`` fires,
@@ -192,7 +227,9 @@ def test_readiness_refresh_repaints_health_from_fresh_gateway_read() -> None:
         gateway=gateway, event_bus=bus, notifications=FakeNotificationService()
     )
     controller = SettingsController(
-        gateway=gateway, event_bus=bus, providers_controller=providers_controller
+        collaborators=_make_collaborators(gateway=gateway, event_bus=bus, mocker=mocker),
+        providers_controller=providers_controller,
+        general_tab_controller=GeneralTabController(gateway=gateway),
     )
     controller.bind_view(_FakeChromeApplier())
     controller.load()
@@ -295,3 +332,127 @@ def test_settings_dialog_constructs_and_shows_with_no_error_logs(
     # Assert
     assert dialog.isVisible()
     assert not any(entry["log_level"] in {"error", "critical"} for entry in logs)
+
+
+# ---------------------------------------------------------------------------
+# STORY-067
+# ---------------------------------------------------------------------------
+
+
+def test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067-AC-3
+
+    Given a dirty dialog with no hard error, when Save Changes is clicked, then
+    both stores are written through the Gateway and, on commit,
+    `_provider_registry_reloaded` and `_app_settings_changed` are emitted and
+    the dialog becomes clean.
+    """
+    gateway = FakeSettingsGateway()
+    gateway.set_providers((PROVIDER_A,))
+    gateway.set_setting_value("ui.theme", "system")
+    bus = FakeEventBus()
+    dialog = make_settings_dialog(
+        collaborators=_make_collaborators(gateway=gateway, event_bus=bus, mocker=mocker)
+    )
+    qtbot.addWidget(dialog)
+    dialog.show()
+    controller = _controller_of(dialog)
+
+    controller._general_tab_controller.set_value("ui.theme", "dark")
+    controller.on_save_clicked()
+
+    assert gateway.replace_providers_calls == [(PROVIDER_A,)]
+    assert gateway.upsert_settings_calls[-1]["ui.theme"] == "dark"
+    assert bus.emitted_signal_names().count("_provider_registry_reloaded") == 1
+    assert bus.emitted_signal_names().count("_app_settings_changed") == 1
+    assert controller.is_dirty is False
+
+
+def test_save_writes_nothing_when_a_hard_error_is_present(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067-AC-2
+
+    A hard-error finding blocks Save entirely -- nothing is written.
+    """
+    gateway = FakeSettingsGateway()
+    bus = FakeEventBus()
+    dialog = make_settings_dialog(
+        collaborators=_make_collaborators(gateway=gateway, event_bus=bus, mocker=mocker)
+    )
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+
+    controller._general_tab_controller.set_value("benchmark.min_timeout_seconds", "")
+    controller.on_save_clicked()
+
+    assert gateway.replace_providers_calls == []
+    assert gateway.upsert_settings_calls == []
+
+
+def test_reset_confirmed_wipes_and_reseeds_atomically(qtbot: QtBot, mocker: MockerFixture) -> None:
+    """Proves: STORY-067-AC-5
+
+    Confirming Reset to Defaults runs the wipe-and-reseed transaction,
+    discarding unsaved edits, and emits both events.
+    """
+    gateway = FakeSettingsGateway()
+    bus = FakeEventBus()
+    dialog = make_settings_dialog(
+        collaborators=_make_collaborators(gateway=gateway, event_bus=bus, mocker=mocker)
+    )
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+    controller._general_tab_controller.set_value("ui.theme", "dark")  # unsaved edit
+
+    fake_confirmation_dialog = mocker.Mock(confirmed=True)
+    mocker.patch(
+        "ollama_llm_bench.ui.settings_dialog._internal.controller.make_reset_confirmation_dialog",
+        return_value=fake_confirmation_dialog,
+    )
+
+    controller.on_reset_clicked()
+
+    assert len(gateway.replace_providers_calls) == 1
+    assert gateway.upsert_settings_calls[-1]["ui.theme"] == "system"  # discarded, reset to default
+    assert bus.emitted_signal_names().count("_provider_registry_reloaded") == 1
+    assert bus.emitted_signal_names().count("_app_settings_changed") == 1
+
+
+def test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067-AC-6
+
+    A dirty dialog's Close opens the Discard-changes confirmation; Cancel
+    keeps the dialog open with the working copy intact.
+    """
+    gateway = FakeSettingsGateway()
+    dialog = make_settings_dialog(collaborators=_make_collaborators(gateway=gateway, mocker=mocker))
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+    controller._general_tab_controller.set_value("ui.theme", "dark")
+
+    mocker.patch.object(controller, "_confirm_discard_changes", return_value=False)  # Cancel
+
+    should_close = controller.on_close_requested()
+
+    assert should_close is False
+    assert controller._general_tab_controller.values_for_save()["ui.theme"] == "dark"
+
+
+def test_close_when_clean_closes_immediately(qtbot: QtBot, mocker: MockerFixture) -> None:
+    """Proves: STORY-067-AC-6
+
+    A clean dialog's Close dismisses it immediately, no confirmation shown.
+    """
+    gateway = FakeSettingsGateway()
+    dialog = make_settings_dialog(collaborators=_make_collaborators(gateway=gateway, mocker=mocker))
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+
+    should_close = controller.on_close_requested()
+
+    assert should_close is True

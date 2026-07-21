@@ -44,6 +44,7 @@ class FakeEventBus:
 
     def __init__(self) -> None:
         self._handlers: dict[str, list[Callable[[object], None]]] = {}
+        self._emitted_signal_names: list[str] = []
 
     def subscribe(
         self, signal_name: str, handler: Callable[[object], None], owner: object | None = None
@@ -56,8 +57,13 @@ class FakeEventBus:
         return FakeSubscription(_cancel)
 
     def emit(self, signal_name: str, payload: object) -> None:
+        self._emitted_signal_names.append(signal_name)
         for handler in list(self._handlers.get(signal_name, [])):
             handler(payload)
+
+    def emitted_signal_names(self) -> list[str]:
+        """Test helper (STORY-067): every signal name passed to ``emit``, in order."""
+        return list(self._emitted_signal_names)
 
 
 @pytest.fixture
