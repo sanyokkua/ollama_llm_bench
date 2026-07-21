@@ -1,10 +1,12 @@
-"""Shared fixtures for ``ui/settings_dialog/tests/`` (STORY-066).
+"""Shared fixtures for ``ui/settings_dialog/tests/`` (STORY-066, extended by
+STORY-067).
 
 Mirrors ``ui/common_dialogs/tests/test_generate_analysis_dialog.py``'s locally-
 declared, in-process synchronous ``EventBus`` test double.
 """
 
 from collections.abc import Callable
+import uuid
 
 import pytest
 
@@ -61,3 +63,24 @@ class FakeEventBus:
 @pytest.fixture
 def fake_event_bus() -> FakeEventBus:
     return FakeEventBus()
+
+
+@pytest.fixture
+def provider_config_factory() -> Callable[..., ProviderConfig]:
+    """Build a ``ProviderConfig`` with sane defaults, overridable per test
+    (STORY-067) -- a lighter-weight alternative to hand-writing a full
+    ``ProviderConfig`` when a test only cares about one or two fields (e.g.
+    ``name``, ``api_key_raw``)."""
+
+    def _make(**overrides: object) -> ProviderConfig:
+        defaults: dict[str, object] = {
+            "provider_id": str(uuid.uuid4()),
+            "name": "Test Provider",
+            "provider_type": ProviderType.OPENAI_COMPATIBLE,
+            "base_url": "http://localhost:11434/v1",
+            "enabled": True,
+        }
+        defaults.update(overrides)
+        return ProviderConfig(**defaults)  # type: ignore[arg-type]  # kwargs assembled dynamically from a typed-default dict
+
+    return _make

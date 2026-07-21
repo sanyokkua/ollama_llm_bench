@@ -1,11 +1,15 @@
 """``FakeSettingsGateway`` -- an in-memory test double for ``ui/settings_dialog/``'s
-``SettingsGateway`` swap point (STORY-066).
+``SettingsGateway`` swap point (STORY-066, extended by STORY-067).
 
 No real I/O; the provider catalog, settings, and probe results are held in plain
 Python containers and are externally settable by a test. Mirrors the
 fake-construction pattern already used by ``ui.new_benchmark.testing``'s
-``FakeNewBenchmarkGateway``.
+``FakeNewBenchmarkGateway``. STORY-067 adds call-tracking lists for the two
+Save/Reset write methods (so a test can assert the atomic transaction actually
+invoked both) plus scriptable fakes for the six Import/Export methods.
 """
+
+from typing import TYPE_CHECKING
 
 from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
@@ -18,6 +22,14 @@ from ollama_llm_bench.backend.domain import (
     ReadinessState,
     SettingKey,
 )
+
+if TYPE_CHECKING:
+    from ollama_llm_bench.ui.settings_dialog.models import (
+        ProviderImportPreview,
+        ProviderImportResult,
+        SettingsImportPreview,
+        SettingsImportResult,
+    )
 
 __all__: list[str] = ["FakeSettingsGateway"]
 
@@ -36,6 +48,13 @@ class FakeSettingsGateway:
         recorded_probe_embedding_calls: The count of ``probe_embedding()`` calls.
         recorded_discover_models_calls: Every ``provider_id`` passed to
             ``discover_models``, in call order.
+        replace_providers_calls: Every ``configs`` tuple passed to a
+            successful ``replace_providers`` call, in call order (STORY-067) --
+            a scripted raise (``raise_on_next_replace_providers``) is not
+            recorded, matching the real store's all-or-nothing write.
+        upsert_settings_calls: Every ``values`` dict passed to a successful
+            ``upsert_settings`` call (including via ``apply_settings_import``),
+            in call order (STORY-067); a scripted raise is not recorded.
     """
 
     def __init__(self) -> None:
@@ -48,6 +67,76 @@ class FakeSettingsGateway:
         self.recorded_probe_all_calls = 0
         self.recorded_probe_embedding_calls = 0
         self.recorded_discover_models_calls: list[str] = []
+        self.replace_providers_calls: list[tuple[ProviderConfig, ...]] = []
+        self.upsert_settings_calls: list[dict[SettingKey, str]] = []
+        self._raise_on_next_replace_providers: Exception | None = None
+        self._raise_on_next_upsert_settings: Exception | None = None
+        self._settings_import_preview: SettingsImportPreview | None = None
+        self._provider_import_preview: ProviderImportPreview | None = None
+        self._settings_import_result: SettingsImportResult | None = None
+        self._provider_import_result: ProviderImportResult | None = None
+        self._export_settings_bytes: bytes = b""
+        self._export_providers_bytes: bytes = b""
+
+    def build_settings_import_preview(self, file_path: str) -> "SettingsImportPreview":  # noqa: ARG002  # canned fake: path unused by design
+        if self._settings_import_preview is None:
+            raise RuntimeError("call set_settings_import_preview first")
+        return self._settings_import_preview
+
+    def apply_settings_import(self, preview: "SettingsImportPreview") -> "SettingsImportResult":
+        self.upsert_settings_calls.append(dict(preview.resolved_values))
+        self._settings.update(preview.resolved_values)
+        if self._settings_import_result is None:
+            raise RuntimeError("call set_settings_import_result first")
+        return self._settings_import_result
+
+    def build_provider_import_preview(self, file_path: str) -> "ProviderImportPreview":  # noqa: ARG002  # canned fake: path unused by design
+        if self._provider_import_preview is None:
+            raise RuntimeError("call set_provider_import_preview first")
+        return self._provider_import_preview
+
+    def apply_provider_import(self, preview: "ProviderImportPreview") -> "ProviderImportResult":  # noqa: ARG002  # canned fake: preview unused by design
+        if self._provider_import_result is None:
+            raise RuntimeError("call set_provider_import_result first")
+        return self._provider_import_result
+
+    def export_settings(self) -> bytes:
+        return self._export_settings_bytes
+
+    def export_providers(self) -> bytes:
+        return self._export_providers_bytes
+
+    def set_settings_import_preview(self, preview: "SettingsImportPreview") -> None:
+        """Test helper: script ``build_settings_import_preview``'s return value."""
+        self._settings_import_preview = preview
+
+    def set_provider_import_preview(self, preview: "ProviderImportPreview") -> None:
+        """Test helper: script ``build_provider_import_preview``'s return value."""
+        self._provider_import_preview = preview
+
+    def set_settings_import_result(self, result: "SettingsImportResult") -> None:
+        """Test helper: script ``apply_settings_import``'s return value."""
+        self._settings_import_result = result
+
+    def set_provider_import_result(self, result: "ProviderImportResult") -> None:
+        """Test helper: script ``apply_provider_import``'s return value."""
+        self._provider_import_result = result
+
+    def set_export_settings_bytes(self, payload: bytes) -> None:
+        """Test helper: script ``export_settings``'s return value."""
+        self._export_settings_bytes = payload
+
+    def set_export_providers_bytes(self, payload: bytes) -> None:
+        """Test helper: script ``export_providers``'s return value."""
+        self._export_providers_bytes = payload
+
+    def raise_on_next_replace_providers(self, exc: Exception) -> None:
+        """Test helper: make the next ``replace_providers`` call raise ``exc``."""
+        self._raise_on_next_replace_providers = exc
+
+    def raise_on_next_upsert_settings(self, exc: Exception) -> None:
+        """Test helper: make the next ``upsert_settings`` call raise ``exc``."""
+        self._raise_on_next_upsert_settings = exc
 
     def list_providers(self) -> tuple[ProviderConfig, ...]:
         return self._providers
@@ -56,6 +145,13 @@ class FakeSettingsGateway:
         return next((p for p in self._providers if p.name == name), None)
 
     def replace_providers(self, configs: tuple[ProviderConfig, ...]) -> None:
+        if self._raise_on_next_replace_providers is not None:
+            exc, self._raise_on_next_replace_providers = (
+                self._raise_on_next_replace_providers,
+                None,
+            )
+            raise exc
+        self.replace_providers_calls.append(configs)
         self._providers = configs
 
     def get_setting(self, key: SettingKey) -> str | None:
@@ -65,6 +161,10 @@ class FakeSettingsGateway:
         return dict(self._settings)
 
     def upsert_settings(self, values: dict[SettingKey, str]) -> None:
+        if self._raise_on_next_upsert_settings is not None:
+            exc, self._raise_on_next_upsert_settings = self._raise_on_next_upsert_settings, None
+            raise exc
+        self.upsert_settings_calls.append(dict(values))
         self._settings.update(values)
 
     def get_resolved_str(self, key: SettingKey) -> str:
