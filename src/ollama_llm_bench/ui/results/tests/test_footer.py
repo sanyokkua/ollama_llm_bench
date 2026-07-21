@@ -197,6 +197,75 @@ def test_save_destination_toggle_direct_vs_picker() -> None:
     assert any(path.startswith("/app-data/exports/") for path in fs_actions.written)
 
 
+class _FakeChartExportSource:
+    """A test double for ``ChartExportSourceProtocol`` (STORY-064)."""
+
+    def __init__(self, *, payload: bytes = b"\x89PNG\r\n\x1a\n") -> None:
+        self._payload = payload
+        self.fmt_calls: list[str] = []
+
+    def render_chart_export(self, *, fmt: str) -> bytes:
+        self.fmt_calls.append(fmt)
+        return self._payload
+
+
+def test_chart_export_writes_bytes_via_direct_write() -> None:
+    """Proves: STORY-064 (FooterController bytes-export extension)
+
+    Clicking Export PNG on the Charts tab renders through the attached
+    ``ChartExportSourceProtocol`` and writes the resulting bytes via
+    ``FileSystemActions.write_export_file_bytes`` (the exports-folder direct
+    write), not the string-only ``write_export_file`` path.
+    """
+    # Arrange
+    run = make_run(1, run_name="My Run")
+    gateway = FakeResultGateway(runs=(run,), results_by_run_id={1: (_completed_result(1),)})
+    gateway.set_setting("ui.export_save_directly", "true")
+    fs_actions = FakeFileSystemActions()
+    footer = FooterController(
+        collaborators=_build_collaborators(gateway=gateway, file_system_actions=fs_actions)
+    )
+    chart_source = _FakeChartExportSource()
+    footer.set_chart_export_source(chart_source)
+    footer.set_context(run_id=1, active_tab="charts", live=False)
+    # Act
+    footer.on_export_clicked("Export PNG")
+    # Assert
+    assert chart_source.fmt_calls == ["png"]
+    assert fs_actions.written == {}
+    assert len(fs_actions.written_bytes) == 1
+    written_path, written_content = next(iter(fs_actions.written_bytes.items()))
+    assert "My_Run_Chart.png" in written_path
+    assert written_content == b"\x89PNG\r\n\x1a\n"
+
+
+def test_chart_export_writes_bytes_via_save_picker() -> None:
+    """Proves: STORY-064 (FooterController bytes-export extension)
+
+    With the save-directly toggle off, Export SVG on the Charts tab writes
+    the rendered bytes via ``FileSystemActions.write_binary_file`` to the
+    Save Picker's chosen path.
+    """
+    # Arrange
+    run = make_run(1, run_name="My Run")
+    gateway = FakeResultGateway(runs=(run,), results_by_run_id={1: (_completed_result(1),)})
+    fs_actions = FakeFileSystemActions()
+    native_pickers = FakeNativePickers(chosen_path="/desktop/My_Run_Chart.svg")
+    footer = FooterController(
+        collaborators=_build_collaborators(
+            gateway=gateway, file_system_actions=fs_actions, native_pickers=native_pickers
+        )
+    )
+    chart_source = _FakeChartExportSource(payload=b"<svg></svg>")
+    footer.set_chart_export_source(chart_source)
+    footer.set_context(run_id=1, active_tab="charts", live=False)
+    # Act
+    footer.on_export_clicked("Export SVG")
+    # Assert
+    assert chart_source.fmt_calls == ["svg"]
+    assert fs_actions.written_bytes == {"/desktop/My_Run_Chart.svg": b"<svg></svg>"}
+
+
 def test_save_destination_toggle_parity_across_two_footer_instances() -> None:
     """Proves: STORY-061-AC-5
 
