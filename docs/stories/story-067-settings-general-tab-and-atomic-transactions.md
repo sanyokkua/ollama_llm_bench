@@ -325,7 +325,9 @@ fixed in place in this same story (not split into a new story):
 - **EC-SET-4 citation verified, not removed.** The review flagged a possible misattribution, but
   `14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md` (the canonical mapping) scopes
   `EC-SET-4` to `ui/settings_dialog/` as "Reset to Defaults with unsaved edits shows a
-  confirmation" — exactly what this story's `test_reset_wipes_and_reseeds_atomically` already
+  confirmation" — exactly what this story's
+  `test_reset_replace_providers_wipes_and_reseeds_atomically` (renamed by the second
+  spec-conformance fix pass below; formerly `test_reset_wipes_and_reseeds_atomically`) already
   covers. A *different* "EC-SET-4" (Settings blocked mid-run) exists in
   `06_Settings_Dialog/description.md`/`state_machine.md` and `01_Main_Window/*` — an apparent
   duplicate-ID reuse across unrelated features in the vendored spec, out of this story's scope
@@ -334,3 +336,60 @@ fixed in place in this same story (not split into a new story):
 - Deferred per explicit instruction, not fixed here: EC-SET-3's "cleared numeric field is only
   testable at the pure-function level, not through a real `QSpinBox`" limitation (a genuine Qt
   widget constraint — `QSpinBox` cannot be blanked).
+
+### Second spec-conformance review fixes (residual-gap amendment)
+
+A second independent spec-conformance review returned "CONFORMS WITH CONCERNS" — two residual
+gaps, fixed in place in this same story:
+
+- **`tests/integration/test_settings_reset.py` rewritten against real stores, not fabricated.**
+  Investigated what is actually real today: `SqliteProvidersStore.replace_providers`
+  (`backend/persistence/providers/_internal/store_impl.py`) already is a genuine atomic
+  `BEGIN IMMEDIATE` / delete-then-insert / commit-or-rollback SQLite transaction — real and
+  independently testable. `AppSettingsStore`, by contrast, exposes only `get_setting`,
+  `upsert_settings` (a merge-style write, never a wipe), `list_settings`, and
+  `get_schema_version` — there is **no delete-all-rows method** anywhere in its real
+  implementation or Protocol today. The rewritten file now has four tests:
+  `test_reset_replace_providers_wipes_and_reseeds_atomically` (the prior file's real-store
+  assertion, kept, with the settings-side `upsert_settings` call removed since it was never
+  proving anything the Fake-level tests don't already cover more precisely);
+  `test_reset_replace_providers_rolls_back_on_constraint_violation` (new — seeds a custom
+  provider, forces a real `UNIQUE (name)` violation partway through a `replace_providers` call
+  with two colliding rows, and asserts the prior catalog survives unchanged, proving the
+  rollback is real and not merely sequential); `test_settings_wipe_has_no_real_delete_all_method_yet`
+  (documents the real gap by asserting `AppSettingsStore`'s current public surface, so the day a
+  delete-all method is added this test starts failing and the gap must be revisited); and
+  `test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row` (asserts
+  `SettingsGateway.reset_to_defaults`'s own docstring commits the concrete Phase 11 adapter to
+  the full wipe-and-reseed contract). The settings-wipe half's actual behavioural coverage
+  remains, honestly, only at the Fake level:
+  `ui/settings_dialog/tests/test_fake_gateway.py:: test_reset_to_defaults_failure_leaves_recorded_state_completely_unchanged` — a real-store test
+  for that half will become possible, and should be added, once Phase 11 gives
+  `AppSettingsStore` a real delete-all capability.
+- **`controller.py`'s stale module docstring corrected.** It still described the abandoned
+  "calls `replace_providers` followed by `upsert_settings` in sequence" two-call Save/Reset
+  behaviour superseded by the first fix pass's `save_all`/`reset_to_defaults` atomic Gateway
+  methods; the docstring now describes the current reality.
+- **The single footer `Import…` button now routes by detected file kind.** Read
+  `06_Settings_Dialog/description.md` §5 (the footer table lists exactly one `Import…` control)
+  and `mockup.html` (both display states, lines 273-274/452-453, show exactly one `Import…`
+  button) — confirmed the spec/mockup intends one entry point, not two, even though
+  `10_Domain_and_Data/06_IMPORT_FORMATS.md` §1 defines two distinct import actions (Import
+  Settings / Import Provider Configuration) "both in the Settings dialog". `on_import_clicked`
+  now opens the picker once, then calls a new `_detect_import_kind` helper that peeks the
+  parsed file's top-level `kind` field (`06_IMPORT_FORMATS.md` §3/§4), falling back to a
+  top-level `providers` key when `kind` is absent, and routes to whichever of the two
+  already-implemented preview flows applies (extracted into `_apply_settings_import`/
+  `_apply_provider_import` private helpers to avoid duplicating either flow's body).
+  `on_import_provider_config_clicked` is kept as a direct, detection-bypassing entry point for a
+  caller that already knows the file's kind, but the footer's one button now reaches both flows.
+  Considered building the mockup's fancier combined single-preview-modal (`Providers` +
+  `Settings` + `Errors` sections in one dialog, shown in `mockup.html`'s "Import preview modal"
+  section) — rejected as out of this residual fix's scope: it would mean redesigning both
+  `SettingsImportPreview`/`ProviderImportPreview` into one combined DTO and rebuilding
+  `import_preview_view.py`, a new-story-sized change, not a wiring fix. A new
+  `test_import_button_routes_exported_provider_config_file_back_through_provider_import` in
+  `ui/settings_dialog/tests/test_controller.py` proves the round trip end-to-end: it writes both
+  real Export… sibling files to disk via `on_export_clicked`, then feeds the exact
+  provider-catalog path back into `on_import_clicked` and asserts it is recognised and applied
+  through the provider-import flow (not the settings flow).

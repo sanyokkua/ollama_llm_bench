@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T16:10:02Z'
+generated_at: '2026-07-21T16:29:21Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4438,10 +4438,14 @@ stories:
       STORY-067-AC-4:
         tests:
         - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_button_routes_exported_provider_config_file_back_through_provider_import
       STORY-067-AC-5:
         tests:
         - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
-        - tests/integration/test_settings_reset.py::test_reset_wipes_and_reseeds_atomically
+        - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
+        - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
+        - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
+        - tests/integration/test_settings_reset.py::test_settings_wipe_has_no_real_delete_all_method_yet
       STORY-067-AC-6:
         tests:
         - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
@@ -8128,12 +8132,16 @@ edge_cases:
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_button_routes_exported_provider_config_file_back_through_provider_import
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_nothing_when_a_hard_error_is_present
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_shows_general_tab_and_all_footer_buttons
     - tests/architecture/test_story_067_settings_general_and_transactions.py::test_general_tab_registers_no_setting_key_outside_field_registry
-    - tests/integration/test_settings_reset.py::test_reset_wipes_and_reseeds_atomically
+    - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
+    - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
+    - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
+    - tests/integration/test_settings_reset.py::test_settings_wipe_has_no_real_delete_all_method_yet
     - tests/integration/test_settings_save.py::test_atomic_save_writes_both_and_emits_events
   EC-SET-3:
     stories:
@@ -8142,12 +8150,16 @@ edge_cases:
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_button_routes_exported_provider_config_file_back_through_provider_import
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_nothing_when_a_hard_error_is_present
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_shows_general_tab_and_all_footer_buttons
     - tests/architecture/test_story_067_settings_general_and_transactions.py::test_general_tab_registers_no_setting_key_outside_field_registry
-    - tests/integration/test_settings_reset.py::test_reset_wipes_and_reseeds_atomically
+    - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
+    - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
+    - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
+    - tests/integration/test_settings_reset.py::test_settings_wipe_has_no_real_delete_all_method_yet
     - tests/integration/test_settings_save.py::test_atomic_save_writes_both_and_emits_events
   EC-SET-4:
     stories:
@@ -8156,12 +8168,16 @@ edge_cases:
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_button_routes_exported_provider_config_file_back_through_provider_import
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_nothing_when_a_hard_error_is_present
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_shows_general_tab_and_all_footer_buttons
     - tests/architecture/test_story_067_settings_general_and_transactions.py::test_general_tab_registers_no_setting_key_outside_field_registry
-    - tests/integration/test_settings_reset.py::test_reset_wipes_and_reseeds_atomically
+    - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
+    - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
+    - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
+    - tests/integration/test_settings_reset.py::test_settings_wipe_has_no_real_delete_all_method_yet
     - tests/integration/test_settings_save.py::test_atomic_save_writes_both_and_emits_events
   EC-TASK-1:
     stories:
