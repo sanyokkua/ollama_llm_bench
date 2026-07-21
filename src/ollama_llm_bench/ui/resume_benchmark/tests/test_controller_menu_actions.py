@@ -95,6 +95,12 @@ class _FakeFileSystemActions:
     def write_text_file(self, *, path: str, content: str) -> None:
         raise NotImplementedError
 
+    def write_export_file_bytes(self, *, filename: str, content: bytes) -> str:
+        raise NotImplementedError
+
+    def write_binary_file(self, *, path: str, content: bytes) -> None:
+        raise NotImplementedError
+
     def exports_folder_path(self) -> str:
         raise NotImplementedError
 
