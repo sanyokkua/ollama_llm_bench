@@ -513,4 +513,5 @@ def test_export_uses_active_theme_palette(mocker: MockerFixture) -> None:
     # Assert
     image = QImage.fromData(payload)
     assert not image.isNull()
+    assert (image.width(), image.height()) == (painting.EXPORT_WIDTH, painting.EXPORT_HEIGHT)
     assert image.pixelColor(0, 0) == expected
