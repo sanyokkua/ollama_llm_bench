@@ -98,6 +98,7 @@ def make_settings_dialog(
         general_tab_controller=general_tab_controller,
     )
     controller.bind_view(dialog)
+    providers_controller.set_on_changed(controller.on_providers_changed)
     dialog._controller = controller
     general_tab_view.value_edited.connect(controller.on_general_field_edited)
     general_tab_view.copy_app_data_path_clicked.connect(controller.on_copy_app_data_path_clicked)

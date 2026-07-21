@@ -10,6 +10,7 @@ Edit sub-dialog is a deferred import (matching
 sibling sub-packages.
 """
 
+from collections.abc import Callable
 import os
 
 import msgspec
@@ -97,7 +98,17 @@ class ProvidersTabController:
         self._session_added_ids: set[str] = set()
         self.table_model = make_providers_table_model(rows=())
         self._view: ProvidersTabWidget | None = None
+        self._on_changed: Callable[[], None] = lambda: None
         logger.debug("providers_tab_controller_constructed")
+
+    def set_on_changed(self, callback: Callable[[], None]) -> None:
+        """Register a callback invoked after every working-catalog mutation
+        (spec-conformance fix): wired by ``api.py`` to the parent
+        ``SettingsController.on_providers_changed`` so the dialog chrome
+        (dirty asterisk, save-state text, Save-button enablement) stays live
+        after a Providers-tab-only change, without requiring an unrelated
+        General-tab edit to trigger the next chrome push."""
+        self._on_changed = callback
 
     @property
     def is_dirty(self) -> bool:
@@ -287,3 +298,4 @@ class ProvidersTabController:
         self.table_model = make_providers_table_model(rows=tuple(_to_table_row(r) for r in rows))
         if self._view is not None:
             self._view.set_table_model(self.table_model)
+        self._on_changed()

@@ -216,6 +216,14 @@ class SettingsController:
         app-data root directly)."""
         return str(Path(self._file_system_actions.exports_folder_path()).parent)
 
+    def on_providers_changed(self) -> None:
+        """Refresh the dialog chrome after a Providers-tab-only mutation
+        (spec-conformance fix): registered as ``ProvidersTabController``'s
+        ``on_changed`` callback so the dirty asterisk, save-state text, and
+        Save-button enablement stay live without requiring an unrelated
+        General-tab edit first."""
+        self._push_chrome()
+
     def on_save_clicked(self) -> None:
         """Commit both tabs in one atomic Gateway transaction (§6; STORY-067-AC-3)."""
         findings = self._current_findings()

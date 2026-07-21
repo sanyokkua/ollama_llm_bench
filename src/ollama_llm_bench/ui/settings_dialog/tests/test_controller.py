@@ -4,6 +4,7 @@ shell factory (STORY-066-AC-6, AC-7, AC-8; extended by STORY-067).
 
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
+import uuid
 
 import msgspec
 from PySide6.QtCore import QAbstractTableModel
@@ -673,3 +674,56 @@ def test_export_writes_both_settings_and_provider_catalog(
     assert written[str(providers_path)] == "schema_version: 1\nkind: provider_config\n"
 
 
+def test_providers_tab_mutation_immediately_enables_save_without_general_tab_edit(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067 Providers-tab chrome-notification spec-conformance fix.
+
+    Given a clean dialog, when a Providers-tab-only mutation occurs (toggling
+    a row's enabled flag), then the dialog chrome (Save Changes enablement)
+    updates immediately -- no unrelated General-tab edit is required first.
+    """
+    gateway = FakeSettingsGateway()
+    gateway.set_providers((PROVIDER_A,))
+    dialog = make_settings_dialog(collaborators=_make_collaborators(gateway=gateway, mocker=mocker))
+    qtbot.addWidget(dialog)
+    dialog.show()
+    controller = _controller_of(dialog)
+    save_button = cast(
+        "QPushButton", dialog.findChild(QPushButton, "settings_dialog.save_changes_button")
+    )
+    assert not save_button.isEnabled()  # clean dialog, nothing to save yet
+
+    controller.providers_controller.on_enabled_toggled(0)
+
+    assert save_button.isEnabled()
+
+
+def test_providers_tab_duplicate_name_mutation_immediately_disables_save(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067 Providers-tab chrome-notification spec-conformance fix.
+
+    Given two persisted providers already sharing a Name (a hard-error
+    finding), when a Providers-tab-only mutation occurs (toggling a row's
+    enabled flag, with no General-tab edit), then the dialog chrome updates
+    immediately: the save-state indicator flips to dirty and Save Changes
+    stays disabled by the duplicate-name hard error.
+    """
+    duplicate = msgspec.structs.replace(PROVIDER_A, provider_id=str(uuid.uuid4()))
+    gateway = FakeSettingsGateway()
+    gateway.set_providers((PROVIDER_A, duplicate))
+    dialog = make_settings_dialog(collaborators=_make_collaborators(gateway=gateway, mocker=mocker))
+    qtbot.addWidget(dialog)
+    dialog.show()
+    save_state_label = cast("QLabel", dialog.findChild(QLabel, "settings_dialog.save_state"))
+    save_button = cast(
+        "QPushButton", dialog.findChild(QPushButton, "settings_dialog.save_changes_button")
+    )
+    assert save_state_label.text() == "No changes"
+
+    controller = _controller_of(dialog)
+    controller.providers_controller.on_enabled_toggled(0)
+
+    assert save_state_label.text() == "Unsaved changes"
+    assert not save_button.isEnabled()
