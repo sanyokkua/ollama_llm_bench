@@ -4,11 +4,13 @@ Asserts: no ``setStyleSheet`` call, no colour literal, no
 ``asyncio``/``anyio``/``qasync`` import anywhere under ``ui/settings_dialog/``;
 the controller and the Provider Edit sub-dialog depend only on
 ``SettingsGateway`` (via ``ui.settings_dialog.protocols``) plus the retained
-UI-adapter Protocols and ``backend.domain``/``backend.events``/
-``backend.model_helpers`` DTO-only imports -- never a raw backend Store/Service
-Protocol (D-R-06); and that no literal secret value (an ``os.environ`` read)
-is ever threaded into the working-copy ``ProviderConfig.api_key_raw`` field --
-only the validated field-widget text reaches it. Mirrors
+UI-adapter Protocols and ``backend.domain``/``backend.errors``/``backend.events``/
+``backend.model_helpers`` DTO-only imports (``backend.errors`` added by
+STORY-067 for catching taxonomy leaves around Gateway calls) -- never a raw
+backend Store/Service Protocol (D-R-06); and that no literal secret value
+(an ``os.environ`` read) is ever threaded into the working-copy
+``ProviderConfig.api_key_raw`` field -- only the validated field-widget text
+reaches it. Mirrors
 ``test_story_065_run_analysis_and_generate_dialog.py``'s per-story scoped-file
 pattern.
 """
@@ -32,6 +34,7 @@ _HEX_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$
 
 _ALLOWED_BACKEND_IMPORTS = {
     "ollama_llm_bench.backend.domain",
+    "ollama_llm_bench.backend.errors",
     "ollama_llm_bench.backend.events",
     "ollama_llm_bench.backend.model_helpers",
 }
