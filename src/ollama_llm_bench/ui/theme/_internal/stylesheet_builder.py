@@ -45,4 +45,11 @@ def render_stylesheet(tokens: ThemeTokens) -> str:
         f"    border-radius: {tokens.radius.md}px;\n"
         f"    padding: {tokens.spacing.sm}px {tokens.spacing.md}px;\n"
         "}\n"
+        "\n"
+        'QPushButton[role="destructive-button"] {\n'
+        f"    background-color: {tokens.colors.error_base};\n"
+        f"    color: {tokens.colors.text_on_error};\n"
+        f"    border-radius: {tokens.radius.md}px;\n"
+        f"    padding: {tokens.spacing.sm}px {tokens.spacing.md}px;\n"
+        "}\n"
     )

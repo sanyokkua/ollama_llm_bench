@@ -1,11 +1,13 @@
 """The Reset-confirmation sub-dialog
 (``06_Settings_Dialog/sub_dialogs/reset_confirmation.md``).
 
-Note: the theme module's role catalog (``ui/theme/_internal/stylesheet_builder.py``)
-does not yet define a distinct "destructive" button role (out of this story's
-``ui/settings_dialog/`` scope to add) -- the Reset button uses the established
-``primary-button`` role (the emphasized/default action) rather than an
-unstyled custom role, pending a follow-up theme-module story.
+The Reset button carries the theme module's ``destructive-button`` role
+(``ui/theme/_internal/stylesheet_builder.py``; ``08-D_color_palette_and_typography.md``
+§3/§4's ``error.base``/``text.on-error`` roles, both explicitly documented
+there as backing "destructive action" / "destructive button label") per
+``sub_dialogs/reset_confirmation.md`` §3's "Styled as the destructive action"
+requirement (spec-conformance fix -- STORY-067 originally shipped this button
+under the ``primary-button`` role pending this theme-module addition).
 """
 
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
@@ -38,7 +40,7 @@ class ResetConfirmationDialog(QDialog):
 
         self.reset_button = QPushButton("Reset")
         self.reset_button.setObjectName("settings_dialog.reset_confirmation.reset")
-        self.reset_button.setProperty("role", "primary-button")
+        self.reset_button.setProperty("role", "destructive-button")
         self.reset_button.clicked.connect(self._on_reset_clicked)
 
         footer_layout = QHBoxLayout()

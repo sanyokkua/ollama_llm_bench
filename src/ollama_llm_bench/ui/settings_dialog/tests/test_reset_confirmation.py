@@ -43,3 +43,13 @@ def test_body_text_mentions_bundled_providers_and_preserved_runs() -> None:
     assert "llama.cpp" in RESET_CONFIRMATION_BODY_TEXT
     lowered = RESET_CONFIRMATION_BODY_TEXT.lower()
     assert "not affected" in lowered or "not be affected" in lowered
+
+
+def test_reset_button_is_styled_as_the_destructive_action(qtbot: QtBot) -> None:
+    """Proves: STORY-067 spec-conformance fix
+    (``sub_dialogs/reset_confirmation.md`` §3's "Styled as the destructive action").
+    """
+    dialog = make_reset_confirmation_dialog()
+    qtbot.addWidget(dialog)
+
+    assert dialog.reset_button.property("role") == "destructive-button"
