@@ -194,3 +194,69 @@ then Close dismisses it immediately.
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+- **SettingsGateway extension (confirmed with the user before implementation).** 08-E §7b.6's
+  `SettingsGateway` listing has zero Import/Export methods; `backend/import_export`'s
+  `ImportExportService` already implements exactly what's needed but is never listed among the
+  seven 08-E §7b UI gateways. This story extends the locally-declared `SettingsGateway` in
+  `ui/settings_dialog/protocols.py` with six methods shaped after `ImportExportService`'s real
+  signatures (`build_settings_import_preview`, `apply_settings_import`,
+  `build_provider_import_preview`, `apply_provider_import`, `export_settings`,
+  `export_providers`), with locally-redeclared DTOs in `models.py` (never importing
+  `backend.import_export` directly, per the `ui/*` import boundary). The DTOs use `TYPE_CHECKING`
+  imports to avoid a `models.py` \<-> `protocols.py` import cycle (`models.py` needs
+  `SettingsGateway` as a real runtime type for its own `msgspec.Struct` bundle fields, so
+  `protocols.py` cannot import `models.py` eagerly). Flagged here for whoever wires the concrete
+  `SettingsGateway` in Phase 11: route these six methods to the real `ImportExportService`, and
+  consider amending 08-E §7b.6's own text to list them.
+- **Reset's settings wipe is achieved via `upsert_settings` with the full defaults map**, not a
+  dedicated "wipe" method — consistent with that method's own docstring ("the settings half of
+  Save / Reset"). The concrete `AppSettingsStore.upsert_settings` implementation (Phase 11, out of
+  scope here) is expected to actually delete-then-reinsert internally when serving Reset, matching
+  `reset_confirmation.md` §7's literal wipe-and-reseed wording; this UI story cannot observe or
+  enforce that internal behavior, only that the correct full-defaults map is passed. Verified
+  against the real `SqliteProvidersStore.replace_providers` implementation
+  (`backend/persistence/providers/_internal/store_impl.py`): it deletes every `providers` row and
+  re-inserts each `ProviderConfig` verbatim by whatever `provider_id` it already carries — it does
+  **not** generate a fresh UUID4 for an id-less row (there is no id-less row; `ProviderConfig`
+  requires `provider_id`). The three bundled Reset rows and a session-added Add-Provider row alike
+  carry a fresh `uuid.uuid4()` placeholder assigned at construction time (mirroring
+  `provider_edit_view._blank_draft`'s established pattern), not a store-side generation step —
+  08-E's own text describing `replace_providers` as generating ids for absent-id rows describes
+  the *conceptual* contract, not this store implementation's literal mechanism.
+- **Cross-store atomicity is validate-first, not 2PC.** Save/Reset/Import validate everything
+  before either store write runs, then call `replace_providers` followed by `upsert_settings` in
+  sequence with no rollback if the second call fails after the first succeeds. The real
+  cross-store transaction (spanning both SQLite tables in one commit) is the concrete
+  `SettingsGateway`/store implementation's responsibility (Phase 11) — out of scope here, per the
+  story's own "Out of scope" section.
+- **Storage-section paths derive from `FileSystemActions.exports_folder_path()`'s parent**, not a
+  new Protocol method — `<app_data>/` is that call's parent directory; `<app_data>/logs/run/` and
+  `<app_data>/logs/app/` are fixed relative subpaths per `description.md` §11. This resolution is
+  wired lazily (only inside the four Storage/Logging action handlers, never at dialog-open/reload
+  time) so an unconfigured `FileSystemActions` test double never has `exports_folder_path()`
+  called against it unless a test actually exercises Copy/Open-folder — the read-only path label
+  itself (`GeneralTabView.set_app_data_path`) is therefore not yet auto-populated at dialog open;
+  wiring that render call is left for the Phase 11 concrete-adapter story to pair with the real
+  `FileSystemActions` adapter's `exports_folder_path()`.
+- **`SettingsDialogCollaborators` relocated from `api.py` to `models.py`** (STORY-066 originally
+  declared it in `api.py`). `_internal/controller.py` needs the whole collaborator bundle as a
+  single constructor parameter to respect coding-style.md's 4-parameter hard maximum
+  (`collaborators`, `providers_controller`, `general_tab_controller`), and `_internal/` may never
+  import `..api` (a cycle) — so the bundle now lives in `models.py`, and `api.py` re-imports and
+  re-exports it unchanged; no external caller-visible change.
+- **`ProvidersTabController.working_configs`** — a new public read-only property added to the
+  STORY-066 file `_internal/providers_tab/controller.py`, exposing the in-memory provider catalog
+  STORY-067's Save/Reset/validation cascade needs to read. An in-scope, additive change to an
+  existing STORY-066 file, not new scope creep.
+- **Import-provider-configuration** (`on_import_provider_config_clicked`) is implemented on the
+  controller (§8's provider-config import path, using `build_provider_import_preview`/
+  `apply_provider_import`), but the footer's `Import…` button (STORY-067-AC-4's own AC text) wires
+  only to the settings-import path (`on_import_clicked`); the mockup shows a single `Import…`
+  footer action per dialog, and this story's acceptance criteria describe only the settings-import
+  preview flow. Wiring a second entry point (e.g. a Providers-tab-local "Import provider config…"
+  action) for the already-implemented `on_import_provider_config_clicked` method is left for a
+  follow-up story if the mockup's single `Import…` button is meant to detect file kind and branch,
+  which `10_Domain_and_Data/06_IMPORT_FORMATS.md` does not resolve explicitly.
