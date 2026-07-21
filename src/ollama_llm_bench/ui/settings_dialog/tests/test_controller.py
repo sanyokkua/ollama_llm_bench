@@ -2,6 +2,7 @@
 shell factory (STORY-066-AC-6, AC-7, AC-8; extended by STORY-067).
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import msgspec
@@ -623,3 +624,52 @@ def test_settings_dialog_shows_general_tab_and_all_footer_buttons(
     assert dialog.findChild(QPushButton, "settings_dialog.export_button") is not None
     assert dialog.findChild(QPushButton, "settings_dialog.close_button") is not None
     assert dialog.findChild(QPushButton, "settings_dialog.save_changes_button") is not None
+
+
+_EXPECTED_EXPORT_FILE_COUNT = 2
+
+
+def test_export_writes_both_settings_and_provider_catalog(
+    qtbot: QtBot, mocker: MockerFixture, tmp_path: Path
+) -> None:
+    """Proves: STORY-067 export-completeness spec-conformance fix
+    (``description.md`` §7: the export carries "the provider catalog, the
+    embedding selection, and every user-saved setting key").
+
+    Given the user clicks Export…, when the export runs, then both the
+    settings payload and the provider-catalog payload reach
+    ``FileSystemActions.write_text_file`` -- Export no longer omits the
+    provider catalog.
+    """
+    gateway = FakeSettingsGateway()
+    gateway.set_export_settings_bytes(b"schema_version: 1\nkind: settings\n")
+    gateway.set_export_providers_bytes(b"schema_version: 1\nkind: provider_config\n")
+    settings_path = tmp_path / "ollama_bench_settings_2026-07-21.yaml"
+    providers_path = tmp_path / "ollama_bench_settings_2026-07-21_providers.yaml"
+    native_pickers = FakeNativePickers()
+    native_pickers.set_save_result(str(settings_path))
+    file_system_actions = mocker.Mock(spec=FileSystemActions)
+    dialog = make_settings_dialog(
+        collaborators=SettingsDialogCollaborators(
+            gateway=gateway,
+            event_bus=FakeEventBus(),
+            native_pickers=native_pickers,
+            clipboard=mocker.Mock(spec=Clipboard),
+            file_system_actions=file_system_actions,
+            notifications=FakeNotificationService(),
+        )
+    )
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+
+    controller.on_export_clicked()
+
+    assert file_system_actions.write_text_file.call_count == _EXPECTED_EXPORT_FILE_COUNT
+    written = {
+        call.kwargs["path"]: call.kwargs["content"]
+        for call in file_system_actions.write_text_file.call_args_list
+    }
+    assert written[str(settings_path)] == "schema_version: 1\nkind: settings\n"
+    assert written[str(providers_path)] == "schema_version: 1\nkind: provider_config\n"
+
+

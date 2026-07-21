@@ -239,7 +239,21 @@ class SettingsController:
         self._push_chrome()
 
     def on_export_clicked(self) -> None:
-        """Write the current configuration to a user-chosen YAML file (§7)."""
+        """Write the current configuration to user-chosen YAML files (§7).
+
+        §7 states the export carries "the provider catalog, the embedding
+        selection, and every user-saved setting key" -- but the Gateway (per
+        08-E §7b.6, mirroring the real ``ImportExportService``) exposes
+        ``export_settings``/``export_providers`` as two independent
+        self-contained YAML documents (``kind: settings`` /
+        ``kind: provider_config``), not one combined schema; no combined-
+        export shape exists anywhere in ``backend.import_export`` to mirror.
+        This resolves the gap by writing both documents from the one Export
+        action: the settings YAML at the user-chosen path, and the provider
+        catalog at a sibling ``*_providers.yaml`` path -- one user action
+        still produces the full configuration on disk, without inventing a
+        third combined schema.
+        """
         options = SavePickerOptions(
             title="Export Settings",
             suggested_name=f"ollama_bench_settings_{datetime.now(UTC).date().isoformat()}.yaml",
@@ -248,10 +262,22 @@ class SettingsController:
         path = self._native_pickers.save_file(options)
         if path is None:
             return
-        payload = self._gateway.export_settings()
-        self._file_system_actions.write_text_file(path=path, content=payload.decode("utf-8"))
-        self._notifications.show_info(f"Exported to {path}")
-        logger.debug("settings_exported", path=path)
+        settings_payload = self._gateway.export_settings()
+        providers_payload = self._gateway.export_providers()
+        settings_path = Path(path)
+        providers_path = settings_path.with_name(
+            f"{settings_path.stem}_providers{settings_path.suffix}"
+        )
+        self._file_system_actions.write_text_file(
+            path=str(settings_path), content=settings_payload.decode("utf-8")
+        )
+        self._file_system_actions.write_text_file(
+            path=str(providers_path), content=providers_payload.decode("utf-8")
+        )
+        self._notifications.show_info(f"Exported to {settings_path} and {providers_path}")
+        logger.debug(
+            "settings_exported", path=str(settings_path), providers_path=str(providers_path)
+        )
 
     def on_import_clicked(self) -> None:
         """Parse, preview, and apply a settings-import YAML file (§8; STORY-067-AC-4)."""
