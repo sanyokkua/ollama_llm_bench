@@ -12,7 +12,7 @@ from ollama_llm_bench.adapters.clipboard import Clipboard
 from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.adapters.notification_service import NotificationService
-from ollama_llm_bench.backend.domain import ResultId, RunId
+from ollama_llm_bench.backend.domain import ChartData, ChartKind, HeatmapData, ResultId, RunId
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.results.protocols import ExportFilenameHelper, ResultGateway
 from ollama_llm_bench.ui.theme import PlatformKind
@@ -20,8 +20,12 @@ from ollama_llm_bench.ui.theme import PlatformKind
 __all__: list[str] = [
     "AttemptRow",
     "ChartDrilldownRequest",
+    "ChartOptionControl",
+    "ChartsViewModel",
     "DetailRowViewModel",
     "DetailsViewModel",
+    "FilterChipDomains",
+    "FilterChipSelection",
     "FooterViewModel",
     "PhaseEvaluationRow",
     "ResultCollaborators",
@@ -128,12 +132,13 @@ class DetailsViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 
 class ChartDrilldownRequest(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """An in-process chart-click drill-down request (details_tab.md#10).
+    """An in-process chart-click drill-down request (details_tab.md#10, charts_tab.md#8).
 
-    Exactly one of the three shapes below is populated by a caller:
+    Exactly one of the four shapes below is populated by a caller:
       - single-model: provider_id + model_name only
       - model-and-status/verdict: provider_id + model_name + (status or verdict)
       - single-result: provider_id + model_name + task_id
+      - model-and-category (charts_tab.md#8, chart 10): provider_id + model_name + category
     """
 
     provider_id: str | None = None
@@ -141,3 +146,77 @@ class ChartDrilldownRequest(msgspec.Struct, frozen=True, kw_only=True, gc=False)
     task_id: str | None = None
     status: str | None = None
     verdict: str | None = None
+    category: str | None = None
+
+
+class FilterChipDomains(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The Charts tab's five global filter chips' distinct-value domains (charts_tab.md#5).
+
+    ``models`` carries ``(provider_id, model_name, provider_name)`` triples -- the
+    snapshot ``provider_name`` is the chip's display label (DD-33), matching
+    ``DetailsChipDomains.models``'s identical shape for the sibling tab.
+    """
+
+    models: tuple[tuple[str, str, str], ...]
+    statuses: tuple[str, ...]
+    verdicts: tuple[str, ...]
+    categories: tuple[str, ...]
+    difficulties: tuple[str, ...]
+
+
+class FilterChipSelection(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The Charts tab's five global filter chips' current selection (charts_tab.md#5).
+
+    An empty tuple means "all selected" (the default), matching
+    ``DetailsFilters``'s identical convention.
+    """
+
+    models: tuple[tuple[str, str], ...] = ()
+    statuses: tuple[str, ...] = ()
+    verdicts: tuple[str, ...] = ()
+    categories: tuple[str, ...] = ()
+    difficulties: tuple[str, ...] = ()
+
+
+class ChartOptionControl(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One per-chart option control's render state (charts_tab.md#6).
+
+    ``kind`` is one of ``"toggle"`` (a boolean switch), ``"select"`` (a single choice
+    among ``choices``); ``value`` is the control's current stringified value.
+    """
+
+    key: str
+    label: str
+    kind: str
+    value: str
+    choices: tuple[str, ...] = ()
+
+
+class ChartsViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Pushed by ChartsTabController to ChartsTabView (implementation_structure.md#53).
+
+    ``dropdown_entries`` carries one ``(chart_kind, label, has_data)`` triple per
+    mode-offered chart, in mode-offered order, for the chart-kind dropdown's
+    muted ``"(no data)"`` suffix (charts_tab.md#4/#7). Exactly one of
+    ``chart_data``/``heatmap_data`` is non-``None`` for a populated non-heatmap/
+    heatmap chart respectively; both are ``None`` while ``empty_state_message`` is set.
+    """
+
+    chart_kind: ChartKind
+    chart_index: int
+    chart_count: int
+    prev_enabled: bool
+    next_enabled: bool
+    dropdown_entries: tuple[tuple[ChartKind, str, bool], ...]
+    chart_data: ChartData | None
+    heatmap_data: HeatmapData | None
+    empty_state_message: str | None
+    meta_line: str
+    filter_domains: FilterChipDomains
+    filter_selection: FilterChipSelection
+    verdict_filter_visible: bool
+    option_controls: tuple[ChartOptionControl, ...]
+    hidden_series: tuple[str, ...]
+    clear_filters_enabled: bool
+    detach_enabled: bool
+    export_enabled: bool
