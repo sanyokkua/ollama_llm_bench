@@ -412,6 +412,11 @@ def test_save_failure_leaves_dialog_dirty_and_shows_error(
     qtbot.addWidget(dialog)
     controller = _controller_of(dialog)
     controller._general_tab_controller.set_value("ui.theme", "dark")
+    # The dialog is left dirty by design (the assertion below); pytest-qt's
+    # automatic teardown calls dialog.close() -> reject() -> on_close_requested(),
+    # which would otherwise open a real, blocking QMessageBox with no user to
+    # dismiss it. Discard silently so teardown does not hang.
+    mocker.patch.object(controller, "_confirm_discard_changes", return_value=True)
 
     controller.on_save_clicked()
 
@@ -433,6 +438,12 @@ def test_save_writes_nothing_when_a_hard_error_is_present(
     )
     qtbot.addWidget(dialog)
     controller = _controller_of(dialog)
+    # The field cleared below leaves the dialog dirty with a hard error;
+    # pytest-qt's automatic teardown calls dialog.close() -> reject() ->
+    # on_close_requested(), which would otherwise open a real, blocking
+    # QMessageBox with no user to dismiss it. Discard silently so teardown
+    # does not hang.
+    mocker.patch.object(controller, "_confirm_discard_changes", return_value=True)
 
     controller._general_tab_controller.set_value("benchmark.min_timeout_seconds", "")
     controller.on_save_clicked()
@@ -502,6 +513,11 @@ def test_reset_failure_leaves_dialog_dirty_and_shows_error(
         "ollama_llm_bench.ui.settings_dialog._internal.controller.make_reset_confirmation_dialog",
         return_value=fake_confirmation_dialog,
     )
+    # The dialog is left dirty by design (the assertion below); pytest-qt's
+    # automatic teardown calls dialog.close() -> reject() -> on_close_requested(),
+    # which would otherwise open a real, blocking QMessageBox with no user to
+    # dismiss it. Discard silently so teardown does not hang.
+    mocker.patch.object(controller, "_confirm_discard_changes", return_value=True)
 
     controller.on_reset_clicked()
 
@@ -689,6 +705,11 @@ def test_providers_tab_mutation_immediately_enables_save_without_general_tab_edi
     qtbot.addWidget(dialog)
     dialog.show()
     controller = _controller_of(dialog)
+    # The mutation below leaves the dialog dirty; pytest-qt's automatic
+    # teardown calls dialog.close() -> reject() -> on_close_requested(),
+    # which would otherwise open a real, blocking QMessageBox with no user to
+    # dismiss it. Discard silently so teardown does not hang.
+    mocker.patch.object(controller, "_confirm_discard_changes", return_value=True)
     save_button = cast(
         "QPushButton", dialog.findChild(QPushButton, "settings_dialog.save_changes_button")
     )
@@ -723,6 +744,11 @@ def test_providers_tab_duplicate_name_mutation_immediately_disables_save(
     assert save_state_label.text() == "No changes"
 
     controller = _controller_of(dialog)
+    # The mutation below leaves the dialog dirty; pytest-qt's automatic
+    # teardown calls dialog.close() -> reject() -> on_close_requested(),
+    # which would otherwise open a real, blocking QMessageBox with no user to
+    # dismiss it. Discard silently so teardown does not hang.
+    mocker.patch.object(controller, "_confirm_discard_changes", return_value=True)
     controller.providers_controller.on_enabled_toggled(0)
 
     assert save_state_label.text() == "Unsaved changes"
