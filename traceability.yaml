@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T16:29:21Z'
+generated_at: '2026-07-21T16:38:29Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4404,7 +4404,7 @@ stories:
         - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
   STORY-067:
     title: Build the Settings General tab, cross-tab validation, and the atomic Save / Import / Reset transactions
-    status: ready
+    status: done
     spec_clauses:
     - 06_Settings_Dialog/description.md#10-close-flow
     - 06_Settings_Dialog/description.md#15-validation-rules

@@ -1,7 +1,7 @@
 ---
 id: STORY-067
 title: Build the Settings General tab, cross-tab validation, and the atomic Save / Import / Reset transactions
-status: ready
+status: done
 spec_clauses:
   - 06_Settings_Dialog/description.md#41-inference
   - 06_Settings_Dialog/description.md#46-display
