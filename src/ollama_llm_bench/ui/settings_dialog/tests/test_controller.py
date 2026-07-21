@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, cast
 
 import msgspec
 from PySide6.QtCore import QAbstractTableModel
-from PySide6.QtWidgets import QLabel
+from PySide6.QtWidgets import QLabel, QPushButton, QTabWidget
 from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 import structlog
@@ -35,7 +35,7 @@ from ollama_llm_bench.ui.settings_dialog.api import (
     SettingsDialogCollaborators,
     make_settings_dialog,
 )
-from ollama_llm_bench.ui.settings_dialog.models import DialogChromeViewModel
+from ollama_llm_bench.ui.settings_dialog.models import DialogChromeViewModel, GeneralFieldState
 from ollama_llm_bench.ui.settings_dialog.testing import FakeSettingsGateway
 from ollama_llm_bench.ui.settings_dialog.tests.conftest import PROVIDER_A, FakeEventBus
 
@@ -68,9 +68,13 @@ class _FakeChromeApplier:
 
     def __init__(self) -> None:
         self.applied: list[DialogChromeViewModel] = []
+        self.pushed_field_states: list[tuple[GeneralFieldState, ...]] = []
 
     def apply_chrome(self, chrome: DialogChromeViewModel) -> None:
         self.applied.append(chrome)
+
+    def push_general_field_states(self, states: tuple[GeneralFieldState, ...]) -> None:
+        self.pushed_field_states.append(states)
 
 
 def _make_collaborators(
@@ -456,3 +460,27 @@ def test_close_when_clean_closes_immediately(qtbot: QtBot, mocker: MockerFixture
     should_close = controller.on_close_requested()
 
     assert should_close is True
+
+
+def test_settings_dialog_shows_general_tab_and_all_footer_buttons(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067-AC-1
+
+    The dialog mounts a General tab and shows the five footer buttons in the
+    spec's button-ordering (side cluster, then Close, then Save Changes).
+    """
+    gateway = FakeSettingsGateway()
+    dialog = make_settings_dialog(collaborators=_make_collaborators(gateway=gateway, mocker=mocker))
+    qtbot.addWidget(dialog)
+    dialog.show()
+
+    tab_widget = cast("QTabWidget", dialog.findChild(QTabWidget))
+    tab_labels = [tab_widget.tabText(i) for i in range(tab_widget.count())]
+    assert tab_labels[1].startswith("General")
+
+    assert dialog.findChild(QPushButton, "settings_dialog.reset_to_defaults_button") is not None
+    assert dialog.findChild(QPushButton, "settings_dialog.import_button") is not None
+    assert dialog.findChild(QPushButton, "settings_dialog.export_button") is not None
+    assert dialog.findChild(QPushButton, "settings_dialog.close_button") is not None
+    assert dialog.findChild(QPushButton, "settings_dialog.save_changes_button") is not None

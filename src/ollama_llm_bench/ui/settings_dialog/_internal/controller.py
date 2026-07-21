@@ -15,6 +15,7 @@ responsibility (Phase 11), out of this story's scope.
 """
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Protocol
 import uuid
 
@@ -22,7 +23,7 @@ from PySide6.QtWidgets import QMessageBox
 import structlog
 
 from ollama_llm_bench.adapters.native_pickers.models import FilePickerOptions, SavePickerOptions
-from ollama_llm_bench.backend.domain import ProviderConfig, ProviderType
+from ollama_llm_bench.backend.domain import ProviderConfig, ProviderType, SettingKey
 from ollama_llm_bench.backend.errors import ConfigurationError, PersistenceError, TaskFileError
 from ollama_llm_bench.backend.events import (
     SIGNAL_APP_READINESS_CHANGED,
@@ -48,7 +49,9 @@ from ollama_llm_bench.ui.settings_dialog._internal.sub_dialogs.reset_confirmatio
 from ollama_llm_bench.ui.settings_dialog._internal.validation import save_enabled, validate_all
 from ollama_llm_bench.ui.settings_dialog.models import (
     DialogChromeViewModel,
+    GeneralFieldState,
     SettingsDialogCollaborators,
+    Severity,
     ValidationFinding,
 )
 
@@ -82,7 +85,7 @@ def _bundled_default_provider_drafts() -> tuple[ProviderConfig, ...]:
 
 
 class _ChromeApplier(Protocol):
-    """Structural view of the dialog shell's public ``apply_chrome`` method.
+    """Structural view of the dialog shell's public render methods.
 
     Declared locally rather than importing ``_internal.view.SettingsDialogView``
     -- that module imports this one to build ``SettingsController``, so a
@@ -90,6 +93,7 @@ class _ChromeApplier(Protocol):
     """
 
     def apply_chrome(self, chrome: DialogChromeViewModel) -> None: ...
+    def push_general_field_states(self, states: tuple[GeneralFieldState, ...]) -> None: ...
 
 
 class SettingsController:
@@ -165,6 +169,52 @@ class SettingsController:
         )
         if self._view is not None:
             self._view.apply_chrome(chrome)
+            self._view.push_general_field_states(self._general_field_states_with_errors(findings))
+
+    def _general_field_states_with_errors(
+        self, findings: tuple[ValidationFinding, ...]
+    ) -> tuple[GeneralFieldState, ...]:
+        hard_error_targets = {f.target for f in findings if f.severity is Severity.HARD_ERROR}
+        return tuple(
+            GeneralFieldState(
+                setting_key=state.setting_key,
+                value=state.value,
+                has_error=state.setting_key in hard_error_targets,
+            )
+            for state in self._general_tab_controller.field_states()
+        )
+
+    def on_general_field_edited(self, setting_key: SettingKey, text: str) -> None:
+        """Handle a General-tab control edit (STORY-067-AC-1): update the
+        working copy and recompute chrome/validation."""
+        self._general_tab_controller.set_value(setting_key, text)
+        self._push_chrome()
+
+    def on_copy_app_data_path_clicked(self) -> None:
+        """Copy the resolved app-data path to the clipboard (§4.9)."""
+        self._clipboard.copy_text(self._resolve_app_data_path())
+
+    def on_open_app_folder_clicked(self) -> None:
+        """Open ``<app_data>/`` in the OS file manager (§4.9, §11)."""
+        self._file_system_actions.open_in_file_manager(self._resolve_app_data_path())
+
+    def on_open_run_logs_folder_clicked(self) -> None:
+        """Open ``<app_data>/logs/run/`` in the OS file manager (§4.7, §11)."""
+        self._file_system_actions.open_in_file_manager(
+            str(Path(self._resolve_app_data_path()) / "logs" / "run")
+        )
+
+    def on_open_app_logs_folder_clicked(self) -> None:
+        """Open ``<app_data>/logs/app/`` in the OS file manager (§4.8, §11)."""
+        self._file_system_actions.open_in_file_manager(
+            str(Path(self._resolve_app_data_path()) / "logs" / "app")
+        )
+
+    def _resolve_app_data_path(self) -> str:
+        """Derive ``<app_data>/`` from ``exports_folder_path()``'s parent
+        (STORY-067's Notes: no dedicated Gateway/Protocol method returns the
+        app-data root directly)."""
+        return str(Path(self._file_system_actions.exports_folder_path()).parent)
 
     def on_save_clicked(self) -> None:
         """Commit both tabs atomically through the Gateway (§6; STORY-067-AC-3)."""

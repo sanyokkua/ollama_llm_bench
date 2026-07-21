@@ -14,6 +14,7 @@ from ollama_llm_bench.ui.settings_dialog._internal.controller import SettingsCon
 from ollama_llm_bench.ui.settings_dialog._internal.general_tab.controller import (
     GeneralTabController,
 )
+from ollama_llm_bench.ui.settings_dialog._internal.general_tab.view import GeneralTabView
 from ollama_llm_bench.ui.settings_dialog._internal.providers_tab.controller import (
     ProvidersTabController,
 )
@@ -87,7 +88,10 @@ def make_settings_dialog(
     )
     providers_controller.bind(providers_tab)
     general_tab_controller = GeneralTabController(gateway=collaborators.gateway)
-    dialog = SettingsDialogView(providers_tab=providers_tab, parent=parent)
+    general_tab_view = GeneralTabView()
+    dialog = SettingsDialogView(
+        providers_tab=providers_tab, general_tab=general_tab_view, parent=parent
+    )
     controller = SettingsController(
         collaborators=collaborators,
         providers_controller=providers_controller,
@@ -95,5 +99,21 @@ def make_settings_dialog(
     )
     controller.bind_view(dialog)
     dialog._controller = controller
+    general_tab_view.value_edited.connect(controller.on_general_field_edited)
+    general_tab_view.copy_app_data_path_clicked.connect(controller.on_copy_app_data_path_clicked)
+    general_tab_view.open_app_folder_clicked.connect(controller.on_open_app_folder_clicked)
+    general_tab_view.open_run_logs_folder_clicked.connect(
+        controller.on_open_run_logs_folder_clicked
+    )
+    general_tab_view.open_app_logs_folder_clicked.connect(
+        controller.on_open_app_logs_folder_clicked
+    )
+    dialog.save_clicked.connect(controller.on_save_clicked)
+    dialog.export_clicked.connect(controller.on_export_clicked)
+    dialog.import_clicked.connect(controller.on_import_clicked)
+    dialog.reset_clicked.connect(controller.on_reset_clicked)
+    dialog.close_requested.connect(
+        lambda: dialog.close_now() if controller.on_close_requested() else None
+    )
     controller.load()
     return dialog
