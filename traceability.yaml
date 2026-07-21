@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-20T22:00:23Z'
+generated_at: '2026-07-21T08:24:49Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4255,22 +4255,34 @@ stories:
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
     modules:
+    - adapters/file_system_actions/
     - ui/results/
     edge_cases:
     - EC-RES-4
     acceptance_criteria:
       STORY-064-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_kinds_per_mode[graded]
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_kinds_per_mode[synthetic]
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_kinds_per_mode[tasks]
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_set_per_mode[graded]
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_set_per_mode[synthetic]
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_set_per_mode[tasks]
       STORY-064-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_navigation_does_not_wrap
       STORY-064-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_navigation_skips_empty_charts
       STORY-064-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_bar_click_routes_drilldown
       STORY-064-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_export_uses_active_theme_palette
       STORY-064-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_detached_chart_window.py::test_detached_window_forks_state_independently
   STORY-065:
     title: Build the Result widget Run Analysis tab and the Generate Analysis dialog
     status: ready
@@ -7276,6 +7288,17 @@ edge_cases:
     - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[time_vs_tokens_scatter]
     - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[tokens_per_task_box]
     - src/ollama_llm_bench/backend/charts/tests/test_status_prefilter.py::test_status_prefilter_per_chart_kind[verdict_counts_stacked]
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_bar_click_routes_drilldown
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_export_uses_active_theme_palette
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_navigation_does_not_wrap
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_navigation_skips_empty_charts
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_kinds_per_mode[graded]
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_kinds_per_mode[synthetic]
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_kinds_per_mode[tasks]
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_set_per_mode[graded]
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_set_per_mode[synthetic]
+    - src/ollama_llm_bench/ui/results/tests/test_charts_tab.py::test_offered_chart_set_per_mode[tasks]
+    - src/ollama_llm_bench/ui/results/tests/test_detached_chart_window.py::test_detached_window_forks_state_independently
     - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[fake]
     - tests/contract/test_chart_aggregator_contract.py::test_compute_never_raises_for_an_empty_result_set[real]
     - tests/contract/test_chart_aggregator_contract.py::test_compute_returns_structurally_valid_structure[fake-avg_cosine_by_model]
@@ -7963,6 +7986,7 @@ modules:
   adapters/file_system_actions/:
     stories:
     - STORY-048
+    - STORY-064
   adapters/native_pickers/:
     stories:
     - STORY-048

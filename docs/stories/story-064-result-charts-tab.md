@@ -14,6 +14,7 @@ spec_clauses:
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
 modules:
   - ui/results/
+  - adapters/file_system_actions/
 acceptance_criteria:
   - STORY-064-AC-1
   - STORY-064-AC-2
@@ -174,3 +175,122 @@ detached window does not change the parent and is not written to the per-run vie
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+- **`modules:` amendment.** The front matter was amended before implementation to add
+  `adapters/file_system_actions/` alongside `ui/results/`. The Charts tab's PNG export
+  produces binary content, but the existing `FileSystemActions.write_export_file`/
+  `.write_text_file` (STORY-061) accept `content: str` only. Two purely-additive methods —
+  `write_export_file_bytes` (the exports-folder direct-write counterpart of
+  `write_export_file`, identical numeric-suffix collision rule) and `write_binary_file` (the
+  Save-Picker counterpart of `write_text_file`) — were added to the `FileSystemActions`
+  Protocol and its concrete `QtFileSystemActions` implementation, duplicating the existing
+  atomic temp-file-then-rename structure with only the open mode/payload type changed. This
+  is a genuine cross-module change, hence the front-matter amendment. Every existing
+  `FileSystemActions` fake in the codebase (`ui/results/tests/conftest.py`'s
+  `FakeFileSystemActions`, plus three independent local `_FakeFileSystemActions` doubles in
+  `ui/resume_benchmark/tests/`) was updated to keep satisfying the widened Protocol —
+  `just typecheck` on the whole `src` tree is the enforcement mechanism, since Python's
+  structural typing means a Protocol extension breaks every implementer, not just the ones
+  this story otherwise touches.
+
+- **`ResultGateway.chart_data` carries no `ChartFilters` parameter.** The frozen
+  `08-E_interfaces_contracts.md#7b5` contract — and the `ui/results/protocols.py` Protocol it
+  was transcribed into verbatim by STORY-061 — is `chart_data(self, run_id: RunId, chart_kind: ChartKind) -> ChartData`, with no filter-selection or per-chart-option
+  parameter, even though `charts_tab.md` §5/§6 describe the aggregator narrowing on the
+  tab's global filters and per-chart options. `ChartsTabController` therefore fetches every
+  mode-offered chart kind's **full-run** data on each recompute (no filters ever forwarded)
+  and the tab's filter-chip/option UI state is captured, persisted, and rendered (dropdown
+  "(no data)" suffix, meta line, option controls) but has **no effect on the painted data** —
+  a real functional gap versus the full spec, not a simplification of this story's own
+  making. Closing it requires either widening the `ResultGateway#7b5` contract with a
+  `ChartFilters` parameter or accepting narrower-than-spec behaviour permanently; that
+  contract change is out of this story's reach (`compose.py`/interface-contract changes are
+  explicitly out of scope — "This story must not touch `compose.py`"). A follow-up story
+  should widen `ResultGateway.chart_data` and thread the tab's `ChartFilterState` through it.
+
+- **`ResultGateway.chart_data`'s return type is annotated `-> ChartData`, never
+  `HeatmapData`**, even though its docstring says "Compute one chart's prepared
+  `ChartData`/`HeatmapData`" and `HEATMAP_TASK_BY_MODEL` (chart 9) genuinely needs
+  `HeatmapData`. `ChartsTabController`'s `_chart_data_cache` is typed
+  `dict[ChartKind, ChartData | HeatmapData]` to accommodate the wider type the moment a real
+  adapter implementation returns one (Python is duck-typed; nothing prevents a concrete
+  `ResultGateway` from returning a `HeatmapData` instance at runtime despite the narrower
+  static annotation), and `painting.py`/`view.py`'s heatmap paint/hit-test paths are fully
+  implemented and unit-tested directly against `HeatmapData` — only the frozen gateway
+  contract's return-type annotation itself is narrower than the real need. No test double in
+  this story exercises a `HeatmapData` value flowing through `FakeResultGateway.chart_data`
+  end-to-end for exactly this reason (its `set_chart_data` helper is typed `ChartData` only,
+  matching the Protocol precisely). A follow-up interface-contract story should widen the
+  annotation to `ChartData | HeatmapData`.
+
+- **Additional private files beyond the illustrative three-file sketch.** Task 1's
+  implementation-structure sketch (§1 of `05_Result_Widget/implementation_structure.md`)
+  lists only `view.py`/`controller.py`/`detached_window.py` under `charts_tab/`. This story
+  additionally introduces `view_state.py` (the per-run, per-chart-kind persisted
+  `ChartsViewState`, mirroring `details_tab/select.py`'s identical persistence-struct role),
+  `mode_policy.py` (pure mode-offered-set and skip-empty navigation logic, kept separate from
+  `select.py` since it has no dependency on `ChartsViewModel`), `drilldown.py` (pure
+  chart-element-click mapping, charts_tab.md §8, kept separate since it is reused by both the
+  live tab and `detached_window.py`), `painting.py` (the `QPainter` draw helpers for the five
+  chart shapes plus the PNG/SVG export renderers — by far the largest single concern of this
+  story and clearly warranting its own file), and `select.py` (the `(cache, filters, run context) -> ChartsViewModel` pure assembly function, extracted from `controller.py` to keep
+  that module within the project's lines-per-class limit, mirroring `details_tab/select.py`'s
+  and `summary_tab/select.py`'s identical precedent). Every sibling tab (`summary_tab/`,
+  `details_tab/`) already carries a `select.py` beyond its own three-file sketch, so this is
+  consistent with the established pattern, not a new one.
+
+- **`ChartDrilldownRequest` gained a `category: str | None = None` field** (purely additive).
+  Chart 10's (`PER_CATEGORY_BAR`) drill-down row in `charts_tab.md` §8 says a grouped sub-bar
+  click narrows "the Models and Category chips" — the Details tab has no `Category` chip
+  narrowing path today (`details_tab/select.py`'s `apply_drilldown` only ever sets
+  `models`/`tasks`/`statuses`/`verdicts`), so without the field the request shape could not
+  even represent chart 10's clicked category, let alone narrow by it. The field was added to
+  the shared `ChartDrilldownRequest` struct and `drilldown.map_grouped_bar_click` populates
+  it, but `details_tab/select.py`'s `apply_drilldown` (STORY-063, `done`) was **not** modified
+  to consume it — the Details tab is explicitly out of this story's scope ("The Details tab
+  that receives the drill-down — owned by STORY-063"). The net effect: clicking a chart-10
+  sub-bar today narrows the Details tab to the correct model but not (yet) the category. A
+  follow-up story extending `details_tab/select.py`'s `apply_drilldown` to also consume
+  `request.category` would close this gap with a single additional filter assignment.
+
+- **`select_charts_view_model`'s inputs are bundled into a private `ChartsSelectionInput`
+  msgspec.Struct** (`select.py`, not re-exported from `models.py`) to satisfy the
+  project's parameter-count limit — mirrors `ResultCollaborators`'s and
+  `DetachedChartWindowConfig`'s identical dependency-bundle pattern for the same reason.
+
+- **The "Detach window" click is wired at the parent `ResultController` level**
+  (`_mount_charts_tab`/`_on_charts_detach_clicked`), not as a
+  `ChartsTabController.on_detach_clicked(self) -> DetachedChartWindow` method as an earlier
+  planning sketch suggested — that method would require `charts_tab/controller.py` to import
+  `charts_tab/detached_window.py`, which itself imports `controller.py` (for
+  `ChartsTabController`, the class `_NonPersistingChartsTabController` subclasses) — a
+  circular import. `ResultController` already imports both modules and is the natural owner
+  of window construction; this mirrors how `DetailsTabView`'s own "Detach window" action
+  (Task Detail Panel, `details_tab.md` §9) is a self-contained reparent action with no
+  controller-level detach method either.
+
+- **Box-plot outlier-marker drill-down (chart 12) is not click-mapped.** `charts_tab.md` §8's
+  row for chart 12 ("an outlier marker … the Tasks and Models chips narrowed to that marker's
+  single `result_id`") is not exercised by any of this story's six acceptance criteria, and
+  implementing precise outlier-marker hit-testing (as opposed to the box body, which is not
+  itself clickable per the spec) was judged out of proportion to the story's `L` budget
+  alongside the twelve-chart-kind painting/navigation/filter/drilldown/detach/export surface
+  already covered. `ChartsTabView`'s module docstring documents this simplification. A
+  follow-up story can add outlier-marker hit-testing to `_ChartCanvas` using the same
+  `_index_*_hits` pattern already established for the other eleven chart-click mappings.
+
+- **`render_chart_png`/`render_chart_svg` use `QImage` + temporary-file I/O, not
+  `QPixmap`/`QSvgGenerator` + an in-memory `QBuffer`.** An initial `QBuffer`-backed
+  `QIODevice` implementation (for both PNG via `QPixmap.save(buffer, ...)` and SVG via
+  `QSvgGenerator.setOutputDevice(buffer)`) was found, empirically, to corrupt the process's
+  Qt paint-engine state such that a *later* off-screen `QPixmap`/`QPainter` construction in
+  the same process segfaulted — reproducible only when both the PNG and SVG export paths (or
+  either alongside any other `QPixmap`-backed `QPainter` smoke test) ran in the same pytest
+  session, confirmed via 15+ repeated runs before and after the fix. Switching to `QImage`
+  (pure raster, no platform pixmap backend) plus `QSvgGenerator.setFileName`/`QImage.save`
+  against a `tempfile`-created path resolved it with zero repeats failing across 15+ runs.
+  This is documented here as a real, load-bearing implementation decision rather than a
+  simplification — the fixed `2400 x 1600` export resolution and theme-token palette
+  requirements (charts_tab.md §12, EC-RES-4) are otherwise unaffected.
