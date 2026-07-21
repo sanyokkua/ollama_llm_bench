@@ -1,10 +1,13 @@
-"""Frozen ViewModel structs + view-only enums for ``ui/settings_dialog/`` (STORY-066).
+"""Frozen ViewModel structs + view-only enums for ``ui/settings_dialog/`` (STORY-066,
+extended by STORY-067).
 
 Source of truth: ``docs/v3_specification/06_Settings_Dialog/implementation_structure.md``
-§4 -- the subset this story delivers (the Providers tab row shape and the dialog
-chrome). The full ``SettingsViewModel`` (General tab fields, validation findings,
-app-data path) is STORY-067's -- it owns the General tab and the Save/Import/Reset
-transactions this story explicitly leaves out of scope.
+§4 (Providers tab row shape and dialog chrome -- STORY-066); ``description.md`` §15
+(validation severities/findings) and ``10_Domain_and_Data/06_IMPORT_FORMATS.md`` §8
+(import-preview grouping -- STORY-067). The import-preview DTOs are declared *locally*
+here, shaped after ``backend.import_export.models``'s real DTOs without importing that
+package directly -- ``ui/*`` may not import ``backend/import_export`` (see the
+STORY-067 plan's "Resolved design gap" section and the story's own Notes).
 """
 
 from collections.abc import Callable
@@ -27,10 +30,104 @@ from ollama_llm_bench.ui.settings_dialog.protocols import SettingsGateway
 __all__: list[str] = [
     "DialogChromeViewModel",
     "EmbeddingSectionCollaborators",
+    "GeneralFieldState",
+    "PreviewGroup",
     "ProviderEditCollaborators",
+    "ProviderImportPreview",
+    "ProviderImportPreviewRow",
+    "ProviderImportResult",
     "ProviderRow",
+    "SettingsImportPreview",
+    "SettingsImportPreviewRow",
+    "SettingsImportResult",
     "SettingsTab",
+    "Severity",
+    "ValidationFinding",
 ]
+
+
+class Severity(StrEnum):
+    """The three-severity model shared by validation findings and import previews
+    (``description.md`` §15; ``10_Domain_and_Data/06_IMPORT_FORMATS.md`` §2)."""
+
+    HARD_ERROR = "hard_error"
+    SOFT_WARNING = "soft_warning"
+    SOFT_INFO = "soft_info"
+
+
+class ValidationFinding(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One cross-tab validation result (``description.md`` §15)."""
+
+    severity: Severity
+    target: str
+    message: str
+
+
+class GeneralFieldState(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The working state of one General-tab control."""
+
+    setting_key: SettingKey
+    value: str
+    has_error: bool
+
+
+class PreviewGroup(StrEnum):
+    """The Import-preview grouping (``10_Domain_and_Data/06_IMPORT_FORMATS.md`` §8)."""
+
+    ADDED = "added"
+    CHANGED = "changed"
+    UNCHANGED = "unchanged"
+    SKIPPED = "skipped"
+
+
+class SettingsImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One setting key's proposed import outcome."""
+
+    setting_key: SettingKey
+    current_value: str | None
+    imported_value: str | None
+    group: PreviewGroup
+
+
+class SettingsImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The full settings-import preview, locally shaped to mirror
+    ``backend.import_export.models.SettingsImportPreview`` without importing it
+    (``ui/*`` may not import ``backend/import_export`` -- see the story's Notes)."""
+
+    rows: tuple[SettingsImportPreviewRow, ...]
+    findings: tuple[ValidationFinding, ...]
+    resolved_values: dict[SettingKey, str]
+
+
+class SettingsImportResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The applied/skipped counts after a confirmed settings import."""
+
+    applied_count: int
+    skipped_count: int
+
+
+class ProviderImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One provider entry's proposed import outcome."""
+
+    name: str
+    group: PreviewGroup
+
+
+class ProviderImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The full provider-config-import preview, locally shaped to mirror
+    ``backend.import_export.models.ProviderImportPreview`` (see the story's Notes)."""
+
+    rows: tuple[ProviderImportPreviewRow, ...]
+    embedding_provider_name: str | None
+    embedding_model_name: str | None
+    findings: tuple[ValidationFinding, ...]
+
+
+class ProviderImportResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The applied/skipped counts after a confirmed provider-config import."""
+
+    applied_count: int
+    skipped_count: int
 
 
 class SettingsTab(StrEnum):
@@ -128,10 +225,15 @@ class DialogChromeViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False)
 
     Attributes:
         providers_tab_label: ``"Providers"``, or ``"Providers *"`` while dirty.
+        general_tab_label: ``"General"``, or ``"General*"`` while dirty (STORY-067).
         save_state_text: The footer save-state indicator's text.
         dirty: Whether any working-copy field differs from its persisted value.
+        save_enabled: Whether Save Changes is enabled -- dirty and no hard
+            validation error (STORY-067-AC-2).
     """
 
     providers_tab_label: str
+    general_tab_label: str
     save_state_text: str
     dirty: bool
+    save_enabled: bool

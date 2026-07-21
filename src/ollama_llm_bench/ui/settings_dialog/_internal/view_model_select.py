@@ -253,6 +253,11 @@ def embedding_diagnostic_text(*, embedding_reachable: bool) -> str:
 def select_dialog_chrome_view_model(*, dirty: bool) -> DialogChromeViewModel:
     """Derive the dialog shell's chrome state (``description.md`` §2).
 
+    STORY-067 note: ``general_tab_label``/``save_enabled`` are placeholder
+    values here (``"General"``, ``dirty``) pending the General tab and the
+    cross-tab validation cascade this function has no access to; STORY-067's
+    ``SettingsController._push_chrome`` computes the real values directly.
+
     Args:
         dirty: Whether any working-copy field differs from its persisted value.
 
@@ -261,6 +266,8 @@ def select_dialog_chrome_view_model(*, dirty: bool) -> DialogChromeViewModel:
     """
     return DialogChromeViewModel(
         providers_tab_label="Providers *" if dirty else "Providers",
+        general_tab_label="General",
         save_state_text="Unsaved changes" if dirty else "No changes",
         dirty=dirty,
+        save_enabled=dirty,
     )
