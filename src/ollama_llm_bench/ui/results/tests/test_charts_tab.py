@@ -49,8 +49,10 @@ from ollama_llm_bench.ui.results.tests.conftest import (
     FakeEventBus,
     FakeExportFilenameHelper,
     FakeFileSystemActions,
+    FakeModelFetcher,
     FakeNativePickers,
     FakeNotificationService,
+    FakeProviderListSource,
     FakeResultGateway,
     make_run,
 )
@@ -109,6 +111,8 @@ def _make_result_collaborators(
         file_system_actions=FakeFileSystemActions(),
         notifications=FakeNotificationService(),
         export_filenames=FakeExportFilenameHelper(),
+        provider_source=FakeProviderListSource(),
+        model_fetcher=FakeModelFetcher(),
     )
 
 

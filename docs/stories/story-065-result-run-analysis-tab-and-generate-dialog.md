@@ -1,7 +1,7 @@
 ---
 id: STORY-065
 title: Build the Result widget Run Analysis tab and the Generate Analysis dialog
-status: ready
+status: done
 spec_clauses:
   - 05_Result_Widget/tabs/run_analysis_tab.md#4-generation-timing
   - 05_Result_Widget/tabs/run_analysis_tab.md#6-rendering-and-no-length-cap
@@ -209,3 +209,108 @@ exception is raised, the dialog reports `isVisible()`, and no `error`/`critical`
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+Implementation notes recorded at the end of the coder pass, before the tester/spec-conformance
+review:
+
+1. **`ResultGateway.regenerate_run_analysis` signature amendment (D1).** The verbatim 08-E
+   §7b.5 draft is `(run_id) -> None`; this story amends it to
+   `(run_id, provider_id, model_name, *, on_complete) -> bool` to carry the caller-chosen
+   `(provider, model)` pair `RunAnalysisService.generate` requires and to let the dialog/tab
+   learn whether the single-inference gate was acquired. Documented in
+   `ui/results/protocols.py`'s module docstring, mirroring the `NewBenchmarkGateway.notify_error`
+   (STORY-055) and `ResumeGateway.serialize_table` (STORY-056) precedents.
+1. **Locally-declared `JudgeAnalysisGenerationOutcome`/`JudgeAnalysisGenerationResult`.**
+   `ui/results/` is forbidden by an existing architecture test
+   (`tests/architecture/test_result_widget_boundaries.py::test_no_file_imports_a_persistence_store_or_service_module`,
+   STORY-061's Definition of done) from importing `backend.run_analysis` directly. Rather than
+   importing the real `RunAnalysisOutcome`/`RunAnalysisResult`, `ui/results/protocols.py`
+   declares a structurally-identical local mirror; the concrete adapter (a later, `compose.py`
+   -owned story) is responsible for translating the real backend result into this shape at the
+   Gateway boundary.
+1. **AC-1's metadata line is session-only.** No persisted column exists for the narrative's
+   generation timestamp/duration (`BenchmarkRun`/`RunStatusPatch` carry no such field, confirmed
+   against `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md`'s `benchmark_runs` schema). The metadata
+   line is therefore populated only from a generation completed *this session*
+   (`JudgeAnalysisTabController`'s in-memory `_session_by_run`) and is hidden — while the
+   narrative body itself still renders in full — after a tab reopen or app restart. This is an
+   intentional, user-approved deviation from `run_analysis_tab.md` §5's literal "the timestamp at
+   which the narrative was produced" contract, which would require a schema change out of this
+   story's additive-only, non-`compose.py` scope.
+1. **`GenerateAnalysisCollaborators` bundle.** `coding-style.md`'s parameter-count limit forced
+   bundling `dispatcher`/`provider_source`/`model_fetcher`/`event_bus` into one
+   `ui/common_dialogs/models.py` struct rather than five separate keyword arguments on
+   `make_generate_analysis_dialog`/`GenerateAnalysisDialog.__init__`, matching the
+   `ResultCollaborators` precedent already used by `ui/results/`. This is a mechanical
+   lint-driven refactor of the plan's literal signature, not a behavioural deviation.
+1. **The dialog's live-progress/Generating sub-state is simplified.** Neither this story's
+   `acceptance_criteria` nor its `edge_cases` cite EC-GA-8 (the role=JUDGE adaptive-timeout
+   `JudgeTimeoutExhausted` stay-open sub-state) or the open-time gate-busy states
+   (EC-GA-1/2/3/4/7). `GenerateAnalysisDialog` implements the `_inference_progress`-driven
+   two-line progress text (§8.1) and closes on either `_run_analysis_received` (success) or the
+   gate returning to `IDLE` (any failure) — it does not distinguish a generic failure from
+   judge-timeout exhaustion, and does not model the dialog's open-time empty states separately.
+   The Run Analysis tab surfaces the classified failure reason either way via its own soft error
+   banner (AC-3).
+1. **No judge-model pre-fill.** `generate_analysis_dialog.md` §5's default-selection rule also
+   asks for the run's snapshot *judge model name*, not just its judge provider id; `BenchmarkRun`
+   carries `judge_provider_id`/`judge_provider_name` but no `judge_model_name` field, so only the
+   provider default (`default_provider_id` in `_internal/generate_analysis_select.py`) is
+   implemented — the Model dropdown falls back to its own first-admitted-model default. The
+   spec's own §5 states the default is "informational" and freely user-editable, so this does not
+   affect any acceptance criterion.
+1. **`ResultCollaborators` gained two new required fields.** `provider_source: ProviderListSource` and `model_fetcher: ModelFetcher` were added so `ResultController` can
+   open the Generate Analysis dialog with the shared dropdown collaborators (D-R-06 forbids the
+   Run Analysis tab's own controller from holding them). Every existing `ui/results/tests/`
+   call site constructing `ResultCollaborators` directly was updated to pass
+   `FakeProviderListSource()`/`FakeModelFetcher()`; `compose.py` itself is untouched (out of this
+   story's scope).
+1. **Spec-conformance fix (AC-1): the metadata line was leaking `provider_id`.** The
+   spec-conformance review caught that `JudgeAnalysisTabController.regenerate_analysis`
+   built `_dispatched_model_display[run_id]` as `f"{provider_id} / {model_name}"` — the raw
+   internal `provider_id` (a UUID4 in production) was reaching `select.format_metadata_line`
+   and being rendered verbatim, violating both `run_analysis_tab.md` §5 ("the internal
+   `provider_id` … is never displayed") and CLAUDE.md's app-wide `provider_id` rule. Fixed by
+   adding `provider_name: str | None` to the locally-declared `JudgeAnalysisGenerationResult`
+   mirror (`ui/results/protocols.py`) — populated by the concrete `ResultGateway` adapter
+   (the only layer with `ProviderRegistry` access), never by the tab controller. The controller
+   now tracks only `model_name` at dispatch time (`_dispatched_model_name`, renamed from
+   `_dispatched_model_display`) and builds the display string from
+   `result.provider_name`/`model_name` only once the result arrives, via the new private
+   `_format_model_display` helper in `controller.py`, which falls back to the bare model name
+   (never any id) when `provider_name` is absent. `RunAnalysisDispatcher.regenerate_analysis`'s
+   public signature (AC-5) is unchanged.
+1. **Spec-conformance finding (AC-5/§6), not fixed — documented deviation.** The review flagged
+   the Generate Analysis dialog's model filter
+   (`ui/common_dialogs/_internal/generate_analysis_view.py`) as implementing only "half" of
+   `generate_analysis_dialog.md` §6 — excluding embedding models via `is_embedding_model` but
+   never consulting `ModelCapabilityService` for "not chat-capable" models — and suggested
+   mirroring the New Benchmark Judge section's predicate. Investigation found that premise does
+   not hold anywhere in the current codebase: (a) `ModelCapabilityService`'s Protocol
+   (`backend/model_helpers/protocols.py`) exposes only `get_capabilities`, `record_capability`,
+   and `is_streaming_supported` — there is no queryable "chat-capable" signal to call, and the
+   tracked `ModelCapability` enum (`STREAMING`, `REASONING_EFFORT`, `THINKING`) has no member
+   related to chat-capability; (b) the New Benchmark Judge section's own source-of-truth spec
+   (`02_New_Benchmark_Widget/description.md` §4.4) defines its filter as "excludes embedding-style
+   models … intersected with `embedding.hide_from_test_models`" — no `ModelCapabilityService`
+   involvement at all; and (c) `judge_section.py`'s actual `_model_filter` implementation matches
+   that §4.4 text exactly (`not (hide_embedding_models_source() and is_embedding_model(...))`),
+   confirming `generate_analysis_dialog.md` §6's "same predicate … intersected with
+   `ModelCapabilityService`" description is inconsistent with both the Judge section's own spec
+   and its shipped (STORY-055, already-reviewed) implementation. Fabricating a
+   `ModelCapabilityService`-backed chat-capability check with no corresponding stored capability
+   or probe path would be inventing application behaviour, which CLAUDE.md forbids. Left
+   `generate_analysis_view.py`'s filter as `not is_embedding_model(name)` — an unconditional,
+   always-on embedding exclusion, which is a strict superset of (never weaker than) the
+   Judge section's toggle-gated version, and is the one half of §6 that is actually
+   implementable today. Follow-up: a future story should either (i) reconcile
+   `generate_analysis_dialog.md` §6 with `description.md` §4.4's real predicate, or (ii) add a
+   genuine chat-capability concept to `ModelCapabilityService`/`ModelCapability` (new enum
+   member, probe/record path) before either surface can honour the "not chat-capable" exclusion
+   for real.
+
+**Suggestion for follow-up:** a later story could add a persisted `run_analysis_generated_at`/
+`run_analysis_duration_ms` column pair (additive-only) to `benchmark_runs` so the metadata line
+survives a tab reopen/app restart, closing Notes item 3 above.

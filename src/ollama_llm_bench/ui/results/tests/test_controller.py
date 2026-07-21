@@ -24,8 +24,10 @@ from ollama_llm_bench.ui.results.tests.conftest import (
     FakeEventBus,
     FakeExportFilenameHelper,
     FakeFileSystemActions,
+    FakeModelFetcher,
     FakeNativePickers,
     FakeNotificationService,
+    FakeProviderListSource,
     FakeResultGateway,
     make_run,
 )
@@ -65,6 +67,8 @@ def test_run_selector_auto_jump_and_user_lock(qtbot: QtBot) -> None:
             file_system_actions=FakeFileSystemActions(),
             notifications=FakeNotificationService(),
             export_filenames=FakeExportFilenameHelper(),
+            provider_source=FakeProviderListSource(),
+            model_fetcher=FakeModelFetcher(),
         )
     )
     view = ResultView()
@@ -110,6 +114,8 @@ def test_dropdown_change_emits_and_external_selection_syncs(qtbot: QtBot) -> Non
             file_system_actions=FakeFileSystemActions(),
             notifications=FakeNotificationService(),
             export_filenames=FakeExportFilenameHelper(),
+            provider_source=FakeProviderListSource(),
+            model_fetcher=FakeModelFetcher(),
         )
     )
     view = ResultView()
@@ -146,6 +152,8 @@ def test_result_widget_constructs_and_shows_with_no_error_logs(qtbot: QtBot) -> 
         file_system_actions=FakeFileSystemActions(),
         notifications=FakeNotificationService(),
         export_filenames=FakeExportFilenameHelper(),
+        provider_source=FakeProviderListSource(),
+        model_fetcher=FakeModelFetcher(),
     )
     # Act
     with structlog.testing.capture_logs() as logs:
@@ -185,6 +193,8 @@ def test_app_settings_changed_syncs_footer_across_two_result_widgets(qtbot: QtBo
             file_system_actions=FakeFileSystemActions(),
             notifications=FakeNotificationService(),
             export_filenames=FakeExportFilenameHelper(),
+            provider_source=FakeProviderListSource(),
+            model_fetcher=FakeModelFetcher(),
         )
     )
     widget_b = make_result_widget(
@@ -196,6 +206,8 @@ def test_app_settings_changed_syncs_footer_across_two_result_widgets(qtbot: QtBo
             file_system_actions=FakeFileSystemActions(),
             notifications=FakeNotificationService(),
             export_filenames=FakeExportFilenameHelper(),
+            provider_source=FakeProviderListSource(),
+            model_fetcher=FakeModelFetcher(),
         )
     )
     qtbot.addWidget(widget_a)
@@ -238,6 +250,8 @@ def test_manual_selection_while_idle_locks_against_later_auto_jump(qtbot: QtBot)
             file_system_actions=FakeFileSystemActions(),
             notifications=FakeNotificationService(),
             export_filenames=FakeExportFilenameHelper(),
+            provider_source=FakeProviderListSource(),
+            model_fetcher=FakeModelFetcher(),
         )
     )
     view = ResultView()
@@ -274,6 +288,8 @@ def test_mount_while_run_incomplete_seeds_live_and_disables_exports(qtbot: QtBot
         file_system_actions=FakeFileSystemActions(),
         notifications=FakeNotificationService(),
         export_filenames=FakeExportFilenameHelper(),
+        provider_source=FakeProviderListSource(),
+        model_fetcher=FakeModelFetcher(),
     )
     # Act
     widget = make_result_widget(collaborators=collaborators)
@@ -303,6 +319,8 @@ def test_no_run_state_disables_dropdown_and_tab_strip(qtbot: QtBot) -> None:
         file_system_actions=FakeFileSystemActions(),
         notifications=FakeNotificationService(),
         export_filenames=FakeExportFilenameHelper(),
+        provider_source=FakeProviderListSource(),
+        model_fetcher=FakeModelFetcher(),
     )
     # Act
     widget = make_result_widget(collaborators=collaborators)

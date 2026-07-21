@@ -10,8 +10,16 @@ Source of truth: ``docs/v3_specification/07_Common_Dialogs/run_summary_dialog.md
 import icontract
 from PySide6.QtWidgets import QDialog, QWidget
 
-from ollama_llm_bench.backend.domain import AppReadinessSnapshot, RunId, RunStartRequest
+from ollama_llm_bench.backend.domain import (
+    AppReadinessSnapshot,
+    BenchmarkRun,
+    RunId,
+    RunStartRequest,
+)
 from ollama_llm_bench.backend.events import EventBus
+from ollama_llm_bench.ui.common_dialogs._internal.generate_analysis_view import (
+    GenerateAnalysisDialog,
+)
 from ollama_llm_bench.ui.common_dialogs._internal.rename_run_view import RenameRunDialog
 from ollama_llm_bench.ui.common_dialogs._internal.resume_summary_select import (
     select_resume_summary_view_model,
@@ -25,6 +33,7 @@ from ollama_llm_bench.ui.common_dialogs._internal.view import RunSummaryDialog
 from ollama_llm_bench.ui.common_dialogs._internal.view_model_select import (
     select_run_summary_view_model,
 )
+from ollama_llm_bench.ui.common_dialogs.models import GenerateAnalysisCollaborators
 from ollama_llm_bench.ui.common_dialogs.protocols import (
     RenameRunGateway,
     ResumeSummaryGateway,
@@ -35,6 +44,7 @@ from ollama_llm_bench.ui.new_benchmark.models import RunValidationSeverity, Vali
 from ollama_llm_bench.ui.new_benchmark.protocols import RunValidator
 
 __all__: list[str] = [
+    "make_generate_analysis_dialog",
     "make_rename_run_dialog",
     "make_resume_summary_dialog",
     "make_retry_selection_dialog",
@@ -190,6 +200,36 @@ def make_retry_selection_dialog(
         return None
     view_model = select_retry_selection_view_model(run_id=run_id, results=results)
     return RetrySelectionDialog(gateway=gateway, view_model=view_model, parent=parent)
+
+
+@icontract.require(lambda run: run is not None, "run is a required collaborator")
+@icontract.require(
+    lambda collaborators: collaborators is not None, "collaborators is a required bundle"
+)
+@icontract.ensure(lambda result: isinstance(result, QDialog))
+def make_generate_analysis_dialog(
+    *,
+    run: BenchmarkRun,
+    collaborators: GenerateAnalysisCollaborators,
+    parent: QWidget | None = None,
+) -> QDialog:
+    """Build the Generate/Regenerate Analysis dialog (generate_analysis_dialog.md).
+
+    Unlike ``make_run_summary_dialog``, this factory never returns ``None`` -- the
+    dialog has no readiness-gate precondition; it always constructs and gates purely
+    on Confirm (§8, STORY-065-AC-6).
+
+    Args:
+        run: The run under analysis; determines the Generate/Regenerate title and
+            button label (§3) and the default provider pre-fill (§5).
+        collaborators: The dispatcher, shared dropdown collaborators, and event bus
+            this dialog depends on (D-R-06; coding-style.md's 4-parameter rule).
+        parent: The dialog's parent widget, if any.
+
+    Returns:
+        The constructed, unshown ``QDialog``.
+    """
+    return GenerateAnalysisDialog(run=run, collaborators=collaborators, parent=parent)
 
 
 def _preflight_passes(

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T09:22:52Z'
+generated_at: '2026-07-21T11:12:35Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4285,7 +4285,7 @@ stories:
         - src/ollama_llm_bench/ui/results/tests/test_detached_chart_window.py::test_detached_window_forks_state_independently
   STORY-065:
     title: Build the Result widget Run Analysis tab and the Generate Analysis dialog
-    status: ready
+    status: done
     spec_clauses:
     - 05_Result_Widget/tabs/run_analysis_tab.md#10-footer-export
     - 05_Result_Widget/tabs/run_analysis_tab.md#4-generation-timing
@@ -4307,19 +4307,30 @@ stories:
     - EC-RUN-14
     acceptance_criteria:
       STORY-065-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
+        - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
       STORY-065-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
+        - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
+        - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
+        - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
       STORY-065-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
       STORY-065-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
       STORY-065-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
       STORY-065-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
       STORY-065-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
   STORY-066:
     title: Build the Settings dialog shell, Providers tab, embedding selection, and the Provider Edit sub-dialog
     status: ready
@@ -6799,7 +6810,18 @@ edge_cases:
   EC-PROV-4e:
     stories:
     - STORY-065
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
   EC-PROV-5:
     stories:
     - STORY-066
@@ -7208,7 +7230,18 @@ edge_cases:
   EC-RES-3:
     stories:
     - STORY-065
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
   EC-RES-4:
     stories:
     - STORY-033
@@ -7440,7 +7473,18 @@ edge_cases:
   EC-RUN-12:
     stories:
     - STORY-065
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
   EC-RUN-13:
     stories:
     - STORY-016
@@ -7507,6 +7551,17 @@ edge_cases:
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[provider_test_60s]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[readiness_probe_30s]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_does_not_fire_before_its_timeout_elapses
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
+    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
   EC-RUN-17:
     stories:
     - STORY-059

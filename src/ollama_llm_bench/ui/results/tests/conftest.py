@@ -8,6 +8,7 @@ locally-declared Protocol fakes.
 from collections.abc import Callable
 import re
 
+import msgspec
 import pytest
 
 from ollama_llm_bench.adapters.native_pickers import SavePickerOptions
@@ -17,20 +18,27 @@ from ollama_llm_bench.backend.domain import (
     BenchmarkTask,
     ChartData,
     ChartKind,
+    ModelName,
+    ProviderConfig,
+    ProviderId,
     RunId,
     RunMode,
     RunStatus,
+    RunStatusPatch,
 )
 from ollama_llm_bench.backend.events import Subscription
 from ollama_llm_bench.ui.results.models import ResultCollaborators
+from ollama_llm_bench.ui.results.protocols import JudgeAnalysisGenerationResult
 
 __all__: list[str] = [
     "FakeClipboard",
     "FakeEventBus",
     "FakeExportFilenameHelper",
     "FakeFileSystemActions",
+    "FakeModelFetcher",
     "FakeNativePickers",
     "FakeNotificationService",
+    "FakeProviderListSource",
     "FakeResultGateway",
     "make_run",
 ]
@@ -89,6 +97,9 @@ class FakeResultGateway:
         self._settings: dict[str, str] = {}
         self.serialize_table_calls: list[tuple[RunId, str, str]] = []
         self.chart_data_calls: list[tuple[RunId, ChartKind]] = []
+        self.regenerate_calls: list[tuple[RunId, ProviderId, ModelName]] = []
+        self.regenerate_acquire = True
+        self._pending_callbacks: dict[RunId, Callable[[JudgeAnalysisGenerationResult], None]] = {}
 
     def list_runs(self) -> tuple[BenchmarkRun, ...]:
         return tuple(self._runs.values())
@@ -96,8 +107,9 @@ class FakeResultGateway:
     def get_run(self, run_id: RunId) -> BenchmarkRun:
         return self._runs[run_id]
 
-    def persist_run_analysis(self, run_id: RunId, patch: object) -> None:
-        raise NotImplementedError
+    def persist_run_analysis(self, run_id: RunId, patch: RunStatusPatch) -> None:
+        run = self._runs[run_id]
+        self._runs[run_id] = msgspec.structs.replace(run, run_analysis=patch.run_analysis)
 
     def list_results(self, run_id: RunId) -> tuple[BenchmarkResult, ...]:
         return self._results_by_run_id.get(run_id, ())
@@ -111,8 +123,25 @@ class FakeResultGateway:
     def set_setting(self, key: str, value: str) -> None:
         self._settings[key] = value
 
-    def regenerate_run_analysis(self, run_id: RunId) -> None:
-        raise NotImplementedError
+    def regenerate_run_analysis(
+        self,
+        run_id: RunId,
+        provider_id: ProviderId,
+        model_name: ModelName,
+        *,
+        on_complete: Callable[[JudgeAnalysisGenerationResult], None],
+    ) -> bool:
+        self.regenerate_calls.append((run_id, provider_id, model_name))
+        if not self.regenerate_acquire:
+            return False
+        self._pending_callbacks[run_id] = on_complete
+        return True
+
+    def complete_regeneration(self, run_id: RunId, result: JudgeAnalysisGenerationResult) -> None:
+        """Test-only helper: simulate the async generation call settling."""
+        callback = self._pending_callbacks.pop(run_id, None)
+        if callback is not None:
+            callback(result)
 
     def chart_data(self, run_id: RunId, chart_kind: ChartKind) -> ChartData:
         self.chart_data_calls.append((run_id, chart_kind))
@@ -151,6 +180,36 @@ class FakeExportFilenameHelper:
         sanitized = _sanitize(run.run_name or "")
         base = sanitized if sanitized else f"Run_{run.run_id}"
         return f"{base}_{kind}.{ext}"
+
+
+class FakeProviderListSource:
+    """A canned enabled-provider catalog (STORY-065; ``ui.shared.provider_dropdown``'s
+    ``ProviderListSource`` Protocol)."""
+
+    def __init__(self, providers: tuple[ProviderConfig, ...] = ()) -> None:
+        self._providers = providers
+
+    def list_enabled(self) -> tuple[ProviderConfig, ...]:
+        return self._providers
+
+
+class FakeModelFetcher:
+    """A canned per-provider model list (STORY-065; ``ui.shared.model_dropdown``'s
+    ``ModelFetcher`` Protocol)."""
+
+    def __init__(
+        self, models_by_provider: dict[ProviderId, tuple[ModelName, ...]] | None = None
+    ) -> None:
+        self._models_by_provider = models_by_provider or {}
+
+    def fetch_models(
+        self,
+        provider_id: ProviderId,
+        *,
+        on_success: Callable[[ProviderId, tuple[ModelName, ...]], None],
+        on_error: Callable[[ProviderId, Exception], None],
+    ) -> None:
+        on_success(provider_id, self._models_by_provider.get(provider_id, ()))
 
 
 def _sanitize(name: str) -> str:
@@ -296,4 +355,6 @@ def result_collaborators(
         file_system_actions=FakeFileSystemActions(),
         notifications=FakeNotificationService(),
         export_filenames=FakeExportFilenameHelper(),
+        provider_source=FakeProviderListSource(),
+        model_fetcher=FakeModelFetcher(),
     )

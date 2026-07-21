@@ -1,8 +1,10 @@
 """Frozen ViewModel structs for ``ui/common_dialogs/`` -- Run Summary (STORY-055) and
-Resume Summary / Retry Selection (STORY-057).
+Resume Summary / Retry Selection (STORY-057), plus the Generate Analysis dialog's
+collaborator bundle (STORY-065).
 
 Source of truth: ``docs/v3_specification/07_Common_Dialogs/run_summary_dialog.md``
-§3-§7; ``resume_summary_dialog.md`` §3-§7; ``retry_selection_dialog.md`` §4, §6, §7.
+§3-§7; ``resume_summary_dialog.md`` §3-§7; ``retry_selection_dialog.md`` §4, §6, §7;
+``generate_analysis_dialog.md`` §4.
 """
 
 from enum import StrEnum
@@ -10,9 +12,14 @@ from enum import StrEnum
 import msgspec
 
 from ollama_llm_bench.backend.domain import ResultId, RunId, RunMode, TaskIdStr
+from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.backend.run_drift import DriftWarning
+from ollama_llm_bench.ui.common_dialogs.protocols import RunAnalysisDispatcher
+from ollama_llm_bench.ui.shared.model_dropdown import ModelFetcher
+from ollama_llm_bench.ui.shared.provider_dropdown import ProviderListSource
 
 __all__: list[str] = [
+    "GenerateAnalysisCollaborators",
     "ResumeSummaryViewModel",
     "RetryFilterOption",
     "RetryPickerRow",
@@ -20,6 +27,16 @@ __all__: list[str] = [
     "RunSummaryViewModel",
     "TaskPickerRow",
 ]
+
+
+class GenerateAnalysisCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Dependency bundle for ``make_generate_analysis_dialog`` (coding-style.md's
+    4-parameter hard maximum)."""
+
+    dispatcher: RunAnalysisDispatcher
+    provider_source: ProviderListSource
+    model_fetcher: ModelFetcher
+    event_bus: EventBus
 
 
 class RunSummaryViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):

@@ -22,6 +22,8 @@ from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
     BenchmarkResult,
     BenchmarkRun,
+    ModelName,
+    ProviderId,
     ResultId,
     RunId,
     RunStartRequest,
@@ -32,6 +34,7 @@ __all__: list[str] = [
     "RenameRunGateway",
     "ResumeSummaryGateway",
     "RetrySelectionGateway",
+    "RunAnalysisDispatcher",
     "RunSummaryGateway",
 ]
 
@@ -119,4 +122,29 @@ class RetrySelectionGateway(Protocol):
 
     def resume_run(self, run_id: RunId) -> None:
         """Resume the run against its frozen settings_snapshot."""
+        ...
+
+
+class RunAnalysisDispatcher(Protocol):
+    """The Generate Analysis dialog's dispatch surface onto its parent tab
+    controller (D-R-06 local addition; STORY-065).
+
+    Declared locally -- no existing Protocol names this narrow a surface, and the
+    dialog must never hold a ``ResultGateway`` (that Protocol belongs to
+    ``ui/results/``, not this module).
+    ``ui.results._internal.run_analysis_tab.controller.JudgeAnalysisTabController``
+    structurally satisfies it with no adapter shim.
+    """
+
+    def regenerate_analysis(
+        self, run_id: RunId, provider_id: ProviderId, model_name: ModelName
+    ) -> bool:
+        """Dispatch a run-analysis (re)generation through the parent tab controller.
+
+        fast-synchronous: attempts to acquire the single-inference gate and, on
+        success, enqueues the generation to a worker thread, returning ``True``
+        immediately. Returns ``False`` when the gate is already held by another
+        activity (generate_analysis_dialog.md §8 step 4; STORY-065-AC-6) -- the
+        caller stays in its Editing sub-state and shows the inline busy message.
+        """
         ...

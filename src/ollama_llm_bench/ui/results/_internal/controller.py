@@ -34,6 +34,10 @@ from ollama_llm_bench.ui.results._internal.charts_tab.view import ChartsTabView
 from ollama_llm_bench.ui.results._internal.details_tab.controller import DetailsTabController
 from ollama_llm_bench.ui.results._internal.details_tab.view import DetailsTabView
 from ollama_llm_bench.ui.results._internal.footer import FooterController
+from ollama_llm_bench.ui.results._internal.run_analysis_tab.controller import (
+    JudgeAnalysisTabController,
+)
+from ollama_llm_bench.ui.results._internal.run_analysis_tab.view import JudgeAnalysisTabView
 from ollama_llm_bench.ui.results._internal.summary_tab.controller import SummaryTabController
 from ollama_llm_bench.ui.results._internal.summary_tab.view import SummaryTabView
 from ollama_llm_bench.ui.results._internal.view_state_store import PerRunViewStateStore
@@ -83,6 +87,11 @@ class ResultController:
             platform_kind=collaborators.platform_kind,
         )
         self._footer.set_chart_export_source(self._charts_tab)
+        self._run_analysis_tab = JudgeAnalysisTabController(
+            gateway=collaborators.gateway,
+            bus=collaborators.bus,
+            clipboard=collaborators.clipboard,
+        )
         self._selected_run_id: RunId | None = None
         self._user_locked = False
         self._active_tab = _DEFAULT_TAB
@@ -92,6 +101,7 @@ class ResultController:
         self._summary_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
         self._details_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
         self._charts_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
+        self._run_analysis_tab_context: RunId | None = None
         logger.debug("result_controller_constructed")
 
     def bind(self, view: "ResultView") -> None:
@@ -109,6 +119,7 @@ class ResultController:
         self._mount_summary_tab(view)
         self._mount_details_tab(view)
         self._mount_charts_tab(view)
+        self._mount_run_analysis_tab(view)
 
     def _mount_summary_tab(self, view: "ResultView") -> None:
         summary_view = SummaryTabView(platform_kind=self._collaborators.platform_kind)
@@ -127,6 +138,43 @@ class ResultController:
         layout.addWidget(details_view)
         details_view.bind_controller(self._details_tab)
         self._details_tab.bind(details_view)
+
+    def _mount_run_analysis_tab(self, view: "ResultView") -> None:
+        judge_view = JudgeAnalysisTabView(platform_kind=self._collaborators.platform_kind)
+        host = view.tab_host("run_analysis")
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(judge_view)
+        judge_view.bind_controller(self._run_analysis_tab)
+        judge_view.generate_clicked.connect(self._on_run_analysis_generate_clicked)
+        self._run_analysis_tab.bind(judge_view)
+
+    def _on_run_analysis_generate_clicked(self) -> None:
+        run_id = self._selected_run_id
+        if run_id is None:
+            return
+        # Deferred import (mirrors ui.new_benchmark/ui.resume_benchmark's own
+        # established precedent): every other consumer of ui.common_dialogs defers
+        # this import to first-use rather than module scope, breaking a transitive
+        # import-cycle risk through ui.new_benchmark, which ui.common_dialogs also
+        # imports from.
+        from ollama_llm_bench.ui.common_dialogs import (  # noqa: PLC0415
+            GenerateAnalysisCollaborators,
+            make_generate_analysis_dialog,
+        )
+
+        run = self._collaborators.gateway.get_run(run_id)
+        dialog = make_generate_analysis_dialog(
+            run=run,
+            collaborators=GenerateAnalysisCollaborators(
+                dispatcher=self._run_analysis_tab,
+                provider_source=self._collaborators.provider_source,
+                model_fetcher=self._collaborators.model_fetcher,
+                event_bus=self._collaborators.bus,
+            ),
+            parent=self._view,
+        )
+        dialog.exec()
 
     def _mount_charts_tab(self, view: "ResultView") -> None:
         charts_view = ChartsTabView(platform_kind=self._collaborators.platform_kind)
@@ -187,6 +235,7 @@ class ResultController:
         )
         self._details_tab.set_run_terminal_state(is_terminal=not self._live)
         self._charts_tab.set_run_terminal_state(is_terminal=not self._live)
+        self._run_analysis_tab.set_run_terminal_state(is_terminal=not self._live)
         self._push_view_model()
 
     def on_dropdown_changed(self, run_id: RunId) -> None:
@@ -273,6 +322,7 @@ class ResultController:
             self._selected_run_id = payload.run_id
         self._details_tab.set_run_terminal_state(is_terminal=False)
         self._charts_tab.set_run_terminal_state(is_terminal=False)
+        self._run_analysis_tab.set_run_terminal_state(is_terminal=False)
         self._push_view_model()
 
     def _on_run_terminal(self, _payload: object) -> None:
@@ -281,12 +331,14 @@ class ResultController:
         self._live_run_id = None
         self._details_tab.set_run_terminal_state(is_terminal=True)
         self._charts_tab.set_run_terminal_state(is_terminal=True)
+        self._run_analysis_tab.set_run_terminal_state(is_terminal=True)
         self._push_view_model()
 
     def _push_view_model(self) -> None:
         self._sync_summary_tab()
         self._sync_details_tab()
         self._sync_charts_tab()
+        self._sync_run_analysis_tab()
         if self._view is None:
             return
         self._view.apply(self._build_view_model())
@@ -341,6 +393,16 @@ class ResultController:
             return
         self._charts_tab_context = context
         self._charts_tab.set_run_context(run_id=self._selected_run_id, run_mode=run_mode)
+
+    def _sync_run_analysis_tab(self) -> None:
+        """Re-load the Run Analysis tab's run context whenever the selected run
+        changes. Mirrors ``_sync_summary_tab``'s change-detection choke-point --
+        this tab needs only ``run_id``, not ``run_mode`` (§12: no per-mode view
+        state)."""
+        if self._selected_run_id == self._run_analysis_tab_context:
+            return
+        self._run_analysis_tab_context = self._selected_run_id
+        self._run_analysis_tab.set_run_context(run_id=self._selected_run_id)
 
     def _build_view_model(self) -> ResultViewModel:
         runs = self._collaborators.gateway.list_runs()

@@ -15,6 +15,8 @@ from ollama_llm_bench.adapters.notification_service import NotificationService
 from ollama_llm_bench.backend.domain import ChartData, ChartKind, HeatmapData, ResultId, RunId
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.results.protocols import ExportFilenameHelper, ResultGateway
+from ollama_llm_bench.ui.shared.model_dropdown import ModelFetcher
+from ollama_llm_bench.ui.shared.provider_dropdown import ProviderListSource
 from ollama_llm_bench.ui.theme import PlatformKind
 
 __all__: list[str] = [
@@ -27,6 +29,7 @@ __all__: list[str] = [
     "FilterChipDomains",
     "FilterChipSelection",
     "FooterViewModel",
+    "JudgeAnalysisViewModel",
     "PhaseEvaluationRow",
     "ResultCollaborators",
     "ResultDetailViewModel",
@@ -46,6 +49,8 @@ class ResultCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     file_system_actions: FileSystemActions
     notifications: NotificationService
     export_filenames: ExportFilenameHelper
+    provider_source: ProviderListSource
+    model_fetcher: ModelFetcher
     platform_kind: PlatformKind = PlatformKind.UNKNOWN
 
 
@@ -190,6 +195,31 @@ class ChartOptionControl(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     kind: str
     value: str
     choices: tuple[str, ...] = ()
+
+
+class JudgeAnalysisViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Pushed by ``JudgeAnalysisTabController`` to ``JudgeAnalysisTabView`` (STORY-065;
+    ``run_analysis_tab.md`` §5-§9).
+
+    ``metadata_line`` is populated only from a generation completed **this session**
+    (STORY-065's Notes -- no persisted generation-timestamp/duration column exists on
+    ``BenchmarkRun``); it is ``None`` after a tab reopen or app restart even though the
+    narrative body itself is still rendered in full from the persisted
+    ``run_analysis`` field. ``state`` is one of ``"empty" | "generating" | "ready" |
+    "failed"`` (§9); ``narrative_markdown`` is non-``None`` whenever a persisted
+    narrative exists, including in the ``"failed"`` state when a regeneration failed
+    but a prior good narrative is preserved (§8, EC-PROV-4e).
+    """
+
+    state: str
+    narrative_markdown: str | None
+    empty_state_message: str | None
+    metadata_line: str | None
+    error_banner: str | None
+    copy_enabled: bool
+    generate_button_label: str
+    generate_button_enabled: bool
+    generate_button_tooltip: str | None
 
 
 class ChartsViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):

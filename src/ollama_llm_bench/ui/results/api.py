@@ -29,6 +29,8 @@ __all__: list[str] = ["make_result_widget"]
             collaborators.file_system_actions,
             collaborators.notifications,
             collaborators.export_filenames,
+            collaborators.provider_source,
+            collaborators.model_fetcher,
         )
     ),
     "every collaborator is required, wired by a later composition-root story",
