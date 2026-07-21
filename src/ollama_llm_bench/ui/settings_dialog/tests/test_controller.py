@@ -35,7 +35,16 @@ from ollama_llm_bench.ui.settings_dialog.api import (
     SettingsDialogCollaborators,
     make_settings_dialog,
 )
-from ollama_llm_bench.ui.settings_dialog.models import DialogChromeViewModel, GeneralFieldState
+from ollama_llm_bench.ui.settings_dialog.models import (
+    DialogChromeViewModel,
+    GeneralFieldState,
+    PreviewGroup,
+    SettingsImportPreview,
+    SettingsImportPreviewRow,
+    SettingsImportResult,
+    Severity,
+    ValidationFinding,
+)
 from ollama_llm_bench.ui.settings_dialog.testing import FakeSettingsGateway
 from ollama_llm_bench.ui.settings_dialog.tests.conftest import PROVIDER_A, FakeEventBus
 
@@ -460,6 +469,63 @@ def test_close_when_clean_closes_immediately(qtbot: QtBot, mocker: MockerFixture
     should_close = controller.on_close_requested()
 
     assert should_close is True
+
+
+def test_import_applies_known_keys_and_skips_unknown_keys_on_confirm(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-067-AC-4
+
+    Covers: EC-SET-2
+
+    Given an import file whose preview carries one recognised key (grouped
+    Changed) and an "unrecognised key ignored" finding for an unknown key,
+    when the user confirms the Import preview, then only the recognised
+    key's resolved value reaches the Gateway's ``apply_settings_import`` call
+    -- the unknown key never reaches persistence -- and
+    `_app_settings_changed` is emitted exactly once.
+    """
+    gateway = FakeSettingsGateway()
+    native_pickers = FakeNativePickers()
+    native_pickers.set_open_file_result(("settings.yaml",))
+    bus = FakeEventBus()
+    dialog = make_settings_dialog(
+        collaborators=_make_collaborators(gateway=gateway, event_bus=bus, mocker=mocker)
+    )
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+    controller._native_pickers = native_pickers
+
+    preview = SettingsImportPreview(
+        rows=(
+            SettingsImportPreviewRow(
+                setting_key="benchmark.retry_count",
+                current_value="3",
+                imported_value="5",
+                group=PreviewGroup.CHANGED,
+            ),
+        ),
+        findings=(
+            ValidationFinding(
+                severity=Severity.SOFT_INFO,
+                target="ui.old_theme",
+                message="Unrecognised key — ignored",
+            ),
+        ),
+        resolved_values={"benchmark.retry_count": "5"},
+    )
+    gateway.set_settings_import_preview(preview)
+    gateway.set_settings_import_result(SettingsImportResult(applied_count=1, skipped_count=1))
+    fake_preview_dialog = mocker.Mock(confirmed=True)
+    mocker.patch(
+        "ollama_llm_bench.ui.settings_dialog._internal.controller.make_settings_import_preview_dialog",
+        return_value=fake_preview_dialog,
+    )
+
+    controller.on_import_clicked()
+
+    assert gateway.upsert_settings_calls[-1] == {"benchmark.retry_count": "5"}
+    assert bus.emitted_signal_names().count("_app_settings_changed") == 1
 
 
 def test_settings_dialog_shows_general_tab_and_all_footer_buttons(

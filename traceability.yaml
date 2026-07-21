@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T14:12:15Z'
+generated_at: '2026-07-21T14:23:03Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4436,7 +4436,8 @@ stories:
         - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans
         - tests/integration/test_settings_save.py::test_atomic_save_writes_both_and_emits_events
       STORY-067-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
       STORY-067-AC-5:
         tests:
         - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
@@ -8126,6 +8127,7 @@ edge_cases:
     tests:
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_nothing_when_a_hard_error_is_present
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans
@@ -8139,6 +8141,7 @@ edge_cases:
     tests:
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_nothing_when_a_hard_error_is_present
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans
@@ -8152,6 +8155,7 @@ edge_cases:
     tests:
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_nothing_when_a_hard_error_is_present
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans
