@@ -318,11 +318,46 @@ def _clear_filters_enabled(filters: ChartFilterState) -> bool:
     )
 
 
+_OVERALL_EMPTY_MESSAGE = "Charts require at least one completed task."
+_GRADING_DEFENCE_MESSAGE = "This chart is available only for graded runs."
+
+
 def _has_data(
     chart_data_cache: Mapping[ChartKind, ChartData | HeatmapData], kind: ChartKind
 ) -> bool:
     data = chart_data_cache.get(kind)
     return data is not None and data.empty_state_message is None
+
+
+def _all_offered_charts_empty(
+    chart_data_cache: Mapping[ChartKind, ChartData | HeatmapData], offered: tuple[ChartKind, ...]
+) -> bool:
+    return all(not _has_data(chart_data_cache, kind) for kind in offered)
+
+
+def _resolve_empty_state_message(
+    *,
+    is_offered: bool,
+    has_data: bool,
+    data: ChartData | HeatmapData | None,
+    chart_data_cache: Mapping[ChartKind, ChartData | HeatmapData],
+    offered: tuple[ChartKind, ...],
+) -> str | None:
+    """Resolve the canvas empty-state message per §11's precedence.
+
+    Order: (1) the GRADED-only defence message when the active chart kind is
+    not offered by the run's mode at all (defensive -- the chooser already
+    prevents this); (2) the overall-empty message when *every* mode-offered
+    chart is empty (§4/§11); (3) the active chart's own kind-specific
+    ``empty_state_message``; (4) ``None`` when the active chart has data.
+    """
+    if not is_offered:
+        return _GRADING_DEFENCE_MESSAGE
+    if _all_offered_charts_empty(chart_data_cache, offered):
+        return _OVERALL_EMPTY_MESSAGE
+    if has_data:
+        return None
+    return data.empty_state_message if data is not None else None
 
 
 def select_charts_view_model(inputs: ChartsSelectionInput) -> ChartsViewModel:
@@ -338,13 +373,14 @@ def select_charts_view_model(inputs: ChartsSelectionInput) -> ChartsViewModel:
         The full ``ChartsViewModel`` to push to the bound view.
     """
     offered = mode_policy.offered_chart_kinds(inputs.run_mode)
-    active_index = offered.index(inputs.active_kind)
-    data = inputs.chart_data_cache.get(inputs.active_kind)
-    has_data = data is not None and data.empty_state_message is None
+    is_offered = inputs.active_kind in offered
+    active_index = offered.index(inputs.active_kind) if is_offered else 0
+    data = inputs.chart_data_cache.get(inputs.active_kind) if is_offered else None
+    has_data = is_offered and data is not None and data.empty_state_message is None
     filters = filter_state_for(inputs.view_state, inputs.active_kind)
     aggregation = _aggregation_label(inputs.active_kind, filters)
     meta_line = (
-        f"Aggregation: {aggregation} · Mode: {inputs.run_mode.value} · "
+        f"Aggregation: {aggregation} · Mode: {inputs.run_mode.value.upper()} · "
         f"{active_index + 1} / {len(offered)}"
     )
 
@@ -355,20 +391,26 @@ def select_charts_view_model(inputs: ChartsSelectionInput) -> ChartsViewModel:
         chart_kind=inputs.active_kind,
         chart_index=active_index,
         chart_count=len(offered),
-        prev_enabled=mode_policy.prev_navigable_index(
+        prev_enabled=is_offered
+        and mode_policy.prev_navigable_index(
             current_index=active_index, offered=offered, has_data=_cache_has_data
         )
         is not None,
-        next_enabled=mode_policy.next_navigable_index(
+        next_enabled=is_offered
+        and mode_policy.next_navigable_index(
             current_index=active_index, offered=offered, has_data=_cache_has_data
         )
         is not None,
         dropdown_entries=_dropdown_entries(offered, inputs.chart_data_cache),
         chart_data=data if has_data and isinstance(data, ChartData) else None,
         heatmap_data=data if has_data and isinstance(data, HeatmapData) else None,
-        empty_state_message=None
-        if has_data
-        else (data.empty_state_message if data is not None else None),
+        empty_state_message=_resolve_empty_state_message(
+            is_offered=is_offered,
+            has_data=has_data,
+            data=data,
+            chart_data_cache=inputs.chart_data_cache,
+            offered=offered,
+        ),
         meta_line=meta_line,
         filter_domains=chip_domains(results=inputs.results, tasks_by_id=inputs.tasks_by_id),
         filter_selection=_filter_selection(filters),

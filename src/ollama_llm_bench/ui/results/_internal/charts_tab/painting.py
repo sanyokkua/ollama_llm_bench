@@ -50,6 +50,7 @@ EXPORT_HEIGHT = 1600
 _MARGIN = 96
 _HATCH_LABEL_GAP = 18
 _MIN_XY_SERIES = 2
+_POINT_MARKER_RADIUS = 8.0
 _SERIES_ROLES: tuple[str, ...] = (
     "primary.base",
     "success.base",
@@ -329,14 +330,27 @@ def _draw_point_cloud(
 def _draw_grouped_points(
     painter: QPainter, *, spec: _ScatterSpec, x_series: ChartSeries, y_series: ChartSeries
 ) -> None:
+    """Paint chart 11's one-point-per-model markers, applying the low-sample
+    hatch when a model's group is under-sampled (charts_tab.md#6.1)."""
     for index, (x_value, y_value) in enumerate(zip(x_series.values, y_series.values, strict=True)):
         if x_value is None or y_value is None:
             continue
         point = scale_point(spec.plot, x_value, y_value, spec.axis_range)
+        is_low_sample = index < len(y_series.low_sample_flags) and y_series.low_sample_flags[index]
+        if is_low_sample:
+            n = y_series.sample_sizes[index] if index < len(y_series.sample_sizes) else 0
+            marker_rect = QRectF(
+                point.x() - _POINT_MARKER_RADIUS,
+                point.y() - _POINT_MARKER_RADIUS,
+                _POINT_MARKER_RADIUS * 2,
+                _POINT_MARKER_RADIUS * 2,
+            )
+            draw_low_sample_hatch(painter, rect=marker_rect, tokens=spec.tokens, sample_size=n)
+            continue
         painter.save()
         painter.setBrush(_series_color(spec.tokens, index))
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(point, 8.0, 8.0)
+        painter.drawEllipse(point, _POINT_MARKER_RADIUS, _POINT_MARKER_RADIUS)
         painter.restore()
 
 
