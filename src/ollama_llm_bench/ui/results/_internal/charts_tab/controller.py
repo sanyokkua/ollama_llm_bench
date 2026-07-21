@@ -20,7 +20,11 @@ import msgspec
 import structlog
 
 from ollama_llm_bench.backend.domain import ChartData, ChartKind, HeatmapData, RunId, RunMode
-from ollama_llm_bench.backend.events import EventBus
+from ollama_llm_bench.backend.events import (
+    SIGNAL_CHART_DATA_CHANGED,
+    ChartDataChangedEvent,
+    EventBus,
+)
 from ollama_llm_bench.ui.results._internal.charts_tab import mode_policy, painting
 from ollama_llm_bench.ui.results._internal.charts_tab.select import (
     ChartsSelectionInput,
@@ -101,19 +105,36 @@ class ChartsTabController:
         view: ChartsTabViewProtocol,
         *,
         on_drilldown: Callable[[ChartDrilldownRequest], None],
+        owner: object | None = None,
     ) -> None:
-        """Attach the bound view and the parent controller's drill-down sink.
+        """Attach the bound view, the drill-down sink, and subscribe to
+        ``_chart_data_changed`` (implementation_structure.md#5.3).
 
-        The Charts tab has no owner-bound bus subscription of its own in this
-        shell -- ``_chart_data_changed`` wiring is a later story's scope
-        (charts_tab.md#14). ``on_drilldown`` is the parent ``ResultController``'s
-        ``apply_chart_drilldown`` (charts_tab.md#8) -- a plain callback, matching
-        ``FooterController.bind``'s identical parent-callback pattern, since a
-        sub-controller never holds a reference to its parent controller directly.
+        The subscription is owner-bound to ``owner`` when given, else to
+        ``view`` itself -- letting ``DetachedChartWindow`` bind the
+        subscription's lifetime to its own dialog rather than to its inner
+        ``ChartsTabView`` (charts_tab.md#9). ``on_drilldown`` is the parent
+        ``ResultController``'s ``apply_chart_drilldown`` (charts_tab.md#8) -- a
+        plain callback, matching ``FooterController.bind``'s identical
+        parent-callback pattern, since a sub-controller never holds a
+        reference to its parent controller directly.
         """
         self._view = view
         self._on_drilldown = on_drilldown
+        self._bus.subscribe(
+            SIGNAL_CHART_DATA_CHANGED,
+            self._on_chart_data_changed,
+            owner=owner if owner is not None else view,
+        )
         logger.debug("charts_tab_controller_bound")
+
+    def _on_chart_data_changed(self, payload: object) -> None:
+        if not isinstance(payload, ChartDataChangedEvent):
+            return
+        if payload.run_id != self._run_id:
+            return
+        logger.debug("charts_tab_event_received", signal_name="chart_data_changed")
+        self.recompute_and_push()
 
     def set_run_context(self, *, run_id: RunId | None, run_mode: RunMode | None) -> None:
         """Re-load the run's Charts view-state slice on a run-selection change (§13)."""
@@ -267,7 +288,7 @@ class ChartsTabController:
             if self._theme_manager is not None
             else make_dark_theme_tokens(platform_kind=self._platform_kind)
         )
-        chart_kind = self.current_view_state().last_chart_kind if self._view_state else None
+        chart_kind = self.current_chart_kind()
         data = self._chart_data_cache.get(chart_kind) if chart_kind is not None else None
         logger.debug("charts_tab_export_requested", fmt=fmt, chart_kind=chart_kind)
         if chart_kind is None or data is None:
@@ -288,6 +309,12 @@ class ChartsTabController:
         """The currently-active view state; only called once a run is selected."""
         assert self._view_state is not None  # noqa: S101  # narrows for callers post-set_run_context
         return self._view_state
+
+    def current_chart_kind(self) -> ChartKind | None:
+        """The Charts tab's currently active ``ChartKind``, or ``None`` before a
+        run is selected -- read by the shared ``FooterController`` to compose
+        the export filename's chart-kind slug (charts_tab.md#12)."""
+        return self._view_state.last_chart_kind if self._view_state is not None else None
 
     def _replace_active_filters(
         self, field_updates: dict[str, object], *, current: ChartFilterState | None = None

@@ -28,6 +28,7 @@ from ollama_llm_bench.backend.domain import (
     HeatmapData,
     RunMode,
 )
+from ollama_llm_bench.backend.events import ChartDataChangedEvent
 from ollama_llm_bench.ui.results._internal.charts_tab import drilldown, mode_policy, painting
 from ollama_llm_bench.ui.results._internal.charts_tab.controller import (
     ChartsTabController,
@@ -255,8 +256,9 @@ def test_map_scatter_point_click_ignores_task_id_for_speed_vs_quality() -> None:
 
 
 def test_default_view_state_seeds_first_offered_kind() -> None:
-    """Proves: EC-RES-4-adjacent -- view-state defaults, exercised separately
-    from the export theme itself."""
+    """A fresh Charts view state seeds ``last_chart_kind`` to the run mode's
+    first offered chart kind -- unit coverage for ``view_state.py``'s default
+    factory, exercised separately from the export-theme acceptance criteria."""
     # Act
     state = default_view_state(RunMode.SYNTHETIC)
     # Assert
@@ -318,6 +320,47 @@ def test_render_chart_svg_returns_svg_bytes() -> None:
     assert b"<svg" in payload or b"<?xml" in payload
 
 
+def test_draw_scatter_chart_applies_low_sample_hatch_to_flagged_points(
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-064 (charts_tab.md#6.1 chart-11 low-sample hatch fix)
+
+    A ``SPEED_VS_QUALITY_SCATTER`` point backed by a low sample size is drawn
+    via ``draw_low_sample_hatch`` (the shared hatch/``n=N`` marker), not a
+    plain ellipse -- matching the bar-chart/grouped-bar-chart low-sample
+    contract already enforced for the other chart shapes (charts_tab.md#6.1).
+    """
+    # Arrange
+    tokens = make_dark_theme_tokens(platform_kind=PlatformKind.LINUX)
+    data = ChartData(
+        chart_kind=ChartKind.SPEED_VS_QUALITY_SCATTER,
+        categories=("Ollama Local / llama3", "Ollama Local / mistral"),
+        series=(
+            ChartSeries(
+                name="Tokens/sec",
+                values=(10.0, 20.0),
+                sample_sizes=(1, 5),
+                low_sample_flags=(True, False),
+            ),
+            ChartSeries(
+                name="Pass rate",
+                values=(0.5, 0.9),
+                sample_sizes=(1, 5),
+                low_sample_flags=(True, False),
+            ),
+        ),
+    )
+    image = QImage(200, 150, QImage.Format.Format_ARGB32)
+    painter = QPainter(image)
+    hatch_spy = mocker.spy(painting, "draw_low_sample_hatch")
+    # Act
+    painting.draw_scatter_chart(painter, rect=QRectF(0, 0, 200, 150), data=data, tokens=tokens)
+    painter.end()
+    # Assert
+    assert hatch_spy.call_count == 1
+    assert hatch_spy.call_args.kwargs["sample_size"] == 1
+
+
 def test_draw_heatmap_paints_something() -> None:
     # Arrange
     tokens = make_dark_theme_tokens(platform_kind=PlatformKind.LINUX)
@@ -364,6 +407,56 @@ def test_offered_chart_set_per_mode(
     view_model = view.apply.call_args.args[0]
     assert tuple(kind for kind, _label, _has_data in view_model.dropdown_entries) == expected_kinds
     assert not any(entry["log_level"] in {"error", "critical"} for entry in logs)
+
+
+# ---------------------------------------------------------------------------
+# STORY-064 spec-conformance fix: the missing ``_chart_data_changed`` subscription
+# (implementation_structure.md#5.3)
+# ---------------------------------------------------------------------------
+
+
+def test_chart_data_changed_event_for_current_run_recomputes_and_pushes(
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-064 (implementation_structure.md#5.3 subscription fix)
+
+    A ``ChartDataChangedEvent`` for the currently-bound run recomputes and
+    pushes a fresh ``ChartsViewModel`` to the bound view.
+    """
+    # Arrange
+    bus = FakeEventBus()
+    gateway = FakeResultGateway(runs=(make_run(1, run_mode=RunMode.TASKS),))
+    controller, view = _make_controller(gateway, bus, mocker)
+    controller.set_run_context(run_id=1, run_mode=RunMode.TASKS)
+    view.apply.reset_mock()
+    # Act
+    bus.emit(
+        "_chart_data_changed",
+        ChartDataChangedEvent(run_id=1, chart_kind=ChartKind.AVG_TTFT_PER_MODEL.value, revision=2),
+    )
+    # Assert
+    view.apply.assert_called_once()
+
+
+def test_chart_data_changed_event_for_other_run_is_ignored(mocker: MockerFixture) -> None:
+    """Proves: STORY-064 (implementation_structure.md#5.3 subscription fix)
+
+    A ``ChartDataChangedEvent`` for a run other than the currently-bound one
+    is ignored -- no recompute, no push.
+    """
+    # Arrange
+    bus = FakeEventBus()
+    gateway = FakeResultGateway(runs=(make_run(1, run_mode=RunMode.TASKS),))
+    controller, view = _make_controller(gateway, bus, mocker)
+    controller.set_run_context(run_id=1, run_mode=RunMode.TASKS)
+    view.apply.reset_mock()
+    # Act
+    bus.emit(
+        "_chart_data_changed",
+        ChartDataChangedEvent(run_id=2, chart_kind=ChartKind.AVG_TTFT_PER_MODEL.value, revision=2),
+    )
+    # Assert
+    view.apply.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -430,6 +523,70 @@ def test_navigation_skips_empty_charts(mocker: MockerFixture) -> None:
     reselected_vm = view.apply.call_args.args[0]
     assert reselected_vm.chart_kind == offered[1]
     assert reselected_vm.empty_state_message is not None
+
+
+# ---------------------------------------------------------------------------
+# STORY-064 spec-conformance fixes: §11 empty states, §4.1 meta-line casing
+# ---------------------------------------------------------------------------
+
+
+def test_overall_empty_state_message_when_every_offered_chart_is_empty(
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-064 (charts_tab.md#11 overall-empty fix)
+
+    When every mode-offered chart is empty, the canvas shows the overall
+    "Charts require at least one completed task." message rather than the
+    active chart's own kind-specific empty message.
+    """
+    # Arrange -- no chart data configured; every offered kind defaults empty
+    gateway = FakeResultGateway(runs=(make_run(1, run_mode=RunMode.TASKS),))
+    controller, view = _make_controller(gateway, FakeEventBus(), mocker)
+    # Act
+    controller.set_run_context(run_id=1, run_mode=RunMode.TASKS)
+    # Assert
+    view_model = view.apply.call_args.args[0]
+    assert view_model.empty_state_message == "Charts require at least one completed task."
+
+
+def test_grading_only_chart_kind_requested_outside_graded_mode_shows_defence_message(
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-064 (charts_tab.md#11 GRADED-only defence-in-depth fix)
+
+    A GRADED-only chart kind requested while the run is not GRADED -- e.g. a
+    directly-set, stale persisted view state -- is defended in depth: the
+    canvas shows "This chart is available only for graded runs." rather than
+    crashing when the requested kind is absent from the mode-offered set.
+    """
+    # Arrange
+    gateway = FakeResultGateway(runs=(make_run(1, run_mode=RunMode.TASKS),))
+    controller, view = _make_controller(gateway, FakeEventBus(), mocker)
+    controller.set_run_context(run_id=1, run_mode=RunMode.TASKS)
+    # Act -- force the active kind to a GRADED-only chart kind (defensive path)
+    controller.on_chart_kind_selected(ChartKind.PASS_RATE_BY_MODEL)
+    # Assert
+    view_model = view.apply.call_args.args[0]
+    assert view_model.empty_state_message == "This chart is available only for graded runs."
+
+
+def test_meta_line_renders_the_run_mode_in_uppercase(mocker: MockerFixture) -> None:
+    """Proves: STORY-064 (charts_tab.md#4.1 meta-line casing fix)
+
+    The shared meta line's ``Mode:`` token renders the run mode in uppercase
+    (``Mode: GRADED``), matching the mockup's canonical form.
+    """
+    # Arrange
+    gateway = FakeResultGateway(runs=(make_run(1, run_mode=RunMode.GRADED),))
+    gateway.set_chart_data(
+        1, ChartKind.AVG_TTFT_PER_MODEL, _populated(ChartKind.AVG_TTFT_PER_MODEL)
+    )
+    controller, view = _make_controller(gateway, FakeEventBus(), mocker)
+    # Act
+    controller.set_run_context(run_id=1, run_mode=RunMode.GRADED)
+    # Assert
+    view_model = view.apply.call_args.args[0]
+    assert "Mode: GRADED" in view_model.meta_line
 
 
 # ---------------------------------------------------------------------------

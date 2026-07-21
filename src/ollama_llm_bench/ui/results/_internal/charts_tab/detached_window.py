@@ -125,7 +125,9 @@ class DetachedChartWindow(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._view)
         self._wire_view()
-        self._controller.bind(self._view, on_drilldown=config.on_drilldown or (lambda _r: None))
+        self._controller.bind(
+            self._view, on_drilldown=config.on_drilldown or (lambda _r: None), owner=self
+        )
         self._controller.set_run_context(run_id=config.run_id, run_mode=config.run_mode)
 
     def _wire_view(self) -> None:

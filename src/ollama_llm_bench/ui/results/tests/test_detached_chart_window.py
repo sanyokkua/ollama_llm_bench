@@ -8,6 +8,7 @@ from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.backend.domain import ChartData, ChartKind, ChartSeries, RunMode
+from ollama_llm_bench.backend.events import ChartDataChangedEvent
 from ollama_llm_bench.ui.results._internal.charts_tab.controller import (
     ChartsTabController,
     ChartsTabViewProtocol,
@@ -71,6 +72,47 @@ def test_detached_window_forks_state_independently(qtbot: QtBot, mocker: MockerF
     assert parent.current_view_state() == forked_state
     # Assert -- nothing new was persisted to the per-run view-state store
     assert gateway.get_setting(_VIEW_STATE_SETTING_KEY) == persisted_before
+
+
+def test_detached_window_recomputes_on_chart_data_changed_for_its_own_run(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-064 (implementation_structure.md#5.3 subscription fix)
+
+    The detached window's own ``ChartsTabController`` subscribes to
+    ``_chart_data_changed`` -- owner-bound to the dialog itself (charts_tab.md#9,
+    not to its inner ``ChartsTabView``) -- so publishing the event for the
+    window's run triggers a fresh recompute.
+    """
+    # Arrange
+    bus = FakeEventBus()
+    gateway = FakeResultGateway(runs=(make_run(1, run_mode=RunMode.TASKS),))
+    gateway.set_chart_data(
+        1, ChartKind.AVG_TTFT_PER_MODEL, _populated(ChartKind.AVG_TTFT_PER_MODEL)
+    )
+    parent = ChartsTabController(
+        gateway=gateway, bus=FakeEventBus(), view_state_store=PerRunViewStateStore(gateway=gateway)
+    )
+    parent.bind(mocker.Mock(spec=ChartsTabViewProtocol), on_drilldown=mocker.Mock())
+    parent.set_run_context(run_id=1, run_mode=RunMode.TASKS)
+    window = DetachedChartWindow(
+        config=DetachedChartWindowConfig(
+            gateway=gateway,
+            bus=bus,
+            run_id=1,
+            run_mode=RunMode.TASKS,
+            initial_state=parent.current_view_state(),
+        )
+    )
+    qtbot.addWidget(window)
+    recompute_spy = mocker.spy(window.controller, "recompute_and_push")
+    # Act
+    bus.emit(
+        "_chart_data_changed",
+        ChartDataChangedEvent(run_id=1, chart_kind=ChartKind.AVG_TTFT_PER_MODEL.value, revision=2),
+    )
+    # Assert
+    recompute_spy.assert_called_once()
 
 
 def test_detached_window_survives_independently_of_the_parent(

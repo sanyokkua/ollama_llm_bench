@@ -2,7 +2,7 @@
 
 import pytest
 
-from ollama_llm_bench.backend.domain import BenchmarkResult, ResultStatus
+from ollama_llm_bench.backend.domain import BenchmarkResult, ChartKind, ResultStatus
 from ollama_llm_bench.ui.results._internal.footer import FooterController
 from ollama_llm_bench.ui.results.models import FooterViewModel, ResultCollaborators
 from ollama_llm_bench.ui.results.tests.conftest import (
@@ -15,6 +15,8 @@ from ollama_llm_bench.ui.results.tests.conftest import (
     FakeResultGateway,
     make_run,
 )
+
+_EXPECTED_TWO_CHART_EXPORTS = 2
 
 
 def _completed_result(run_id: int) -> BenchmarkResult:
@@ -200,13 +202,22 @@ def test_save_destination_toggle_direct_vs_picker() -> None:
 class _FakeChartExportSource:
     """A test double for ``ChartExportSourceProtocol`` (STORY-064)."""
 
-    def __init__(self, *, payload: bytes = b"\x89PNG\r\n\x1a\n") -> None:
+    def __init__(
+        self,
+        *,
+        payload: bytes = b"\x89PNG\r\n\x1a\n",
+        chart_kind: ChartKind | None = ChartKind.AVG_TTFT_PER_MODEL,
+    ) -> None:
         self._payload = payload
+        self._chart_kind = chart_kind
         self.fmt_calls: list[str] = []
 
     def render_chart_export(self, *, fmt: str) -> bytes:
         self.fmt_calls.append(fmt)
         return self._payload
+
+    def current_chart_kind(self) -> ChartKind | None:
+        return self._chart_kind
 
 
 def test_chart_export_writes_bytes_via_direct_write() -> None:
@@ -235,7 +246,7 @@ def test_chart_export_writes_bytes_via_direct_write() -> None:
     assert fs_actions.written == {}
     assert len(fs_actions.written_bytes) == 1
     written_path, written_content = next(iter(fs_actions.written_bytes.items()))
-    assert "My_Run_Chart.png" in written_path
+    assert "My_Run_Chart_avg_ttft_per_model.png" in written_path
     assert written_content == b"\x89PNG\r\n\x1a\n"
 
 
@@ -264,6 +275,37 @@ def test_chart_export_writes_bytes_via_save_picker() -> None:
     # Assert
     assert chart_source.fmt_calls == ["svg"]
     assert fs_actions.written_bytes == {"/desktop/My_Run_Chart.svg": b"<svg></svg>"}
+    assert native_pickers.save_file_calls[0].suggested_name == "My_Run_Chart_avg_ttft_per_model.svg"
+
+
+def test_chart_export_filename_includes_chart_kind_slug_and_differs_per_kind() -> None:
+    """Proves: STORY-064 (export filename chart-kind slug, spec-conformance fix)
+
+    Two different active chart kinds produce two distinct export filenames --
+    each containing ``Chart_<chart-slug>`` per charts_tab.md#12 -- proving the
+    footer threads the Charts tab's active ``ChartKind`` into filename
+    composition instead of colliding every chart's export onto one filename.
+    """
+    # Arrange
+    run = make_run(1, run_name="My Run")
+    gateway = FakeResultGateway(runs=(run,), results_by_run_id={1: (_completed_result(1),)})
+    gateway.set_setting("ui.export_save_directly", "true")
+    fs_actions = FakeFileSystemActions()
+    footer = FooterController(
+        collaborators=_build_collaborators(gateway=gateway, file_system_actions=fs_actions)
+    )
+    footer.set_context(run_id=1, active_tab="charts", live=False)
+    # Act -- export while the TTFT chart is active
+    footer.set_chart_export_source(_FakeChartExportSource(chart_kind=ChartKind.AVG_TTFT_PER_MODEL))
+    footer.on_export_clicked("Export PNG")
+    # Act -- export while the TPS chart is active
+    footer.set_chart_export_source(_FakeChartExportSource(chart_kind=ChartKind.AVG_TPS_PER_MODEL))
+    footer.on_export_clicked("Export PNG")
+    # Assert
+    written_paths = list(fs_actions.written_bytes)
+    assert len(written_paths) == _EXPECTED_TWO_CHART_EXPORTS
+    assert any("Chart_avg_ttft_per_model" in path for path in written_paths)
+    assert any("Chart_avg_tps_per_model" in path for path in written_paths)
 
 
 def test_save_destination_toggle_parity_across_two_footer_instances() -> None:

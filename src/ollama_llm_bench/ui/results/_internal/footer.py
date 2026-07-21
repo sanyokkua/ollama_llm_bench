@@ -15,7 +15,7 @@ from typing import Protocol
 import structlog
 
 from ollama_llm_bench.adapters.native_pickers import SavePickerOptions
-from ollama_llm_bench.backend.domain import ResultStatus, RunId
+from ollama_llm_bench.backend.domain import ChartKind, ResultStatus, RunId
 from ollama_llm_bench.backend.errors import OsAdapterError
 from ollama_llm_bench.backend.events import (
     SIGNAL_APP_SETTINGS_CHANGED,
@@ -58,6 +58,10 @@ class ChartExportSourceProtocol(Protocol):
 
     def render_chart_export(self, *, fmt: str) -> bytes:
         """Render the active chart off-screen as PNG/SVG bytes (charts_tab.md#12)."""
+        ...
+
+    def current_chart_kind(self) -> ChartKind | None:
+        """The chart kind currently displayed, for filename composition (charts_tab.md#12)."""
         ...
 
 
@@ -156,7 +160,9 @@ class FooterController:
             return "RunAnalysis", run.run_analysis or ""
         if self._active_tab == "charts" and self._chart_export_source is not None:
             fmt = _BUTTON_EXT[button_label]
-            return "Chart", self._chart_export_source.render_chart_export(fmt=fmt)
+            chart_kind = self._chart_export_source.current_chart_kind()
+            kind = f"Chart_{chart_kind.value}" if chart_kind is not None else "Chart"
+            return kind, self._chart_export_source.render_chart_export(fmt=fmt)
         return "Chart", None
 
     def _write_direct(self, *, filename: str, content: str | bytes) -> None:
