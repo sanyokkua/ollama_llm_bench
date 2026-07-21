@@ -260,3 +260,77 @@ then Close dismisses it immediately.
   action) for the already-implemented `on_import_provider_config_clicked` method is left for a
   follow-up story if the mockup's single `Import…` button is meant to detect file kind and branch,
   which `10_Domain_and_Data/06_IMPORT_FORMATS.md` does not resolve explicitly.
+
+### Spec-conformance review fixes (post-implementation amendment)
+
+An independent spec-conformance review returned "CONFORMS WITH CONCERNS" — four real gaps,
+fixed in place in this same story (not split into a new story):
+
+- **`SettingsGateway.save_all`/`reset_to_defaults` replace the two-call Save/Reset sequence.**
+  The original implementation called `replace_providers` then `upsert_settings` (Save), and
+  `replace_providers` then `upsert_settings` with no error handling at all (Reset), as two
+  independent void Gateway calls with no rollback — a failure after the first call committed
+  left the two stores inconsistent, and a Reset failure crashed instead of leaving the prior
+  configuration intact (`sub_dialogs/reset_confirmation.md` §7). `protocols.py` now declares
+  `save_all(*, providers, settings_values)` and `reset_to_defaults(*, bundled_providers)`; both
+  are documented as all-or-nothing, giving the concrete Phase 11 adapter a single call to wrap
+  in one real database transaction (something two independent void calls cannot express).
+  `on_save_clicked`/`on_reset_clicked` now call only these two methods, each in its own
+  `try/except PersistenceError` (Reset previously had none). `FakeSettingsGateway` models the
+  atomicity a fake can guarantee: a scripted `raise_on_next_save_all`/
+  `raise_on_next_reset_to_defaults` raises *before* mutating `_providers`/`_settings`, so a test
+  can assert nothing was recorded on failure (`test_fake_gateway.py`). The original
+  `replace_providers`/`upsert_settings` methods are kept — `apply_settings_import` still calls
+  `upsert_settings` and Import needs them untouched.
+  - **On the "full settings defaults" map**: `backend.settings._internal.registry.DEFAULTS` is
+    exactly this exhaustive in-code defaults table (confirmed by reading the file), but it lives
+    in `_internal/` and is not part of `backend.settings`'s public `api.py`/`__init__.py`
+    surface, and `ui/settings_dialog` cannot import a sibling `_internal` package regardless.
+    `reset_to_defaults`'s docstring names this table explicitly so Phase 11's implementer knows
+    what the concrete adapter should reseed against (promoting it to a public export, or
+    duplicating its shape the same way `backend/import_export/_internal/settings_key_catalog.py`
+    already duplicates the same spec section) — covering every opaque key
+    (`ui.window_geometry`, `benchmark.last_mode`, `ui.splitter_sizes`, etc.) the General tab's own
+    `_DEFAULT_STORAGE_TEXT` map in `_internal/general_tab/controller.py` never claimed to cover.
+- **Export now writes the provider catalog, not just settings.** `description.md` §7 states the
+  export carries "the provider catalog, the embedding selection, and every user-saved setting
+  key" as a single action, but `08-E`/`backend.import_export` define `export_settings`/
+  `export_providers` as two independent, self-contained YAML documents (`kind: settings` /
+  `kind: provider_config`) — there is no combined-export shape anywhere in
+  `backend/import_export/_internal/service.py` to mirror (verified by reading it: it exposes
+  only the two separate bytes-producing methods, contradicting this fix's original assumption
+  that a combined shape already existed). `on_export_clicked` now calls both
+  `export_settings()` and `export_providers()` and writes two sibling files from the one Export
+  action (the user-chosen path, plus a `*_providers.yaml` path derived from it) — one user
+  action still produces the full configuration on disk without inventing a third combined
+  schema or touching `backend/import_export`.
+- **`ProvidersTabController` now notifies the parent controller after every mutation.** Its
+  mutation handlers (`on_test_clicked`, `on_enabled_toggled`, `on_add_clicked`, `on_edit_clicked`,
+  `on_reset_clicked`, `on_delete_clicked`, `apply_readiness_refresh`) all funnel through the
+  single shared `_rebuild()` tail call; `_rebuild()` now also invokes a `set_on_changed`
+  callback (a plain `Callable[[], None]`, not a Qt `Signal` — `ProvidersTabController` is not a
+  `QObject` and no other feature controller in this codebase uses a Qt Signal for
+  inter-controller notification, so a plain callback matches the established idiom more closely
+  than introducing one). `api.py` wires `providers_controller.set_on_changed(controller. on_providers_changed)`, a new public `SettingsController` method that calls the existing
+  private `_push_chrome()`. Previously the dialog chrome (dirty asterisk, save-state text,
+  Save-button enablement) went stale after a Providers-tab-only change until an unrelated
+  General-tab edit happened to trigger the next `_push_chrome()`.
+- **The Reset button now carries the theme's new `destructive-button` role.**
+  `08-D_color_palette_and_typography.md` explicitly documents `error.base`/`text.on-error` as
+  backing "destructive action"/"destructive button label", so `ui/theme/_internal/ stylesheet_builder.py` gained a `QPushButton[role="destructive-button"]` rule using exactly
+  those two existing color tokens (no new token fields added — `ColorTokens` has no
+  `error_hover`/`error_pressed`/`error_disabled` fields to draw a multi-state role from, unlike
+  `primary-button`). `reset_confirmation_view.py`'s Reset button now sets this role instead of
+  `primary-button`, satisfying `reset_confirmation.md` §3's "Styled as the destructive action".
+- **EC-SET-4 citation verified, not removed.** The review flagged a possible misattribution, but
+  `14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md` (the canonical mapping) scopes
+  `EC-SET-4` to `ui/settings_dialog/` as "Reset to Defaults with unsaved edits shows a
+  confirmation" — exactly what this story's `test_reset_wipes_and_reseeds_atomically` already
+  covers. A *different* "EC-SET-4" (Settings blocked mid-run) exists in
+  `06_Settings_Dialog/description.md`/`state_machine.md` and `01_Main_Window/*` — an apparent
+  duplicate-ID reuse across unrelated features in the vendored spec, out of this story's scope
+  to fix (it would mean editing the read-only vendored spec). This story's own citation is
+  correct per the authoritative mapping table and is left unchanged.
+- Deferred per explicit instruction, not fixed here: EC-SET-3's "cleared numeric field is only
+  testable at the pure-function level, not through a real `QSpinBox`" limitation (a genuine Qt
+  widget constraint — `QSpinBox` cannot be blanked).
