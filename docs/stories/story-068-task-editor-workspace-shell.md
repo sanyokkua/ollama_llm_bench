@@ -1,7 +1,7 @@
 ---
 id: STORY-068
 title: Build the Task Editor workspace shell — toolbar, Files pane, Tasks pane, buffer model, and view-model
-status: ready
+status: done
 spec_clauses:
   - 09_Task_Editor/description.md#2-layout
   - 09_Task_Editor/description.md#32-editor-toolbar
@@ -204,3 +204,82 @@ in `structlog.testing.capture_logs()` and asserting no captured entry's `log_lev
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+Implementation notes from the coder pass (this story's shell only — STORY-069 owns the
+Field-editor pane, YAML preview, Save/validation-cascade wiring, and every confirmation
+dialog):
+
+- **`tests/` layout.** Tests are colocated at `ui/task_editor/tests/`, not
+  `ui/task_editor/_internal/tests/` as the test-plan paths literally read. This matches the
+  real, current precedent of every other completed workspace module in this codebase
+  (`ui/results/tests/`, `ui/resume_benchmark/tests/`, `ui/new_benchmark/tests/`) and the
+  documented `_internal` import boundary (nothing outside a module's own `_internal/` package
+  imports it — `_internal/tests/` would sit *inside* that private package). The coder pass did
+  not write these test files itself (writing acceptance-criteria tests is the tester agent's
+  job in this project's pipeline); the tester should create
+  `ui/task_editor/tests/{__init__.py,conftest.py,test_buffer.py,test_view_model.py, test_files_pane.py,test_tasks_pane.py,test_controller.py}` per the module shape above.
+- **`_internal/view.py` added.** Not literally listed in the story's "Module shape" sub-module
+  table, but required to compose the toolbar, the Empty-state drop target/recent-files list,
+  and the Files/Tasks panes into the single `QWidget` the factory returns — every sibling
+  workspace module (`results`, `resume_benchmark`, `new_benchmark`) has an equivalent root
+  `_internal/view.py`, and this module follows that same real precedent.
+- **Files-pane context menu — intentionally partial (design decision #5).** Only `Close`,
+  `Close Others`, `Reveal in File Manager`, and `Reload from Disk` are wired. `Save`, `Save As`,
+  and `Show in Task Files Panel` are omitted **entirely** from the menu (not shown disabled)
+  because they need collaborators/behaviour this story does not have
+  (`validation_cascade`/`YamlFormatter.save`, and a cross-workspace New-Benchmark handoff,
+  respectively) and the no-placeholder-UI rule (`pyside6-spec-ui`) forbids a disabled control
+  with no path forward. `Close`/`Close Others`/`Reload from Disk` are further restricted to
+  clean (non-dirty) files this story, since the dirty-close/-reload confirmation dialogs are
+  STORY-069's scope; a dirty file's `Close`/`Reload from Disk` menu item renders disabled with
+  an explanatory tooltip (the permitted "transiently disabled" exception, not a placeholder).
+  `Close Others` silently skips any dirty buffer rather than raising a dialog for it.
+- **Toolbar Save / Save All / View YAML** render as fixed, permanent, disabled toolbar members
+  with an explanatory tooltip (design decision #6) — they are not omitted, since they are fixed
+  members of the spec's toolbar row (§3.2), unlike the context-menu items above which are not
+  fixed/permanent and are cut outright.
+- **Reorder** is offered via Move Up / Move Down footer buttons only; mouse drag-to-reorder
+  (`QAbstractItemView.InternalMove`) is deferred to keep this story's scope bounded — it is not
+  cited by any of this story's ACs, only by the "In scope" bullet's general "reorder" wording.
+- **Remove Task** confirmation uses a plain `QMessageBox.question(...)` (a Qt built-in, not a
+  bespoke dialog module) since it is cheap, destructive, and not explicitly named in the
+  out-of-scope dialog list (leave/quit/close/reload/in-use/save-failure).
+- **New File** writes the seed-scaffold YAML text via `FileSystemActions.write_text_file`, not
+  `YamlFormatter.save` — per design decision #2, `.save()` stays completely unused until
+  STORY-069; `.load_document()` is then used to open the freshly written file as a buffer, same
+  as any other Open.
+- **No `ThemeManager` collaborator.** `TaskEditorCollaborators` (design decision #2) does not
+  carry a `theme_manager`/`platform_kind` pair the way `ResumeBenchmarkCollaborators` and
+  `ResultCollaborators` do. Files-pane/Tasks-pane badges are rendered as short text glyphs
+  (`[clean]`/`[dirty]`/`[warning]`/`[error]`/`[reload pending]`) with no colour channel at all,
+  which is spec-conformant on its own (`08-L_ui_standardization.md`: status colour is never the
+  *sole* channel) and needs no theme dependency.
+- **`recent_files` is not a `TaskEditorViewModel` field.** The spec's
+  `implementation_structure.md` §4 struct (declared verbatim in `models.py`) has no
+  `recent_files` field, and the recent-files list is explicitly session view state, not
+  persisted settings. It is pushed to the view via a dedicated
+  `TaskEditorController._push_recent_files()` → `TaskEditorView.set_recent_files(...)` call,
+  mirroring `ResumeBenchmarkController._push_resume_button_state()`'s identical
+  push-outside-the-viewmodel precedent.
+- **STORY-069 must additionally**: widen `TaskEditorCollaborators`/the factory with
+  `validation_cascade`; put `YamlFormatter.save` to use for the actual Save/Save All actions;
+  populate `field_rows`/`preview_shown`/`preview_text`; add the `Save`/`Save As`/
+  `Show in Task Files Panel` context-menu items; wire the leave/quit/close/reload/in-use/
+  save-failure confirmation dialogs; enable the toolbar's `Save`/`Save All`/`View YAML` actions
+  (removing their disabled state and tooltip); and feed `TaskEditorController.stage_field_edit`
+  from the real Field-editor pane's focused-field state.
+- **Badge-vs-dirty-marker design ambiguity (needs a human/design decision before STORY-069).**
+  The spec is internally ambiguous between showing one collapsed 5-state badge per file (what
+  this story implements, via precedence: reload-pending > error/warning > dirty > clean) versus
+  showing the validation badge and the dirty marker as two simultaneous orthogonal indicators
+  (the same pattern already used for the `[in use]` marker added in this story's fix pass). A
+  file that is both dirty and warning/error currently only shows `[warning]`/`[error]`, losing
+  the unsaved-edits signal. This should be resolved with an explicit human/design decision
+  before STORY-069 builds on top of the current single-badge precedence scheme.
+- **Stale recent-file click has no error handling (uncovered by any AC in this story).**
+  `on_recent_file_clicked` → `_open_path` currently has no failure path if the recent file's
+  path no longer exists on disk (e.g. deleted since it was opened). `09_Task_Editor/ description.md`§2.3 specifies this should surface an open-failure toast and remove the stale
+  entry from the recent-files list. This should be picked up by STORY-069 or a dedicated
+  follow-up.

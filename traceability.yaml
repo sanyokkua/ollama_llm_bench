@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T16:38:29Z'
+generated_at: '2026-07-21T19:20:52Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4452,7 +4452,7 @@ stories:
         - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open
   STORY-068:
     title: Build the Task Editor workspace shell — toolbar, Files pane, Tasks pane, buffer model, and view-model
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway
@@ -4468,19 +4468,36 @@ stories:
     - EC-WS-4
     acceptance_criteria:
       STORY-068-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_empty_to_with_files_transition
       STORY-068-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_file_change_watcher_trigger_marks_external_changed
+        - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[changed_on_disk]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[hard_errors]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[saved_and_valid]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[soft_warnings]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[unsaved_edits]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_reload_pending_takes_precedence_over_error_and_dirty
+        - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_save_all_count_and_enabled_with_mixed_dirty_files
+        - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_save_all_count_counts_dirty_error_file_but_disables_save_all
       STORY-068-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_tasks_pane.py::test_add_and_duplicate_task_id_generation
       STORY-068-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_run_started_marks_in_use_files
+        - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_in_use_by_run_renders_marker_alongside_badge
       STORY-068-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_buffer.py::test_form_b_c_to_a_and_unknown_key_preserved[form_b_bare_sequence]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_buffer.py::test_form_b_c_to_a_and_unknown_key_preserved[form_c_single_mapping]
       STORY-068-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_workspace_switch_commits_field_edit
       STORY-068-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_task_editor_workspace_constructs_and_shows_with_no_error_logs
   STORY-069:
     title: Build the Task Editor field editor, YAML preview, save/validation cascade, and confirmation dialogs
     status: ready
@@ -8321,7 +8338,24 @@ edge_cases:
   EC-WS-4:
     stories:
     - STORY-068
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/task_editor/tests/test_buffer.py::test_form_b_c_to_a_and_unknown_key_preserved[form_b_bare_sequence]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_buffer.py::test_form_b_c_to_a_and_unknown_key_preserved[form_c_single_mapping]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_file_change_watcher_trigger_marks_external_changed
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_run_started_marks_in_use_files
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_workspace_switch_commits_field_edit
+    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[changed_on_disk]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[hard_errors]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[saved_and_valid]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[soft_warnings]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[unsaved_edits]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_in_use_by_run_renders_marker_alongside_badge
+    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_reload_pending_takes_precedence_over_error_and_dirty
+    - src/ollama_llm_bench/ui/task_editor/tests/test_tasks_pane.py::test_add_and_duplicate_task_id_generation
+    - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_empty_to_with_files_transition
+    - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_save_all_count_and_enabled_with_mixed_dirty_files
+    - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_save_all_count_counts_dirty_error_file_but_disables_save_all
+    - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_task_editor_workspace_constructs_and_shows_with_no_error_logs
 modules:
   adapters/clipboard/:
     stories:
