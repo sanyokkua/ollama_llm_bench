@@ -1,7 +1,7 @@
 ---
 id: STORY-064
 title: Build the Result widget Charts tab — mode-aware chart set, navigation, filters, drill-down, detach, and image export
-status: ready
+status: done
 spec_clauses:
   - 05_Result_Widget/tabs/charts_tab.md#3-the-twelve-chart-kinds
   - 05_Result_Widget/tabs/charts_tab.md#4-mode-availability-matrix

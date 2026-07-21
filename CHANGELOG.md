@@ -529,3 +529,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   event-loop coalescing to enforce EC-PERF-3. Covers EC-LOG-1, EC-LOG-3, EC-PERF-3, EC-PROV-4a.
   Per `04_Progress_Widget/description.md` §§8, 8.3–8.5; `implementation_structure.md` §4.3;
   `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b.4; and `08-D_color_palette_and_typography.md` §16.
+
+- Result widget Charts tab (`ui/results/_internal/charts_tab/`): the one-chart-at-a-time canvas
+  with twelve chart kinds (mode-aware: SYNTHETIC/TASKS offer six, GRADED offers all twelve),
+  non-wrapping skip-empty prev/next navigation, a chart-kind dropdown, global filter chips (five
+  domains), per-chart option controls, chart-click drill-down into the Details tab, a detach-to-window
+  action for independent side-by-side viewing, and theme-aware PNG/SVG export at fixed off-screen
+  resolution. Mounted into the existing `ResultController`/`ResultView` shell (STORY-061) via
+  `ChartsTabController`/`ChartsTabView`. The `FooterController`'s Export buttons now work for the Charts tab.
+  Per `05_Result_Widget/tabs/charts_tab.md` §§1–12 and `implementation_structure.md` §5.3.
+
+- File system actions binary write methods (`adapters/file_system_actions/`): two new methods on
+  the `FileSystemActions` Protocol — `write_export_file_bytes(*, filename: str, content: bytes) -> str`
+  and `write_binary_file(*, path: str, content: bytes) -> None` — as bytes-capable counterparts to the
+  existing text-only `write_export_file`/`write_text_file` (STORY-061). Used by the Charts tab's PNG
+  export. Both methods apply the same atomic temp-file-then-rename structure and collision-suffix rules
+  as their text counterparts. Per `08-E` §21c (extended in STORY-064).

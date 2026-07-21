@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T09:10:36Z'
+generated_at: '2026-07-21T09:22:52Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4243,7 +4243,7 @@ stories:
         - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_export_uses_details_table_when_details_tab_is_active
   STORY-064:
     title: Build the Result widget Charts tab — mode-aware chart set, navigation, filters, drill-down, detach, and image export
-    status: ready
+    status: done
     spec_clauses:
     - 05_Result_Widget/implementation_structure.md#53-chartstabcontroller
     - 05_Result_Widget/tabs/charts_tab.md#11-empty-states
