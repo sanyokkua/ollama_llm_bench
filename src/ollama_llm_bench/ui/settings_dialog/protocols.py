@@ -1,17 +1,27 @@
-"""``SettingsGateway`` Protocol (D-R-06), declared verbatim per 08-E §7b.6.
+"""``SettingsGateway`` Protocol (D-R-06), based on 08-E §7b.6 and extended by
+STORY-067.
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
-§7b.6. All 13 methods are declared here even though this story's controller and
-sub-dialog call only 8 of them (``list_providers``, ``get_provider_by_name``,
-``test_provider``, ``discover_models``, ``probe_all``, ``readiness_snapshot``, plus
-the read-only ``get_setting``/``list_settings`` a later story wires into the
-General tab) -- STORY-067 (General tab, Save/Import/Reset) uses
-``replace_providers``/``upsert_settings``/``get_resolved_str``/
-``list_model_capabilities``/``upsert_model_capability``/``probe_embedding`` without
-re-touching this file.
+§7b.6. The 13 methods declared there cover the Providers tab and General tab's
+read/write surface (``list_providers``, ``get_provider_by_name``,
+``test_provider``, ``discover_models``, ``probe_all``, ``readiness_snapshot``,
+``get_setting``/``list_settings``, ``replace_providers``, ``upsert_settings``,
+``get_resolved_str``, ``list_model_capabilities``, ``upsert_model_capability``,
+``probe_embedding``) -- but 08-E §7b.6 lists **zero** Import/Export methods, a
+confirmed spec gap (STORY-067 plan's "Resolved design gap" section; see the
+story's own Notes). ``backend.import_export.protocols.ImportExportService``
+already implements exactly what Import/Export needs but is never listed among
+the seven 08-E §7b UI gateways, and ``ui/settings_dialog`` cannot import
+``backend.import_export`` directly (outside the ``ui/*`` import-boundary
+allow-list). STORY-067 therefore extends this Protocol with six methods
+shaped after ``ImportExportService``'s real signatures
+(``build_settings_import_preview``, ``apply_settings_import``,
+``build_provider_import_preview``, ``apply_provider_import``,
+``export_settings``, ``export_providers``), returning the locally-redeclared
+DTOs in ``.models`` rather than ``backend.import_export.models``.
 """
 
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
@@ -22,6 +32,18 @@ from ollama_llm_bench.backend.domain import (
     ProviderId,
     SettingKey,
 )
+
+if TYPE_CHECKING:
+    # Deferred to break the models.py <-> protocols.py cycle: models.py needs
+    # SettingsGateway as a real runtime type (a msgspec.Struct field
+    # annotation), so protocols.py cannot import models.py eagerly. These four
+    # names are used only as quoted (forward-reference) annotations below.
+    from ollama_llm_bench.ui.settings_dialog.models import (
+        ProviderImportPreview,
+        ProviderImportResult,
+        SettingsImportPreview,
+        SettingsImportResult,
+    )
 
 __all__: list[str] = ["SettingsGateway"]
 
@@ -127,5 +149,107 @@ class SettingsGateway(Protocol):
         """Read the current snapshot for the Health Dots.
 
         fast-synchronous.
+        """
+        ...
+
+    def build_settings_import_preview(self, file_path: str) -> "SettingsImportPreview":
+        """Parse and fully validate a settings YAML file into a preview.
+
+        blocking (file I/O + parse); routed by the concrete Phase 11 adapter to
+        ``backend.import_export.ImportExportService.build_settings_import_preview``
+        on a ``TaskRunner`` worker thread -- this Protocol method's own call site
+        may be invoked directly from the controller exactly like the existing
+        ``test_provider``/``probe_all`` methods; the threading marshalling is the
+        concrete adapter's responsibility (D-R-06), not this UI module's.
+
+        Args:
+            file_path: The absolute path chosen via ``NativePickers.open_file``.
+
+        Returns:
+            The full validated preview; nothing is written yet.
+
+        Raises:
+            TaskFileError: The file could not be parsed at all.
+            ConfigurationError: A schema-shape hard error aborted the import.
+        """
+        ...
+
+    def apply_settings_import(self, preview: "SettingsImportPreview") -> "SettingsImportResult":
+        """Write a confirmed settings-import preview's resolved values.
+
+        blocking; merges -- only ``preview.resolved_values`` keys are written.
+
+        Args:
+            preview: A preview previously returned by
+                ``build_settings_import_preview`` and confirmed by the user.
+
+        Returns:
+            The count of keys applied and skipped.
+
+        Raises:
+            PersistenceError: The underlying write failed.
+        """
+        ...
+
+    def build_provider_import_preview(self, file_path: str) -> "ProviderImportPreview":
+        """Parse and fully validate a provider-configuration YAML file into a preview.
+
+        blocking (file I/O + parse).
+
+        Args:
+            file_path: The absolute path chosen via ``NativePickers.open_file``.
+
+        Returns:
+            The full validated preview; nothing is written yet.
+
+        Raises:
+            TaskFileError: The file could not be parsed at all.
+            ConfigurationError: A schema-shape hard error aborted the import
+                (duplicate name within the file, unmatched embedding provider,
+                every entry dropped).
+        """
+        ...
+
+    def apply_provider_import(self, preview: "ProviderImportPreview") -> "ProviderImportResult":
+        """Replace the provider registry wholesale with a confirmed preview.
+
+        blocking; this is a **replace**, not a merge.
+
+        Args:
+            preview: A preview previously returned by
+                ``build_provider_import_preview`` and confirmed by the user.
+
+        Returns:
+            The count of providers applied and skipped.
+
+        Raises:
+            PersistenceError: The underlying write failed.
+        """
+        ...
+
+    def export_settings(self) -> bytes:
+        """Serialize every user-saved setting to the canonical settings YAML.
+
+        blocking. The disk write itself is owned by ``FileSystemActions``/
+        ``NativePickers`` at the dialog level -- this call returns the payload only.
+
+        Returns:
+            The UTF-8-encoded YAML document.
+
+        Raises:
+            PersistenceError: The underlying read failed.
+        """
+        ...
+
+    def export_providers(self) -> bytes:
+        """Serialize the provider catalog and embedding selection to YAML.
+
+        blocking. ``provider_id`` never appears in the payload (DD-33).
+
+        Returns:
+            The UTF-8-encoded YAML document.
+
+        Raises:
+            PersistenceError: The underlying read failed.
         """
         ...
