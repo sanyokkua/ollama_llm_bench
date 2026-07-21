@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T11:12:35Z'
+generated_at: '2026-07-21T13:09:12Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4333,7 +4333,7 @@ stories:
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
   STORY-066:
     title: Build the Settings dialog shell, Providers tab, embedding selection, and the Provider Edit sub-dialog
-    status: ready
+    status: done
     spec_clauses:
     - 06_Settings_Dialog/description.md#12-provider-authentication-model
     - 06_Settings_Dialog/description.md#14-auto-check-on-open-and-embedding-bootstrap
@@ -4358,21 +4358,50 @@ stories:
     - EC-PROV-7
     acceptance_criteria:
       STORY-066-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
       STORY-066-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
       STORY-066-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
       STORY-066-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
       STORY-066-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
       STORY-066-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
       STORY-066-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
       STORY-066-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
   STORY-067:
     title: Build the Settings General tab, cross-tab validation, and the atomic Save / Import / Reset transactions
     status: ready
@@ -6608,11 +6637,69 @@ edge_cases:
   EC-PROV-10:
     stories:
     - STORY-066
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-11:
     stories:
     - STORY-066
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-3:
     stories:
     - STORY-058
@@ -6825,15 +6912,102 @@ edge_cases:
   EC-PROV-5:
     stories:
     - STORY-066
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-5b:
     stories:
     - STORY-066
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-5c:
     stories:
     - STORY-066
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-6:
     stories:
     - STORY-055
@@ -6860,11 +7034,69 @@ edge_cases:
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
     - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-PROV-7:
     stories:
     - STORY-066
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
+    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-RD-3:
     stories:
     - STORY-002

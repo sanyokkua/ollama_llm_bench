@@ -545,3 +545,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   existing text-only `write_export_file`/`write_text_file` (STORY-061). Used by the Charts tab's PNG
   export. Both methods apply the same atomic temp-file-then-rename structure and collision-suffix rules
   as their text counterparts. Per `08-E` §21c (extended in STORY-064).
+
+- Settings dialog shell, Providers tab, and Provider Edit sub-dialog (`ui/settings_dialog/`):
+  the modal dialog's tab strip/footer/dirty-indicator chrome with auto-`probe_all()`-on-open;
+  the Providers tab (a `QTableView` over the existing `adapters/qt_table_models` provider table
+  model, with hover-revealed Test/Edit/Reset/Delete row actions and an Enabled toggle) plus its
+  embedding-selection section (provider/model dropdowns filtered to embedding-likely models,
+  a Show-all-models toggle, a Test Embedding action, persisted-selection and first-start
+  bootstrap init from `embedding.selected_provider_name`/`selected_model_name`); and the
+  Provider Edit sub-dialog (identity/endpoint/secret-card fields, duplicate-name and
+  env-var-name-only validation, and two independent Test actions — reachability and inference —
+  both gated on the single-inference-activity store). The Health Dot and Auth badge are two
+  independent pure functions (`provider_test_status_to_health`/`provider_auth_badge`) — the
+  former of `ProviderTestStatus`, the latter of credential-name presence plus env-var
+  resolution — never conflated. The full 13-method `SettingsGateway` Protocol is declared in
+  `protocols.py` per `08-E` §7b.6, though this story exercises only 8 of them; the General tab
+  and the Save/Import/Reset transactions are a later `ui/settings_dialog/` story (STORY-067), as
+  is the concrete `SettingsGateway` wiring into `compose.py` (Phase 11). Qt-free/asyncio-free
+  boundary rules hold throughout; no `setStyleSheet`, colour literal, or literal secret reaches
+  the working-copy `ProviderConfig`. Per `06_Settings_Dialog/description.md` §§1.2, 1.4, 3.2–3.4,
+  `sub_dialogs/provider_edit.md` §§5.1, 8.2, 9, and `08-E` §§7b.6, 13.

@@ -1,7 +1,7 @@
 ---
 id: STORY-066
 title: Build the Settings dialog shell, Providers tab, embedding selection, and the Provider Edit sub-dialog
-status: ready
+status: done
 spec_clauses:
   - 06_Settings_Dialog/description.md#32-provider-table
   - 06_Settings_Dialog/description.md#33-per-row-actions
@@ -129,15 +129,26 @@ General tab and the Save/Import/Reset transactions are added by STORY-067.
 
 ### STORY-066-AC-1
 
-For each `ProviderTestStatus`, the provider row renders the specified health dot and, for the
-auth field, the specified badge:
+For each `ProviderTestStatus`, the provider row renders the specified health dot:
 
-| Signal                    | Health dot | Auth badge                       |
-| ------------------------- | ---------- | -------------------------------- |
-| READY                     | success    | env ✓ (name set and resolves)    |
-| ZERO_MODELS               | warning    | env ✓                            |
-| UNREACHABLE / MISSING_ENV | error      | env ✗ (name set, variable unset) |
-| UNTESTED                  | muted      | none (no name set)               |
+| Signal                    | Health dot |
+| ------------------------- | ---------- |
+| READY                     | success    |
+| ZERO_MODELS               | warning    |
+| UNREACHABLE / MISSING_ENV | error      |
+| UNTESTED                  | muted      |
+
+Independently of the health dot — never derived from `ProviderTestStatus` — the Auth badge is a
+pure function of the row's credential-resolution state alone (`description.md` §3.2, §12):
+
+| Auth-field state                                                    | Auth badge |
+| ------------------------------------------------------------------- | ---------- |
+| No env-var name configured (e.g. the three bundled local providers) | none       |
+| An env-var name is configured and resolves to a non-empty value     | env ✓      |
+| An env-var name is configured but is unset or empty                 | env ✗      |
+
+A `READY` provider with no key field still shows `none`; an `UNREACHABLE` provider whose key
+resolves still shows `env ✓`. The two axes never influence one another.
 
 ### STORY-066-AC-2
 
@@ -229,3 +240,64 @@ exception is raised, the dialog reports `isVisible()`, and no `error`/`critical`
 - [ ] The module inventory is unchanged.
 - [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+Recorded during a post-implementation spec-conformance fix pass (four fixes applied: the
+Auth-badge derivation, the Test Embedding control, the embedding-dropdown bootstrap, and this
+Notes section). The following are known, deliberately accepted limitations of this story's
+implementation, out of scope to fix here:
+
+- **AC-6's "probes the in-memory working copy, never the persisted value" guarantee cannot be
+  structurally proven.** `SettingsGateway.test_provider(provider_id, model_name)` (08-E §7b.6,
+  cited verbatim in `protocols.py`) takes only a `provider_id` — there is no channel to pass
+  working-copy field values (an edited-but-unsaved `base_url`, API-key env-var name, etc.)
+  through to the probe. The dialog can call `test_provider` with the right `provider_id` at
+  the right moment, but whether the *concrete* Gateway implementation actually probes the
+  edited-in-memory fields or silently re-reads the last-persisted row for that id is entirely
+  up to that implementation — nothing in this Protocol's signature lets the UI layer prove or
+  even influence which one happens. This is a tension in the spec-cited Gateway contract
+  itself, not a UI-layer bug. Flag it for whoever wires the concrete `SettingsGateway` in
+  Phase 11: either add a working-copy-aware overload/parameter, or make Save-before-Test the
+  documented contract for an edited-but-unsaved field. This story does not invent an unspec'd
+  method signature to route around it.
+- **The same class of tension applies to `SettingsGateway.probe_embedding()`.** Its 08-E §7b.6
+  signature takes no arguments, so the Test Embedding button cannot pass it the in-memory
+  working-copy `(provider, model)` pair the dropdowns currently show — the concrete
+  implementation decides on its own which pair it actually probes. Flag this alongside the
+  `test_provider` tension above for whoever wires the concrete `SettingsGateway` in Phase 11.
+- **Provider Edit's §8.2 live in-flight progress sub-state is not implemented.** Only the
+  settled probe outcome renders in the result label; the two-line "testing — waiting for
+  response" / "testing — receiving tokens" indicator, the amber gate-busy strip, and the
+  footer note described in §8.2 are absent. No AC/EC this story cites requires the live
+  indicator, so this is an accepted scope deferral, not a defect.
+- **Azure-specific secret-card fields are out of scope for this story.** `provider_edit.md`
+  §6.2 (the Azure endpoint/deployment/API-version fields) is not a cited anchor for this
+  story, so the corresponding §9 Azure-config-field validation rows are also unimplemented.
+  Noted explicitly here so a later story (STORY-067 or beyond) does not silently skip them too.
+
+### Spec-conformance fix pass (this session)
+
+- The Auth badge (`env ✓` / `env ✗` / `none`) was corrected to derive purely from
+  credential-resolution state (`ProviderConfig.api_key_raw` plus whether that named
+  environment variable resolves) — never from `ProviderTestStatus`. `provider_auth_badge` in
+  `_internal/view_model_select.py` is now the single source of truth for the badge; the Health
+  Dot (`provider_test_status_to_health`) is a separate, independent pure function of
+  `ProviderTestStatus` alone. `ProvidersTabController` resolves each row's credential via
+  `os.environ.get(config.api_key_raw)` at rebuild time, matching the same pattern already used
+  by `sub_dialogs/provider_edit_view.py`'s API-key diagnostic and
+  `backend.provider_registry`'s client builder — `SettingsGateway.get_resolved_str` was not
+  used for this, because its declared contract (08-E §7b.6) is "resolve the current effective
+  value of a general-tab key", not an arbitrary per-provider environment-variable name.
+- The embedding section (`_internal/providers_tab/embedding_section.py`) gained a Test
+  Embedding button, gated on the single-inference activity store exactly like the Provider
+  Edit Test buttons, calling `SettingsGateway.probe_embedding()` (which takes no arguments —
+  it is not possible to pass it the in-memory working-copy pair the dropdowns currently show,
+  the same class of Gateway-signature limitation noted above for `test_provider`) and
+  rendering the result via the same `embedding_diagnostic_text` function the auto-check-on-open
+  probe already uses.
+- The embedding provider/model dropdowns now initialise from
+  `embedding.selected_provider_name` / `embedding.selected_model_name` at construction time,
+  falling back to a first-start bootstrap search (`resolve_embedding_bootstrap_pair`) that
+  walks every enabled provider in catalog order and selects the first embedding-likely model
+  found, leaving the pair empty when no enabled provider offers one.
