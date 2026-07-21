@@ -6,12 +6,14 @@ Import / Reset / Close transactions (STORY-067).
 Depends only on ``SettingsGateway`` plus the retained UI collaborators
 (``EventBus``, ``NativePickers``, ``Clipboard``, ``FileSystemActions``,
 ``NotificationService``) -- D-R-06 -- no backend Store/Service Protocol
-reaches this controller. Cross-store atomicity is validate-first, not 2PC
-(mirroring the established ``ImportExportServiceImpl`` precedent): every
-transaction validates before either store write runs, then calls
-``replace_providers`` followed by ``upsert_settings`` in sequence -- the real
-cross-store commit is the concrete ``SettingsGateway``/store implementation's
-responsibility (Phase 11), out of this story's scope.
+reaches this controller. Save and Reset each call exactly one atomic Gateway
+method (``save_all``/``reset_to_defaults``) so the concrete Phase 11 adapter
+can wrap both the ``ProvidersStore`` write and the ``AppSettingsStore`` write
+in one real database transaction -- this module cannot enforce that
+transaction itself, only supply the single-call shape that makes it possible
+(see ``protocols.py``'s ``save_all``/``reset_to_defaults`` docstrings). Import
+still calls the separately-callable ``upsert_settings``/``apply_provider_import``
+(a merge/replace, not a Save/Reset commit).
 """
 
 from datetime import UTC, datetime
@@ -20,6 +22,8 @@ from typing import Protocol
 import uuid
 
 from PySide6.QtWidgets import QMessageBox
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
 import structlog
 
 from ollama_llm_bench.adapters.native_pickers.models import FilePickerOptions, SavePickerOptions
@@ -82,6 +86,50 @@ def _bundled_default_provider_drafts() -> tuple[ProviderConfig, ...]:
         )
         for name, base_url in _BUNDLED_PROVIDER_SEEDS
     )
+
+
+_KIND_SETTINGS = "settings"
+_KIND_PROVIDER_CONFIG = "provider_config"
+
+# A shared ruamel.yaml safe-loader instance, mirroring the module-level
+# instance already used by `backend.import_export._internal.yaml_io` for the
+# same reason: import/export is one file at a time (a single Settings dialog
+# action), so sharing one instance across calls is safe.
+_kind_sniffer = YAML(typ="safe")
+
+
+def _detect_import_kind(file_path: str) -> str:
+    """Peek at the file's optional top-level ``kind`` key to route the single
+    Import… entry point (`description.md` §5's footer table and
+    `mockup.html`'s footer both show exactly one Import… control) to the
+    matching preview flow (`10_Domain_and_Data/06_IMPORT_FORMATS.md` §3/§4).
+
+    This is detection only, never the authoritative parse: the chosen
+    ``build_settings_import_preview``/``build_provider_import_preview`` call
+    still performs the real, fully-validating parse through the Gateway. A
+    read/parse failure here, or a file naming neither ``kind`` nor a
+    top-level ``providers`` key, falls through to the settings flow, whose
+    own parse then reports the real, user-facing error.
+
+    Args:
+        file_path: The absolute path chosen via ``NativePickers.open_file``.
+
+    Returns:
+        ``"provider_config"`` when the file names that ``kind`` or carries a
+        top-level ``providers`` key; ``"settings"`` otherwise.
+    """
+    try:
+        raw = _kind_sniffer.load(Path(file_path).read_text(encoding="utf-8-sig"))
+    except (OSError, UnicodeDecodeError, YAMLError):
+        return _KIND_SETTINGS
+    if not isinstance(raw, dict):
+        return _KIND_SETTINGS
+    kind = raw.get("kind")
+    if kind == _KIND_PROVIDER_CONFIG:
+        return _KIND_PROVIDER_CONFIG
+    if kind == _KIND_SETTINGS:
+        return _KIND_SETTINGS
+    return _KIND_PROVIDER_CONFIG if "providers" in raw else _KIND_SETTINGS
 
 
 class _ChromeApplier(Protocol):
@@ -288,16 +336,51 @@ class SettingsController:
         )
 
     def on_import_clicked(self) -> None:
-        """Parse, preview, and apply a settings-import YAML file (§8; STORY-067-AC-4)."""
+        """Open the single Import… picker and route to the settings or
+        provider-configuration preview flow based on the file's ``kind``
+        (§5's footer table, `mockup.html`; §8; STORY-067-AC-4).
+
+        `description.md` §5's footer table and `mockup.html` (both display
+        states) show exactly one ``Import…`` control per dialog, while
+        `10_Domain_and_Data/06_IMPORT_FORMATS.md` §1 defines two distinct
+        import actions (Import Settings / Import Provider Configuration).
+        This dispatcher reconciles the two: one picker, then
+        ``_detect_import_kind`` inspects the parsed file's ``kind`` field
+        (falling back to a top-level ``providers`` key) to choose which of
+        the two existing preview flows applies.
+        """
         paths = self._native_pickers.open_file(
             FilePickerOptions(
-                title="Import Settings", filters=("YAML (*.yaml *.yml)",), allow_multiple=False
+                title="Import…", filters=("YAML (*.yaml *.yml)",), allow_multiple=False
             )
         )
         if not paths:
             return
+        if _detect_import_kind(paths[0]) == _KIND_PROVIDER_CONFIG:
+            self._apply_provider_import(paths[0])
+        else:
+            self._apply_settings_import(paths[0])
+
+    def on_import_provider_config_clicked(self) -> None:
+        """Open a provider-configuration-only Import picker, bypassing
+        ``kind`` detection (§8) -- kept for a caller that already knows the
+        file's kind; the footer's single ``Import…`` control routes through
+        ``on_import_clicked`` instead."""
+        paths = self._native_pickers.open_file(
+            FilePickerOptions(
+                title="Import Provider Configuration",
+                filters=("YAML (*.yaml *.yml)",),
+                allow_multiple=False,
+            )
+        )
+        if not paths:
+            return
+        self._apply_provider_import(paths[0])
+
+    def _apply_settings_import(self, file_path: str) -> None:
+        """Parse, preview, and apply a settings-import YAML file (§8; STORY-067-AC-4)."""
         try:
-            preview = self._gateway.build_settings_import_preview(paths[0])
+            preview = self._gateway.build_settings_import_preview(file_path)
         except (TaskFileError, ConfigurationError) as exc:
             self._notifications.show_error(f"Import failed: {exc}")
             return
@@ -312,19 +395,10 @@ class SettingsController:
         logger.debug("settings_imported")
         self._push_chrome()
 
-    def on_import_provider_config_clicked(self) -> None:
+    def _apply_provider_import(self, file_path: str) -> None:
         """Parse, preview, and apply a provider-configuration import file (§8)."""
-        paths = self._native_pickers.open_file(
-            FilePickerOptions(
-                title="Import Provider Configuration",
-                filters=("YAML (*.yaml *.yml)",),
-                allow_multiple=False,
-            )
-        )
-        if not paths:
-            return
         try:
-            preview = self._gateway.build_provider_import_preview(paths[0])
+            preview = self._gateway.build_provider_import_preview(file_path)
         except (TaskFileError, ConfigurationError) as exc:
             self._notifications.show_error(f"Import failed: {exc}")
             return

@@ -42,6 +42,8 @@ from ollama_llm_bench.ui.settings_dialog.models import (
     DialogChromeViewModel,
     GeneralFieldState,
     PreviewGroup,
+    ProviderImportPreview,
+    ProviderImportResult,
     SettingsImportPreview,
     SettingsImportPreviewRow,
     SettingsImportResult,
@@ -688,6 +690,74 @@ def test_export_writes_both_settings_and_provider_catalog(
     }
     assert written[str(settings_path)] == "schema_version: 1\nkind: settings\n"
     assert written[str(providers_path)] == "schema_version: 1\nkind: provider_config\n"
+
+
+def test_import_button_routes_exported_provider_config_file_back_through_provider_import(
+    qtbot: QtBot, mocker: MockerFixture, tmp_path: Path
+) -> None:
+    """Proves: STORY-067-AC-4
+
+    Round-trips the sibling provider-catalog file Export… writes
+    (``kind: provider_config``) back through the single footer Import…
+    entry point: both real Export… files are written to disk, then the exact
+    provider-catalog path is fed back into ``on_import_clicked``. The
+    controller's ``_detect_import_kind`` reads the real file's
+    ``kind: provider_config`` key and routes to the provider-import preview
+    flow, not the settings flow -- closing the gap the second
+    spec-conformance review flagged (an Export… sibling file no exposed
+    control could re-import).
+    """
+    gateway = FakeSettingsGateway()
+    settings_export_bytes = b"schema_version: 1\nkind: settings\nsettings: {}\n"
+    provider_export_bytes = (
+        b"schema_version: 1\nkind: provider_config\n"
+        b"embedding:\n  provider_name: Ollama (local)\n  model_name: bge-m3\n"
+        b"providers:\n  - name: Ollama (local)\n    type: openai_compatible\n"
+        b"    base_url: http://localhost:11434/v1\n    enabled: true\n"
+    )
+    gateway.set_export_settings_bytes(settings_export_bytes)
+    gateway.set_export_providers_bytes(provider_export_bytes)
+    settings_path = tmp_path / "ollama_bench_settings_2026-07-21.yaml"
+    providers_path = tmp_path / "ollama_bench_settings_2026-07-21_providers.yaml"
+    native_pickers = FakeNativePickers()
+    native_pickers.set_save_result(str(settings_path))
+    file_system_actions = mocker.Mock(spec=FileSystemActions)
+    file_system_actions.write_text_file.side_effect = lambda *, path, content: Path(
+        path
+    ).write_text(content, encoding="utf-8")
+    notifications = FakeNotificationService()
+    bus = FakeEventBus()
+    dialog = make_settings_dialog(
+        collaborators=SettingsDialogCollaborators(
+            gateway=gateway,
+            event_bus=bus,
+            native_pickers=native_pickers,
+            clipboard=mocker.Mock(spec=Clipboard),
+            file_system_actions=file_system_actions,
+            notifications=notifications,
+        )
+    )
+    qtbot.addWidget(dialog)
+    controller = _controller_of(dialog)
+    controller.on_export_clicked()
+    assert providers_path.read_text(encoding="utf-8") == provider_export_bytes.decode("utf-8")
+
+    provider_preview = ProviderImportPreview(
+        rows=(), embedding_provider_name=None, embedding_model_name=None, findings=()
+    )
+    gateway.set_provider_import_preview(provider_preview)
+    gateway.set_provider_import_result(ProviderImportResult(applied_count=1, skipped_count=0))
+    native_pickers.set_open_file_result((str(providers_path),))
+    fake_preview_dialog = mocker.Mock(confirmed=True)
+    mocker.patch(
+        "ollama_llm_bench.ui.settings_dialog._internal.controller.make_provider_import_preview_dialog",
+        return_value=fake_preview_dialog,
+    )
+
+    controller.on_import_clicked()
+
+    assert notifications.info_calls[-1][0] == "Provider configuration imported"
+    assert bus.emitted_signal_names().count("_provider_registry_reloaded") == 1
 
 
 def test_providers_tab_mutation_immediately_enables_save_without_general_tab_edit(
