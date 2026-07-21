@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtWidgets import QVBoxLayout
 import structlog
 
-from ollama_llm_bench.backend.domain import BenchmarkRun, RunId, RunMode, RunStatus
+from ollama_llm_bench.backend.domain import BenchmarkRun, ChartKind, RunId, RunMode, RunStatus
 from ollama_llm_bench.backend.events import (
     SIGNAL_RUN_FAILED,
     SIGNAL_RUN_FINISHED,
@@ -25,6 +25,12 @@ from ollama_llm_bench.backend.events import (
     RunIdChangedEvent,
     RunStartedEvent,
 )
+from ollama_llm_bench.ui.results._internal.charts_tab.controller import ChartsTabController
+from ollama_llm_bench.ui.results._internal.charts_tab.detached_window import (
+    DetachedChartWindow,
+    DetachedChartWindowConfig,
+)
+from ollama_llm_bench.ui.results._internal.charts_tab.view import ChartsTabView
 from ollama_llm_bench.ui.results._internal.details_tab.controller import DetailsTabController
 from ollama_llm_bench.ui.results._internal.details_tab.view import DetailsTabView
 from ollama_llm_bench.ui.results._internal.footer import FooterController
@@ -70,6 +76,13 @@ class ResultController:
             bus=collaborators.bus,
             view_state_store=self.view_state_store,
         )
+        self._charts_tab = ChartsTabController(
+            gateway=collaborators.gateway,
+            bus=collaborators.bus,
+            view_state_store=self.view_state_store,
+            platform_kind=collaborators.platform_kind,
+        )
+        self._footer.set_chart_export_source(self._charts_tab)
         self._selected_run_id: RunId | None = None
         self._user_locked = False
         self._active_tab = _DEFAULT_TAB
@@ -78,6 +91,7 @@ class ResultController:
         self._view: ResultView | None = None
         self._summary_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
         self._details_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
+        self._charts_tab_context: tuple[RunId | None, RunMode | None] = (None, None)
         logger.debug("result_controller_constructed")
 
     def bind(self, view: "ResultView") -> None:
@@ -94,6 +108,7 @@ class ResultController:
         self._footer.bind(view, on_view_model_changed=self._on_footer_view_model_changed)
         self._mount_summary_tab(view)
         self._mount_details_tab(view)
+        self._mount_charts_tab(view)
 
     def _mount_summary_tab(self, view: "ResultView") -> None:
         summary_view = SummaryTabView(platform_kind=self._collaborators.platform_kind)
@@ -113,6 +128,46 @@ class ResultController:
         details_view.bind_controller(self._details_tab)
         self._details_tab.bind(details_view)
 
+    def _mount_charts_tab(self, view: "ResultView") -> None:
+        charts_view = ChartsTabView(platform_kind=self._collaborators.platform_kind)
+        host = view.tab_host("charts")
+        layout = QVBoxLayout(host)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(charts_view)
+        charts_view.prev_clicked.connect(self._charts_tab.on_prev_clicked)
+        charts_view.next_clicked.connect(self._charts_tab.on_next_clicked)
+        charts_view.chart_kind_selected.connect(
+            lambda value: self._charts_tab.on_chart_kind_selected(ChartKind(value))
+        )
+        charts_view.filter_changed.connect(
+            lambda chip, values: self._charts_tab.on_filter_changed(chip, tuple(values))
+        )
+        charts_view.option_changed.connect(self._charts_tab.on_option_changed)
+        charts_view.legend_series_toggled.connect(self._charts_tab.on_legend_series_toggled)
+        charts_view.clear_filters_clicked.connect(self._charts_tab.on_clear_filters_clicked)
+        charts_view.chart_element_clicked.connect(self._charts_tab.on_chart_element_clicked)
+        charts_view.detach_clicked.connect(self._on_charts_detach_clicked)
+        self._charts_tab.bind(charts_view, on_drilldown=self.apply_chart_drilldown)
+
+    def _on_charts_detach_clicked(self) -> None:
+        run_id = self._selected_run_id
+        if run_id is None:
+            return
+        run_mode = self._collaborators.gateway.get_run(run_id).run_mode
+        window = DetachedChartWindow(
+            config=DetachedChartWindowConfig(
+                gateway=self._collaborators.gateway,
+                bus=self._collaborators.bus,
+                run_id=run_id,
+                run_mode=run_mode,
+                initial_state=self._charts_tab.current_view_state(),
+                platform_kind=self._collaborators.platform_kind,
+                on_drilldown=self.apply_chart_drilldown,
+            ),
+            parent=self._view,
+        )
+        window.show()
+
     def load_initial_state(self) -> None:
         """Resolve the ``Loading`` state on mount (state_machine.md §1)."""
         stored_tab = self._collaborators.gateway.get_setting(_SETTING_LAST_RESULT_TAB)
@@ -131,6 +186,7 @@ class ResultController:
             live=self._live,
         )
         self._details_tab.set_run_terminal_state(is_terminal=not self._live)
+        self._charts_tab.set_run_terminal_state(is_terminal=not self._live)
         self._push_view_model()
 
     def on_dropdown_changed(self, run_id: RunId) -> None:
@@ -216,6 +272,7 @@ class ResultController:
         if not self._user_locked:
             self._selected_run_id = payload.run_id
         self._details_tab.set_run_terminal_state(is_terminal=False)
+        self._charts_tab.set_run_terminal_state(is_terminal=False)
         self._push_view_model()
 
     def _on_run_terminal(self, _payload: object) -> None:
@@ -223,11 +280,13 @@ class ResultController:
         self._live = False
         self._live_run_id = None
         self._details_tab.set_run_terminal_state(is_terminal=True)
+        self._charts_tab.set_run_terminal_state(is_terminal=True)
         self._push_view_model()
 
     def _push_view_model(self) -> None:
         self._sync_summary_tab()
         self._sync_details_tab()
+        self._sync_charts_tab()
         if self._view is None:
             return
         self._view.apply(self._build_view_model())
@@ -266,6 +325,22 @@ class ResultController:
             return
         self._details_tab_context = context
         self._details_tab.set_run_context(run_id=self._selected_run_id, run_mode=run_mode)
+
+    def _sync_charts_tab(self) -> None:
+        """Re-load the Charts tab's run context whenever the selected run changes.
+
+        Mirrors ``_sync_summary_tab``'s change-detection choke-point exactly.
+        """
+        run_mode = (
+            self._collaborators.gateway.get_run(self._selected_run_id).run_mode
+            if self._selected_run_id is not None
+            else None
+        )
+        context = (self._selected_run_id, run_mode)
+        if context == self._charts_tab_context:
+            return
+        self._charts_tab_context = context
+        self._charts_tab.set_run_context(run_id=self._selected_run_id, run_mode=run_mode)
 
     def _build_view_model(self) -> ResultViewModel:
         runs = self._collaborators.gateway.list_runs()

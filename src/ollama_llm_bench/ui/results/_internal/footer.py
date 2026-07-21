@@ -10,6 +10,7 @@ helpers (``NativePickers``, ``FileSystemActions``, ``NotificationService``,
 
 from collections.abc import Callable
 import contextlib
+from typing import Protocol
 
 import structlog
 
@@ -22,7 +23,7 @@ from ollama_llm_bench.backend.events import (
 )
 from ollama_llm_bench.ui.results.models import FooterViewModel, ResultCollaborators
 
-__all__: list[str] = ["FooterController"]
+__all__: list[str] = ["ChartExportSourceProtocol", "FooterController"]
 
 logger = structlog.get_logger(__name__)
 
@@ -46,6 +47,20 @@ _BUTTON_EXT: dict[str, str] = {
 _TABLE_KIND_BY_TAB: dict[str, str] = {"summary": "Summary", "details": "Details"}
 
 
+class ChartExportSourceProtocol(Protocol):
+    """The Charts tab controller's export surface this footer drives.
+
+    Declared locally, structurally -- ``FooterController`` never imports
+    ``ChartsTabController`` directly, matching D-R-06's Gateway-only rule at
+    the sub-controller level (the footer is a shared collaborator, not owned
+    by any one tab).
+    """
+
+    def render_chart_export(self, *, fmt: str) -> bytes:
+        """Render the active chart off-screen as PNG/SVG bytes (charts_tab.md#12)."""
+        ...
+
+
 class FooterController:
     """Owns the export-button cluster, the shared save-destination toggle, and the
     Open-Exports-Folder visibility -- identical in layout on every tab."""
@@ -56,7 +71,18 @@ class FooterController:
         self._active_tab = "summary"
         self._live = False
         self._on_view_model_changed: Callable[[FooterViewModel], None] | None = None
+        self._chart_export_source: ChartExportSourceProtocol | None = None
         logger.debug("footer_controller_constructed")
+
+    def set_chart_export_source(self, source: ChartExportSourceProtocol) -> None:
+        """Attach the Charts tab controller's export surface (STORY-064).
+
+        Args:
+            source: The ``ChartsTabController`` (structurally, via
+                ``ChartExportSourceProtocol``) whose ``render_chart_export``
+                produces the Charts tab's PNG/SVG export bytes.
+        """
+        self._chart_export_source = source
 
     def bind(
         self, view: object, *, on_view_model_changed: Callable[[FooterViewModel], None]
@@ -99,13 +125,7 @@ class FooterController:
             self._collaborators.file_system_actions.open_in_file_manager(folder)
 
     def on_export_clicked(self, button_label: str) -> None:
-        """An export-button click; composes the filename, writes, and notifies.
-
-        Charts-tab image export is not yet derivable from ``ResultGateway`` alone
-        (no ``ChartsTabController`` exists in this shell -- STORY-064 owns the
-        chart-canvas render); the click is a documented no-op for that tab in
-        this story.
-        """
+        """An export-button click; composes the filename, writes, and notifies."""
         if self._run_id is None or self._live:
             return
         if not self._has_completed_results(self._run_id):
@@ -123,7 +143,7 @@ class FooterController:
         else:
             self._write_via_picker(filename=filename, content=content)
 
-    def _resolve_export_payload(self, button_label: str) -> tuple[str, str | None]:
+    def _resolve_export_payload(self, button_label: str) -> tuple[str, str | bytes | None]:
         run_id = self._run_id
         if run_id is None:
             return "", None
@@ -134,12 +154,21 @@ class FooterController:
         if self._active_tab == "run_analysis":
             run = self._collaborators.gateway.get_run(run_id)
             return "RunAnalysis", run.run_analysis or ""
+        if self._active_tab == "charts" and self._chart_export_source is not None:
+            fmt = _BUTTON_EXT[button_label]
+            return "Chart", self._chart_export_source.render_chart_export(fmt=fmt)
         return "Chart", None
 
-    def _write_direct(self, *, filename: str, content: str) -> None:
+    def _write_direct(self, *, filename: str, content: str | bytes) -> None:
         try:
-            path = self._collaborators.file_system_actions.write_export_file(
-                filename=filename, content=content
+            path = (
+                self._collaborators.file_system_actions.write_export_file_bytes(
+                    filename=filename, content=content
+                )
+                if isinstance(content, bytes)
+                else self._collaborators.file_system_actions.write_export_file(
+                    filename=filename, content=content
+                )
             )
         except OsAdapterError as exc:
             logger.warning("footer_export_write_failed", filename=filename, error=str(exc))
@@ -150,14 +179,21 @@ class FooterController:
         logger.debug("footer_export_saved", path=path)
         self._collaborators.notifications.show_info(f"Saved to {path}")
 
-    def _write_via_picker(self, *, filename: str, content: str) -> None:
+    def _write_via_picker(self, *, filename: str, content: str | bytes) -> None:
         chosen = self._collaborators.native_pickers.save_file(
             SavePickerOptions(title="Export", suggested_name=filename)
         )
         if chosen is None:
             return
         try:
-            self._collaborators.file_system_actions.write_text_file(path=chosen, content=content)
+            if isinstance(content, bytes):
+                self._collaborators.file_system_actions.write_binary_file(
+                    path=chosen, content=content
+                )
+            else:
+                self._collaborators.file_system_actions.write_text_file(
+                    path=chosen, content=content
+                )
         except OsAdapterError as exc:
             logger.warning("footer_export_write_failed", path=chosen, error=str(exc))
             self._collaborators.notifications.show_error(

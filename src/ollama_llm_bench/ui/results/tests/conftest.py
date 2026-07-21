@@ -84,8 +84,11 @@ class FakeResultGateway:
     ) -> None:
         self._runs = {run.run_id: run for run in runs}
         self._results_by_run_id = results_by_run_id or {}
+        self._tasks_by_run_id: dict[RunId, tuple[BenchmarkTask, ...]] = {}
+        self._chart_data_by_run_id: dict[RunId, dict[ChartKind, ChartData]] = {}
         self._settings: dict[str, str] = {}
         self.serialize_table_calls: list[tuple[RunId, str, str]] = []
+        self.chart_data_calls: list[tuple[RunId, ChartKind]] = []
 
     def list_runs(self) -> tuple[BenchmarkRun, ...]:
         return tuple(self._runs.values())
@@ -100,7 +103,7 @@ class FakeResultGateway:
         return self._results_by_run_id.get(run_id, ())
 
     def list_tasks(self, run_id: RunId) -> tuple[BenchmarkTask, ...]:
-        return ()
+        return self._tasks_by_run_id.get(run_id, ())
 
     def get_setting(self, key: str) -> str | None:
         return self._settings.get(key)
@@ -112,7 +115,13 @@ class FakeResultGateway:
         raise NotImplementedError
 
     def chart_data(self, run_id: RunId, chart_kind: ChartKind) -> ChartData:
-        raise NotImplementedError
+        self.chart_data_calls.append((run_id, chart_kind))
+        configured = self._chart_data_by_run_id.get(run_id, {}).get(chart_kind)
+        if configured is not None:
+            return configured
+        return ChartData(
+            chart_kind=chart_kind, categories=(), series=(), empty_state_message="No data yet."
+        )
 
     def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
         self.serialize_table_calls.append((run_id, table, fmt))
@@ -125,6 +134,14 @@ class FakeResultGateway:
     def set_results(self, run_id: RunId, results: tuple[BenchmarkResult, ...]) -> None:
         """Test-only helper: set a run's results after construction."""
         self._results_by_run_id[run_id] = results
+
+    def set_tasks(self, run_id: RunId, tasks: tuple[BenchmarkTask, ...]) -> None:
+        """Test-only helper: set a run's frozen tasks after construction."""
+        self._tasks_by_run_id[run_id] = tasks
+
+    def set_chart_data(self, run_id: RunId, chart_kind: ChartKind, data: ChartData) -> None:
+        """Test-only helper: configure one chart kind's prepared data for a run."""
+        self._chart_data_by_run_id.setdefault(run_id, {})[chart_kind] = data
 
 
 class FakeExportFilenameHelper:
@@ -171,6 +188,7 @@ class FakeFileSystemActions:
     def __init__(self, *, fail_write: bool = False) -> None:
         self._fail_write = fail_write
         self.written: dict[str, str] = {}
+        self.written_bytes: dict[str, bytes] = {}
         self.revealed_paths: list[str] = []
 
     def open_in_file_manager(self, path: str) -> None:
@@ -197,6 +215,22 @@ class FakeFileSystemActions:
 
             raise OsAdapterError(message="disk full")
         self.written[path] = content
+
+    def write_export_file_bytes(self, *, filename: str, content: bytes) -> str:
+        if self._fail_write:
+            from ollama_llm_bench.backend.errors import OsAdapterError  # noqa: PLC0415
+
+            raise OsAdapterError(message="disk full")
+        path = f"/app-data/exports/{filename}"
+        self.written_bytes[path] = content
+        return path
+
+    def write_binary_file(self, *, path: str, content: bytes) -> None:
+        if self._fail_write:
+            from ollama_llm_bench.backend.errors import OsAdapterError  # noqa: PLC0415
+
+            raise OsAdapterError(message="disk full")
+        self.written_bytes[path] = content
 
     def exports_folder_path(self) -> str:
         return "/app-data/exports"
