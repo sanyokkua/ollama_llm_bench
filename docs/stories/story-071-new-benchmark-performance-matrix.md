@@ -14,6 +14,7 @@ spec_clauses:
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
 modules:
   - ui/new_benchmark/
+  - ui/common_dialogs/
 acceptance_criteria:
   - STORY-071-AC-1
   - STORY-071-AC-2
@@ -207,3 +208,17 @@ For each run mode, the three Performance Matrix sections have the specified layo
   "not-yet-drafted future story" that was never written; this story is that story. Removing the
   three placeholders may leave `stub_sections.py` covering only sections that are still legitimately
   stubbed — leave those untouched.
+- **Size-toggle → token-target mapping.** The UI-facing size keys `XS`/`SM`/`MD`/`LG`/`XL` map
+  one-to-one onto the `PerformanceTaskGenerator`'s fixed synthetic-size token-count buckets
+  `64`/`256`/`1024`/`4096`/`16384` tokens respectively, per
+  `docs/v3_specification/11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#2.3`. The
+  `~5 tok`-style figures shown in each toggle's caption are display copy only (a human-readable
+  approximation for the user) and are never used as the actual generator target; the widget reads
+  and writes only the `XS`..`XL` keys, never a raw token count.
+- **Where the Synthetic missing-sizes hard error lives.** The "Select at least one input size and
+  one output size." hard-error rule (AC-4) is implemented widget-locally, as a decorator over the
+  injected `RunValidator` in `ui/new_benchmark/_internal/synthetic_validation.py` — there is no
+  concrete backend `RunValidator` yet. This is a deliberate, temporary placement: a future story
+  that builds the concrete backend `RunValidator` must subsume this rule into that backend
+  implementation rather than duplicate it, and should remove (or reduce to a thin pass-through)
+  this widget-local decorator once the backend rule exists.

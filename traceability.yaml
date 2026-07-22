@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T13:38:39Z'
+generated_at: '2026-07-22T13:58:30Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4614,6 +4614,7 @@ stories:
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
     modules:
+    - ui/common_dialogs/
     - ui/new_benchmark/
     edge_cases: []
     acceptance_criteria:
@@ -4646,10 +4647,14 @@ stories:
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_size_rule_prepends_entry_and_passes_through_inner
       STORY-071-AC-5:
         tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_synthetic_work_count_breakdown_with_analysis_off
         - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_estimate.py::test_build_request_populates_performance_config_in_synthetic
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_run_summary.py::test_run_summary_work_count_matches_live_estimate
       STORY-071-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_performance_matrix_visibility_per_mode[graded_removed]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_performance_matrix_visibility_per_mode[synthetic_visible]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_performance_matrix_visibility_per_mode[tasks_removed]
   STORY-072:
     title: Wire the Resume widget Summary and Details export actions to real CSV and Markdown serialization
     status: ready
@@ -8944,6 +8949,7 @@ modules:
     - STORY-057
     - STORY-065
     - STORY-070
+    - STORY-071
   ui/main_window/:
     stories:
     - STORY-053
