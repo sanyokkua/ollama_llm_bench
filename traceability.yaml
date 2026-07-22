@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T14:24:27Z'
+generated_at: '2026-07-22T18:56:19Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4602,7 +4602,7 @@ stories:
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_success_emits_confirmation_toast
   STORY-071:
     title: Replace the New Benchmark performance-matrix stubs with real size and repeats controls and a live task-count estimate
-    status: in-progress
+    status: done
     spec_clauses:
     - 02_New_Benchmark_Widget/description.md#12-section-visibility-decision-table
     - 02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only
@@ -4686,13 +4686,23 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-072-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_export_invokes_serialize_table_per_action[action_export_details_csv-details-csv]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_export_invokes_serialize_table_per_action[action_export_details_md-details-markdown]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_export_invokes_serialize_table_per_action[action_export_summary_csv-summary-csv]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py::test_export_invokes_serialize_table_per_action[action_export_summary_md-summary-markdown]
       STORY-072-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_writes_payload_and_no_placeholder_toast
       STORY-072-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_writes_payload_verbatim_without_redaction
       STORY-072-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_prefills_canonical_filename[details_csv]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_prefills_canonical_filename[empty_sanitises_to_fallback]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_prefills_canonical_filename[normal_summary_csv]
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_prefills_canonical_filename[summary_markdown_ext]
   STORY-073:
     title: Add the Progress run-log judge-excluded line and run-log search-match highlighting
     status: ready

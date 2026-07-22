@@ -6,6 +6,7 @@ import re
 
 import msgspec
 from PySide6.QtWidgets import QMessageBox, QWidget
+import pytest
 from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 
@@ -28,14 +29,21 @@ from ollama_llm_bench.ui.resume_benchmark._internal.actions import (
     clone_as_new_retry_run,
     confirm_and_delete_run,
     export_run_analysis,
+    export_table,
     show_run_log_file,
 )
 from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import RunTableModel
 from ollama_llm_bench.ui.resume_benchmark._internal.view_model_select import select_run_rows
+from ollama_llm_bench.ui.resume_benchmark.models import (
+    ResumeBenchmarkCollaborators,
+    TableExportRequest,
+)
 
 _INTERNAL = "ollama_llm_bench.ui.resume_benchmark._internal.actions"
 _EXPECTED_NEW_RUN_ID = 999
 _SANITIZE_RE = re.compile(r"[^A-Za-z0-9._-]")
+_NOT_YET_AVAILABLE_MESSAGE = "Export not yet available"
+_SECRET_PAYLOAD = 'prompt,response\n"api_key=sk-test-123 Authorization: Bearer abc",ok\n'  # noqa: S105  # fixture text proving no-redaction, not a real credential
 
 
 class _RecordingEventBus:
@@ -65,10 +73,11 @@ def _run(
     *,
     status: RunStatus,
     run_analysis: str | None = None,
+    run_name: str = "My Run",
 ) -> BenchmarkRun:
     return BenchmarkRun(
         run_id=run_id,
-        run_name="My Run",
+        run_name=run_name,
         timestamp="2024-01-01T00:00:00+00:00",
         run_mode=RunMode.TASKS,
         status=status,
@@ -529,6 +538,148 @@ def _sanitize(name: str) -> str:
     collapsed = re.sub(r"_+", "_", replaced)
     stripped = collapsed.strip("_").lstrip(".")
     return stripped[:80]
+
+
+class _FakeSecretPayloadGateway(_FakeResumeGateway):
+    """A ``ResumeGateway`` fake whose ``serialize_table`` returns secret-shaped
+    text, to prove ``export_table`` applies no redaction transform to it."""
+
+    def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
+        self.serialize_table_calls.append((run_id, table, fmt))
+        return _SECRET_PAYLOAD
+
+
+def _make_export_collaborators(
+    *,
+    gateway: _FakeResumeGateway,
+    native_pickers: _FakeNativePickers,
+    file_system_actions: _FakeFileSystemActions,
+    event_bus: _RecordingEventBus,
+) -> ResumeBenchmarkCollaborators:
+    return ResumeBenchmarkCollaborators(
+        gateway=gateway,
+        event_bus=event_bus,
+        native_pickers=native_pickers,
+        file_system_actions=file_system_actions,
+        export_filenames=_FakeExportFilenameHelper(),
+    )
+
+
+def test_export_writes_payload_and_no_placeholder_toast(tmp_path: Path) -> None:
+    """Proves: STORY-072-AC-2
+
+    Given a run is selected and the user picks a save destination, when the
+    export action runs, then the payload ResumeGateway.serialize_table
+    returns is written to the chosen path and a success toast is emitted --
+    the "Export not yet available" placeholder toast is never emitted from
+    any of the four actions.
+    """
+    # Arrange
+    target = str(tmp_path / "summary.csv")
+    gateway = _FakeResumeGateway(run=_run(1, status=RunStatus.COMPLETED), tasks=(), results=())
+    native_pickers = _FakeNativePickers(save_path=target)
+    file_system_actions = _FakeFileSystemActions()
+    event_bus = _RecordingEventBus()
+    collaborators = _make_export_collaborators(
+        gateway=gateway,
+        native_pickers=native_pickers,
+        file_system_actions=file_system_actions,
+        event_bus=event_bus,
+    )
+    request = TableExportRequest(run_id=1, table="summary", fmt="csv")
+
+    # Act
+    export_table(collaborators=collaborators, request=request)
+
+    # Assert
+    assert file_system_actions.written == [(target, "summary-csv-payload\n")]
+    message = event_bus.last_message()
+    assert message is not None
+    assert message.severity == "info"
+    assert all(
+        getattr(payload, "text", None) != _NOT_YET_AVAILABLE_MESSAGE
+        for name, payload in event_bus.emitted
+        if name == SIGNAL_GLOBAL_MESSAGE
+    )
+
+
+def test_export_writes_payload_verbatim_without_redaction(tmp_path: Path) -> None:
+    """Proves: STORY-072-AC-3
+
+    Given serialize_table returns a payload containing secret-shaped text,
+    when the export writes it to disk, then the written bytes equal that
+    payload string-exactly, with no redaction transform applied -- exports
+    are the user's own on-machine data (05_EXPORT_FORMATS.md section 3).
+    """
+    # Arrange
+    target = str(tmp_path / "summary.csv")
+    gateway = _FakeSecretPayloadGateway(
+        run=_run(1, status=RunStatus.COMPLETED), tasks=(), results=()
+    )
+    native_pickers = _FakeNativePickers(save_path=target)
+    file_system_actions = _FakeFileSystemActions()
+    event_bus = _RecordingEventBus()
+    collaborators = _make_export_collaborators(
+        gateway=gateway,
+        native_pickers=native_pickers,
+        file_system_actions=file_system_actions,
+        event_bus=event_bus,
+    )
+    request = TableExportRequest(run_id=1, table="summary", fmt="csv")
+
+    # Act
+    export_table(collaborators=collaborators, request=request)
+
+    # Assert
+    assert file_system_actions.written == [(target, _SECRET_PAYLOAD)]
+
+
+@pytest.mark.parametrize(
+    ("run_name", "table", "fmt", "expected_suggested_name"),
+    [
+        ("My Run", "summary", "csv", "My_Run_Summary.csv"),
+        ("My Run", "summary", "markdown", "My_Run_Summary.md"),
+        ("My Run", "details", "csv", "My_Run_Details.csv"),
+        ("///", "summary", "csv", "Run_1_Summary.csv"),
+    ],
+    ids=[
+        "normal_summary_csv",
+        "summary_markdown_ext",
+        "details_csv",
+        "empty_sanitises_to_fallback",
+    ],
+)
+def test_export_prefills_canonical_filename(
+    run_name: str, table: str, fmt: str, expected_suggested_name: str
+) -> None:
+    """Proves: STORY-072-AC-4
+
+    Given a run and a Summary/Details export action, when the Save picker
+    opens, then it is pre-filled with the canonical
+    <sanitised_run_name>_<kind>.<ext> filename, and a run name that
+    sanitises to empty falls back to Run_<run_id>_<kind>.<ext>.
+    """
+    # Arrange
+    gateway = _FakeResumeGateway(
+        run=_run(1, status=RunStatus.COMPLETED, run_name=run_name), tasks=(), results=()
+    )
+    native_pickers = _FakeNativePickers(save_path=None)
+    file_system_actions = _FakeFileSystemActions()
+    event_bus = _RecordingEventBus()
+    collaborators = _make_export_collaborators(
+        gateway=gateway,
+        native_pickers=native_pickers,
+        file_system_actions=file_system_actions,
+        event_bus=event_bus,
+    )
+    request = TableExportRequest(run_id=1, table=table, fmt=fmt)
+
+    # Act
+    export_table(collaborators=collaborators, request=request)
+
+    # Assert
+    assert native_pickers.last_options is not None
+    assert native_pickers.last_options.suggested_name == expected_suggested_name
 
 
 def test_show_run_log_file_opens_derived_path() -> None:

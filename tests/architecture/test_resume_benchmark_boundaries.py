@@ -187,6 +187,28 @@ def test_actions_module_imports_no_redaction_function() -> None:
     assert "redact_for_log" not in imported_names
 
 
+def test_controller_module_imports_no_redaction_function() -> None:
+    """Proves: STORY-072 Definition of done
+
+    ``_internal/controller.py`` -- which wires the four Summary/Details
+    export menu actions to ``export_table`` -- imports no ``redact``/
+    ``redact_for_log`` function either; the export path stays verbatim
+    end-to-end (05_EXPORT_FORMATS.md section 3).
+    """
+    # Arrange
+    tree = ast.parse(_CONTROLLER_FILE.read_text(encoding="utf-8"), filename=str(_CONTROLLER_FILE))
+    # Act
+    imported_names = {
+        alias.asname or alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    }
+    # Assert
+    assert "redact" not in imported_names
+    assert "redact_for_log" not in imported_names
+
+
 def test_view_imports_no_backend_service_symbol() -> None:
     """Proves: STORY-056 Definition of done
 

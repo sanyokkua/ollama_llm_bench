@@ -1,5 +1,13 @@
 """Colocated unit tests for the Resume controller's menu-action wiring and
 event-handler branches (STORY-056), complementing test_controller.py.
+
+The STORY-072-AC-1 test lives here (not in ``test_actions.py``) because it
+must prove the real context-menu trigger path reaches
+``ResumeGateway.serialize_table`` -- exercising ``build_context_menu`` +
+``ResumeBenchmarkController._wire_menu_actions`` + the ``_trigger`` rig this
+file already owns, not just the ``export_table`` action function in
+isolation (STORY-072's tester brief: a plan must prove actual widget wiring,
+not just derivation).
 """
 
 from collections.abc import Callable
@@ -7,6 +15,7 @@ import re
 
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QMenu, QWidget
+import pytest
 from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 
@@ -408,6 +417,40 @@ def _trigger(menu: QMenu, object_name: str) -> None:
             action.trigger()
             return
     raise AssertionError(f"no action named {object_name}")
+
+
+@pytest.mark.parametrize(
+    ("object_name", "expected_table", "expected_fmt"),
+    [
+        ("action_export_summary_csv", "summary", "csv"),
+        ("action_export_summary_md", "summary", "markdown"),
+        ("action_export_details_csv", "details", "csv"),
+        ("action_export_details_md", "details", "markdown"),
+    ],
+)
+def test_export_invokes_serialize_table_per_action(
+    qtbot: QtBot, object_name: str, expected_table: str, expected_fmt: str
+) -> None:
+    """Proves: STORY-072-AC-1
+
+    Triggering each Summary/Details export menu action invokes
+    ResumeGateway.serialize_table with the selected run's id and the
+    action's table/format tokens.
+    """
+    # Arrange
+    bus = _RecordingEventBus()
+    gateway = _FakeResumeGateway(runs=(_run(1),))
+    controller, view = _make_controller(gateway, bus=bus)
+    qtbot.addWidget(view)
+    row = controller.table_model.visible_row(0)
+    menu = build_context_menu(row=row, parent=view)
+    controller._wire_menu_actions(menu, row)
+
+    # Act
+    _trigger(menu, object_name)
+
+    # Assert
+    assert gateway.serialize_table_calls == [(row.run_id, expected_table, expected_fmt)]
 
 
 def test_resume_run_clicked_opens_dialog_and_calls_resume_run(
