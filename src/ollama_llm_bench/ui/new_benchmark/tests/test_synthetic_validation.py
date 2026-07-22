@@ -116,3 +116,49 @@ def test_size_rule_prepends_entry_and_passes_through_inner() -> None:
     ]
     assert [e.message for e in validator.validate(valid)] == ["inner-warning"]
     assert [e.message for e in validator.validate(tasks_mode)] == ["inner-warning"]
+
+
+@pytest.mark.parametrize(
+    "run_request,test_id",
+    [
+        pytest.param(
+            RunStartRequest(
+                run_mode=RunMode.SYNTHETIC,
+                test_models=(),
+                performance_config=None,
+            ),
+            "none_config",
+            id="synthetic_with_none_config",
+        ),
+        pytest.param(
+            RunStartRequest(
+                run_mode=RunMode.SYNTHETIC,
+                test_models=(),
+                performance_config=PerformanceConfig(input_sizes=(64,), output_sizes=(), repeats=3),
+            ),
+            "empty_output",
+            id="synthetic_with_empty_output_sizes",
+        ),
+    ],
+)
+def test_synthetic_validator_fires_on_none_config_and_empty_output(
+    run_request: RunStartRequest, test_id: str
+) -> None:
+    """Proves: STORY-071-AC-4
+
+    The validator fires the hard error for a SYNTHETIC request when
+    performance_config is None or when output_sizes is empty, and always
+    forwards the inner validator's entries.
+    """
+    # Arrange
+    inner_entry = ValidationEntry(
+        severity=RunValidationSeverity.SOFT_WARNING, message="inner-warning"
+    )
+    validator = SyntheticSizeRuleValidator(inner=FakeRunValidator(entries=(inner_entry,)))
+    # Act
+    result = [e.message for e in validator.validate(run_request)]
+    # Assert
+    assert MISSING_SIZES_MESSAGE in result, f"Expected hard error for case {test_id}, got: {result}"
+    assert "inner-warning" in result, f"Expected inner entry for case {test_id}, got: {result}"
+    # Verify error comes first (before inner entries)
+    assert result[0] == MISSING_SIZES_MESSAGE, f"Hard error must be first for case {test_id}"
