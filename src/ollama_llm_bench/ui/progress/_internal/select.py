@@ -63,6 +63,7 @@ __all__: list[str] = [
     "format_judge_receiving_label",
     "format_judge_waiting_label",
     "format_retry_label",
+    "highlight_search_matches",
     "parse_bool_setting",
     "parse_max_lines",
     "parse_run_log_verbosity",
@@ -482,6 +483,47 @@ def filter_search(lines: tuple[LogLineViewModel, ...], term: str) -> tuple[LogLi
     if not needle:
         return lines
     return tuple(line for line in lines if needle in _HTML_TAG_RE.sub("", line.html).lower())
+
+
+_HTML_TAG_SPLIT_RE: Final[re.Pattern[str]] = re.compile(r"(<[^>]+>)")
+
+
+def highlight_search_matches(html_line: str, term: str, *, highlight_color_hex: str) -> str:
+    """Wrap every case-insensitive occurrence of ``term`` in the line's visible
+    text in a background-coloured span (description.md §8.1).
+
+    Markup tags are passed through untouched; text segments are entity-decoded
+    for matching and re-escaped on output, so a match never corrupts a tag or
+    an entity. Applied by the view over already-filtered lines -- never to the
+    controller's cached buffer.
+    """
+    needle = term.strip().lower()
+    if not needle:
+        return html_line
+    segments = _HTML_TAG_SPLIT_RE.split(html_line)
+    rebuilt: list[str] = []
+    for index, segment in enumerate(segments):
+        if index % 2 == 1:
+            rebuilt.append(segment)
+            continue
+        rebuilt.append(
+            _highlight_text_segment(segment, needle, highlight_color_hex=highlight_color_hex)
+        )
+    return "".join(rebuilt)
+
+
+def _highlight_text_segment(segment: str, needle: str, *, highlight_color_hex: str) -> str:
+    text = html.unescape(segment)
+    lowered = text.lower()
+    pieces: list[str] = []
+    cursor = 0
+    while (found := lowered.find(needle, cursor)) != -1:
+        pieces.append(html.escape(text[cursor:found]))
+        matched = html.escape(text[found : found + len(needle)])
+        pieces.append(f'<span style="background-color: {highlight_color_hex}">{matched}</span>')
+        cursor = found + len(needle)
+    pieces.append(html.escape(text[cursor:]))
+    return "".join(pieces)
 
 
 def select_task_start(event: InferenceStartedEvent) -> RunLogEvent:

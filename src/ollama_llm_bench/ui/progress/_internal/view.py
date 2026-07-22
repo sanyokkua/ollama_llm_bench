@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 
 from ollama_llm_bench.backend.domain import ResultStatus, RunLogVerbosity
 from ollama_llm_bench.ui.progress._internal.header import ProgressHeaderWidget
+from ollama_llm_bench.ui.progress._internal.select import highlight_search_matches
 from ollama_llm_bench.ui.progress._internal.stage_badge import StageBadgeWidget
 from ollama_llm_bench.ui.progress._internal.theme_lookup import (
     resolve_spacing_tokens,
@@ -337,7 +338,10 @@ class ProgressView(QWidget):
         """Render the Run Event Log panel: verbosity combo, warning indicator, body
         lines, and auto-scroll (STORY-060-AC-1..6). The view builds no HTML itself
         and applies no search filtering -- both are pre-computed by the controller;
-        this method only paints ``vm``."""
+        the one sanctioned exception (STORY-073-AC-3, description.md §8.1) is
+        search-match highlighting: while a search term is active, this method wraps
+        matches over the controller-provided lines via the pure ``select`` helper
+        ``highlight_search_matches`` -- it never builds a line's HTML from scratch."""
         self._log_verbosity_combo.blockSignals(True)  # noqa: FBT003  # Qt's own blockSignals(bool) API
         self._log_verbosity_combo.setCurrentText(vm.verbosity.value.capitalize())
         self._log_verbosity_combo.blockSignals(False)  # noqa: FBT003  # Qt's own blockSignals(bool) API
@@ -346,8 +350,14 @@ class ProgressView(QWidget):
         pre_render_value = scrollbar.value()
         scrollbar.blockSignals(True)  # noqa: FBT003  # Qt's own blockSignals(bool) API
         self._log_body.clear()
+        highlight_hex = self._search_highlight_hex() if vm.search_term.strip() else None
         for line in vm.lines:
-            self._log_body.append(line.html)
+            html_line = line.html
+            if highlight_hex is not None:
+                html_line = highlight_search_matches(
+                    html_line, vm.search_term, highlight_color_hex=highlight_hex
+                )
+            self._log_body.append(html_line)
         # QTextEdit.append() unconditionally scrolls to the newly-appended text --
         # blockSignals() only suppresses signal emission, not that internal scroll-follow
         # behaviour -- so `auto_scroll is False` must explicitly restore the pre-render
@@ -423,3 +433,13 @@ class ProgressView(QWidget):
             theme_manager=self._theme_manager, platform_kind=self._platform_kind
         )
         return resolve_color(tokens, role)
+
+    def _search_highlight_hex(self) -> str | None:
+        """The search-match background, resolved from the active theme's
+        ``bg_selected`` role (08-D §16 -- role resolution, never a literal)."""
+        if self._theme_manager is None:
+            return None
+        tokens = resolve_theme_tokens(
+            theme_manager=self._theme_manager, platform_kind=self._platform_kind
+        )
+        return resolve_color(tokens, "bg_selected")
