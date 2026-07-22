@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T20:47:39Z'
+generated_at: '2026-07-22T20:56:15Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4707,7 +4707,7 @@ stories:
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_prefills_canonical_filename[summary_markdown_ext]
   STORY-073:
     title: Add the Progress run-log judge-excluded line and run-log search-match highlighting
-    status: in-progress
+    status: done
     spec_clauses:
     - 04_Progress_Widget/description.md#12-event-bus-integration
     - 04_Progress_Widget/description.md#62-model-stability-indicator
@@ -4717,6 +4717,7 @@ stories:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
     - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-4b
     modules:
+    - backend/domain/
     - backend/log_formatting/
     - ui/progress/
     edge_cases:
@@ -8896,6 +8897,7 @@ modules:
     - STORY-033
     - STORY-036
     - STORY-060
+    - STORY-073
   backend/embedding/:
     stories:
     - STORY-027

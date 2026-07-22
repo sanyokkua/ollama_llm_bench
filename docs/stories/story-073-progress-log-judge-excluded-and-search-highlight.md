@@ -1,7 +1,7 @@
 ---
 id: STORY-073
 title: Add the Progress run-log judge-excluded line and run-log search-match highlighting
-status: in-progress
+status: done
 spec_clauses:
   - 04_Progress_Widget/description.md#81-toolbar
   - 04_Progress_Widget/description.md#83-event-kinds
@@ -13,6 +13,7 @@ spec_clauses:
 modules:
   - ui/progress/
   - backend/log_formatting/
+  - backend/domain/
 acceptance_criteria:
   - STORY-073-AC-1
   - STORY-073-AC-2
@@ -92,8 +93,10 @@ substring in each visible line.
 - Search highlighting is a view concern applied over the already-filtered visible lines; it never
   changes which lines are visible and never mutates the cached raw events, so switching verbosity or
   clearing the search re-renders cleanly.
-- The `<name>` in the log line is the live-resolved judge provider display name (registry read while
-  the run is in flight, DD-33); `<N>` is the event payload's `consecutive_timeouts`.
+- The `<name>` in the log line is the run's snapshotted `judge_provider_name` (per EC-PROV-12,
+  the provider-name snapshot frozen at run start), read through `ProgressGateway.run_metadata`,
+  falling back to the event's judge model name if the snapshot is absent — never the provider
+  UUID (DD-33); `<N>` is the event payload's `consecutive_timeouts`.
 - No `setStyleSheet`, no colour literal, no `asyncio`.
 - The controller obtains its `structlog` logger at module scope and emits `DEBUG`-level events —
   static event name + keyword fields — at every Event Bus handler invocation.
@@ -123,13 +126,13 @@ shown.
 ## Test plan
 
 - STORY-073-AC-1 — unit (`pytest-qt`), colocated
-  `src/ollama_llm_bench/ui/progress/_internal/tests/test_log_controller.py`,
+  `src/ollama_llm_bench/ui/progress/tests/test_log_controller.py`,
   `test_judge_model_excluded_appends_one_log_line`. Covers EC-PROV-4b.
 - STORY-073-AC-2 — unit, colocated
   `src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py`,
   `test_judge_excluded_kind_renders_error_tone`.
 - STORY-073-AC-3 — unit (`pytest-qt`), colocated
-  `src/ollama_llm_bench/ui/progress/_internal/tests/test_log_search_highlight.py`,
+  `src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py`,
   `test_search_filters_and_highlights_matches_case_insensitively`.
 
 ## Definition of done
@@ -169,7 +172,8 @@ shown.
   test files are `src/ollama_llm_bench/ui/progress/tests/test_log_controller.py` and
   `src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py`, and the backend test is at
   `src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py`. The tests
-  that were written follow the real, existing colocated-`tests/` layout.
+  that were written follow the real, existing colocated-`tests/` layout. (The Test plan paths
+  above have since been corrected.)
 - Known follow-up (found during review, deliberately out of scope for this story): the run-log
   search **filter** (`filter_search` in `ui/progress`, pre-existing and untouched by this story)
   matches against tag-stripped log-line text but does not decode HTML entities before matching. The
@@ -195,3 +199,8 @@ shown.
   needed. The `LogFormatter`/highlight helper code being tested does not itself validate that its
   colour-role argument is shaped like a hex colour, so this substitution changes no assertion's
   meaning — it only avoids tripping an unrelated architecture check with an incidental test value.
+- Inherited lifecycle observation (not a STORY-073 defect): the once-per-run `judge_excluded` flag
+  and the log buffer itself both reset on log-clear and on past-run-load, but the LogController has
+  no `_run_started` subscription of its own — this mirrors STORY-060's existing buffer-lifecycle
+  design, which this story did not change. A future check should confirm that starting a new run
+  always emits the log-clear event that resets both the buffer and the flag.
