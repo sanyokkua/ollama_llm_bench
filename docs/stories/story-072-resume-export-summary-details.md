@@ -1,7 +1,7 @@
 ---
 id: STORY-072
 title: Wire the Resume widget Summary and Details export actions to real CSV and Markdown serialization
-status: ready
+status: done
 spec_clauses:
   - 03_Resume_Benchmark_Widget/description.md#35-context-menu
   - 03_Resume_Benchmark_Widget/description.md#10-function-inventory
@@ -137,14 +137,19 @@ with the canonical filename `<sanitised_run_name>_<kind>.<ext>` (`kind` being `S
 
 ## Test plan
 
-- STORY-072-AC-1 — table-driven unit (`pytest-qt`, fake `ResumeGateway`), colocated
+- STORY-072-AC-1 — table-driven unit (`pytest-qt`, real controller/menu rig), colocated
+  `src/ollama_llm_bench/ui/resume_benchmark/tests/test_controller_menu_actions.py`,
+  `test_export_invokes_serialize_table_per_action` (this one needs the real context-menu
+  trigger path, not just the `export_table` action function in isolation, so it lives with the
+  other controller/menu-action tests rather than in `test_actions.py`).
+- STORY-072-AC-2 — unit (`pytest-qt`, fake `ResumeGateway` + fake `NativePickers`), colocated
   `src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py`,
-  `test_export_invokes_serialize_table_per_action`.
-- STORY-072-AC-2 — unit (`pytest-qt`, fake `ResumeGateway` + fake `NativePickers`), same file,
   `test_export_writes_payload_and_no_placeholder_toast`.
 - STORY-072-AC-3 — unit, same file, `test_export_writes_payload_verbatim_without_redaction`.
 - STORY-072-AC-4 — table-driven unit (`pytest-qt`, fake `NativePickers`), same file,
   `test_export_prefills_canonical_filename`.
+- EC-RB-10 (write-failure toast; not an acceptance criterion) — unit (fake `FileSystemActions`
+  with `fail_write=True`), same file, `test_export_write_failure_toasts_and_writes_nothing`.
 
 ## Definition of done
 
@@ -174,3 +179,20 @@ with the canonical filename `<sanitised_run_name>_<kind>.<ext>` (`kind` being `S
   edit is needed for the code to land and be tested.
 - No ADR is introduced: extending the local `ResumeGateway` to match `ResultGateway.serialize_table`
   follows an already-settled interface pattern rather than making a new architectural decision.
+- Spec-conflict resolution (recorded here because `docs/v3_specification/` is read-only and
+  cannot be edited in place): `03_Resume_Benchmark_Widget/description.md` §3.5 contains the
+  sentence "Every export passes its content through the redaction egress functions before
+  writing". This story deliberately does **not** follow that sentence. The same §3.5 section
+  cedes authority over export content to `10_Domain_and_Data/05_EXPORT_FORMATS.md`, and that
+  document's §3 ("Common rules"), §3.3, and §10, together with the widget spec's own §8 and
+  `08_Cross_Cutting/08_REDACTION_PATTERNS.md` §1, all agree that exports are the user's own
+  on-machine data and are written verbatim with no redaction step. Provider secrets are
+  already stripped at the adapter boundary before a result is ever persisted, so by the time
+  `export_table` runs there is nothing left to redact. The implementation follows
+  05_EXPORT_FORMATS.md (the more specific, and internally consistent, authority) over the one
+  stray sentence in the widget description.
+- Follow-up (not folded into this story): `export_run_analysis` (same `_internal/actions.py`)
+  still writes its payload with a bare `Path.write_text` call and no failure handling — unlike
+  `export_table`, it does not catch `OsAdapterError` or toast a failure message. Aligning it to
+  `FileSystemActions.write_text_file` (the same pattern `export_table` uses) is a candidate
+  follow-up story, deliberately out of scope for STORY-072.

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T18:56:19Z'
+generated_at: '2026-07-22T19:12:02Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4670,7 +4670,7 @@ stories:
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_performance_matrix_visibility_per_mode[tasks_removed]
   STORY-072:
     title: Wire the Resume widget Summary and Details export actions to real CSV and Markdown serialization
-    status: ready
+    status: done
     spec_clauses:
     - 03_Resume_Benchmark_Widget/description.md#10-function-inventory
     - 03_Resume_Benchmark_Widget/description.md#35-context-menu
