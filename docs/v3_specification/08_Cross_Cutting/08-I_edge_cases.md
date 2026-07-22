@@ -12,42 +12,42 @@ This document is the exhaustive catalog of non-obvious behaviours the implementa
 
 Every edge-case identifier is **scoped**: `EC-<SCOPE>-<N>`, where `<SCOPE>` is a short uppercase area tag owned by **exactly one** catalog document, and `<N>` is a number unique within that scope. **No number is ever reused across scopes**, so an identifier is globally unique and a citation is never ambiguous. The scope tags and their owning catalogs:
 
-| Scope | Owner catalog | Area |
-|---|---|---|
-| `RUN` | `08-I` §1 | Run lifecycle |
-| `TASK` | `08-I` §2 | Task files |
-| `PROV` | `08-I` §3 | Providers and clients |
-| `SET` | `08-I` §4 | Settings |
-| `RES` | `08-I` §5 | Results, charts, exports |
-| `LOG` | `08-I` §6 | Logging |
-| `WS` | `08-I` §7 | Workspace and Task Editor |
-| `PERF` | `08-I` §8 | Performance and concurrency |
-| `PERSIST` | `08-I` §9 | Persistence |
-| `PLAT` | `08-I` §10 | Platform |
-| `IMP` | `10_Domain_and_Data/06_IMPORT_FORMATS.md` | Import validation |
-| `EXP` | `10_Domain_and_Data/05_EXPORT_FORMATS.md` | Export formatting |
-| `FL` | `10_Domain_and_Data/07_FILE_LAYOUT.md` | File layout / disk |
-| `RD` | `10_Domain_and_Data/08_REDACTION_PATTERNS.md` | Redaction |
-| `M` | `08_Cross_Cutting/08-M_app_lifecycle.md` | App lifecycle |
+| Scope     | Owner catalog                                 | Area                        |
+| --------- | --------------------------------------------- | --------------------------- |
+| `RUN`     | `08-I` §1                                     | Run lifecycle               |
+| `TASK`    | `08-I` §2                                     | Task files                  |
+| `PROV`    | `08-I` §3                                     | Providers and clients       |
+| `SET`     | `08-I` §4                                     | Settings                    |
+| `RES`     | `08-I` §5                                     | Results, charts, exports    |
+| `LOG`     | `08-I` §6                                     | Logging                     |
+| `WS`      | `08-I` §7                                     | Workspace and Task Editor   |
+| `PERF`    | `08-I` §8                                     | Performance and concurrency |
+| `PERSIST` | `08-I` §9                                     | Persistence                 |
+| `PLAT`    | `08-I` §10                                    | Platform                    |
+| `IMP`     | `10_Domain_and_Data/06_IMPORT_FORMATS.md`     | Import validation           |
+| `EXP`     | `10_Domain_and_Data/05_EXPORT_FORMATS.md`     | Export formatting           |
+| `FL`      | `10_Domain_and_Data/07_FILE_LAYOUT.md`        | File layout / disk          |
+| `RD`      | `10_Domain_and_Data/08_REDACTION_PATTERNS.md` | Redaction                   |
+| `M`       | `08_Cross_Cutting/08-M_app_lifecycle.md`      | App lifecycle               |
 
 The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`, `EC-EXP-*`, `EC-FL-*`). **Migration complete (D-R-08):** this catalog's entries have been rewritten from the historical `EC-<group>.<N>` form to the scoped `EC-<SCOPE>-<N>` form per the table above — §1 → `RUN`, §2 → `TASK`, §3 → `PROV`, §4 → `SET`, §5 → `RES`, §6 → `LOG`, §7 → `WS`, §8 → `PERF`, §9 → `PERSIST`, §10 → `PLAT` — preserving each case number (and any sub-letter, e.g. `EC-PROV-4a`) so citations stay stable. All citations across the spec were updated in the same pass. New cases use the scoped form.
 
----
+______________________________________________________________________
 
 ## Table of Contents
 
 1. Run lifecycle
-2. Task files
-3. Providers and clients
-4. Settings
-5. Results, charts, and exports
-6. Logging
-7. Workspace and Task Editor
-8. Performance and concurrency
-9. Persistence
-10. Platform
+1. Task files
+1. Providers and clients
+1. Settings
+1. Results, charts, and exports
+1. Logging
+1. Workspace and Task Editor
+1. Performance and concurrency
+1. Persistence
+1. Platform
 
----
+______________________________________________________________________
 
 ## 1. Run lifecycle
 
@@ -200,7 +200,7 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** the Progress widget's Current-task controller **ignores** the out-of-order `BENCHMARK_JUDGE` progress event (it does not transition the Judge progress sub-row to visible). The controller logs an assertion-style warning naming the offending `result_id`. The fix lives in the pipeline, not in the widget; the widget's defensive ignore guarantees the user sees a coherent Current-task section even if the pipeline misbehaves.
 - **Avoid:** rendering the Judge progress sub-row before `_judge_started` for the active result has been observed; trusting the order of `_inference_progress` events as a correctness signal (the assertion is informational).
 
----
+______________________________________________________________________
 
 ## 2. Task files
 
@@ -252,7 +252,7 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** a toast states that no YAML files were found in the folder. No buffer is added.
 - **Avoid:** adding an empty buffer or showing a misleading success state.
 
----
+______________________________________________________________________
 
 ## 3. Providers and clients
 
@@ -419,7 +419,7 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** case (a) — the import preview lists the duplicate-within-file as a hard error and the import is aborted before any DB write (a duplicate **`name`** within the file; the retired duplicate-`id` rule of the superseded EC-PROV-8 no longer applies — D-R-13). Case (b) — the importer's per-row check calls `ProvidersStore.get_by_name(entry.name)`; on a hit, the preview marks the row "Skipped (duplicate name)" with a soft warning, the importer continues with the rest, and the rejection appears in the import summary. The full-replace path (Settings dialog Save) catches this via the `UNIQUE (name)` constraint as a backstop.
 - **Avoid:** half-applied imports; surfacing a `UNIQUE` constraint violation to the user without an explanatory message.
 
----
+______________________________________________________________________
 
 ## 4. Settings
 
@@ -453,7 +453,7 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** the judge phase and the run-level judge analysis are independent. Disabling the judge phase is allowed; if the run-level judge analysis is requested, a judge model must still be configured. Settings makes the dependency explicit.
 - **Avoid:** silently producing no judge analysis when the user requested one.
 
----
+______________________________________________________________________
 
 ## 5. Results, charts, and exports
 
@@ -493,7 +493,7 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** the Summary tab, the Details tab, and the charts update in real time as the pipeline produces results. The user sees partial results without waiting for the run to finish.
 - **Avoid:** a Result Widget that only populates after the run terminates.
 
----
+______________________________________________________________________
 
 ## 6. Logging
 
@@ -515,7 +515,7 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** the visible run-log panel re-renders from cached raw events at the new verbosity. The run-log file keeps recording at its full verbosity regardless of the panel setting.
 - **Avoid:** losing log detail in the file because the panel verbosity was lowered.
 
----
+______________________________________________________________________
 
 ## 7. Workspace and Task Editor
 
@@ -543,7 +543,7 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** the in-progress field edit is committed to the in-memory buffer before the workspace switches; the buffer's dirty state is preserved. Switching back shows the buffer with the edit retained.
 - **Avoid:** losing the uncommitted field text on a workspace switch.
 
----
+______________________________________________________________________
 
 ## 8. Performance and concurrency
 
@@ -571,7 +571,7 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** the (at most one — D-R-16) in-flight worker finishes its task, and the dispatcher persists its result row through the single DB writer (DD-41). Only then does the pipeline report `PAUSED`. No worker is abandoned or detached.
 - **Avoid:** reporting `PAUSED` while workers are still running, which would corrupt result rows.
 
----
+______________________________________________________________________
 
 ## 9. Persistence
 
@@ -605,7 +605,13 @@ The colliding domain-doc identifiers have been re-scoped accordingly (`EC-IMP-*`
 - **Expected:** an absent database file is created fresh with the current schema and recorded schema version, which is a normal first-run path. A present-but-unreadable or corrupt database is a hard startup error with a clear error dialog; the application does not delete or overwrite it.
 - **Avoid:** destroying a corrupt database that the user may wish to recover.
 
----
+### EC-PERSIST-6 — Model-snapshot singletons and result-to-snapshot integrity are DB-enforced
+
+- **Trigger:** a write attempts to violate the frozen model snapshot's invariants — inserting a second `judge` or second `embedding` row for one run, or a `benchmark_results` row naming a `(run_id, provider_id, model_name)` triple outside the run's `test`-role snapshot.
+- **Expected:** the two singleton invariants are enforced directly by the database — the partial unique indexes `ux_run_models_one_judge` / `ux_run_models_one_embedding` raise a UNIQUE violation on the second row (`10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §6). The result-to-snapshot match (SPEC-038) is guaranteed at the write source — the run-creation transaction inserts `pending` result rows only for snapshotted test targets — and verified by the data-integrity self-check and an architecture test (`12_Quality_and_NFRs/06_DATA_INTEGRITY.md`).
+- **Avoid:** relying on application code alone to preserve the singletons; declaring a foreign key for the result triple — impossible, since the same `(provider, model)` may appear under both `test` and `judge` roles in one run (`10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §5.7).
+
+______________________________________________________________________
 
 ## 10. Platform
 

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T10:06:22Z'
+generated_at: '2026-07-22T12:00:44Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4600,10 +4600,147 @@ stories:
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[repository_link]
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_failure_emits_toast_and_keeps_dialog_open
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_success_emits_confirmation_toast
+  STORY-071:
+    title: Replace the New Benchmark performance-matrix stubs with real size and repeats controls and a live task-count estimate
+    status: ready
+    spec_clauses:
+    - 02_New_Benchmark_Widget/description.md#12-section-visibility-decision-table
+    - 02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only
+    - 02_New_Benchmark_Widget/description.md#6-validation-rules
+    - 02_New_Benchmark_Widget/mode_specifics/synthetic.md#2-visible-sections
+    - 02_New_Benchmark_Widget/mode_specifics/synthetic.md#3-mandatory-vs-optional-inputs
+    - 02_New_Benchmark_Widget/mode_specifics/synthetic.md#4-mode-specific-validation
+    - 02_New_Benchmark_Widget/mode_specifics/synthetic.md#5-run-summary-dialog-content
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
+    modules:
+    - ui/new_benchmark/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-071-AC-1:
+        tests: []
+      STORY-071-AC-2:
+        tests: []
+      STORY-071-AC-3:
+        tests: []
+      STORY-071-AC-4:
+        tests: []
+      STORY-071-AC-5:
+        tests: []
+      STORY-071-AC-6:
+        tests: []
+  STORY-072:
+    title: Wire the Resume widget Summary and Details export actions to real CSV and Markdown serialization
+    status: ready
+    spec_clauses:
+    - 03_Resume_Benchmark_Widget/description.md#10-function-inventory
+    - 03_Resume_Benchmark_Widget/description.md#35-context-menu
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
+    - 10_Domain_and_Data/05_EXPORT_FORMATS.md#2-filename-composition
+    - 10_Domain_and_Data/05_EXPORT_FORMATS.md#3-common-rules
+    - 10_Domain_and_Data/05_EXPORT_FORMATS.md#4-summary-table--csv
+    - 10_Domain_and_Data/05_EXPORT_FORMATS.md#6-details-table--csv
+    modules:
+    - ui/resume_benchmark/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-072-AC-1:
+        tests: []
+      STORY-072-AC-2:
+        tests: []
+      STORY-072-AC-3:
+        tests: []
+      STORY-072-AC-4:
+        tests: []
+  STORY-073:
+    title: Add the Progress run-log judge-excluded line and run-log search-match highlighting
+    status: ready
+    spec_clauses:
+    - 04_Progress_Widget/description.md#12-event-bus-integration
+    - 04_Progress_Widget/description.md#62-model-stability-indicator
+    - 04_Progress_Widget/description.md#81-toolbar
+    - 04_Progress_Widget/description.md#83-event-kinds
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-4b
+    modules:
+    - backend/log_formatting/
+    - ui/progress/
+    edge_cases:
+    - EC-PROV-4b
+    acceptance_criteria:
+      STORY-073-AC-1:
+        tests: []
+      STORY-073-AC-2:
+        tests: []
+      STORY-073-AC-3:
+        tests: []
+  STORY-074:
+    title: Add the missing edge-case tests for double-admission, first-use model-load failure, and the model-snapshot DB invariants
+    status: ready
+    spec_clauses:
+    - 01_Main_Window/description.md#16-edge-cases
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-PERSIST-6
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-1a
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-1a
+    - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#EC-PERSIST-6
+    modules:
+    - backend/benchmark_pipeline/
+    - backend/persistence/results/
+    - backend/persistence/runs/
+    - ui/new_benchmark/
+    - ui/resume_benchmark/
+    edge_cases:
+    - EC-PERSIST-6
+    - EC-PROV-1a
+    - EC-RUN-1a
+    acceptance_criteria:
+      STORY-074-AC-1:
+        tests: []
+      STORY-074-AC-2:
+        tests: []
+      STORY-074-AC-3:
+        tests: []
+      STORY-074-AC-4:
+        tests: []
+      STORY-074-AC-5:
+        tests: []
+  STORY-075:
+    title: Pre-load each test model with an adaptive-budget warmup at the model-switch boundary and feed its liveness outcome to the circuit breaker
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-G_feature_flags.md#3-benchmark--benchmark-behaviour
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-1a
+    - 11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#4-preconditions
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#1-purpose
+    modules:
+    - backend/benchmark_pipeline/
+    edge_cases:
+    - EC-PROV-1a
+    acceptance_criteria:
+      STORY-075-AC-1:
+        tests: []
+      STORY-075-AC-2:
+        tests: []
+      STORY-075-AC-3:
+        tests: []
+      STORY-075-AC-4:
+        tests: []
+      STORY-075-AC-5:
+        tests: []
+      STORY-075-AC-6:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
     - STORY-053
+  01_Main_Window/description.md#16-edge-cases:
+    stories:
+    - STORY-074
   01_Main_Window/description.md#3-menu-bar:
     stories:
     - STORY-053
@@ -4629,9 +4766,13 @@ clauses:
   02_New_Benchmark_Widget/description.md#12-section-visibility-decision-table:
     stories:
     - STORY-054
+    - STORY-071
   02_New_Benchmark_Widget/description.md#3-run-modes-and-the-mode-selector:
     stories:
     - STORY-054
+  02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only:
+    stories:
+    - STORY-071
   02_New_Benchmark_Widget/description.md#44-judge:
     stories:
     - STORY-055
@@ -4650,18 +4791,35 @@ clauses:
   02_New_Benchmark_Widget/description.md#6-validation-rules:
     stories:
     - STORY-055
+    - STORY-071
+  02_New_Benchmark_Widget/mode_specifics/synthetic.md#2-visible-sections:
+    stories:
+    - STORY-071
+  02_New_Benchmark_Widget/mode_specifics/synthetic.md#3-mandatory-vs-optional-inputs:
+    stories:
+    - STORY-071
+  02_New_Benchmark_Widget/mode_specifics/synthetic.md#4-mode-specific-validation:
+    stories:
+    - STORY-071
+  02_New_Benchmark_Widget/mode_specifics/synthetic.md#5-run-summary-dialog-content:
+    stories:
+    - STORY-071
   02_New_Benchmark_Widget/state_machine.md#3-test-models-multi-provider-sub-machine:
     stories:
     - STORY-054
   02_New_Benchmark_Widget/state_machine.md#4-task-files-sub-machine:
     stories:
     - STORY-054
+  03_Resume_Benchmark_Widget/description.md#10-function-inventory:
+    stories:
+    - STORY-072
   03_Resume_Benchmark_Widget/description.md#33-run-table:
     stories:
     - STORY-056
   03_Resume_Benchmark_Widget/description.md#35-context-menu:
     stories:
     - STORY-056
+    - STORY-072
   03_Resume_Benchmark_Widget/description.md#36-clone-as-new-retry-run:
     stories:
     - STORY-056
@@ -4677,6 +4835,7 @@ clauses:
   04_Progress_Widget/description.md#12-event-bus-integration:
     stories:
     - STORY-058
+    - STORY-073
   04_Progress_Widget/description.md#3-header-row:
     stories:
     - STORY-058
@@ -4689,6 +4848,9 @@ clauses:
   04_Progress_Widget/description.md#6-model-panel-and-stability-indicators:
     stories:
     - STORY-058
+  04_Progress_Widget/description.md#62-model-stability-indicator:
+    stories:
+    - STORY-073
   04_Progress_Widget/description.md#7-current-task-section:
     stories:
     - STORY-059
@@ -4698,9 +4860,13 @@ clauses:
   04_Progress_Widget/description.md#8-benchmark-event-log-panel:
     stories:
     - STORY-060
+  04_Progress_Widget/description.md#81-toolbar:
+    stories:
+    - STORY-073
   04_Progress_Widget/description.md#83-event-kinds:
     stories:
     - STORY-060
+    - STORY-073
   04_Progress_Widget/description.md#84-buffer-cap:
     stories:
     - STORY-060
@@ -5016,6 +5182,9 @@ clauses:
     - STORY-068
     - STORY-069
     - STORY-070
+    - STORY-071
+    - STORY-072
+    - STORY-073
   08_Cross_Cutting/08-D_color_palette_and_typography.md#3-dark-theme-colour-tokens:
     stories:
     - STORY-049
@@ -5123,15 +5292,18 @@ clauses:
     stories:
     - STORY-054
     - STORY-055
+    - STORY-071
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway:
     stories:
     - STORY-056
     - STORY-057
+    - STORY-072
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway:
     stories:
     - STORY-058
     - STORY-059
     - STORY-060
+    - STORY-073
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway:
     stories:
     - STORY-061
@@ -5139,6 +5311,7 @@ clauses:
     - STORY-063
     - STORY-064
     - STORY-065
+    - STORY-072
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway:
     stories:
     - STORY-066
@@ -5160,6 +5333,7 @@ clauses:
   08_Cross_Cutting/08-G_feature_flags.md#3-benchmark--benchmark-behaviour:
     stories:
     - STORY-014
+    - STORY-075
   08_Cross_Cutting/08-G_feature_flags.md#4-feature--inference-and-analysis-behaviour:
     stories:
     - STORY-014
@@ -5169,6 +5343,19 @@ clauses:
   08_Cross_Cutting/08-H_app_modes.md#2-run-state-function-matrix:
     stories:
     - STORY-053
+  08_Cross_Cutting/08-I_edge_cases.md#EC-PERSIST-6:
+    stories:
+    - STORY-074
+  08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-1a:
+    stories:
+    - STORY-074
+    - STORY-075
+  08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-4b:
+    stories:
+    - STORY-073
+  08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-1a:
+    stories:
+    - STORY-074
   08_Cross_Cutting/08-I_edge_cases.md#ec-persist-1--database-schema-version-mismatch-at-startup:
     stories:
     - STORY-008
@@ -5364,15 +5551,23 @@ clauses:
   10_Domain_and_Data/04_YAML_TASK_FORMAT.md#3-top-level-file-structure:
     stories:
     - STORY-031
+  10_Domain_and_Data/05_EXPORT_FORMATS.md#2-filename-composition:
+    stories:
+    - STORY-072
   10_Domain_and_Data/05_EXPORT_FORMATS.md#21-canonical-pattern:
     stories:
     - STORY-032
+  10_Domain_and_Data/05_EXPORT_FORMATS.md#3-common-rules:
+    stories:
+    - STORY-072
   10_Domain_and_Data/05_EXPORT_FORMATS.md#4-summary-table--csv:
     stories:
     - STORY-032
+    - STORY-072
   10_Domain_and_Data/05_EXPORT_FORMATS.md#6-details-table--csv:
     stories:
     - STORY-032
+    - STORY-072
   10_Domain_and_Data/06_IMPORT_FORMATS.md#11-edge-cases:
     stories:
     - STORY-038
@@ -5567,6 +5762,9 @@ clauses:
   11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#13-per-role-bucket-independence:
     stories:
     - STORY-022
+  11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#4-preconditions:
+    stories:
+    - STORY-075
   11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#61-per-bucket-state:
     stories:
     - STORY-022
@@ -5594,18 +5792,25 @@ clauses:
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold:
     stories:
     - STORY-023
+    - STORY-075
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing:
     stories:
     - STORY-023
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#67-per-provider-scope:
     stories:
     - STORY-023
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout:
+    stories:
+    - STORY-075
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#7-configuration:
     stories:
     - STORY-023
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#9-threading-and-concurrency:
     stories:
     - STORY-023
+  11_Services_and_Algorithms/09_READINESS_PROBE.md#1-purpose:
+    stories:
+    - STORY-075
   11_Services_and_Algorithms/09_READINESS_PROBE.md#62-the-probe-of-one-provider:
     stories:
     - STORY-016
@@ -5848,6 +6053,9 @@ clauses:
     stories:
     - STORY-044
     - STORY-046
+  14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#EC-PERSIST-6:
+    stories:
+    - STORY-074
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#2-the-concurrency-model-at-a-glance:
     stories:
     - STORY-040
@@ -6745,6 +6953,10 @@ edge_cases:
     - tests/integration/persistence/test_app_settings_store.py::test_newer_or_cross_major_version_is_hard_error_leaving_file_untouched
     - tests/integration/persistence/test_app_settings_store.py::test_setting_upsert_read_and_schema_version
     - tests/integration/persistence/test_single_writer.py::test_concurrent_writes_are_serialized_through_one_lock
+  EC-PERSIST-6:
+    stories:
+    - STORY-074
+    tests: []
   EC-PLAT-1:
     stories:
     - STORY-005
@@ -6886,6 +7098,11 @@ edge_cases:
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
+  EC-PROV-1a:
+    stories:
+    - STORY-074
+    - STORY-075
+    tests: []
   EC-PROV-3:
     stories:
     - STORY-058
@@ -7024,6 +7241,7 @@ edge_cases:
   EC-PROV-4b:
     stories:
     - STORY-058
+    - STORY-073
     tests:
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
@@ -8055,6 +8273,10 @@ edge_cases:
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_judge_progress_row_shown_with_label_when_visible
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_clears_when_not_active
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_retry_line_renders_in_error_tone_when_active
+  EC-RUN-1a:
+    stories:
+    - STORY-074
+    tests: []
   EC-RUN-2:
     stories:
     - STORY-058
@@ -8569,6 +8791,8 @@ modules:
     - STORY-029
     - STORY-030
     - STORY-042
+    - STORY-074
+    - STORY-075
   backend/charts/:
     stories:
     - STORY-033
@@ -8617,6 +8841,7 @@ modules:
     stories:
     - STORY-036
     - STORY-060
+    - STORY-073
   backend/mode_visibility/:
     stories:
     - STORY-024
@@ -8639,9 +8864,11 @@ modules:
     stories:
     - STORY-011
     - STORY-029
+    - STORY-074
   backend/persistence/runs/:
     stories:
     - STORY-009
+    - STORY-074
   backend/persistence/tasks/:
     stories:
     - STORY-010
@@ -8703,11 +8930,14 @@ modules:
     stories:
     - STORY-054
     - STORY-055
+    - STORY-071
+    - STORY-074
   ui/progress/:
     stories:
     - STORY-058
     - STORY-059
     - STORY-060
+    - STORY-073
   ui/results/:
     stories:
     - STORY-061
@@ -8719,6 +8949,8 @@ modules:
     stories:
     - STORY-056
     - STORY-057
+    - STORY-072
+    - STORY-074
   ui/settings_dialog/:
     stories:
     - STORY-066
