@@ -29,13 +29,17 @@ from ollama_llm_bench.ui.new_benchmark.protocols import ModeVisibilityPolicy
 __all__: list[str] = [
     "NewBenchmarkViewState",
     "RunStartRequestState",
+    "SyntheticEstimateInputs",
     "build_run_start_request",
     "compute_start_button_state",
+    "estimated_task_count",
+    "select_estimate_line",
     "select_view_model",
 ]
 
 _IN_FLIGHT_TOOLTIP = "Another inference activity is in flight — please wait."
 _REVIEW_WARNINGS_TOOLTIP = "Click to review warnings before starting."
+_ANALYSIS_SUFFIX = " + 1 run-analysis inference"
 
 
 class NewBenchmarkViewState(msgspec.Struct, frozen=True, kw_only=True, gc=False):
@@ -58,6 +62,9 @@ class NewBenchmarkViewState(msgspec.Struct, frozen=True, kw_only=True, gc=False)
         validation_entries: Every current Run Validator finding.
         start_enabled: Whether the Start Benchmark button is enabled.
         start_tooltip: The Start Benchmark button's tooltip.
+        input_sizes: The Performance Matrix section's checked Input Sizes.
+        output_sizes: The Performance Matrix section's checked Output Sizes.
+        repeats: The Performance Matrix section's Repeats stepper value.
     """
 
     policy: ModeVisibilityPolicy
@@ -73,6 +80,38 @@ class NewBenchmarkViewState(msgspec.Struct, frozen=True, kw_only=True, gc=False)
     validation_entries: tuple[ValidationEntry, ...]
     start_enabled: bool
     start_tooltip: str
+    input_sizes: tuple[int, ...]
+    output_sizes: tuple[int, ...]
+    repeats: int
+
+
+class SyntheticEstimateInputs(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Bundles the live-estimate factors (`synthetic.md` §4; 4-parameter maximum).
+
+    Attributes:
+        input_size_count: Checked Input Sizes toggle count.
+        output_size_count: Checked Output Sizes toggle count.
+        repeats: The Repeats stepper value.
+        model_count: Selected ``(provider, model)`` pair count.
+        analysis_enabled: The Generate-run-analysis toggle state.
+    """
+
+    input_size_count: int
+    output_size_count: int
+    repeats: int
+    model_count: int
+    analysis_enabled: bool
+
+
+def estimated_task_count(inputs: SyntheticEstimateInputs) -> int:
+    """Return `N_input_sizes x N_output_sizes x N_repeats x N_models` (§4.2)."""
+    return inputs.input_size_count * inputs.output_size_count * inputs.repeats * inputs.model_count
+
+
+def select_estimate_line(inputs: SyntheticEstimateInputs) -> str:
+    """Render the live estimate line, appending the run-analysis suffix when ON."""
+    suffix = _ANALYSIS_SUFFIX if inputs.analysis_enabled else ""
+    return f"Estimated tasks: {estimated_task_count(inputs)}{suffix}"
 
 
 def select_view_model(*, mode: RunMode, state: NewBenchmarkViewState) -> NewBenchmarkViewModel:
@@ -111,6 +150,19 @@ def select_view_model(*, mode: RunMode, state: NewBenchmarkViewState) -> NewBenc
         validation_entries=state.validation_entries,
         start_enabled=state.start_enabled,
         start_tooltip=state.start_tooltip,
+        synthetic_estimate_line=(
+            select_estimate_line(
+                SyntheticEstimateInputs(
+                    input_size_count=len(state.input_sizes),
+                    output_size_count=len(state.output_sizes),
+                    repeats=state.repeats,
+                    model_count=len(selected_models),
+                    analysis_enabled=state.judge_analysis_enabled,
+                )
+            )
+            if mode is RunMode.SYNTHETIC
+            else None
+        ),
     )
 
 
@@ -125,10 +177,12 @@ class RunStartRequestState(msgspec.Struct, frozen=True, kw_only=True, gc=False):
         judge_model: The Judge section's selected model, or ``None``.
         judge_analysis_enabled: The Judge section's analysis-toggle state.
         task_paths: The Task Files section's current file paths (empty in ``SYNTHETIC``).
-        performance_config: The Performance Matrix configuration in ``SYNTHETIC``,
-            else ``None``. The Performance Matrix section itself is a stub as of
-            this story (a not-yet-drafted future story owns its content); this is
-            always ``None`` until that story lands.
+        input_sizes: The Performance Matrix section's checked Input Sizes; used to
+            assemble ``PerformanceConfig`` in ``SYNTHETIC`` (§7.4).
+        output_sizes: The Performance Matrix section's checked Output Sizes; used to
+            assemble ``PerformanceConfig`` in ``SYNTHETIC`` (§7.4).
+        repeats: The Performance Matrix section's Repeats stepper value; used to
+            assemble ``PerformanceConfig`` in ``SYNTHETIC`` (§7.4).
         advanced_options_overridden: The Advanced Options activation-checkbox state.
         advanced_dirty_values: The subset of ``advanced_options.values`` the user
             changed from its seeded value -- only these are carried (DD-47).
@@ -140,7 +194,9 @@ class RunStartRequestState(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     judge_model: str | None
     judge_analysis_enabled: bool
     task_paths: tuple[str, ...]
-    performance_config: PerformanceConfig | None
+    input_sizes: tuple[int, ...]
+    output_sizes: tuple[int, ...]
+    repeats: int
     advanced_options_overridden: bool
     advanced_dirty_values: Mapping[SettingKey, str]
 
@@ -172,13 +228,22 @@ def build_run_start_request(state: RunStartRequestState) -> RunStartRequest:
         if state.advanced_options_overridden
         else ()
     )
+    performance_config = (
+        PerformanceConfig(
+            input_sizes=state.input_sizes,
+            output_sizes=state.output_sizes,
+            repeats=state.repeats,
+        )
+        if state.mode is RunMode.SYNTHETIC
+        else None
+    )
     return RunStartRequest(
         run_mode=state.mode,
         test_models=test_models,
         judge_model=judge_model,
         judge_analysis_enabled=state.judge_analysis_enabled,
         task_paths=state.task_paths,
-        performance_config=state.performance_config,
+        performance_config=performance_config,
         setting_overrides=setting_overrides,
     )
 

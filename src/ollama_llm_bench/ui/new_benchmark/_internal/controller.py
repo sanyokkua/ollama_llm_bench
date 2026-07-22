@@ -178,7 +178,11 @@ class NewBenchmarkController:
             judge_model=self._view.judge_section.judge_model,
             judge_analysis_enabled=self._view.judge_section.judge_analysis_enabled,
             task_paths=tuple(row.source_path for row in self._view.task_files_section.rows),
-            performance_config=None,
+            # Placeholder until STORY-071 Task 3 wires the Performance Matrix
+            # section widget's real selections into the controller.
+            input_sizes=(),
+            output_sizes=(),
+            repeats=3,
             advanced_options_overridden=advanced_options.override_enabled,
             advanced_dirty_values={
                 key: value for key, value in current_values.items() if key in dirty_keys
@@ -225,6 +229,11 @@ class NewBenchmarkController:
             validation_entries=validation_entries,
             start_enabled=start_enabled,
             start_tooltip=start_tooltip,
+            # Placeholder until STORY-071 Task 3 wires the Performance Matrix
+            # section widget's real selections into the controller.
+            input_sizes=(),
+            output_sizes=(),
+            repeats=3,
         )
         view_model = select_view_model(mode=self._current_mode, state=state)
         self._view.apply_view_model(view_model)

@@ -30,7 +30,9 @@ def test_build_run_start_request_maps_every_field() -> None:
         judge_model="judge-model",
         judge_analysis_enabled=True,
         task_paths=("tasks/one.yaml",),
-        performance_config=None,
+        input_sizes=(64, 256),
+        output_sizes=(64, 256),
+        repeats=3,
         advanced_options_overridden=True,
         advanced_dirty_values={"benchmark.temperature": "0.5"},
     )
@@ -69,7 +71,9 @@ def test_build_run_start_request_omits_overrides_when_not_overridden() -> None:
         judge_model=None,
         judge_analysis_enabled=False,
         task_paths=(),
-        performance_config=None,
+        input_sizes=(64, 256),
+        output_sizes=(64, 256),
+        repeats=3,
         advanced_options_overridden=False,
         advanced_dirty_values={"benchmark.temperature": "0.5"},
     )
@@ -94,7 +98,9 @@ def test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_
         judge_model=None,
         judge_analysis_enabled=False,
         task_paths=(),
-        performance_config=None,
+        input_sizes=(64, 256),
+        output_sizes=(64, 256),
+        repeats=3,
         advanced_options_overridden=False,
         advanced_dirty_values={},
     )

@@ -140,6 +140,8 @@ class NewBenchmarkViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False)
         start_enabled: Whether the Start Benchmark button is enabled.
         start_tooltip: The Start Benchmark button's tooltip (empty when enabled
             with no findings at all).
+        synthetic_estimate_line: The live estimated-task-count line
+            (`synthetic.md` §4); ``None`` outside ``SYNTHETIC``.
     """
 
     mode: RunMode
@@ -157,3 +159,4 @@ class NewBenchmarkViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False)
     validation_entries: tuple[ValidationEntry, ...]
     start_enabled: bool
     start_tooltip: str
+    synthetic_estimate_line: str | None
