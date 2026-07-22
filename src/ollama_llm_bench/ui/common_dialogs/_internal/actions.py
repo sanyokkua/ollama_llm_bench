@@ -1,10 +1,9 @@
 """Small side-effecting action helpers for ``ui/common_dialogs/`` (STORY-057).
 
-``resume_summary_fix_in_settings_not_yet_available`` mirrors the established
-``export_table_not_yet_available`` placeholder-action precedent in
-``ui/resume_benchmark/_internal/actions.py`` (STORY-056): actually opening
-``ui/settings_dialog/`` focused on a provider/tab is Phase-11/main-window
-cross-widget navigation, out of this story's ``modules:``.
+``resume_summary_fix_in_settings_not_yet_available`` follows the STORY-056
+placeholder-action pattern (a stub action that only emits a 'not yet available'
+toast): actually opening ``ui/settings_dialog/`` focused on a provider/tab is
+Phase-11/main-window cross-widget navigation, out of this story's ``modules:``.
 """
 
 import structlog
