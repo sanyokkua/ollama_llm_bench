@@ -1,6 +1,7 @@
 """Colocated unit tests for the Resume widget controller (STORY-056)."""
 
 from collections.abc import Callable, Mapping
+import re
 from typing import cast
 
 from PySide6.QtCore import QItemSelectionModel
@@ -31,6 +32,8 @@ from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import (
     RunTableModel,
 )
 from ollama_llm_bench.ui.resume_benchmark.models import ResumeBenchmarkCollaborators
+
+_SANITIZE_RE = re.compile(r"[^A-Za-z0-9._-]")
 
 
 class _NoopSubscription:
@@ -111,6 +114,7 @@ class _FakeResumeGateway:
         self._results_by_run_id = results_by_run_id
         self.set_sort_calls: list[tuple[str, bool]] = []
         self.drift_warnings_by_run_id: dict[RunId, tuple[DriftWarning, ...]] = {}
+        self.serialize_table_calls: list[tuple[RunId, str, str]] = []
 
     def list_runs(self) -> tuple[BenchmarkRun, ...]:
         return tuple(self._runs.values())
@@ -175,6 +179,21 @@ class _FakeResumeGateway:
     def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
         return self.drift_warnings_by_run_id.get(run_id, ())
 
+    def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
+        self.serialize_table_calls.append((run_id, table, fmt))
+        return f"{table}-{fmt}-payload\n"
+
+
+class _FakeExportFilenameHelper:
+    """Real sanitisation + ``Run_<run_id>`` fallback (05_EXPORT_FORMATS.md §2)."""
+
+    def compose_filename(self, *, run: BenchmarkRun, kind: str, ext: str) -> str:
+        sanitized = _SANITIZE_RE.sub("_", run.run_name or "")
+        collapsed = re.sub(r"_+", "_", sanitized)
+        stripped = collapsed.strip("_").lstrip(".")[:80]
+        base = stripped or f"Run_{run.run_id}"
+        return f"{base}_{kind}.{ext}"
+
 
 def _run(run_id: int, *, run_name: str = "Alpha") -> BenchmarkRun:
     return BenchmarkRun(
@@ -203,10 +222,13 @@ def test_selection_emits_run_id_changed_and_clears_on_filter_out(qtbot: QtBot) -
     gateway = _FakeResumeGateway(runs=(run,), results_by_run_id={1: ()})
     bus = _RecordingEventBus()
     controller = ResumeBenchmarkController(
-        gateway=gateway,
-        event_bus=bus,
-        native_pickers=_FakeNativePickers(),
-        file_system_actions=_FakeFileSystemActions(),
+        collaborators=ResumeBenchmarkCollaborators(
+            gateway=gateway,
+            event_bus=bus,
+            native_pickers=_FakeNativePickers(),
+            file_system_actions=_FakeFileSystemActions(),
+            export_filenames=_FakeExportFilenameHelper(),
+        )
     )
     controller.load_initial_rows()
 
@@ -238,10 +260,13 @@ def test_load_initial_rows_applies_persisted_sort(qtbot: QtBot) -> None:
     # Arrange
     gateway = _FakeResumeGateway(runs=(_run(1),), results_by_run_id={1: ()})
     controller = ResumeBenchmarkController(
-        gateway=gateway,
-        event_bus=_RecordingEventBus(),
-        native_pickers=_FakeNativePickers(),
-        file_system_actions=_FakeFileSystemActions(),
+        collaborators=ResumeBenchmarkCollaborators(
+            gateway=gateway,
+            event_bus=_RecordingEventBus(),
+            native_pickers=_FakeNativePickers(),
+            file_system_actions=_FakeFileSystemActions(),
+            export_filenames=_FakeExportFilenameHelper(),
+        )
     )
 
     # Act
@@ -264,6 +289,7 @@ def test_resume_widget_constructs_and_shows_with_no_error_logs(qtbot: QtBot) -> 
         event_bus=_RecordingEventBus(),
         native_pickers=_FakeNativePickers(),
         file_system_actions=_FakeFileSystemActions(),
+        export_filenames=_FakeExportFilenameHelper(),
     )
 
     # Act
@@ -299,6 +325,7 @@ def test_selection_restored_across_sort_reset_with_view_mounted(qtbot: QtBot) ->
         event_bus=bus,
         native_pickers=_FakeNativePickers(),
         file_system_actions=_FakeFileSystemActions(),
+        export_filenames=_FakeExportFilenameHelper(),
     )
     widget = make_resume_benchmark_widget(collaborators=collaborators)
     qtbot.addWidget(widget)

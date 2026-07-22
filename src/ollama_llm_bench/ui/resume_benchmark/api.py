@@ -23,6 +23,7 @@ __all__: list[str] = ["make_resume_benchmark_widget"]
             collaborators.event_bus,
             collaborators.native_pickers,
             collaborators.file_system_actions,
+            collaborators.export_filenames,
         )
     ),
     "every collaborator is required, wired by a later composition-root story",
@@ -38,12 +39,7 @@ def make_resume_benchmark_widget(*, collaborators: ResumeBenchmarkCollaborators)
     Returns:
         A QWidget ready to mount into the workspace left panel.
     """
-    controller = ResumeBenchmarkController(
-        gateway=collaborators.gateway,
-        event_bus=collaborators.event_bus,
-        native_pickers=collaborators.native_pickers,
-        file_system_actions=collaborators.file_system_actions,
-    )
+    controller = ResumeBenchmarkController(collaborators=collaborators)
     view = ResumeBenchmarkView(
         controller=controller,
         theme_manager=collaborators.theme_manager,

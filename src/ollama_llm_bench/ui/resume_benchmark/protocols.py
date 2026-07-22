@@ -21,7 +21,7 @@ from ollama_llm_bench.backend.domain import (
 )
 from ollama_llm_bench.backend.run_drift import DriftWarning
 
-__all__: list[str] = ["ResumeGateway"]
+__all__: list[str] = ["ExportFilenameHelper", "ResumeGateway"]
 
 
 class ResumeGateway(Protocol):
@@ -115,4 +115,29 @@ class ResumeGateway(Protocol):
 
     def active_run_id(self) -> RunId | None:
         """The id of the currently executing run, or ``None`` when idle."""
+        ...
+
+    def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
+        """Produce the Summary / Details CSV or Markdown payload.
+
+        blocking-adjacent today only via the fake; ``table`` is ``"summary"`` /
+        ``"details"``, ``fmt`` is ``"csv"`` / ``"markdown"`` -- the same token
+        vocabulary as ``ResultGateway.serialize_table`` so the Phase 11 concrete
+        adapter can share one serializer.
+        """
+        ...
+
+
+class ExportFilenameHelper(Protocol):
+    """Compose canonical export filenames (05_EXPORT_FORMATS.md section 2).
+
+    Declared locally to this widget (the established D-R-06 pattern); Phase 11
+    wires the concrete implementation over ``backend/csv_export``'s
+    ``compose_export_filename``.
+    """
+
+    def compose_filename(self, *, run: BenchmarkRun, kind: str, ext: str) -> str:
+        """Return ``<sanitised_run_name>_<kind>.<ext>``; an empty-sanitising
+        run name falls back to ``Run_<run_id>_<kind>.<ext>``. fast-synchronous;
+        never raises."""
         ...

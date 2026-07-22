@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from pathlib import Path
+import re
 
 import msgspec
 from PySide6.QtWidgets import QMessageBox, QWidget
@@ -34,6 +35,7 @@ from ollama_llm_bench.ui.resume_benchmark._internal.view_model_select import sel
 
 _INTERNAL = "ollama_llm_bench.ui.resume_benchmark._internal.actions"
 _EXPECTED_NEW_RUN_ID = 999
+_SANITIZE_RE = re.compile(r"[^A-Za-z0-9._-]")
 
 
 class _RecordingEventBus:
@@ -108,9 +110,14 @@ class _FakeResumeGateway:
         self.created_tasks: tuple[BenchmarkTask, ...] = ()
         self.deleted_run_id: RunId | None = None
         self._next_id: RunId = 999
+        self.serialize_table_calls: list[tuple[RunId, str, str]] = []
 
     def get_run(self, run_id: RunId) -> BenchmarkRun:
         return self._run
+
+    def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
+        self.serialize_table_calls.append((run_id, table, fmt))
+        return f"{table}-{fmt}-payload\n"
 
     def list_tasks(self, run_id: RunId) -> tuple[BenchmarkTask, ...]:
         return self._tasks
@@ -460,11 +467,19 @@ def test_export_run_analysis_with_no_analysis_toasts_and_writes_nothing() -> Non
 
 
 class _FakeFileSystemActions:
-    def __init__(self, *, path_str: str = "derived_run.log", raises: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        path_str: str = "derived_run.log",
+        raises: bool = False,
+        fail_write: bool = False,
+    ) -> None:
         self._path_str = path_str
         self._raises = raises
+        self._fail_write = fail_write
         self.opened_path: str | None = None
         self.opened_url: str | None = None
+        self.written: list[tuple[str, str]] = []
 
     def open_in_file_manager(self, path: str) -> None:
         if self._raises:
@@ -486,7 +501,9 @@ class _FakeFileSystemActions:
         raise NotImplementedError
 
     def write_text_file(self, *, path: str, content: str) -> None:
-        raise NotImplementedError
+        if self._fail_write:
+            raise OsAdapterError(message="disk full")
+        self.written.append((path, content))
 
     def write_export_file_bytes(self, *, filename: str, content: bytes) -> str:
         raise NotImplementedError
@@ -496,6 +513,22 @@ class _FakeFileSystemActions:
 
     def exports_folder_path(self) -> str:
         raise NotImplementedError
+
+
+class _FakeExportFilenameHelper:
+    """Real sanitisation + ``Run_<run_id>`` fallback (05_EXPORT_FORMATS.md §2)."""
+
+    def compose_filename(self, *, run: BenchmarkRun, kind: str, ext: str) -> str:
+        sanitized = _sanitize(run.run_name or "")
+        base = sanitized if sanitized else f"Run_{run.run_id}"
+        return f"{base}_{kind}.{ext}"
+
+
+def _sanitize(name: str) -> str:
+    replaced = _SANITIZE_RE.sub("_", name)
+    collapsed = re.sub(r"_+", "_", replaced)
+    stripped = collapsed.strip("_").lstrip(".")
+    return stripped[:80]
 
 
 def test_show_run_log_file_opens_derived_path() -> None:

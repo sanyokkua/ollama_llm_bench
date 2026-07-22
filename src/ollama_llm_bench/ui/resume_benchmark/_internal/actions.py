@@ -40,6 +40,7 @@ store discards it and assigns a fresh id regardless.
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Final
 
 from PySide6.QtWidgets import QMessageBox, QWidget
 import structlog
@@ -62,13 +63,17 @@ from ollama_llm_bench.backend.events import (
     RunListChangedEvent,
 )
 from ollama_llm_bench.ui.resume_benchmark._internal.view_model_select import effective_run_name
+from ollama_llm_bench.ui.resume_benchmark.models import (
+    ResumeBenchmarkCollaborators,
+    TableExportRequest,
+)
 from ollama_llm_bench.ui.resume_benchmark.protocols import ResumeGateway
 
 __all__: list[str] = [
     "clone_as_new_retry_run",
     "confirm_and_delete_run",
     "export_run_analysis",
-    "export_table_not_yet_available",
+    "export_table",
     "show_run_log_file",
 ]
 
@@ -76,6 +81,14 @@ logger = structlog.get_logger(__name__)
 
 _NO_ANALYSIS_MESSAGE = "No analysis for this run"
 _COULD_NOT_OPEN_LOG_MESSAGE = "Could not open the run log file"
+_COULD_NOT_SAVE_EXPORT_MESSAGE = "The export could not be saved."
+_EXPORT_SUCCESS_MESSAGE = "Exported"
+_KIND_BY_TABLE: Final[dict[str, str]] = {"summary": "Summary", "details": "Details"}
+_EXT_BY_FMT: Final[dict[str, str]] = {"csv": "csv", "markdown": "md"}
+_FILTERS_BY_FMT: Final[dict[str, tuple[str, ...]]] = {
+    "csv": ("CSV (*.csv)",),
+    "markdown": ("Markdown (*.md)",),
+}
 
 
 def clone_as_new_retry_run(*, gateway: ResumeGateway, source_run_id: RunId) -> RunId:
@@ -261,23 +274,56 @@ def export_run_analysis(
     event_bus.emit(SIGNAL_GLOBAL_MESSAGE, GlobalMessageEvent(text="Exported", severity="info"))
 
 
-def export_table_not_yet_available(*, event_bus: EventBus) -> None:
-    """Toast that Export Summary/Details wiring is not yet available.
+def export_table(
+    *,
+    collaborators: ResumeBenchmarkCollaborators,
+    request: TableExportRequest,
+) -> None:
+    """Export the selected run's Summary or Details table to CSV/Markdown.
 
-    ``ResumeGateway`` (08-E §7b.3) has no ``serialize_table``-equivalent
-    method, unlike its sibling ``ResultGateway`` -- so the Export Summary
-    (CSV/Markdown) and Export Details (CSV/Markdown) menu items (always
-    enabled per AC-4) are gated correctly but cannot be legally wired to
-    real export content yet (STORY-056 Escalation; see the story's Notes
-    section for the follow-up-story tracking).
+    Serializes through the gateway, resolves the destination through the save
+    picker pre-filled with the canonical filename, and writes the payload
+    verbatim -- no redaction transform (05_EXPORT_FORMATS.md section 3: exports
+    are the user's own on-machine data).
 
     Args:
-        event_bus: Emits the toast.
+        collaborators: The widget's gateway, event bus, and OS-adapter helpers.
+        request: The selected run's id plus the table/format token pair.
     """
-    logger.debug("resume_export_table_not_yet_available")
-    event_bus.emit(
-        SIGNAL_GLOBAL_MESSAGE,
-        GlobalMessageEvent(text="Export not yet available", severity="info"),
+    kind = _KIND_BY_TABLE[request.table]
+    ext = _EXT_BY_FMT[request.fmt]
+    logger.debug(
+        "export_table_requested", run_id=request.run_id, table=request.table, fmt=request.fmt
+    )
+    run = collaborators.gateway.get_run(request.run_id)
+    payload = collaborators.gateway.serialize_table(request.run_id, request.table, request.fmt)
+    filename = collaborators.export_filenames.compose_filename(run=run, kind=kind, ext=ext)
+    chosen_path = collaborators.native_pickers.save_file(
+        SavePickerOptions(
+            title=f"Export {kind}",
+            suggested_name=filename,
+            filters=_FILTERS_BY_FMT[request.fmt],
+        )
+    )
+    if chosen_path is None:
+        logger.debug("export_table_cancelled", run_id=request.run_id, table=request.table)
+        return
+    try:
+        collaborators.file_system_actions.write_text_file(path=chosen_path, content=payload)
+    except OsAdapterError:
+        logger.warning(
+            "export_table_write_failed", run_id=request.run_id, table=request.table, fmt=request.fmt
+        )
+        collaborators.event_bus.emit(
+            SIGNAL_GLOBAL_MESSAGE,
+            GlobalMessageEvent(text=_COULD_NOT_SAVE_EXPORT_MESSAGE, severity="error"),
+        )
+        return
+    logger.debug(
+        "export_table_written", run_id=request.run_id, table=request.table, fmt=request.fmt
+    )
+    collaborators.event_bus.emit(
+        SIGNAL_GLOBAL_MESSAGE, GlobalMessageEvent(text=_EXPORT_SUCCESS_MESSAGE, severity="info")
     )
 
 

@@ -4,14 +4,12 @@ and ``FileSystemActions`` -- never a raw backend Store/Service Protocol (D-R-06)
 """
 
 from functools import partial
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Final, cast
 
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QMenu, QWidget
 import structlog
 
-from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
-from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.backend.domain import RunId
 from ollama_llm_bench.backend.events import (
     SIGNAL_RUN_ANALYSIS_RECEIVED,
@@ -23,7 +21,6 @@ from ollama_llm_bench.backend.events import (
     SIGNAL_RUN_STARTED,
     SIGNAL_RUN_STOPPED,
     SIGNAL_TASK_FILE_CHANGED,
-    EventBus,
     RunAnalysisReceivedEvent,
     RunFailedEvent,
     RunFinishedEvent,
@@ -36,7 +33,7 @@ from ollama_llm_bench.ui.resume_benchmark._internal.actions import (
     clone_as_new_retry_run,
     confirm_and_delete_run,
     export_run_analysis,
-    export_table_not_yet_available,
+    export_table,
     show_run_log_file,
 )
 from ollama_llm_bench.ui.resume_benchmark._internal.context_menu import build_context_menu
@@ -52,8 +49,11 @@ from ollama_llm_bench.ui.resume_benchmark._internal.view_model_select import (
     default_run_name,
     select_run_rows,
 )
-from ollama_llm_bench.ui.resume_benchmark.models import RunRow
-from ollama_llm_bench.ui.resume_benchmark.protocols import ResumeGateway
+from ollama_llm_bench.ui.resume_benchmark.models import (
+    ResumeBenchmarkCollaborators,
+    RunRow,
+    TableExportRequest,
+)
 
 if TYPE_CHECKING:
     # Only for the cast() in _push_resume_button_state -- view.py imports this
@@ -73,14 +73,12 @@ _COLUMN_NAMES: dict[int, str] = {
     COL_TASKS: "tasks",
 }
 _COLUMN_BY_NAME: dict[str, int] = {name: column for column, name in _COLUMN_NAMES.items()}
-_EXPORT_TABLE_ACTION_NAMES = frozenset(
-    {
-        "action_export_summary_csv",
-        "action_export_summary_md",
-        "action_export_details_csv",
-        "action_export_details_md",
-    }
-)
+_EXPORT_TABLE_SPECS: Final[dict[str, tuple[str, str]]] = {
+    "action_export_summary_csv": ("summary", "csv"),
+    "action_export_summary_md": ("summary", "markdown"),
+    "action_export_details_csv": ("details", "csv"),
+    "action_export_details_md": ("details", "markdown"),
+}
 _RUN_TOUCHED_EVENT_TYPES = (
     RunRenamedEvent,
     RunStartedEvent,
@@ -94,18 +92,12 @@ _RUN_TOUCHED_EVENT_TYPES = (
 class ResumeBenchmarkController:
     """Owns the Resume Benchmark widget's run table state: subscribes, derives, applies."""
 
-    def __init__(
-        self,
-        *,
-        gateway: ResumeGateway,
-        event_bus: EventBus,
-        native_pickers: NativePickers,
-        file_system_actions: FileSystemActions,
-    ) -> None:
-        self._gateway = gateway
-        self._event_bus = event_bus
-        self._native_pickers = native_pickers
-        self._file_system_actions = file_system_actions
+    def __init__(self, *, collaborators: ResumeBenchmarkCollaborators) -> None:
+        self._collaborators = collaborators
+        self._gateway = collaborators.gateway
+        self._event_bus = collaborators.event_bus
+        self._native_pickers = collaborators.native_pickers
+        self._file_system_actions = collaborators.file_system_actions
         self.table_model = RunTableModel()
         self._current_rows: tuple[RunRow, ...] = ()
         self._selected_run_id: RunId | None = None
@@ -201,8 +193,9 @@ class ResumeBenchmarkController:
                 action.triggered.connect(partial(self._on_show_log_triggered, row))
             elif name == "action_retry":
                 action.triggered.connect(partial(self._on_retry_triggered, row.run_id))
-            elif name in _EXPORT_TABLE_ACTION_NAMES:
-                action.triggered.connect(self._on_export_table_triggered)
+            elif name in _EXPORT_TABLE_SPECS:
+                table, fmt = _EXPORT_TABLE_SPECS[name]
+                action.triggered.connect(partial(self._on_export_table_triggered, row, table, fmt))
 
     def _on_clone_triggered(self, source_run_id: RunId) -> None:
         logger.debug("resume_clone_triggered", source_run_id=source_run_id)
@@ -276,8 +269,12 @@ class ResumeBenchmarkController:
         dialog.exec()
         self._rebuild_all_rows()
 
-    def _on_export_table_triggered(self) -> None:
-        export_table_not_yet_available(event_bus=self._event_bus)
+    def _on_export_table_triggered(self, row: RunRow, table: str, fmt: str) -> None:
+        logger.debug("export_table_action", run_id=row.run_id, table=table, fmt=fmt)
+        export_table(
+            collaborators=self._collaborators,
+            request=TableExportRequest(run_id=row.run_id, table=table, fmt=fmt),
+        )
 
     def _on_export_analysis_triggered(self, row: RunRow) -> None:
         export_run_analysis(

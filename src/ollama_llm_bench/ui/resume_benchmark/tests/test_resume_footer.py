@@ -14,7 +14,9 @@ from ollama_llm_bench.backend.domain import (
 )
 from ollama_llm_bench.ui.resume_benchmark._internal.controller import ResumeBenchmarkController
 from ollama_llm_bench.ui.resume_benchmark._internal.view import ResumeBenchmarkView
+from ollama_llm_bench.ui.resume_benchmark.models import ResumeBenchmarkCollaborators
 from ollama_llm_bench.ui.resume_benchmark.tests.test_controller import (
+    _FakeExportFilenameHelper,
     _FakeFileSystemActions,
     _FakeNativePickers,
     _FakeResumeGateway,
@@ -72,10 +74,13 @@ def test_resume_button_enabled_only_for_resumable_not_executing(qtbot: QtBot) ->
         },
     )
     controller = ResumeBenchmarkController(
-        gateway=gateway,
-        event_bus=_RecordingEventBus(),
-        native_pickers=_FakeNativePickers(),
-        file_system_actions=_FakeFileSystemActions(),
+        collaborators=ResumeBenchmarkCollaborators(
+            gateway=gateway,
+            event_bus=_RecordingEventBus(),
+            native_pickers=_FakeNativePickers(),
+            file_system_actions=_FakeFileSystemActions(),
+            export_filenames=_FakeExportFilenameHelper(),
+        )
     )
     view = ResumeBenchmarkView(controller=controller)
     controller.bind(view)

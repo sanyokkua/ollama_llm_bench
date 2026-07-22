@@ -12,10 +12,10 @@ from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.backend.domain import RunId
 from ollama_llm_bench.backend.events import EventBus
-from ollama_llm_bench.ui.resume_benchmark.protocols import ResumeGateway
+from ollama_llm_bench.ui.resume_benchmark.protocols import ExportFilenameHelper, ResumeGateway
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
-__all__: list[str] = ["ResumeBenchmarkCollaborators", "RunRow"]
+__all__: list[str] = ["ResumeBenchmarkCollaborators", "RunRow", "TableExportRequest"]
 
 
 class RunRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
@@ -45,5 +45,18 @@ class ResumeBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc
     event_bus: EventBus
     native_pickers: NativePickers
     file_system_actions: FileSystemActions
+    export_filenames: ExportFilenameHelper
     theme_manager: ThemeManager | None = None
     platform_kind: PlatformKind = PlatformKind.UNKNOWN
+
+
+class TableExportRequest(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """One Summary/Details table-export invocation (STORY-072).
+
+    ``table`` is ``"summary"`` / ``"details"``; ``fmt`` is ``"csv"`` /
+    ``"markdown"`` -- the ``ResultGateway.serialize_table`` token vocabulary.
+    """
+
+    run_id: RunId
+    table: str
+    fmt: str

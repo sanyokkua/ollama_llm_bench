@@ -3,6 +3,7 @@ event-handler branches (STORY-056), complementing test_controller.py.
 """
 
 from collections.abc import Callable
+import re
 
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QMenu, QWidget
@@ -30,10 +31,12 @@ from ollama_llm_bench.backend.run_drift import DriftWarning
 from ollama_llm_bench.ui.resume_benchmark._internal.context_menu import build_context_menu
 from ollama_llm_bench.ui.resume_benchmark._internal.controller import ResumeBenchmarkController
 from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import COL_MODE, COL_NAME
+from ollama_llm_bench.ui.resume_benchmark.models import ResumeBenchmarkCollaborators
 
 _INTERNAL_ACTIONS = "ollama_llm_bench.ui.resume_benchmark._internal.actions"
 _COMMON_DIALOGS = "ollama_llm_bench.ui.common_dialogs"
 _EXPECTED_SIGNAL_COUNT = 9
+_SANITIZE_RE = re.compile(r"[^A-Za-z0-9._-]")
 
 
 class _NoopSubscription:
@@ -80,6 +83,7 @@ class _FakeFileSystemActions:
     def __init__(self) -> None:
         self.opened_paths: list[str] = []
         self.opened_urls: list[str] = []
+        self.written: list[tuple[str, str]] = []
 
     def open_in_file_manager(self, path: str) -> None:
         self.opened_paths.append(path)
@@ -97,7 +101,7 @@ class _FakeFileSystemActions:
         raise NotImplementedError
 
     def write_text_file(self, *, path: str, content: str) -> None:
-        raise NotImplementedError
+        self.written.append((path, content))
 
     def write_export_file_bytes(self, *, filename: str, content: bytes) -> str:
         raise NotImplementedError
@@ -124,6 +128,7 @@ class _FakeResumeGateway:
         self.created_results: tuple[BenchmarkResult, ...] = ()
         self.resumed_run_ids: list[RunId] = []
         self._next_run_id: RunId = 999
+        self.serialize_table_calls: list[tuple[RunId, str, str]] = []
 
     def list_runs(self) -> tuple[BenchmarkRun, ...]:
         return tuple(self._runs.values())
@@ -192,6 +197,21 @@ class _FakeResumeGateway:
     def active_run_id(self) -> RunId | None:
         return None
 
+    def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
+        self.serialize_table_calls.append((run_id, table, fmt))
+        return f"{table}-{fmt}-payload\n"
+
+
+class _FakeExportFilenameHelper:
+    """Real sanitisation + ``Run_<run_id>`` fallback (05_EXPORT_FORMATS.md §2)."""
+
+    def compose_filename(self, *, run: BenchmarkRun, kind: str, ext: str) -> str:
+        sanitized = _SANITIZE_RE.sub("_", run.run_name or "")
+        collapsed = re.sub(r"_+", "_", sanitized)
+        stripped = collapsed.strip("_").lstrip(".")[:80]
+        base = stripped or f"Run_{run.run_id}"
+        return f"{base}_{kind}.{ext}"
+
 
 def _run(run_id: int, *, run_name: str | None = "Alpha") -> BenchmarkRun:
     return BenchmarkRun(
@@ -235,10 +255,13 @@ def _make_controller(
     gateway: _FakeResumeGateway, *, bus: _RecordingEventBus
 ) -> tuple[ResumeBenchmarkController, QWidget]:
     controller = ResumeBenchmarkController(
-        gateway=gateway,
-        event_bus=bus,
-        native_pickers=_FakeNativePickers(),
-        file_system_actions=_FakeFileSystemActions(),
+        collaborators=ResumeBenchmarkCollaborators(
+            gateway=gateway,
+            event_bus=bus,
+            native_pickers=_FakeNativePickers(),
+            file_system_actions=_FakeFileSystemActions(),
+            export_filenames=_FakeExportFilenameHelper(),
+        )
     )
     view = _StubResumeView()
     controller.bind(view)
@@ -296,10 +319,13 @@ def test_on_context_menu_requested_with_no_bound_view_is_a_noop() -> None:
     """
     # Arrange
     controller = ResumeBenchmarkController(
-        gateway=_FakeResumeGateway(runs=()),
-        event_bus=_RecordingEventBus(),
-        native_pickers=_FakeNativePickers(),
-        file_system_actions=_FakeFileSystemActions(),
+        collaborators=ResumeBenchmarkCollaborators(
+            gateway=_FakeResumeGateway(runs=()),
+            event_bus=_RecordingEventBus(),
+            native_pickers=_FakeNativePickers(),
+            file_system_actions=_FakeFileSystemActions(),
+            export_filenames=_FakeExportFilenameHelper(),
+        )
     )
     # Act / Assert (raises nothing)
     controller.on_context_menu_requested(0, QPoint(0, 0))
@@ -360,10 +386,17 @@ def test_menu_actions_trigger_their_handlers(qtbot: QtBot, mocker: MockerFixture
     _trigger(menu, "action_rename")
     fake_dialog.exec.assert_called_once()
 
-    # Act / Assert -- Export Analysis (no analysis -> toast, no crash)
+    # Act / Assert -- Export Summary (CSV) invokes serialize_table for this run
+    # (the fake native picker returns no chosen path, so the flow stops before
+    # any toast is emitted -- the write/toast path is covered by the
+    # STORY-072 acceptance-criteria tests in test_actions.py)
     _trigger(menu, "action_export_summary_csv")
-    message = bus.last(SIGNAL_GLOBAL_MESSAGE)
-    assert getattr(message, "text", None) == "Export not yet available"
+    assert gateway.serialize_table_calls == [(row.run_id, "summary", "csv")]
+    assert not any(
+        getattr(payload, "text", None) == "Export not yet available"
+        for name, payload in bus.emitted
+        if name == SIGNAL_GLOBAL_MESSAGE
+    )
 
     # Act / Assert -- Show run-log file
     _trigger(menu, "action_show_log")
