@@ -21,6 +21,9 @@ from ollama_llm_bench.ui.new_benchmark._internal.advanced_options import (
 from ollama_llm_bench.ui.new_benchmark._internal.controller import NewBenchmarkController
 from ollama_llm_bench.ui.new_benchmark._internal.judge_section import JudgeSectionWidget
 from ollama_llm_bench.ui.new_benchmark._internal.mode_selector import ModeSelectorWidget
+from ollama_llm_bench.ui.new_benchmark._internal.synthetic_validation import (
+    SyntheticSizeRuleValidator,
+)
 from ollama_llm_bench.ui.new_benchmark._internal.task_files import TaskFilesSectionWidget
 from ollama_llm_bench.ui.new_benchmark._internal.test_models import TestModelsSectionWidget
 from ollama_llm_bench.ui.new_benchmark._internal.view import NewBenchmarkView
@@ -134,7 +137,7 @@ def make_new_benchmark_widget(*, collaborators: NewBenchmarkCollaborators) -> QW
         gateway=collaborators.gateway,
         event_bus=collaborators.event_bus,
         mode_visibility_policy=collaborators.mode_visibility_policy,
-        run_validator=collaborators.run_validator,
+        run_validator=SyntheticSizeRuleValidator(inner=collaborators.run_validator),
         view=view,
     )
     controller.bind()
