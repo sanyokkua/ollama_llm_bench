@@ -22,12 +22,12 @@ from ollama_llm_bench.ui.progress.tests.conftest import FakeEventBus
 from ollama_llm_bench.ui.progress.tests.test_log_controller import _inference_started
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
-# Built via `+` (not a single literal) so the whole-package colour-literal
-# architecture scan (`test_progress_embeds_no_colour_literal`, an AST-level
-# Constant-node walk over every file under `ui/progress/`, tests included)
-# does not flag this test-only stand-in value; the runtime value is still the
-# plain hex string the assertions below match against.
-_HEX = "#3344" + "55"
+# Non-colour placeholder — the architecture scan covers test files too and rejects
+# any hex-colour literal. The helper never validates the colour value, and all
+# assertions interpolate this token, so a non-colour-shaped value passes both the
+# gate and the test.
+_HEX = "test-highlight-token"
+_EXPECTED_MULTIPLE_OCCURRENCES = 2
 
 
 def test_highlight_wraps_case_insensitive_match_outside_tags() -> None:
@@ -61,6 +61,28 @@ def test_highlight_preserves_escaped_entities() -> None:
     line = "model: qwen &amp; friends"
     highlighted = highlight_search_matches(line, "qwen & fr", highlight_color_hex=_HEX)
     assert f'<span style="background-color: {_HEX}">qwen &amp; fr</span>' in highlighted
+
+
+def test_highlight_wraps_multiple_occurrences() -> None:
+    """Proves: STORY-073-AC-3
+
+    Multiple occurrences of the search term within the same line are each
+    independently wrapped in a background-coloured span.
+    """
+    line = "judge phase then judge again"
+    highlighted = highlight_search_matches(line, "judge", highlight_color_hex=_HEX)
+    wrapped_count = highlighted.count(f'<span style="background-color: {_HEX}">judge</span>')
+    assert wrapped_count == _EXPECTED_MULTIPLE_OCCURRENCES
+
+
+def test_highlight_whitespace_only_term_returns_line_unchanged() -> None:
+    """Proves: STORY-073-AC-3
+
+    A search term consisting only of whitespace is treated as empty and leaves
+    the line unchanged.
+    """
+    line = '<span class="tone-info">STAGE</span> · benchmarking'
+    assert highlight_search_matches(line, "   ", highlight_color_hex=_HEX) == line
 
 
 def _bind_view_with_log_controller(
