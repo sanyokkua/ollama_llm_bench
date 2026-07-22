@@ -9,7 +9,7 @@ simply omitted — no empty placeholder (§9). The input ``event`` is never muta
 
 from collections.abc import Callable
 
-from ollama_llm_bench.backend.domain import RunLogEvent, RunLogVerbosity
+from ollama_llm_bench.backend.domain import RunLogEvent, RunLogEventKind, RunLogVerbosity
 from ollama_llm_bench.backend.log_formatting._internal.escaping import escape_and_normalize
 from ollama_llm_bench.backend.log_formatting._internal.excerpt import truncate_escaped
 from ollama_llm_bench.backend.log_formatting._internal.fields import (
@@ -60,6 +60,9 @@ def assemble(event: RunLogEvent, *, verbosity: RunLogVerbosity) -> str:
     tag_label = resolve_tag_label(event.kind)
     kind_tag = f'<span class="{tone_class(tone)}">{tag_label}</span>'
     parts: list[str] = [event.timestamp, kind_tag]
+    if event.kind is RunLogEventKind.JUDGE_EXCLUDED:
+        parts.append(_render_judge_excluded(event))
+        return _MIDDOT_SEPARATOR.join(parts)
     parts.extend(_render_selected_fields(event, effective_verbosity, selected_fields))
     return _MIDDOT_SEPARATOR.join(parts)
 
@@ -215,6 +218,18 @@ def _render_judge(event: RunLogEvent, verbosity: RunLogVerbosity) -> str | None:
         return verdict_text
     reasoning = escape_and_normalize(event.judge_reasoning)
     return f"{verdict_text} · reasoning: {reasoning}"
+
+
+def _render_judge_excluded(event: RunLogEvent) -> str:
+    """The fixed §8.3 sentence for a judge-model exclusion — one canonical line,
+    identical at every verbosity; ``provider_name`` falls back to ``model_name``
+    so a display name always renders, never the internal provider UUID (DD-33)."""
+    display_name = escape_and_normalize(event.provider_name or event.model_name or "unknown")
+    count = event.consecutive_timeouts if event.consecutive_timeouts is not None else 0
+    return (
+        f"Judge model '{display_name}' excluded: {count} consecutive "
+        "max-budget timeouts. Remaining tasks' judge phase will be skipped."
+    )
 
 
 _FIELD_RENDERERS: dict[str, _FieldRenderer] = {

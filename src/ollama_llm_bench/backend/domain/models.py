@@ -341,12 +341,16 @@ class RunLogVerbosity(StrEnum):
 
 
 class RunLogEventKind(StrEnum):
-    """The twelve kinds of pipeline event rendered in the Run Log (§7.7).
+    """The thirteen kinds of pipeline event rendered in the Run Log (§7.7).
 
     ``TASK_JUDGE_TIMEOUT`` is an additive member beyond the original eleven
     (STORY-060 gap fix): `04_Progress_Widget/description.md` §8.3 documents a
     distinct `task_judge_timeout` event kind (EC-PROV-4a's per-task judge-call
     exhaustion line) that STORY-036 had not yet added.
+
+    ``JUDGE_EXCLUDED`` is an additive member (STORY-073): §8.3 documents the
+    judge-model exclusion event fired when a judge model exhausts its max-budget
+    timeout quota.
     """
 
     STAGE = "stage"
@@ -361,6 +365,7 @@ class RunLogEventKind(StrEnum):
     FINISHED = "finished"
     FAILED = "failed"
     TASK_JUDGE_TIMEOUT = "task_judge_timeout"
+    JUDGE_EXCLUDED = "judge_excluded"
 
 
 # ---------------------------------------------------------------------------------
@@ -845,6 +850,8 @@ class RunLogEvent(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     error_text: str | None = None
     judge_verdict: Verdict | None = None
     judge_reasoning: str | None = None
+    provider_name: str | None = None
+    consecutive_timeouts: PositiveInt | None = None
 
 
 # ---------------------------------------------------------------------------------
