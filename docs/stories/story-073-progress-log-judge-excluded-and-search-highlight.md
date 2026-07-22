@@ -1,7 +1,7 @@
 ---
 id: STORY-073
 title: Add the Progress run-log judge-excluded line and run-log search-match highlighting
-status: ready
+status: in-progress
 spec_clauses:
   - 04_Progress_Widget/description.md#81-toolbar
   - 04_Progress_Widget/description.md#83-event-kinds
@@ -156,3 +156,36 @@ shown.
 - If `backend/log_formatting/` already maps the `judge_excluded` kind, AC-2's deliverable narrows to
   a proving test plus any tone/text correction; the LogController subscription (AC-1) and the view
   highlight (AC-3) are the substantive additions.
+- Incidental additive cross-module touch: this story's `modules:` front-matter names only
+  `ui/progress/` and `backend/log_formatting/`, but rendering the `judge_excluded` event kind (the
+  In-scope item) presupposes the kind exists as a domain value. `backend/domain/models.py` gained
+  one additive `StrEnum` member, `RunLogEventKind.JUDGE_EXCLUDED = "judge_excluded"`, plus two new
+  optional fields on the `RunLogEvent` struct, `provider_name: str | None` and
+  `consecutive_timeouts: int | None`, both defaulting to `None` so no existing construction site
+  breaks. This is a purely additive domain change, not a new module dependency.
+- Story-text discrepancy: the Test plan section above cites test paths under
+  `ui/progress/_internal/tests/` (e.g. `_internal/tests/test_log_controller.py`). That path does
+  not exist in this codebase — colocated tests live one level up, outside `_internal/`. The actual
+  test files are `src/ollama_llm_bench/ui/progress/tests/test_log_controller.py` and
+  `src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py`, and the backend test is at
+  `src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py`. The tests
+  that were written follow the real, existing colocated-`tests/` layout.
+- Known follow-up (found during review, deliberately out of scope for this story): the run-log
+  search **filter** (`filter_search` in `ui/progress`, pre-existing and untouched by this story)
+  matches against tag-stripped log-line text but does not decode HTML entities before matching. The
+  new search **highlighter** added by this story does decode entities before matching. The visible
+  effect: if a line's only occurrence of a search term is inside a raw entity — for example the
+  term "amp" appearing only as part of the literal text `&amp;` — the filter still keeps that line
+  visible (a tag-stripped-text match), but the highlighter finds no un-entity-decoded occurrence to
+  mark, so the line shows with zero highlighted spans. Fixing this requires changing
+  `filter_search`'s matching semantics to also decode entities, which is a change to STORY-060's
+  existing behaviour and is left for a future story rather than folded in here.
+- Plan/test deviation: the implementation plan's originally drafted unit tests used the literal
+  hex string `"#334455"` as a stand-in highlight-background value. The architecture scan
+  `test_progress_embeds_no_colour_literal` in `tests/architecture/test_progress_boundaries.py`
+  rejects any `#RRGGBB`-shaped string literal anywhere under `ui/progress/`, including its test
+  files, so that literal would have failed the architecture gate. The landed tests instead use the
+  non-colour placeholder string `"test-highlight-token"` wherever a highlight-background value is
+  needed. The `LogFormatter`/highlight helper code being tested does not itself validate that its
+  colour-role argument is shaped like a hex colour, so this substitution changes no assertion's
+  meaning — it only avoids tripping an unrelated architecture check with an incidental test value.

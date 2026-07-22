@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T19:12:02Z'
+generated_at: '2026-07-22T20:20:32Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2777,6 +2777,7 @@ stories:
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_facade.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_fallbacks.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_field_nesting.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_judge_excluded_rendering.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_retry_judge_rendering.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_defines_no_async_function[tests/test_tone_mapping.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[__init__.py]
@@ -2796,6 +2797,7 @@ stories:
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_facade.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_fallbacks.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_field_nesting.py]
+        - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_judge_excluded_rendering.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_retry_judge_rendering.py]
         - tests/architecture/test_log_formatting_module.py::test_log_formatting_module_imports_no_qt_or_asyncio[tests/test_tone_mapping.py]
       STORY-036-AC-2:
@@ -4705,7 +4707,7 @@ stories:
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_prefills_canonical_filename[summary_markdown_ext]
   STORY-073:
     title: Add the Progress run-log judge-excluded line and run-log search-match highlighting
-    status: ready
+    status: in-progress
     spec_clauses:
     - 04_Progress_Widget/description.md#12-event-bus-integration
     - 04_Progress_Widget/description.md#62-model-stability-indicator
@@ -4721,11 +4723,26 @@ stories:
     - EC-PROV-4b
     acceptance_criteria:
       STORY-073-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_renders_canonical_text_at_every_verbosity[normal]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_renders_canonical_text_at_every_verbosity[short]
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_renders_canonical_text_at_every_verbosity[verbose]
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_judge_model_excluded_appends_one_log_line
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_judge_model_excluded_falls_back_to_model_name_when_provider_name_missing
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_judge_model_excluded_flag_resets_on_load_past_run
+        - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_judge_model_excluded_flag_resets_on_log_cleared
       STORY-073-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_escapes_untrusted_provider_name
+        - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_kind_renders_error_tone
       STORY-073-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_empty_term_returns_line_unchanged
+        - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_preserves_escaped_entities
+        - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_whitespace_only_term_returns_line_unchanged
+        - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_wraps_case_insensitive_match_outside_tags
+        - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_wraps_multiple_occurrences
+        - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_search_filters_and_highlights_matches_case_insensitively
   STORY-074:
     title: Add the missing edge-case tests for double-admission, first-use model-load failure, and the model-snapshot DB invariants
     status: ready
@@ -7295,6 +7312,11 @@ edge_cases:
     - STORY-058
     - STORY-073
     tests:
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_escapes_untrusted_provider_name
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_kind_renders_error_tone
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_renders_canonical_text_at_every_verbosity[normal]
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_renders_canonical_text_at_every_verbosity[short]
+    - src/ollama_llm_bench/backend/log_formatting/tests/test_judge_excluded_rendering.py::test_judge_excluded_renders_canonical_text_at_every_verbosity[verbose]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]
@@ -7316,6 +7338,16 @@ edge_cases:
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_stopping_draining_status_line_shown_and_cleared_on_run_stopped
     - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_counts_by_status_maps_to_counters_and_segments
     - src/ollama_llm_bench/ui/progress/tests/test_counters_controller.py::test_progress_updated_bursts_coalesce
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_judge_model_excluded_appends_one_log_line
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_judge_model_excluded_falls_back_to_model_name_when_provider_name_missing
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_judge_model_excluded_flag_resets_on_load_past_run
+    - src/ollama_llm_bench/ui/progress/tests/test_log_controller.py::test_judge_model_excluded_flag_resets_on_log_cleared
+    - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_empty_term_returns_line_unchanged
+    - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_preserves_escaped_entities
+    - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_whitespace_only_term_returns_line_unchanged
+    - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_wraps_case_insensitive_match_outside_tags
+    - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_highlight_wraps_multiple_occurrences
+    - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_search_filters_and_highlights_matches_case_insensitively
     - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_judge_model_excluded_callout_persists_across_later_stability_events
     - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_provider_open_band_shows_retry_probe_link
     - src/ollama_llm_bench/ui/progress/tests/test_stability_controller.py::test_stability_bands_per_signal[excluded-closed-excluded-closed]
