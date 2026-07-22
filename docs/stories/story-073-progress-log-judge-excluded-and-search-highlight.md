@@ -134,19 +134,19 @@ shown.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-073.
-- [ ] EC-PROV-4b has a passing test (exactly one canonical `judge_excluded` line per run).
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the search
+- [x] Every acceptance criterion has a passing test that names STORY-073.
+- [x] EC-PROV-4b has a passing test (exactly one canonical `judge_excluded` line per run).
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the search
   no-term / term-present / term-cleared states and the judge-excluded log path.
-- [ ] An architecture test confirms the LogController does not build the log HTML itself (it
+- [x] An architecture test confirms the LogController does not build the log HTML itself (it
   delegates to `backend/log_formatting`), and that the touched modules reference no
   `setStyleSheet`, embed no colour literal, and import no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/progress/` and
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/progress/` and
   `backend/log_formatting/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan clause
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan clause
   and no orphan test for STORY-073.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records.
 
 ## Notes
