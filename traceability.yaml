@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T12:00:44Z'
+generated_at: '2026-07-22T13:38:39Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4602,7 +4602,7 @@ stories:
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_success_emits_confirmation_toast
   STORY-071:
     title: Replace the New Benchmark performance-matrix stubs with real size and repeats controls and a live task-count estimate
-    status: ready
+    status: in-progress
     spec_clauses:
     - 02_New_Benchmark_Widget/description.md#12-section-visibility-decision-table
     - 02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only
@@ -4618,15 +4618,36 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-071-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[input_LG]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[input_MD]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[input_SM]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[input_XL]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[input_XS]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[output_LG]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[output_MD]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[output_SM]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[output_XL]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[output_XS]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_repeats_stepper_default_and_range
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_selected_sizes_expose_bucket_token_targets
       STORY-071-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_estimate.py::test_estimate_equals_product_of_counts
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_estimate.py::test_estimate_line_updates_on_matrix_change
       STORY-071-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_estimate.py::test_estimate_suffix_present_only_when_analysis_enabled
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_estimate.py::test_run_analysis_toggle_appends_estimate_suffix
       STORY-071-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_missing_input_or_output_size_disables_start[input]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_missing_input_or_output_size_disables_start[output]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_size_rule_prepends_entry_and_passes_through_inner
       STORY-071-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_estimate.py::test_build_request_populates_performance_config_in_synthetic
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_run_summary.py::test_run_summary_work_count_matches_live_estimate
       STORY-071-AC-6:
         tests: []
   STORY-072:

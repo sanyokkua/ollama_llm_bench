@@ -105,15 +105,19 @@ def _synthetic_matrix_rows(performance_config: PerformanceConfig | None) -> tupl
 
 def _work_to_be_done(request: RunStartRequest) -> str:
     model_count = len(request.test_models)
+    suffix = " + 1 run-analysis inference" if request.judge_analysis_enabled else ""
     if request.run_mode is RunMode.SYNTHETIC and request.performance_config is not None:
         cell_count = len(request.performance_config.input_sizes) * len(
             request.performance_config.output_sizes
         )
-        inference_calls = model_count * cell_count * request.performance_config.repeats
-    else:
-        # Simplified: counts task FILES, not parsed tasks -- the actual per-file task
-        # count needs the (out-of-scope, backend) TaskFileLoader, which this dialog's
-        # narrow RunSummaryGateway does not expose.
-        inference_calls = model_count * len(request.task_paths)
-    suffix = " + 1 run-analysis inference" if request.judge_analysis_enabled else ""
+        repeats = request.performance_config.repeats
+        task_count = cell_count * repeats * model_count
+        return (
+            f"{cell_count} cells × {repeats} repeats × {model_count} models "  # noqa: RUF001
+            f"= {task_count} tasks{suffix}"
+        )
+    # Simplified: counts task FILES, not parsed tasks -- the actual per-file task
+    # count needs the (out-of-scope, backend) TaskFileLoader, which this dialog's
+    # narrow RunSummaryGateway does not expose.
+    inference_calls = model_count * len(request.task_paths)
     return f"{inference_calls} inference call(s){suffix}"
