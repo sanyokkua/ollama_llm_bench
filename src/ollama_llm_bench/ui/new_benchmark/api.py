@@ -86,9 +86,6 @@ class NewBenchmarkCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=Fa
 def make_new_benchmark_widget(*, collaborators: NewBenchmarkCollaborators) -> QWidget:
     """Construct the mountable New Benchmark widget.
 
-    Performance Matrix content is stubbed (a new, not-yet-drafted future story)
-    -- it still participates in section visibility via ``mode_visibility_policy``.
-
     Args:
         collaborators: Every collaborator this widget and its controller need,
             bundled per coding-style.md's 4-parameter hard maximum.

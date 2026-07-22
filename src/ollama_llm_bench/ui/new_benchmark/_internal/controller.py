@@ -86,6 +86,7 @@ class NewBenchmarkController:
         self._view.advanced_options_section.advanced_config_changed.connect(
             self._on_view_state_changed
         )
+        self._view.performance_matrix_section.matrix_changed.connect(self._on_matrix_changed)
         self._view.start_button.clicked.connect(self._on_start_clicked)
         self._event_bus.subscribe(
             SIGNAL_PROVIDER_REGISTRY_RELOADED, self._on_provider_registry_reloaded, owner=self._view
@@ -121,6 +122,18 @@ class NewBenchmarkController:
     def _on_view_state_changed(self, *_args: object) -> None:
         if self._is_locked:
             return
+        self._render()
+
+    def _on_matrix_changed(self) -> None:
+        if self._is_locked:
+            return
+        matrix = self._view.performance_matrix_section
+        logger.debug(
+            "new_benchmark_matrix_changed",
+            input_size_count=len(matrix.selected_input_sizes),
+            output_size_count=len(matrix.selected_output_sizes),
+            repeats=matrix.repeats,
+        )
         self._render()
 
     def _on_inference_activity_changed(self, payload: object) -> None:
@@ -171,6 +184,7 @@ class NewBenchmarkController:
         advanced_options = self._view.advanced_options_section
         dirty_keys = advanced_options.dirty_keys
         current_values = advanced_options.current_values
+        matrix = self._view.performance_matrix_section
         state = RunStartRequestState(
             mode=self._current_mode,
             selected_pairs=self._view.test_models_section.selection.pairs,
@@ -178,11 +192,9 @@ class NewBenchmarkController:
             judge_model=self._view.judge_section.judge_model,
             judge_analysis_enabled=self._view.judge_section.judge_analysis_enabled,
             task_paths=tuple(row.source_path for row in self._view.task_files_section.rows),
-            # Placeholder until STORY-071 Task 3 wires the Performance Matrix
-            # section widget's real selections into the controller.
-            input_sizes=(),
-            output_sizes=(),
-            repeats=3,
+            input_sizes=matrix.selected_input_sizes,
+            output_sizes=matrix.selected_output_sizes,
+            repeats=matrix.repeats,
             advanced_options_overridden=advanced_options.override_enabled,
             advanced_dirty_values={
                 key: value for key, value in current_values.items() if key in dirty_keys
@@ -229,11 +241,9 @@ class NewBenchmarkController:
             validation_entries=validation_entries,
             start_enabled=start_enabled,
             start_tooltip=start_tooltip,
-            # Placeholder until STORY-071 Task 3 wires the Performance Matrix
-            # section widget's real selections into the controller.
-            input_sizes=(),
-            output_sizes=(),
-            repeats=3,
+            input_sizes=self._view.performance_matrix_section.selected_input_sizes,
+            output_sizes=self._view.performance_matrix_section.selected_output_sizes,
+            repeats=self._view.performance_matrix_section.repeats,
         )
         view_model = select_view_model(mode=self._current_mode, state=state)
         self._view.apply_view_model(view_model)
