@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T14:15:24Z'
+generated_at: '2026-07-22T14:24:27Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4613,6 +4613,7 @@ stories:
     - 02_New_Benchmark_Widget/mode_specifics/synthetic.md#5-run-summary-dialog-content
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#23-size-definitions
     modules:
     - ui/common_dialogs/
     - ui/new_benchmark/
@@ -4632,6 +4633,16 @@ stories:
         - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_default_size_selection_and_repeats[output_XS]
         - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_repeats_stepper_default_and_range
         - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_selected_sizes_expose_bucket_token_targets
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[input_LG]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[input_MD]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[input_SM]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[input_XL]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[input_XS]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[output_LG]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[output_MD]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[output_SM]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[output_XL]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_toggle_captions_are_verbatim[output_XS]
       STORY-071-AC-2:
         tests:
         - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_estimate.py::test_estimate_equals_product_of_counts
@@ -6023,6 +6034,9 @@ clauses:
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#11-test-cases:
     stories:
     - STORY-034
+  11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#23-size-definitions:
+    stories:
+    - STORY-071
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#3-outputs:
     stories:
     - STORY-034

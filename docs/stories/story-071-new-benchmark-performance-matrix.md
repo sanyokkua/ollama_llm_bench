@@ -12,6 +12,7 @@ spec_clauses:
   - 02_New_Benchmark_Widget/mode_specifics/synthetic.md#5-run-summary-dialog-content
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+  - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#23-size-definitions
 modules:
   - ui/new_benchmark/
   - ui/common_dialogs/
@@ -222,3 +223,27 @@ For each run mode, the three Performance Matrix sections have the specified layo
   that builds the concrete backend `RunValidator` must subsume this rule into that backend
   implementation rather than duplicate it, and should remove (or reduce to a thin pass-through)
   this widget-local decorator once the backend rule exists.
+- **Follow-up recommendation: the bucket table is duplicated, not shared.** The size-bucket token
+  targets `64`/`256`/`1024`/`4096`/`16384` are hardcoded twice — once in
+  `ui/new_benchmark/_internal/performance_matrix.py` (this story) and once in the backend
+  `PerformanceTaskGenerator`'s private `_internal/size_buckets.py` — because the UI is not allowed
+  to reach into another module's `_internal/` package (an `import-linter` contract forbids it),
+  so it cannot simply import the generator's copy. A future story should expose the bucket table
+  on the generator module's public surface (`api.py` or `models.py`) and change this widget to
+  consume it from there instead of holding its own copy. Until that happens, the two tables can
+  silently drift apart: if someone changes one without the other, the UI would let a user pick a
+  size the generator no longer recognizes, and the generator would crash (or reject the request)
+  instead of the UI simply not offering that choice.
+- **Spec observation: the two spec files describing the Synthetic work count disagree on
+  wording/order, and this story follows the one it cites.** `common_dialogs/run_summary_dialog.md`
+  §6.1 writes the Synthetic work count as "models × matrix_cells × repeats", while
+  `mode_specifics/synthetic.md` §5 — the clause this story actually cites and implements — writes
+  it as "cells × repeats × models = N tasks". The two documents describe the same number in a
+  different order; this story's implementation and its Run Summary dialog output follow the
+  wording of §5, the clause in this story's `spec_clauses` list, not the other document's phrasing.
+  This is noted here as an observation only; no spec file has been edited. Separately, §4.2's
+  parenthetical remark that the estimated-task-count line "opens non-zero" cannot be literally
+  true the instant the New Benchmark widget is freshly opened with zero models selected yet — at
+  that exact moment the line correctly reads "Estimated tasks: 0" until the user picks a model.
+  The correct reading of that remark is "the performance matrix itself opens pre-populated with
+  its XS+SM/repeats-3 defaults", not "the task count is non-zero before any model is chosen."

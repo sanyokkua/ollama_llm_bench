@@ -23,6 +23,19 @@ _DEFAULT_CASES: tuple[tuple[str, str, bool], ...] = (
 
 _DEFAULT_REPEATS: int = 3
 
+_CAPTION_CASES: tuple[tuple[str, str, str], ...] = (
+    ("input", "XS", "XS — ~5 tok · 1 sentence · 7 words"),
+    ("input", "SM", "SM — ~50 tok · 1 paragraph · 70 words"),
+    ("input", "MD", "MD — ~250 tok · 1 page · 380 words"),
+    ("input", "LG", "LG — ~1500 tok · long doc · 2300 words"),
+    ("input", "XL", "XL — ~3500 tok · very long · 5300 words"),
+    ("output", "XS", "XS — ~1 sentence · ~15 words · ~25 tok"),
+    ("output", "SM", "SM — ~5 sentences · ~75 words · ~125 tok"),
+    ("output", "MD", "MD — ~20 sentences · ~300 words · ~500 tok"),
+    ("output", "LG", "LG — ~100 sentences · ~1500 words · ~2500 tok"),
+    ("output", "XL", "XL — ~500 sentences · ~7500 words · ~12500 tok"),
+)
+
 
 @pytest.mark.parametrize(
     ("group", "size_key", "expected_checked"),
@@ -74,3 +87,29 @@ def test_selected_sizes_expose_bucket_token_targets(qtbot: QtBot) -> None:
     assert widget.selected_input_sizes == (64, 256)
     assert widget.selected_output_sizes == (64, 256)
     assert widget.repeats == _DEFAULT_REPEATS
+
+
+@pytest.mark.parametrize(
+    ("group", "size_key", "expected_caption"),
+    _CAPTION_CASES,
+    ids=[f"{group}_{key}" for group, key, _ in _CAPTION_CASES],
+)
+def test_toggle_captions_are_verbatim(
+    group: str,
+    size_key: str,
+    expected_caption: str,
+    qtbot: QtBot,
+) -> None:
+    """Proves: STORY-071-AC-1
+
+    Each Input Sizes and Output Sizes toggle's visible text is the exact
+    spec-verbatim caption for its size bucket, character-for-character (em
+    dash and middle dot included).
+    """
+    # Arrange / Act
+    widget = PerformanceMatrixSectionWidget()
+    qtbot.addWidget(widget)
+    # Assert
+    box = widget.findChild(QCheckBox, f"new_benchmark.performance_matrix.{group}.{size_key}")
+    assert box is not None
+    assert box.text() == expected_caption  # type: ignore[unreachable]  # mypy false positive with narrowing
