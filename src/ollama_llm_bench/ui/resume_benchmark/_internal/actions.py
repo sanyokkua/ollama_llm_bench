@@ -1,9 +1,12 @@
-"""Resume widget actions: Clone, Delete, Export Run Analysis, Show run-log (STORY-056).
+"""Resume widget actions: Clone, Delete, Export Run Analysis, Show run-log (STORY-056);
+Export Summary/Details (CSV/Markdown) table export (STORY-072).
 
 Source of truth: ``docs/v3_specification/03_Resume_Benchmark_Widget/description.md``
 §3.6 (Clone as new retry run algorithm), §3.5/§4.2 (Export/File/Destructive gating),
-§9 (EC-RB-8, EC-RB-9). Every function takes its minimal explicit collaborators so
-``controller.py`` can wire each to its menu action via ``functools.partial`` --
+§9 (EC-RB-8, EC-RB-9, EC-RB-10), and ``10_Domain_and_Data/05_EXPORT_FORMATS.md``
+§2/§3/§4/§6 (the Summary/Details export filename, content, and no-redaction rules
+``export_table`` implements). Every function takes its minimal explicit collaborators
+so ``controller.py`` can wire each to its menu action via ``functools.partial`` --
 this module stays a plain function library, never a class.
 
 The delete confirmation is an inline stock ``QMessageBox.question`` (no themed

@@ -26,6 +26,7 @@ from ollama_llm_bench.backend.errors import OsAdapterError
 from ollama_llm_bench.backend.events import SIGNAL_GLOBAL_MESSAGE, GlobalMessageEvent, Subscription
 from ollama_llm_bench.backend.run_drift import DriftWarning
 from ollama_llm_bench.ui.resume_benchmark._internal.actions import (
+    _COULD_NOT_SAVE_EXPORT_MESSAGE,
     clone_as_new_retry_run,
     confirm_and_delete_run,
     export_run_analysis,
@@ -680,6 +681,43 @@ def test_export_prefills_canonical_filename(
     # Assert
     assert native_pickers.last_options is not None
     assert native_pickers.last_options.suggested_name == expected_suggested_name
+
+
+def test_export_write_failure_toasts_and_writes_nothing(tmp_path: Path) -> None:
+    """Proves: STORY-072 (EC-RB-10)
+
+    A write failure while exporting a Summary/Details table -- the target
+    path is unwritable -- writes nothing, emits the could-not-save error
+    toast, and emits no info/success toast.
+    """
+    # Arrange
+    target = str(tmp_path / "summary.csv")
+    gateway = _FakeResumeGateway(run=_run(1, status=RunStatus.COMPLETED), tasks=(), results=())
+    native_pickers = _FakeNativePickers(save_path=target)
+    file_system_actions = _FakeFileSystemActions(fail_write=True)
+    event_bus = _RecordingEventBus()
+    collaborators = _make_export_collaborators(
+        gateway=gateway,
+        native_pickers=native_pickers,
+        file_system_actions=file_system_actions,
+        event_bus=event_bus,
+    )
+    request = TableExportRequest(run_id=1, table="summary", fmt="csv")
+
+    # Act
+    export_table(collaborators=collaborators, request=request)
+
+    # Assert
+    assert file_system_actions.written == []
+    message = event_bus.last_message()
+    assert message is not None
+    assert message.severity == "error"
+    assert message.text == _COULD_NOT_SAVE_EXPORT_MESSAGE
+    assert all(
+        getattr(payload, "severity", None) != "info"
+        for name, payload in event_bus.emitted
+        if name == SIGNAL_GLOBAL_MESSAGE
+    )
 
 
 def test_show_run_log_file_opens_derived_path() -> None:

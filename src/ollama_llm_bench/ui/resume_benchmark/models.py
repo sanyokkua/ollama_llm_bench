@@ -1,9 +1,10 @@
-"""``RunRow`` and the collaborator bundle for ``ui/resume_benchmark/`` (STORY-056).
+"""``RunRow`` and the collaborator bundle for ``ui/resume_benchmark/`` (STORY-056);
+``TableExportRequest`` for the Summary/Details table-export actions (STORY-072).
 
 Source of truth: ``docs/v3_specification/03_Resume_Benchmark_Widget/description.md``
-§3.3 (run table), §4.3 (status badge). ``RunRow`` carries every gating boolean the
-view and context menu need pre-derived -- neither ever re-derives gating from a
-raw ``BenchmarkRun``/``BenchmarkResult``.
+§3.3 (run table), §4.3 (status badge), §3.5 (Summary/Details export actions).
+``RunRow`` carries every gating boolean the view and context menu need pre-derived --
+neither ever re-derives gating from a raw ``BenchmarkRun``/``BenchmarkResult``.
 """
 
 import msgspec
