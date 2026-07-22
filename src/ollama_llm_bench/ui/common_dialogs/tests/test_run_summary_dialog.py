@@ -6,12 +6,16 @@ import structlog
 from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
     ModelDescriptor,
+    PerformanceConfig,
     ProviderHealth,
     ReadinessState,
     RunMode,
     RunStartRequest,
 )
 from ollama_llm_bench.ui.common_dialogs import make_run_summary_dialog
+from ollama_llm_bench.ui.common_dialogs._internal.view_model_select import (
+    select_run_summary_view_model,
+)
 from ollama_llm_bench.ui.new_benchmark.testing import FakeNewBenchmarkGateway, FakeRunValidator
 
 _PROVIDER_ID = "dddddddd-0000-4000-8000-000000000000"
@@ -95,3 +99,27 @@ def test_run_summary_dialog_constructs_and_shows_with_no_error_logs(qtbot: QtBot
     # Assert
     assert dialog.isVisible()
     assert not any(entry["log_level"] in {"error", "critical"} for entry in logs)
+
+
+def test_synthetic_work_count_breakdown_with_analysis_off() -> None:
+    """Proves: STORY-071-AC-5
+
+    When a SYNTHETIC-mode run is requested with a 2x2 performance matrix,
+    3 repeats, and 1 selected model with analysis off, the work-to-be-done
+    summary shows '4 cells x 3 repeats x 1 models = 12 tasks' (using multiplication signs).
+    """
+    # Arrange
+    request = RunStartRequest(
+        run_mode=RunMode.SYNTHETIC,
+        test_models=(ModelDescriptor(provider_id=_PROVIDER_ID, model_name="llama3"),),
+        performance_config=PerformanceConfig(
+            input_sizes=(64, 256),
+            output_sizes=(64, 256),
+            repeats=3,
+        ),
+        judge_analysis_enabled=False,
+    )
+    # Act
+    view_model = select_run_summary_view_model(request=request, readiness=_ALL_READY_SNAPSHOT)
+    # Assert
+    assert view_model.work_to_be_done == "4 cells × 3 repeats × 1 models = 12 tasks"  # noqa: RUF001
