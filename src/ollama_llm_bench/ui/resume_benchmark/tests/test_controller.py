@@ -75,6 +75,9 @@ class _FakeFileSystemActions:
     def open_in_file_manager(self, path: str) -> None:
         raise NotImplementedError
 
+    def open_url(self, url: str) -> None:
+        raise NotImplementedError
+
     def run_log_exists(self, *, run_id: int, started_at: str) -> bool:
         return False
 

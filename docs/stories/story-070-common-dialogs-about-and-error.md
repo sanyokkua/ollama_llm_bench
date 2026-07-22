@@ -1,18 +1,21 @@
 ---
 id: STORY-070
 title: Build the About dialog and the generic Error dialog
-status: ready
+status: done
 spec_clauses:
   - 07_Common_Dialogs/about_dialog.md#4-identity-block
   - 07_Common_Dialogs/about_dialog.md#5-paths-block
   - 07_Common_Dialogs/about_dialog.md#6-folder-actions
+  - 07_Common_Dialogs/about_dialog.md#11-edge-cases
   - 07_Common_Dialogs/error_dialog.md#5-three-error-patterns
   - 07_Common_Dialogs/error_dialog.md#6-content-composition
   - 07_Common_Dialogs/error_dialog.md#9-button-behaviour
+  - 07_Common_Dialogs/error_dialog.md#12-edge-cases
   - 08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
 modules:
   - ui/common_dialogs/
+  - adapters/file_system_actions/
 acceptance_criteria:
   - STORY-070-AC-1
   - STORY-070-AC-2
@@ -20,6 +23,12 @@ acceptance_criteria:
   - STORY-070-AC-4
   - STORY-070-AC-5
   - STORY-070-AC-6
+  - STORY-070-AC-7
+edge_cases:
+  - EC-AB-2
+  - EC-AB-3
+  - EC-AB-7
+  - EC-ERR-6
 depends_on:
   - STORY-049
 adrs:
@@ -84,8 +93,7 @@ patterns — recoverable, action-available, fatal).
   content, and the Error dialog performs no redaction (it renders the already-redacted payload).
 - The Error dialog never changes pattern after it opens; the fatal pattern has no Close button and
   ignores Escape.
-- The About dialog persists nothing and emits no event; the Copy-path action copies the full,
-  untruncated path.
+- The About dialog persists nothing; the Copy-path action copies the full, untruncated path.
 - No `setStyleSheet`, no colour literal, no `asyncio`.
 - The controller obtains its `structlog` logger at module scope (never inside `__init__`, per
   `logging.md`) and emits `DEBUG`-level events — static event name + keyword fields, never an
@@ -137,10 +145,17 @@ reports `isVisible()`, and captures no `error`/`critical`-level `structlog` reco
 wrapping construction+show in `structlog.testing.capture_logs()` and asserting no captured
 entry's `log_level` is in `{"error", "critical"}`:
 
-| Factory function    | Fake collaborators                           |
-| ------------------- | -------------------------------------------- |
-| `make_about_dialog` | fake `Clipboard`, fake `FileSystemActions`   |
-| `make_error_dialog` | none (pure presentation of a caller payload) |
+| Factory function    | Fake collaborators                                          |
+| ------------------- | ----------------------------------------------------------- |
+| `make_about_dialog` | fake `Clipboard`, fake `FileSystemActions`, fake `EventBus` |
+| `make_error_dialog` | fake `Clipboard`, fake `EventBus`                           |
+
+### STORY-070-AC-7
+
+Given the About dialog, when Copy path succeeds, then it emits the confirmation toast `Path copied.`; given the Error dialog, when Copy Details succeeds, then it emits the confirmation
+toast `Details copied.`. Given any of Copy path, Open folder, the `Project on GitHub` link, or
+Copy Details raises `OsAdapterError`, then the dialog emits the matching failure toast — `Could not copy the path.` (EC-AB-3), `Could not open the folder.` (EC-AB-2), `Could not open the repository link.` (EC-AB-7), or `Could not copy to the clipboard.` (EC-ERR-6) — and the dialog
+stays open and fully usable in every case.
 
 ## Test plan
 
@@ -154,23 +169,63 @@ entry's `log_level` is in `{"error", "critical"}`:
   `test_footer_buttons_per_pattern`.
 - STORY-070-AC-4 — unit (`pytest-qt`), same file, `test_no_detail_hides_detail_block`.
 - STORY-070-AC-5 — unit (`pytest-qt`), same file, `test_fatal_pattern_quit_only_no_escape`.
-- STORY-070-AC-6 — unit (`pytest-qt`, fake `Clipboard`/`FileSystemActions`), colocated
-  `src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py`,
+- STORY-070-AC-6 — unit (`pytest-qt`, fake `Clipboard`/`FileSystemActions`/`EventBus`),
+  colocated `src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py`,
   `test_about_dialog_constructs_and_shows_with_no_error_logs`, and colocated
   `src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py`,
   `test_error_dialog_constructs_and_shows_with_no_error_logs`.
+- STORY-070-AC-7 — unit (`pytest-qt`, fake `Clipboard`/`FileSystemActions`/`EventBus`,
+  asserting on the fake `EventBus`'s captured `GlobalMessageEvent`), colocated
+  `src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py`:
+  `test_copy_path_success_emits_confirmation_toast`,
+  `test_open_folder_and_repository_link_success_emit_no_toast` (table-driven),
+  `test_action_failure_emits_failure_toast_and_keeps_dialog_open` (table-driven, EC-AB-2/3/7);
+  and colocated `src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py`:
+  `test_copy_details_success_emits_confirmation_toast`,
+  `test_copy_details_failure_emits_toast_and_keeps_dialog_open` (EC-ERR-6).
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-070.
-- [ ] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the About dialog state
+- [x] Every acceptance criterion has a passing test that names STORY-070.
+- [x] The `pytest-qt` suite reaches ≥60% branch coverage and exercises the About dialog state
   machine and the three Error dialog patterns of `07_Common_Dialogs/error_dialog.md`.
-- [ ] An architecture test confirms both dialog factories hold no domain logic, that the Error
+- [x] An architecture test confirms both dialog factories hold no domain logic, that the Error
   dialog performs no redaction, and that the module references no `setStyleSheet`, embeds no
   colour literal, and imports no `asyncio`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/common_dialogs/`.
-- [ ] `just trace` resolves this story's spec clauses; the record validates with no orphan clause
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/common_dialogs/`.
+- [x] `just trace` resolves this story's spec clauses; the record validates with no orphan clause
   and no orphan test for STORY-070.
-- [ ] The module inventory is unchanged.
-- [ ] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
+- [x] The module inventory is unchanged.
+- [x] The construction/interaction smoke test passes with zero ERROR/CRITICAL-level `structlog`
   records, and DEBUG-level lifecycle events are emitted per the design constraint above.
+
+## Notes
+
+**AC-7 / toast work (second pass).** An independent spec-conformance review of this story's
+first implementation pass found that `about_dialog.md` §6.1/§8 and `error_dialog.md` §9
+require confirmation/failure toasts for Copy path, Open folder, the `Project on GitHub` link,
+and Copy Details (EC-AB-2, EC-AB-3, EC-AB-7, EC-ERR-6) — behaviour the first pass left
+unreachable because neither dialog held an `EventBus` collaborator or wrapped its OS-adapter
+calls in `try`/`except OsAdapterError`. A second pass added `event_bus: EventBus` to
+`AboutDialogCollaborators` and to `make_error_dialog`'s parameter list, wrapped every
+clipboard/file-manager/browser call, and emits the spec's exact toast text (STORY-070-AC-7).
+This corrects the Design constraints section's earlier "The About dialog ... emits no event"
+line, which was accurate only for the first pass — the dialog now emits `GlobalMessageEvent`
+for its folder-action toasts. The `adapters/file_system_actions/` module entry was also added
+to this story's front-matter `modules:` list: the first pass's `open_url` Protocol addition to
+`FileSystemActions` was never declared there, a traceability gap this pass closes.
+
+**EC-AB-2/EC-AB-3/EC-AB-7/EC-ERR-6 and `edge_cases:`.** These four ids are dialog-local edge
+cases from `about_dialog.md` §11 and `error_dialog.md` §12, not entries in the centrally
+governed `08-I_edge_cases.md` catalog — `scripts/_traceability_lib.py`'s `EDGE_CASE_CATALOGS`
+list (the fixed set of documents `load_all_catalog_ids()` scans) does not include either
+`about_dialog.md` or `error_dialog.md`. `validate_traceability.py`'s `check_edge_cases_covered`
+only iterates catalogued ids when checking for missing-test coverage, so a dialog-local id
+cited in a story's `edge_cases:` is never required to prove a test there — but `trace.py`'s
+`_build_edge_cases_map` builds a `traceability.yaml` entry for **every** `EC-` id any story
+cites, catalogued or not, keyed off the format regex alone (`EC-[A-Z]+-\d+[a-f]?`). Verified by
+running `just trace` after adding this story's `edge_cases:` block: it generates cleanly with
+`EC-AB-2`, `EC-AB-3`, `EC-AB-7`, and `EC-ERR-6` entries in the `edge_cases:` map, each listing
+STORY-070 and (once the tester agent adds AC-7's tests) that AC's proving tests. The tooling
+accepts a dialog-local id once cited by a story; it is not rejected, so the `edge_cases:`
+front-matter block is kept.

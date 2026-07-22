@@ -1,7 +1,9 @@
-"""Colocated unit tests for ``adapters.file_system_actions`` (STORY-048)."""
+"""Colocated unit tests for ``adapters.file_system_actions`` (STORY-048; ``open_url``
+added in STORY-070 for the About dialog's ``Project on GitHub`` link)."""
 
 from pathlib import Path
 
+from PySide6.QtCore import QUrl
 import pytest
 from pytest_mock import MockerFixture
 
@@ -302,6 +304,30 @@ def test_write_export_file_bytes_applies_collision_suffix(
     )
     # Assert
     assert Path(written_path) == exports_root / "exports" / "My_Run_Chart_avg_ttft_2.png"
+
+
+def test_open_url_success_delegates_to_qdesktop_services(mocker: MockerFixture) -> None:
+    """open_url passes the exact URL to QDesktopServices.openUrl as a QUrl and
+    raises nothing when the browser launch succeeds."""
+    # Arrange
+    open_url_mock = mocker.patch(f"{_INTERNAL}.QDesktopServices.openUrl", return_value=True)
+    actions = QtFileSystemActions(platform_identifier="linux")
+    url = "https://github.com/sanyokkua/ollama_llm_bench"
+    # Act
+    actions.open_url(url)
+    # Assert
+    open_url_mock.assert_called_once_with(QUrl(url))
+
+
+def test_open_url_failure_raises_os_adapter_error(mocker: MockerFixture) -> None:
+    """open_url raises OsAdapterError when QDesktopServices.openUrl reports it
+    could not launch the default browser."""
+    # Arrange
+    mocker.patch(f"{_INTERNAL}.QDesktopServices.openUrl", return_value=False)
+    actions = QtFileSystemActions(platform_identifier="linux")
+    # Act / Assert
+    with pytest.raises(OsAdapterError):
+        actions.open_url("https://example.invalid")
 
 
 def test_write_binary_file_to_chosen_path(tmp_path: Path) -> None:

@@ -7,6 +7,9 @@ import subprocess
 import sys
 import tempfile
 
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
+
 from ollama_llm_bench.backend.errors import OsAdapterError
 from ollama_llm_bench.backend.infra import run_log_path
 from ollama_llm_bench.backend.platform import PlatformKind, make_platform_detector
@@ -146,6 +149,10 @@ class QtFileSystemActions:
             # only a validated existing path is interpolated, never a shell string
         except OSError as exc:
             raise OsAdapterError(message="the OS file manager could not be launched") from exc
+
+    def open_url(self, url: str) -> None:
+        if not QDesktopServices.openUrl(QUrl(url)):
+            raise OsAdapterError(message="the default browser could not be launched")
 
     def run_log_exists(self, *, run_id: int, started_at: str) -> bool:
         return self._run_log_path(run_id=run_id, started_at=started_at).exists()

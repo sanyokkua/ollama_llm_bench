@@ -79,9 +79,13 @@ class _FakeNativePickers:
 class _FakeFileSystemActions:
     def __init__(self) -> None:
         self.opened_paths: list[str] = []
+        self.opened_urls: list[str] = []
 
     def open_in_file_manager(self, path: str) -> None:
         self.opened_paths.append(path)
+
+    def open_url(self, url: str) -> None:
+        self.opened_urls.append(url)
 
     def run_log_exists(self, *, run_id: int, started_at: str) -> bool:
         return False

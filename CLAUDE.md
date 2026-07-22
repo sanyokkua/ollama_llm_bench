@@ -196,3 +196,20 @@ working in. Don't rely solely on what's spelled out in your own immediate prompt
 When compacting, preserve: the current phase/story being worked, the list of modified file
 paths, any outstanding `mypy`/`ruff`/`import-linter` failures by file, current `pytest` failure
 count and names, and any `# type: ignore[code]` decisions made and why.
+
+## Communication
+
+Communicate for the reader, not for the specification.
+
+When asking questions, explaining decisions, reporting progress, or describing issues:
+
+* Use plain, concrete language instead of internal terminology or abstractions.
+* Describe the actual behavior, scenario, or problem, not the document structure that defines it.
+* Never assume the reader will look up requirement IDs, acceptance criteria, phases, tickets, or other references.
+* If you refer to a requirement, restate its relevant meaning in the current message. References are for traceability only, never as the primary explanation.
+* Provide enough context for the reader to understand and answer without opening other documents.
+* Prefer concrete examples over abstract descriptions whenever they improve clarity.
+* Explain *what* is happening, *why* it matters, and *what decision or action* is needed.
+* Recommend a reasonable default when appropriate instead of delegating every decision to the reader.
+
+**Rule of thumb:** Every message should be understandable on its own. If the reader must navigate project documentation to understand your question, explanation, or recommendation, rewrite it.

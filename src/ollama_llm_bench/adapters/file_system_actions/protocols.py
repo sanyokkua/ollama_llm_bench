@@ -25,6 +25,21 @@ class FileSystemActions(Protocol):
         """
         ...
 
+    def open_url(self, url: str) -> None:
+        """Open ``url`` in the user's default browser.
+
+        fast-synchronous; must be called on the Qt main thread. Backs the
+        About dialog's ``Project on GitHub`` link (07_Common_Dialogs/
+        about_dialog.md §6, EC-AB-7).
+
+        Args:
+            url: The absolute URL to open.
+
+        Raises:
+            OsAdapterError: The default browser could not be launched.
+        """
+        ...
+
     def run_log_exists(self, *, run_id: int, started_at: str) -> bool:
         """Return whether this run's log file currently exists on disk.
 

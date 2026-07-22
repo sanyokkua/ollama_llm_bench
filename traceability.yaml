@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-21T21:11:14Z'
+generated_at: '2026-07-22T10:06:22Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4543,32 +4543,63 @@ stories:
         - src/ollama_llm_bench/ui/task_editor/tests/test_dialogs.py::test_dirty_leave_shows_save_choice_dialog
   STORY-070:
     title: Build the About dialog and the generic Error dialog
-    status: ready
+    status: done
     spec_clauses:
+    - 07_Common_Dialogs/about_dialog.md#11-edge-cases
     - 07_Common_Dialogs/about_dialog.md#4-identity-block
     - 07_Common_Dialogs/about_dialog.md#5-paths-block
     - 07_Common_Dialogs/about_dialog.md#6-folder-actions
+    - 07_Common_Dialogs/error_dialog.md#12-edge-cases
     - 07_Common_Dialogs/error_dialog.md#5-three-error-patterns
     - 07_Common_Dialogs/error_dialog.md#6-content-composition
     - 07_Common_Dialogs/error_dialog.md#9-button-behaviour
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling
     modules:
+    - adapters/file_system_actions/
     - ui/common_dialogs/
-    edge_cases: []
+    edge_cases:
+    - EC-AB-2
+    - EC-AB-3
+    - EC-AB-7
+    - EC-ERR-6
     acceptance_criteria:
       STORY-070-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_version_line_omitted_when_absent
       STORY-070-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_and_open_folder_keep_dialog_open
       STORY-070-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_no_detail]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_with_detail]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_no_detail]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_with_detail]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_no_detail]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_with_detail]
       STORY-070-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_no_detail_hides_detail_block
       STORY-070-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_fatal_pattern_quit_only_no_escape
       STORY-070-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_about_dialog_constructs_and_shows_with_no_error_logs
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[action_available_no_detail]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[fatal_with_detail]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[recoverable_with_detail]
+      STORY-070-AC-7:
+        tests:
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[copy_path_failure]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[open_folder_failure]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[repository_link_failure]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_success_emits_confirmation_toast
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[open_folder]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[repository_link]
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_failure_emits_toast_and_keeps_dialog_open
+        - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_success_emits_confirmation_toast
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -4841,6 +4872,9 @@ clauses:
   06_Settings_Dialog/sub_dialogs/reset_confirmation.md#6-the-bundled-default-seed:
     stories:
     - STORY-067
+  07_Common_Dialogs/about_dialog.md#11-edge-cases:
+    stories:
+    - STORY-070
   07_Common_Dialogs/about_dialog.md#4-identity-block:
     stories:
     - STORY-070
@@ -4848,6 +4882,9 @@ clauses:
     stories:
     - STORY-070
   07_Common_Dialogs/about_dialog.md#6-folder-actions:
+    stories:
+    - STORY-070
+  07_Common_Dialogs/error_dialog.md#12-edge-cases:
     stories:
     - STORY-070
   07_Common_Dialogs/error_dialog.md#5-three-error-patterns:
@@ -5850,6 +5887,110 @@ clauses:
     stories:
     - STORY-004
 edge_cases:
+  EC-AB-2:
+    stories:
+    - STORY-070
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_about_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[copy_path_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[open_folder_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[repository_link_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_and_open_folder_keep_dialog_open
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_success_emits_confirmation_toast
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[open_folder]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[repository_link]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_version_line_omitted_when_absent
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_failure_emits_toast_and_keeps_dialog_open
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_success_emits_confirmation_toast
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[action_available_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[fatal_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[recoverable_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_fatal_pattern_quit_only_no_escape
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_no_detail_hides_detail_block
+  EC-AB-3:
+    stories:
+    - STORY-070
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_about_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[copy_path_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[open_folder_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[repository_link_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_and_open_folder_keep_dialog_open
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_success_emits_confirmation_toast
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[open_folder]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[repository_link]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_version_line_omitted_when_absent
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_failure_emits_toast_and_keeps_dialog_open
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_success_emits_confirmation_toast
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[action_available_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[fatal_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[recoverable_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_fatal_pattern_quit_only_no_escape
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_no_detail_hides_detail_block
+  EC-AB-7:
+    stories:
+    - STORY-070
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_about_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[copy_path_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[open_folder_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[repository_link_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_and_open_folder_keep_dialog_open
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_success_emits_confirmation_toast
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[open_folder]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[repository_link]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_version_line_omitted_when_absent
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_failure_emits_toast_and_keeps_dialog_open
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_success_emits_confirmation_toast
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[action_available_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[fatal_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[recoverable_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_fatal_pattern_quit_only_no_escape
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_no_detail_hides_detail_block
+  EC-ERR-6:
+    stories:
+    - STORY-070
+    tests:
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_about_dialog_constructs_and_shows_with_no_error_logs
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[copy_path_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[open_folder_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_action_failure_emits_failure_toast_and_keeps_dialog_open[repository_link_failure]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_and_open_folder_keep_dialog_open
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_copy_path_success_emits_confirmation_toast
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[open_folder]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_open_folder_and_repository_link_success_emit_no_toast[repository_link]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_about_dialog.py::test_version_line_omitted_when_absent
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_failure_emits_toast_and_keeps_dialog_open
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_copy_details_success_emits_confirmation_toast
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[action_available_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[fatal_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_error_dialog_constructs_and_shows_with_no_error_logs[recoverable_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_fatal_pattern_quit_only_no_escape
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[action_available_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[fatal_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_no_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_footer_buttons_per_pattern[recoverable_with_detail]
+    - src/ollama_llm_bench/ui/common_dialogs/tests/test_error_dialog.py::test_no_detail_hides_detail_block
   EC-EXP-1:
     stories:
     - STORY-032
@@ -8392,6 +8533,7 @@ modules:
     stories:
     - STORY-048
     - STORY-064
+    - STORY-070
   adapters/native_pickers/:
     stories:
     - STORY-048

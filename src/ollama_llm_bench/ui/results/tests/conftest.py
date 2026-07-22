@@ -249,9 +249,13 @@ class FakeFileSystemActions:
         self.written: dict[str, str] = {}
         self.written_bytes: dict[str, bytes] = {}
         self.revealed_paths: list[str] = []
+        self.opened_urls: list[str] = []
 
     def open_in_file_manager(self, path: str) -> None:
         self.revealed_paths.append(path)
+
+    def open_url(self, url: str) -> None:
+        self.opened_urls.append(url)
 
     def run_log_exists(self, *, run_id: int, started_at: str) -> bool:
         return False

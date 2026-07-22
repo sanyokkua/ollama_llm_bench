@@ -1,15 +1,17 @@
-"""Public factories for ``ui/common_dialogs/`` -- Run Summary/Rename Run (STORY-055/056)
-and Resume Summary/Retry Selection (STORY-057).
+"""Public factories for ``ui/common_dialogs/`` -- Run Summary/Rename Run (STORY-055/056),
+Resume Summary/Retry Selection (STORY-057), and the About/Error dialogs (STORY-070).
 
 Source of truth: ``docs/v3_specification/07_Common_Dialogs/run_summary_dialog.md``
 §8 (preflight re-check), §12 (Start Effects); ``resume_summary_dialog.md`` §2, §12
 (§13 Function Inventory "Open dialog" gate); ``retry_selection_dialog.md`` §2, §12
-(state machine "Loading -> [*]: run has no result rows", EC-RT-1).
+(state machine "Loading -> [*]: run has no result rows", EC-RT-1); ``about_dialog.md``
+§2 (invoking surface); ``error_dialog.md`` §2 (invoking surface), §5 (three patterns).
 """
 
 import icontract
 from PySide6.QtWidgets import QDialog, QWidget
 
+from ollama_llm_bench.adapters.clipboard import Clipboard
 from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
     BenchmarkRun,
@@ -17,6 +19,9 @@ from ollama_llm_bench.backend.domain import (
     RunStartRequest,
 )
 from ollama_llm_bench.backend.events import EventBus
+from ollama_llm_bench.ui.common_dialogs._internal.about_select import select_about_view_model
+from ollama_llm_bench.ui.common_dialogs._internal.about_view import AboutDialog
+from ollama_llm_bench.ui.common_dialogs._internal.error_view import ErrorDialog
 from ollama_llm_bench.ui.common_dialogs._internal.generate_analysis_view import (
     GenerateAnalysisDialog,
 )
@@ -33,7 +38,12 @@ from ollama_llm_bench.ui.common_dialogs._internal.view import RunSummaryDialog
 from ollama_llm_bench.ui.common_dialogs._internal.view_model_select import (
     select_run_summary_view_model,
 )
-from ollama_llm_bench.ui.common_dialogs.models import GenerateAnalysisCollaborators
+from ollama_llm_bench.ui.common_dialogs.models import (
+    AboutDialogCollaborators,
+    ErrorDialogPattern,
+    ErrorDialogPayload,
+    GenerateAnalysisCollaborators,
+)
 from ollama_llm_bench.ui.common_dialogs.protocols import (
     RenameRunGateway,
     ResumeSummaryGateway,
@@ -44,12 +54,106 @@ from ollama_llm_bench.ui.new_benchmark.models import RunValidationSeverity, Vali
 from ollama_llm_bench.ui.new_benchmark.protocols import RunValidator
 
 __all__: list[str] = [
+    "make_about_dialog",
+    "make_error_dialog",
     "make_generate_analysis_dialog",
     "make_rename_run_dialog",
     "make_resume_summary_dialog",
     "make_retry_selection_dialog",
     "make_run_summary_dialog",
 ]
+
+
+@icontract.require(
+    lambda collaborators: collaborators is not None, "collaborators is a required bundle"
+)
+@icontract.require(
+    lambda collaborators: collaborators.event_bus is not None,
+    "collaborators.event_bus is a required collaborator",
+)
+@icontract.require(
+    lambda data_folder_path: len(data_folder_path) > 0,
+    "data_folder_path must be already resolved by the caller's path service",
+)
+@icontract.ensure(lambda result: isinstance(result, QDialog))
+def make_about_dialog(
+    *,
+    collaborators: AboutDialogCollaborators,
+    version: str | None,
+    data_folder_path: str,
+    parent: QWidget | None = None,
+) -> QDialog:
+    """Build the About dialog (about_dialog.md).
+
+    Pure presentation -- the caller resolves ``data_folder_path`` from the
+    path service and the injected build ``version`` before calling this
+    factory; the dialog itself performs no resolution.
+
+    Args:
+        collaborators: The ``Clipboard``, ``FileSystemActions``, and
+            ``EventBus`` this dialog depends on (D-R-06; coding-style.md's
+            4-parameter rule) -- the event bus backs the folder-action
+            confirmation/failure toasts (§6.1, §8, §11).
+        version: The injected build-time version string, or ``None``/empty
+            when none was injected (EC-AB-6 -- the version line is omitted).
+        data_folder_path: The resolved, absolute application-data folder path.
+        parent: The dialog's parent widget, if any.
+
+    Returns:
+        The constructed, unshown ``QDialog``.
+    """
+    view_model = select_about_view_model(version=version, data_folder_path=data_folder_path)
+    return AboutDialog(
+        clipboard=collaborators.clipboard,
+        file_system_actions=collaborators.file_system_actions,
+        event_bus=collaborators.event_bus,
+        view_model=view_model,
+        parent=parent,
+    )
+
+
+@icontract.require(lambda payload: payload is not None, "payload is a required collaborator")
+@icontract.require(lambda clipboard: clipboard is not None, "clipboard is a required collaborator")
+@icontract.require(lambda event_bus: event_bus is not None, "event_bus is a required collaborator")
+@icontract.require(
+    lambda payload: (
+        payload.pattern != ErrorDialogPattern.ACTION_AVAILABLE or payload.action is not None
+    ),
+    "an action-available payload must carry a recovery action",
+)
+@icontract.require(
+    lambda payload: (
+        payload.pattern != ErrorDialogPattern.FATAL or payload.quit_callback is not None
+    ),
+    "a fatal payload must carry a quit_callback",
+)
+@icontract.ensure(lambda result: isinstance(result, QDialog))
+def make_error_dialog(
+    *,
+    payload: ErrorDialogPayload,
+    clipboard: Clipboard,
+    event_bus: EventBus,
+    parent: QWidget | None = None,
+) -> QDialog:
+    """Build the generic Error dialog (error_dialog.md).
+
+    Pure presentation of a caller-supplied payload, rendered verbatim in one
+    of the three fixed patterns (§5) -- performs no redaction and derives no
+    content (§6-§7).
+
+    Args:
+        payload: The title/message/detail/pattern/action/quit_callback the
+            Notification Service (or its caller) assembled.
+        clipboard: The OS clipboard adapter backing Copy Details (§9,
+            EC-ERR-6).
+        event_bus: Emits the Copy Details confirmation/failure toast (§9,
+            EC-ERR-6).
+        parent: The dialog's parent widget, if any.
+
+    Returns:
+        The constructed, unshown ``QDialog``.
+    """
+    return ErrorDialog(payload=payload, clipboard=clipboard, event_bus=event_bus, parent=parent)
 
 
 @icontract.require(lambda gateway: gateway is not None, "gateway is a required collaborator")

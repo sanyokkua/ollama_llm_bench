@@ -1,16 +1,20 @@
 """Frozen ViewModel structs for ``ui/common_dialogs/`` -- Run Summary (STORY-055) and
-Resume Summary / Retry Selection (STORY-057), plus the Generate Analysis dialog's
-collaborator bundle (STORY-065).
+Resume Summary / Retry Selection (STORY-057), the Generate Analysis dialog's
+collaborator bundle (STORY-065), and the About / Error dialogs (STORY-070).
 
 Source of truth: ``docs/v3_specification/07_Common_Dialogs/run_summary_dialog.md``
 §3-§7; ``resume_summary_dialog.md`` §3-§7; ``retry_selection_dialog.md`` §4, §6, §7;
-``generate_analysis_dialog.md`` §4.
+``generate_analysis_dialog.md`` §4; ``about_dialog.md`` §4-§6; ``error_dialog.md`` §2,
+§5-§6.
 """
 
+from collections.abc import Callable
 from enum import StrEnum
 
 import msgspec
 
+from ollama_llm_bench.adapters.clipboard import Clipboard
+from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.backend.domain import ResultId, RunId, RunMode, TaskIdStr
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.backend.run_drift import DriftWarning
@@ -19,6 +23,11 @@ from ollama_llm_bench.ui.shared.model_dropdown import ModelFetcher
 from ollama_llm_bench.ui.shared.provider_dropdown import ProviderListSource
 
 __all__: list[str] = [
+    "AboutDialogCollaborators",
+    "AboutDialogViewModel",
+    "ErrorDialogAction",
+    "ErrorDialogPattern",
+    "ErrorDialogPayload",
     "GenerateAnalysisCollaborators",
     "ResumeSummaryViewModel",
     "RetryFilterOption",
@@ -27,6 +36,87 @@ __all__: list[str] = [
     "RunSummaryViewModel",
     "TaskPickerRow",
 ]
+
+
+class AboutDialogCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Dependency bundle for ``make_about_dialog`` (coding-style.md's 4-parameter
+    hard maximum).
+
+    ``event_bus`` backs the Copy-path / Open-folder / repository-link
+    confirmation and failure toasts (about_dialog.md §6.1, §8, §11 --
+    EC-AB-2, EC-AB-3, EC-AB-7).
+    """
+
+    clipboard: Clipboard
+    file_system_actions: FileSystemActions
+    event_bus: EventBus
+
+
+class AboutDialogViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The About dialog's full displayed state, in one frozen snapshot (§4-§5).
+
+    Attributes:
+        app_name: The application's display name, rendered as the identity
+            block's heading.
+        version: The injected build-version string, or ``None`` when no
+            version was injected at build time -- the version line is then
+            omitted entirely (EC-AB-6).
+        description: The fixed muted description of what the application is.
+        repository_url: The fixed build-time GitHub repository URL.
+        data_folder_path: The resolved, absolute application-data folder
+            path, as reported by the path service.
+    """
+
+    app_name: str
+    version: str | None
+    description: str
+    repository_url: str
+    data_folder_path: str
+
+
+class ErrorDialogPattern(StrEnum):
+    """The Error dialog's three fixed patterns (error_dialog.md §5).
+
+    A UI-local closed value domain describing *how the dialog renders*,
+    distinct from ``backend.errors.ErrorCategory``, which classifies *why an
+    error happened*. The two are never conflated or reused for each other.
+    """
+
+    RECOVERABLE = "recoverable"
+    ACTION_AVAILABLE = "action_available"
+    FATAL = "fatal"
+
+
+class ErrorDialogAction(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The action-available pattern's caller-supplied recovery action (§5.2)."""
+
+    label: str
+    callback: Callable[[], None]
+
+
+class ErrorDialogPayload(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The caller-supplied Error dialog payload (error_dialog.md §2), rendered
+    verbatim with no redaction and no derivation (§6, §7).
+
+    Attributes:
+        title: The dialog's heading -- a short statement of what failed.
+        message: A one- or two-sentence plain-language description.
+        detail: The redacted diagnostic text, or ``None`` when the error is
+            self-explanatory (EC-ERR-1) -- omits the detail block and the
+            Copy Details button entirely.
+        pattern: One of the three fixed patterns (§5).
+        action: The recovery action, required when ``pattern`` is
+            ``ACTION_AVAILABLE`` (§5.2).
+        quit_callback: The clean-shutdown callback, required when ``pattern``
+            is ``FATAL`` (§5.3).
+    """
+
+    title: str
+    message: str
+    detail: str | None
+    pattern: ErrorDialogPattern
+    action: ErrorDialogAction | None = None
+    quit_callback: Callable[[], None] | None = None
 
 
 class GenerateAnalysisCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=False):

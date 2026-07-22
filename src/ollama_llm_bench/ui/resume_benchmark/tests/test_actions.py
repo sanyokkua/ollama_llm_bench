@@ -464,11 +464,17 @@ class _FakeFileSystemActions:
         self._path_str = path_str
         self._raises = raises
         self.opened_path: str | None = None
+        self.opened_url: str | None = None
 
     def open_in_file_manager(self, path: str) -> None:
         if self._raises:
             raise OsAdapterError(message="boom")
         self.opened_path = path
+
+    def open_url(self, url: str) -> None:
+        if self._raises:
+            raise OsAdapterError(message="boom")
+        self.opened_url = url
 
     def run_log_exists(self, *, run_id: int, started_at: str) -> bool:
         return True

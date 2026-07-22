@@ -565,3 +565,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   boundary rules hold throughout; no `setStyleSheet`, colour literal, or literal secret reaches
   the working-copy `ProviderConfig`. Per `06_Settings_Dialog/description.md` §§1.2, 1.4, 3.2–3.4,
   `sub_dialogs/provider_edit.md` §§5.1, 8.2, 9, and `08-E` §§7b.6, 13.
+
+- About dialog and generic Error dialog (`ui/common_dialogs/`): two pure-presentation factory
+  functions — `make_about_dialog(collaborators, version, data_folder_path, parent)` and
+  `make_error_dialog(payload, clipboard, event_bus, parent)` — plus supporting DTOs
+  `AboutDialogCollaborators`, `AboutDialogViewModel`, `ErrorDialogPayload`, `ErrorDialogPattern(StrEnum)`
+  (RECOVERABLE / ACTION_AVAILABLE / FATAL), and `ErrorDialogAction`. The About dialog renders the
+  application identity block (name, optional build version, description, repository link), the
+  application-data-folder path row with Copy-path and Open-folder actions, and emits confirmation
+  and failure toasts on the injected `EventBus`. The Error dialog renders a caller-supplied payload
+  in one of three fixed patterns with pattern-specific footer button sets: recoverable and
+  action-available patterns include an optional Copy Details button; the fatal pattern includes only
+  a destructive Quit button with no Close or Escape. Both dialogs remain open after actions (Copy,
+  Open-folder, repository link) and are fully usable on `OsAdapterError` failures; folder-action and
+  copy-details failures emit matching failure toasts. Wiring into `compose.py` and connection to the
+  Main Window About menu action or the Notification Service are deferred to later stories. File system
+  actions adapter gains a new `open_url(url)` method (raises `OsAdapterError`) for opening the
+  repository link in the user's default browser. Per `07_Common_Dialogs/about_dialog.md` §§4–6, 11;
+  `error_dialog.md` §§5–6, 9, 12; and `08-E` §21c.
