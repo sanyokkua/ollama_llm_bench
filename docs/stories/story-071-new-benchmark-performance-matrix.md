@@ -1,7 +1,7 @@
 ---
 id: STORY-071
 title: Replace the New Benchmark performance-matrix stubs with real size and repeats controls and a live task-count estimate
-status: in-progress
+status: done
 spec_clauses:
   - 02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only
   - 02_New_Benchmark_Widget/description.md#6-validation-rules
