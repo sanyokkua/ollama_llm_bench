@@ -177,9 +177,15 @@ shown.
   effect: if a line's only occurrence of a search term is inside a raw entity — for example the
   term "amp" appearing only as part of the literal text `&amp;` — the filter still keeps that line
   visible (a tag-stripped-text match), but the highlighter finds no un-entity-decoded occurrence to
-  mark, so the line shows with zero highlighted spans. Fixing this requires changing
-  `filter_search`'s matching semantics to also decode entities, which is a change to STORY-060's
-  existing behaviour and is left for a future story rather than folded in here.
+  mark, so the line shows with zero highlighted spans. The same divergence has a second, equally
+  narrow variant found in the final whole-branch review: the filter matches against the line's
+  *concatenated* tag-stripped text, while the highlighter matches each between-tags text segment
+  independently — so a term that straddles a markup-tag boundary (e.g. spanning the end of a tone
+  span and the text after it) also keeps the line visible while producing zero marks. Fixing both
+  requires changing `filter_search`'s matching semantics (decode entities and match per visible
+  segment, or have the highlighter match across segments), which is a change to STORY-060's
+  existing behaviour and is left for a future story rather than folded in here; one unified
+  matching implementation shared by filter and highlighter would close both gaps at once.
 - Plan/test deviation: the implementation plan's originally drafted unit tests used the literal
   hex string `"#334455"` as a stand-in highlight-background value. The architecture scan
   `test_progress_embeds_no_colour_literal` in `tests/architecture/test_progress_boundaries.py`
