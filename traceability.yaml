@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T13:58:30Z'
+generated_at: '2026-07-22T14:15:24Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4645,6 +4645,8 @@ stories:
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_missing_input_or_output_size_disables_start[input]
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_missing_input_or_output_size_disables_start[output]
         - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_size_rule_prepends_entry_and_passes_through_inner
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_synthetic_validator_fires_on_none_config_and_empty_output[synthetic_with_empty_output_sizes]
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_synthetic_validation.py::test_synthetic_validator_fires_on_none_config_and_empty_output[synthetic_with_none_config]
       STORY-071-AC-5:
         tests:
         - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_synthetic_work_count_breakdown_with_analysis_off
