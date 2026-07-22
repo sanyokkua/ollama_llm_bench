@@ -70,6 +70,7 @@ __all__: list[str] = [
     "select_counters",
     "select_header",
     "select_judge_completed",
+    "select_judge_model_excluded",
     "select_judge_started",
     "select_model_stability_system_note",
     "select_model_switched",
@@ -620,10 +621,12 @@ def select_model_stability_system_note(event: ModelStabilityChangedEvent) -> Run
     """Map ``_model_stability_changed`` into a ``system`` note (description.md §8.3).
 
     No canonical text is spec-mandated for this particular system note (unlike the
-    judge-exclusion/pause/resume lines, which are out of this story's scope per its
-    own fifteen-signal subscription list) -- the descriptive text is carried on the
-    generic ``stage`` field, the only freeform display slot ``RunLogEvent`` offers
-    beyond the error/retry/judge-specific fields.
+    judge-exclusion line built by ``select_judge_model_excluded``, whose fixed §8.3
+    sentence is rendered by the log-formatting service, and the pause/resume lines,
+    which remain out of scope per this module's own log-source subscription list)
+    -- the descriptive text is carried on the generic ``stage`` field, the only
+    freeform display slot ``RunLogEvent`` offers beyond the error/retry/judge-specific
+    fields.
     """
     return RunLogEvent(
         kind=RunLogEventKind.SYSTEM,
@@ -640,4 +643,20 @@ def select_provider_registry_reloaded(event: ProviderRegistryReloadedEvent) -> R
     ``select_model_stability_system_note``'s docstring for why)."""
     return RunLogEvent(
         kind=RunLogEventKind.SYSTEM, timestamp=_log_timestamp(), stage=event.reload_cause
+    )
+
+
+def select_judge_model_excluded(
+    event: JudgeModelExcludedEvent, *, provider_name: str
+) -> RunLogEvent:
+    """Map ``_judge_model_excluded`` into the one-time ``judge_excluded`` line
+    (description.md §8.3, §12; EC-PROV-4b). ``provider_name`` is the judge
+    provider's display name resolved by the controller (DD-33)."""
+    return RunLogEvent(
+        kind=RunLogEventKind.JUDGE_EXCLUDED,
+        timestamp=_log_timestamp(),
+        provider_id=event.provider_id,
+        model_name=event.model_name,
+        provider_name=provider_name,
+        consecutive_timeouts=event.consecutive_timeouts,
     )

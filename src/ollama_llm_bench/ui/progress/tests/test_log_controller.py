@@ -22,6 +22,7 @@ from ollama_llm_bench.backend.events import (
     SIGNAL_INFERENCE_COMPLETED,
     SIGNAL_INFERENCE_STARTED,
     SIGNAL_JUDGE_COMPLETED,
+    SIGNAL_JUDGE_MODEL_EXCLUDED,
     SIGNAL_JUDGE_STARTED,
     SIGNAL_LOG_CLEARED,
     SIGNAL_MODEL_STABILITY_CHANGED,
@@ -38,6 +39,7 @@ from ollama_llm_bench.backend.events import (
     InferenceCompletedEvent,
     InferenceStartedEvent,
     JudgeCompletedEvent,
+    JudgeModelExcludedEvent,
     JudgeStartedEvent,
     LogClearedEvent,
     ModelStabilityChangedEvent,
@@ -52,6 +54,7 @@ from ollama_llm_bench.backend.events import (
     TaskCompletedEvent,
     TaskRetryEvent,
 )
+from ollama_llm_bench.backend.log_formatting import make_log_formatter
 from ollama_llm_bench.backend.log_formatting.testing import FakeLogFormatter
 from ollama_llm_bench.ui.progress._internal.controller import ProgressController
 from ollama_llm_bench.ui.progress._internal.log_controller import LogController
@@ -255,6 +258,35 @@ def _make_run(*, run_id: int) -> BenchmarkRun:
         total_elapsed_ms=1000,
         schema_version=1,
         created_at="2026-01-01T00:00:00Z",
+    )
+
+
+def _make_run_with_judge(*, run_id: int, judge_provider_name: str | None) -> BenchmarkRun:
+    return BenchmarkRun(
+        run_id=run_id,
+        run_name=None,
+        timestamp="2026-07-22T10:00:00+00:00",
+        run_mode=RunMode.GRADED,
+        status=RunStatus.INCOMPLETE,
+        total_tasks=4,
+        completed_tasks=1,
+        total_elapsed_ms=0,
+        judge_provider_id="0b6f9a2e-3c41-4b7e-9f1d-2a5c8e7d4f10",
+        judge_provider_name=judge_provider_name,
+        schema_version=1,
+        created_at="2026-07-22T10:00:00+00:00",
+    )
+
+
+def _judge_excluded_payload(*, run_id: int) -> JudgeModelExcludedEvent:
+    return JudgeModelExcludedEvent(
+        run_id=run_id,
+        provider_id="0b6f9a2e-3c41-4b7e-9f1d-2a5c8e7d4f10",
+        model_name="qwen3:8b",
+        consecutive_timeouts=3,
+        exclusion_reason="3 consecutive max-budget judge timeouts",
+        excluded_at=1_753_178_400_000,
+        remaining_tasks_affected=2,
     )
 
 
@@ -583,6 +615,133 @@ def test_log_updates_coalesce_under_rapid_event_bursts(
     # Assert -- far fewer repaints than events fired, reflecting the full burst
     assert len(captured) < event_count
     assert len(captured[-1].lines) == event_count
+
+
+# -- STORY-073: the sixteenth log-source signal, `_judge_model_excluded` --------
+
+
+def test_judge_model_excluded_appends_one_log_line(
+    qtbot: QtBot, fake_gateway: FakeProgressGateway, fake_event_bus: FakeEventBus
+) -> None:
+    """Proves: STORY-073-AC-1
+
+    Covers EC-PROV-4b: on `_judge_model_excluded` exactly one `judge_excluded`
+    line is appended, reading the canonical text with the judge provider's
+    display name and the consecutive-timeout count -- and a defensive
+    duplicate delivery of the same event appends no second line. Uses the
+    real `make_log_formatter()` (not `FakeLogFormatter`) so the asserted text
+    is the genuinely rendered line.
+    """
+    # Arrange
+    run_id = 7
+    fake_gateway.set_run(_make_run_with_judge(run_id=run_id, judge_provider_name="Local Ollama"))
+    view = ProgressView()
+    qtbot.addWidget(view)
+    controller = LogController(
+        gateway=fake_gateway, event_bus=fake_event_bus, log_formatter=make_log_formatter()
+    )
+    controller.bind(view)
+
+    # Act -- a duplicate delivery of the same event must not append a second line
+    fake_event_bus.emit(SIGNAL_JUDGE_MODEL_EXCLUDED, _judge_excluded_payload(run_id=run_id))
+    fake_event_bus.emit(SIGNAL_JUDGE_MODEL_EXCLUDED, _judge_excluded_payload(run_id=run_id))
+
+    # Assert
+    judge_lines = [
+        line for line in controller._rendered if line.kind == RunLogEventKind.JUDGE_EXCLUDED.value
+    ]
+    assert len(judge_lines) == 1
+    assert (
+        "Judge model 'Local Ollama' excluded: 3 consecutive max-budget timeouts. "
+        "Remaining tasks' judge phase will be skipped." in judge_lines[0].html
+    )
+
+
+def test_judge_model_excluded_falls_back_to_model_name_when_provider_name_missing(
+    qtbot: QtBot, fake_gateway: FakeProgressGateway, fake_event_bus: FakeEventBus
+) -> None:
+    """Proves: STORY-073-AC-1
+
+    When the run's `judge_provider_name` is `None`, the rendered line falls
+    back to the event's `model_name` -- never the internal provider UUID
+    (DD-33).
+    """
+    # Arrange
+    run_id = 8
+    fake_gateway.set_run(_make_run_with_judge(run_id=run_id, judge_provider_name=None))
+    view = ProgressView()
+    qtbot.addWidget(view)
+    controller = LogController(
+        gateway=fake_gateway, event_bus=fake_event_bus, log_formatter=make_log_formatter()
+    )
+    controller.bind(view)
+
+    # Act
+    fake_event_bus.emit(SIGNAL_JUDGE_MODEL_EXCLUDED, _judge_excluded_payload(run_id=run_id))
+
+    # Assert
+    judge_lines = [
+        line for line in controller._rendered if line.kind == RunLogEventKind.JUDGE_EXCLUDED.value
+    ]
+    assert len(judge_lines) == 1
+    assert "qwen3:8b" in judge_lines[0].html
+    assert "0b6f9a2e-3c41-4b7e-9f1d-2a5c8e7d4f10" not in judge_lines[0].html
+
+
+def test_judge_model_excluded_flag_resets_on_log_cleared(
+    qtbot: QtBot, fake_gateway: FakeProgressGateway, fake_event_bus: FakeEventBus
+) -> None:
+    """Proves: STORY-073-AC-1
+
+    The once-per-run `judge_excluded` flag is reset when the log is cleared
+    (`_on_log_cleared`), so a later `_judge_model_excluded` delivery within
+    the same controller instance still appends its canonical line rather
+    than being treated as a stale duplicate.
+    """
+    # Arrange
+    run_id = 9
+    fake_gateway.set_run(_make_run_with_judge(run_id=run_id, judge_provider_name="Local Ollama"))
+    log_formatter = FakeLogFormatter()
+    _controller, _view = _bind(
+        gateway=fake_gateway, event_bus=fake_event_bus, log_formatter=log_formatter, qtbot=qtbot
+    )
+    fake_event_bus.emit(SIGNAL_JUDGE_MODEL_EXCLUDED, _judge_excluded_payload(run_id=run_id))
+    calls_after_first = len(log_formatter.calls)
+
+    # Act
+    fake_event_bus.emit(SIGNAL_LOG_CLEARED, _log_cleared())
+    fake_event_bus.emit(SIGNAL_JUDGE_MODEL_EXCLUDED, _judge_excluded_payload(run_id=run_id))
+
+    # Assert -- the post-clear delivery produced a fresh `format_event` call
+    assert len(log_formatter.calls) == calls_after_first + 1
+
+
+def test_judge_model_excluded_flag_resets_on_load_past_run(
+    qtbot: QtBot, fake_gateway: FakeProgressGateway, fake_event_bus: FakeEventBus
+) -> None:
+    """Proves: STORY-073-AC-1
+
+    The once-per-run `judge_excluded` flag is also reset by `load_past_run`,
+    so switching to view a past run and then back to a live run does not
+    leave a stale flag suppressing that new run's own exclusion line.
+    """
+    # Arrange
+    run_id = 10
+    fake_gateway.set_run(_make_run_with_judge(run_id=run_id, judge_provider_name="Local Ollama"))
+    fake_gateway.set_past_log(run_id, "line one")
+    log_formatter = FakeLogFormatter()
+    _controller, _view = _bind(
+        gateway=fake_gateway, event_bus=fake_event_bus, log_formatter=log_formatter, qtbot=qtbot
+    )
+    fake_event_bus.emit(SIGNAL_JUDGE_MODEL_EXCLUDED, _judge_excluded_payload(run_id=run_id))
+    calls_after_first = len(log_formatter.calls)
+
+    # Act
+    _controller.load_past_run(run_id)
+    fake_event_bus.emit(SIGNAL_JUDGE_MODEL_EXCLUDED, _judge_excluded_payload(run_id=run_id))
+
+    # Assert -- the post-replay delivery produced a fresh `format_event` call
+    assert len(log_formatter.calls) == calls_after_first + 1
 
 
 # -- Pure-function tests for select.py's new Run Event Log helpers ----------------

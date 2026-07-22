@@ -2,7 +2,8 @@
 cached raw-event buffer, case-insensitive search, a view-only Clear action, a
 bounded buffer, persisted auto-scroll, the log-write-failure indicator, and
 past-run log replay (``04_Progress_Widget/implementation_structure.md`` §4.3;
-description.md §8; STORY-060-AC-1..6; EC-LOG-1, EC-LOG-3, EC-PERF-3, EC-PROV-4a).
+description.md §8; STORY-060-AC-1..6; STORY-073-AC-1; EC-LOG-1, EC-LOG-3,
+EC-PERF-3, EC-PROV-4a, EC-PROV-4b).
 
 Depends only on ``ProgressGateway``, ``EventBus``, and ``LogFormatter`` (D-R-06) --
 never builds HTML itself; every rendered line comes from ``LogFormatter.format_event``
@@ -38,6 +39,7 @@ from ollama_llm_bench.backend.events import (
     SIGNAL_INFERENCE_COMPLETED,
     SIGNAL_INFERENCE_STARTED,
     SIGNAL_JUDGE_COMPLETED,
+    SIGNAL_JUDGE_MODEL_EXCLUDED,
     SIGNAL_JUDGE_STARTED,
     SIGNAL_LOG_CLEARED,
     SIGNAL_MODEL_STABILITY_CHANGED,
@@ -54,6 +56,7 @@ from ollama_llm_bench.backend.events import (
     InferenceCompletedEvent,
     InferenceStartedEvent,
     JudgeCompletedEvent,
+    JudgeModelExcludedEvent,
     JudgeStartedEvent,
     LogClearedEvent,
     ModelStabilityChangedEvent,
@@ -75,6 +78,7 @@ from ollama_llm_bench.ui.progress._internal.select import (
     parse_max_lines,
     parse_run_log_verbosity,
     select_judge_completed,
+    select_judge_model_excluded,
     select_judge_started,
     select_model_stability_system_note,
     select_model_switched,
@@ -107,7 +111,7 @@ _LOG_COALESCE_MS: Final[int] = 50
 
 
 class LogController:
-    """Subscribes the fifteen log-source signals; caches every raw event and
+    """Subscribes the sixteen log-source signals; caches every raw event and
     renders one line per event via ``LogFormatter``."""
 
     def __init__(
@@ -131,6 +135,7 @@ class LogController:
         self._coalesce_scheduled = False
         self._coalesce_timer: QTimer | None = None
         self._past_run_lines: tuple[LogLineViewModel, ...] | None = None
+        self._judge_excluded_logged = False
         logger.debug(
             "log_controller_constructed", max_lines=max_lines, verbosity=self._verbosity.value
         )
@@ -157,6 +162,7 @@ class LogController:
             SIGNAL_PROVIDER_REGISTRY_RELOADED, self._on_provider_registry_reloaded, owner=view
         )
         bus.subscribe(SIGNAL_LOG_CLEARED, self._on_log_cleared, owner=view)
+        bus.subscribe(SIGNAL_JUDGE_MODEL_EXCLUDED, self._on_judge_model_excluded, owner=view)
         view.log_verbosity_changed.connect(self._on_verbosity_changed)
         view.log_search_changed.connect(self._on_search_changed)
         view.log_clear_clicked.connect(self._on_clear_clicked)
@@ -258,7 +264,21 @@ class LogController:
         self._rendered.clear()
         self._pending_completion.clear()
         self._past_run_lines = None
+        self._judge_excluded_logged = False
         self._push()
+
+    def _on_judge_model_excluded(self, payload: object) -> None:
+        if not isinstance(payload, JudgeModelExcludedEvent):
+            return
+        logger.debug("log_event_received", signal_name=SIGNAL_JUDGE_MODEL_EXCLUDED)
+        if self._judge_excluded_logged:
+            # EC-PROV-4b: the pipeline emits at most once per run; a defensive
+            # duplicate delivery must not append a second canonical line.
+            return
+        self._judge_excluded_logged = True
+        run = self._gateway.run_metadata(payload.run_id)
+        provider_name = run.judge_provider_name or payload.model_name
+        self._append_event(select_judge_model_excluded(payload, provider_name=provider_name))
 
     # -- View (toolbar) signal handlers ------------------------------------------
 
@@ -310,6 +330,7 @@ class LogController:
         logger.debug("log_load_past_run", run_id=run_id)
         self._cache.clear()
         self._pending_completion.clear()
+        self._judge_excluded_logged = False
         content = self._gateway.load_past_log(run_id)
         self._rendered = deque(
             (
