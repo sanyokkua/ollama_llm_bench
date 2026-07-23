@@ -10,9 +10,10 @@ Two complementary checks: (1) `_internal/units.py`'s attempt-builder functions
 (`build_inference_attempt`, `build_judge_attempt`) never import either stability
 service — a worker-submitted attempt callable has no way to reach them; (2) every
 stability-service method call anywhere under `backend/benchmark_pipeline/` (excluding
-tests) resolves to a source line inside `_internal/stability_dispatch.py` or
-`_internal/stability_phase.py` — both dispatcher-thread-only modules, invoked between
-row submissions in `run_phase_with_stability`, never from inside a unit passed to
+tests) resolves to a source line inside `_internal/stability_dispatch.py`,
+`_internal/stability_phase.py`, or `_internal/warmup.py` (STORY-075) — all
+dispatcher-thread-only modules, invoked between row submissions in
+`run_phase_with_stability`, never from inside a unit passed to
 `TaskRunner.submit()`.
 """
 
@@ -45,7 +46,9 @@ because every one of this module's actual call sites also calls at least one of 
 other breaker/service methods above in the same function.
 """
 
-_DISPATCHER_THREAD_ONLY_FILE_NAMES = frozenset({"stability_dispatch.py", "stability_phase.py"})
+_DISPATCHER_THREAD_ONLY_FILE_NAMES = frozenset(
+    {"stability_dispatch.py", "stability_phase.py", "warmup.py"}
+)
 
 
 def _iter_source_files() -> list[Path]:
@@ -87,10 +90,10 @@ def test_stability_service_methods_called_only_from_dispatcher_thread_modules() 
     Every call to a `next_budget`/`record_success`/`record_timeout`/`is_excluded`/
     `model_state`/`should_skip`/`record_failure`/`cooldown_remaining_seconds` method,
     anywhere under `backend/benchmark_pipeline/` (excluding colocated tests), resolves
-    to a source line inside `_internal/stability_dispatch.py` or
-    `_internal/stability_phase.py` — both dispatcher-thread-only modules. Every other
-    module (in particular the worker-submitted attempt builders in `_internal/units.py`)
-    contains no such call.
+    to a source line inside `_internal/stability_dispatch.py`,
+    `_internal/stability_phase.py`, or `_internal/warmup.py` (STORY-075) — all
+    dispatcher-thread-only modules. Every other module (in particular the
+    worker-submitted attempt builders in `_internal/units.py`) contains no such call.
     """
     # Arrange
     offending_calls: list[tuple[str, str]] = []

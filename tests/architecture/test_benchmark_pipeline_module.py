@@ -39,6 +39,10 @@ _STABILITY_DISPATCH_FILE_NAME = "stability_dispatch.py"
 thread — its per-attempt `Future.result()` call is the same "dispatcher blocks,
 worker never does" pattern as `dispatcher.py` itself, just factored into its own
 module (see `_internal/stability_dispatch.py`'s module docstring)."""
+_WARMUP_FILE_NAME = "warmup.py"
+"""STORY-075: the model-warmup orchestrator likewise runs on the dispatcher thread
+(invoked from `run_phase_with_stability`'s group loop) and blocks on its single
+worker-submitted chat unit via `Future.result()` — the same sanctioned pattern."""
 
 
 def _iter_source_files() -> list[Path]:
@@ -148,13 +152,16 @@ def test_only_dispatcher_module_calls_future_result() -> None:
     dispatcher thread's own modules, per this story's DD-38/DD-40 "dispatcher
     thread is the only sanctioned block-on-futures orchestrator" constraint
     (STORY-030 extends this to the stability-stack retry orchestrator, which
-    also runs on the dispatcher thread — see ``_internal/stability_dispatch.py``).
+    also runs on the dispatcher thread — see ``_internal/stability_dispatch.py``;
+    STORY-075 extends it to the model-warmup orchestrator in
+    ``_internal/warmup.py``, likewise dispatcher-thread-only).
     """
     # Arrange
     other_source_files = [
         source_file
         for source_file in _SOURCE_FILES
-        if source_file.name not in (_DISPATCHER_FILE_NAME, _STABILITY_DISPATCH_FILE_NAME)
+        if source_file.name
+        not in (_DISPATCHER_FILE_NAME, _STABILITY_DISPATCH_FILE_NAME, _WARMUP_FILE_NAME)
     ]
 
     # Act
