@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-22T20:56:15Z'
+generated_at: '2026-07-23T08:16:26Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4746,7 +4746,7 @@ stories:
         - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_search_filters_and_highlights_matches_case_insensitively
   STORY-074:
     title: Add the missing edge-case tests for double-admission, first-use model-load failure, and the model-snapshot DB invariants
-    status: ready
+    status: in-progress
     spec_clauses:
     - 01_Main_Window/description.md#16-edge-cases
     - 08_Cross_Cutting/08-I_edge_cases.md#EC-PERSIST-6
@@ -4765,7 +4765,8 @@ stories:
     - EC-RUN-1a
     acceptance_criteria:
       STORY-074-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_start_admission.py::test_double_start_admission_is_a_noop
       STORY-074-AC-2:
         tests: []
       STORY-074-AC-3:
@@ -7026,7 +7027,8 @@ edge_cases:
   EC-PERSIST-6:
     stories:
     - STORY-074
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_start_admission.py::test_double_start_admission_is_a_noop
   EC-PLAT-1:
     stories:
     - STORY-005
@@ -7172,7 +7174,8 @@ edge_cases:
     stories:
     - STORY-074
     - STORY-075
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_start_admission.py::test_double_start_admission_is_a_noop
   EC-PROV-3:
     stories:
     - STORY-058
@@ -8361,7 +8364,8 @@ edge_cases:
   EC-RUN-1a:
     stories:
     - STORY-074
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_start_admission.py::test_double_start_admission_is_a_noop
   EC-RUN-2:
     stories:
     - STORY-058

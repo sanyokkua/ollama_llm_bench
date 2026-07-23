@@ -1,7 +1,7 @@
 ---
 id: STORY-074
 title: Add the missing edge-case tests for double-admission, first-use model-load failure, and the model-snapshot DB invariants
-status: ready
+status: in-progress
 spec_clauses:
   - 08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-1a
   - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-1a
