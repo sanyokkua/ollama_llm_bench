@@ -139,11 +139,11 @@ corresponding test-role snapshot row.
 
 ## Test plan
 
-- STORY-074-AC-1 — unit (`pytest-qt`, fake gateway + real `InferenceActivityStore`), colocated
-  `src/ollama_llm_bench/ui/new_benchmark/tests/test_start_admission.py`,
+- STORY-074-AC-1 — integration (`pytest-qt`, fake gateway + real `InferenceActivityStore`),
+  `tests/integration/test_start_admission.py`,
   `test_double_start_admission_is_a_noop`. Covers EC-RUN-1a.
-- STORY-074-AC-2 — unit (`pytest-qt`, fake gateway + real `InferenceActivityStore`), colocated
-  `src/ollama_llm_bench/ui/resume_benchmark/tests/test_resume_admission.py`,
+- STORY-074-AC-2 — integration (`pytest-qt`, fake gateway + real `InferenceActivityStore`),
+  `tests/integration/test_resume_admission.py`,
   `test_double_resume_admission_is_a_noop_and_reset_is_idempotent`. Covers EC-RUN-1a.
 - STORY-074-AC-3 — integration, `tests/integration/test_first_use_model_load_failure.py`,
   `test_warmup_off_first_use_load_failure_marks_failed_and_advances`. Covers EC-PROV-1a.
@@ -262,3 +262,11 @@ next):**
    has updated any UI state), so driving admission #2 straight at the gateway seam is the correct
    way to exercise that race, and this approach was sanctioned by the story's own design constraints
    before the tests were written.
+
+1. **`scripts/trace.py`'s edge-case mapping is imprecise about which test proves which edge
+   case.** `scripts/trace.py`'s `_build_edge_cases_map` unions every AC's tests across a story
+   into each edge case the story claims, so `traceability.yaml` lists all of this story's tests
+   under each of EC-RUN-1a / EC-PROV-1a / EC-PERSIST-6 rather than only that EC's true proving
+   tests. Accurate-in-effect (each EC's genuine tests are present and `trace-check` passes) but
+   imprecise as a ledger; fixing the generator is outside this story's modules — recorded as a
+   `scripts/trace.py` follow-up.

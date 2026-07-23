@@ -1,7 +1,8 @@
 """Integration tests for model-snapshot singleton enforcement via SQLite partial unique indexes.
 
-Exercises the real ``RunsStore`` public surface and the underlying SQLite schema
-constraints against a real ``tmp_path`` SQLite database file, never ``:memory:``,
+Arranged through the real ``RunsStore`` public surface; the singleton enforcement is
+then proven by direct SQL against the database, bypassing application code
+deliberately, against a real ``tmp_path`` SQLite database file, never ``:memory:``,
 per ``testing.md``'s integration-tier rule.
 
 Source of truth: STORY-074 acceptance criteria AC-4.
