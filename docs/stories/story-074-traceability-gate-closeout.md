@@ -1,7 +1,7 @@
 ---
 id: STORY-074
 title: Add the missing edge-case tests for double-admission, first-use model-load failure, and the model-snapshot DB invariants
-status: in-progress
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-1a
   - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-1a
@@ -270,3 +270,22 @@ next):**
    tests. Accurate-in-effect (each EC's genuine tests are present and `trace-check` passes) but
    imprecise as a ledger; fixing the generator is outside this story's modules — recorded as a
    `scripts/trace.py` follow-up.
+
+1. **Spec-conformance review outcome (2026-07-23): conforms, with two recorded observations.**
+   The independent reviewer re-derived every acceptance criterion from the spec and passed all
+   five, with two reservations, both of which were anticipated and settled by this story's
+   implementation plan before the tests were written. First, the AC-1 test proves the second
+   Start admission creates no second run record and leaves the real gate held, but its fake
+   gateway models neither a result-row reset nor a pipeline start, so those two facets of the
+   criterion's wording are proven elsewhere — by the production `start` path (which returns the
+   sentinel before any persistence or dispatch) and by the pre-existing STORY-029 test in
+   `backend/benchmark_pipeline/tests/test_pause_stop.py` — rather than by this test alone.
+   Second, the reviewer noted the AC-2 reading of "the retry-row reset happens only after the
+   gate is held" (Notes item 1 above) is an effective rather than literal reading: the
+   user-elected dialog reset runs per admission attempt and is proven idempotent (the racing
+   second attempt resets zero rows), while only the stuck-row reset is gate-guarded. That
+   reading was an explicit, pre-ratified decision of the implementation plan, supported by the
+   spec's own "and is idempotent" wording, and production behaviour matches it. The reviewer
+   also re-confirmed the EC-PROV-1-prose-versus-taxonomy-table inconsistency already recorded
+   in Notes item 3, and observed that EC-PROV-1a itself defers to the table, so the AC-3 test
+   is not even in tension with its own edge case.

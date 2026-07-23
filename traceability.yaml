@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-23T09:28:10Z'
+generated_at: '2026-07-23T09:39:37Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4746,7 +4746,7 @@ stories:
         - src/ollama_llm_bench/ui/progress/tests/test_log_search_highlight.py::test_search_filters_and_highlights_matches_case_insensitively
   STORY-074:
     title: Add the missing edge-case tests for double-admission, first-use model-load failure, and the model-snapshot DB invariants
-    status: in-progress
+    status: done
     spec_clauses:
     - 01_Main_Window/description.md#16-edge-cases
     - 08_Cross_Cutting/08-I_edge_cases.md#EC-PERSIST-6
