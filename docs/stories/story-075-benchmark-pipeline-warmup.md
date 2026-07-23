@@ -297,3 +297,26 @@ integration test for AC-5 supplies `benchmark.warmup_enabled=true` via the mocke
 in a snapshot fixture, because that is how `lifecycle.py` actually reads the frozen flag in
 production (a `SettingsService` call scoped to the run, not a direct snapshot-object attribute
 read). Matching the real read path keeps the test honest about what production code calls.
+
+**Discovered pre-existing deviation (final whole-branch review, 2026-07-23): per-task timeout
+exhaustion still feeds the circuit breaker.** `_internal/stability_dispatch.py` (the STORY-030
+per-task path, untouched by this story) calls `circuit_breaker.record_failure(provider_id)` when
+a task's own adaptive ladder exhausts with a timeout, before settling the row `FAILED_TIMEOUT`.
+`08_CIRCUIT_BREAKER.md` §6.4 says a `FAILED_TIMEOUT` task does **not** count toward the breaker
+(MISS-25), and §6.9 says the breaker's timeout-based signal comes **exclusively** from the
+model-switch warmup — the exclusivity this story's spec inputs restate. The same call site also
+fires for role=JUDGE ladder exhaustion. No existing test pins the deviant behaviour. This story's
+warmup code conforms to §6.4/§6.9; the conflict is pre-existing and out of this story's declared
+scope ("this story only calls `record_failure`"). Follow-up story needed: remove that per-task
+`record_failure` call and pin §6.4/§6.9 exclusivity with a test covering both the INFERENCE and
+JUDGE ladder-exhaustion paths.
+
+**Consolidated test-harness follow-up.** Three related cleanups are queued as one future
+"pipeline/integration test-harness consolidation" item rather than scattered notes: (1) the AC-5
+integration test duplicates the STORY-074 sibling's local harness helpers (`_InlineRunDispatcher`,
+`_synchronous_submit`, `_make_task`, `_make_run_start_request`) verbatim — third occurrence of
+this pattern, strengthening the case for a shared `tests/integration/` conftest extraction;
+(2) `test_warmup.py`'s `_RecordingResultsStore` hand-wraps the full `ResultsStore` Protocol where
+a `FakeResultsStore` subclass overriding `update_result` would do; (3) AC-4's `retry_count=1`
+case sleeps one real jittered retry backoff (0.5–1.5 s) — same shape as STORY-074's AC-3
+follow-up; a zero-jitter injectable retry policy for tests would fix both.
