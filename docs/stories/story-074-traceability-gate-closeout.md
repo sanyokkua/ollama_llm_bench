@@ -155,13 +155,13 @@ corresponding test-role snapshot row.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-074.
-- [ ] EC-RUN-1a, EC-PROV-1a, and EC-PERSIST-6 each have a passing proving test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] `just trace` regenerates the record and the three edge cases resolve to their proving tests
+- [x] Every acceptance criterion has a passing test that names STORY-074.
+- [x] EC-RUN-1a, EC-PROV-1a, and EC-PERSIST-6 each have a passing proving test.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] `just trace` regenerates the record and the three edge cases resolve to their proving tests
   (no orphan test for STORY-074).
-- [ ] The module inventory is unchanged.
-- [ ] `just trace-check` passes with zero failures — the mapping/catalog correction landed on
+- [x] The module inventory is unchanged.
+- [x] `just trace-check` passes with zero failures — the mapping/catalog correction landed on
   2026-07-22 (see Notes), so once this story's proving tests exist no structural failure remains.
 
 ## Notes
@@ -200,3 +200,65 @@ and should be its own `backend/benchmark_pipeline/` story.
   STORY-069) uses `TaskFileValidator` directly and no `ValidationCascade` Protocol exists.
 - The Main Window factory's additive `theme_manager` / `platform_kind` parameters are documented
   only in a module docstring, with no story or ADR recording the additive deviation.
+
+**Task 6 gate-closeout bookkeeping (recorded for the tester and spec-conformance-reviewer that run
+next):**
+
+1. **AC-2 reset-ordering reading.** The post-gate reset that EC-RUN-1a requires is the
+   lifecycle's stuck-row reset — the reset that runs after the run has already acquired the
+   single-inference gate, verified in production at the resume path in `lifecycle.py`. Separately,
+   the Resume dialog itself resets the rows the user has chosen to retry, and that reset
+   legitimately runs once per admission attempt (it is a user-elected action, not the gate-guarded
+   one). The new test proves that dialog-level reset is idempotent across two admission attempts:
+   the first attempt resets the retry rows, and a second attempt racing right behind it resets zero
+   rows the second time, because the run is already underway. Production behaviour matched this
+   reading exactly — nothing needed to change and nothing was escalated.
+
+1. **AC-5's test lives in `tests/architecture/`, which is unusual for that directory.** Every other
+   test in `tests/architecture/` scans source code (import rules, naming conventions, and similar
+   static checks); this new test instead opens a real SQLite database and checks a data invariant —
+   that every row in the `benchmark_results` table has a matching `role='test'` model-snapshot row.
+   This is a deliberate exception, not an oversight: the spec's own edge-case-to-test mapping for
+   EC-PERSIST-6 explicitly assigns this check to the "architecture" test tier even though it is
+   DB-backed, so the test was placed there to match the spec rather than the directory's usual
+   convention.
+
+1. **AC-3's failure classification differs from what the original story draft expected, and the
+   difference is intentional.** The draft assumed a model that fails to load would produce a
+   `ModelNotAvailableError` classified as `FAILED_INFERENCE` (an `ErrorKind.LLM` problem). Instead,
+   the binding error-classification table for this exact scenario
+   (`docs/v3_specification/11_Services_and_Algorithms/17_ERROR_TAXONOMY.md`, section 6.3) says this
+   case must be classified as `PROVIDER` / `FAILED_PROVIDER`, and that is what the production code
+   actually does — so the new test asserts the `FAILED_PROVIDER` outcome, matching both the spec
+   table and the real behaviour. The test also distinguishes two situations by counting how many
+   times the fake model-serving call is made: 8 calls means the pipeline exhausted its retries on a
+   transient server error, and 2 calls means it hit a non-retryable error and gave up immediately.
+   One loose end worth flagging for anyone reading the spec later: a different spec document
+   (`08-I_edge_cases.md`, the EC-PROV-1 edge-case description) says in prose that a 404-style
+   failure should become `FAILED_INFERENCE`, which conflicts with the classification table. Per this
+   project's error-handling rules, the classification table is the authoritative source when the
+   two disagree, so the table's answer (`FAILED_PROVIDER`) is what the test and the production code
+   follow. No spec file was edited to resolve this; it is recorded here as a known internal
+   inconsistency in the spec.
+
+1. **AC-1 and AC-2's tests ended up in `tests/integration/` instead of the colocated location the
+   plan originally named.** The plan called for placing them under
+   `src/ollama_llm_bench/ui/new_benchmark/tests/` and `src/ollama_llm_bench/ui/resume_benchmark/tests/`
+   alongside the widget code they exercise. That is not possible here: this codebase has an
+   architecture test (`tests/architecture/test_ui_gate_access.py`, from STORY-043) that forbids any
+   file under `ui/**` from importing the single-inference gate module
+   (`backend.stores.inference_activity`) directly, and these two new tests must construct and use a
+   real gate to prove the no-op behaviour. Per this project's testing rules, a test that exercises
+   behaviour spanning two modules (a UI widget and the backend gate) belongs in `tests/integration/`,
+   not colocated with just one side. Both files were moved there; nothing about what they assert
+   changed, and the architecture scan itself was not touched.
+
+1. **Both admission tests trigger the "second" admission by calling the gateway directly, not by
+   simulating a second button click, and that is intentional.** In production, the Start/Resume
+   button visually disables itself the instant the gate is acquired (it reacts to a gate-changed
+   event), so a real second click can never actually reach the gateway — the button is already
+   disabled by the time a second click could land. The genuine race the edge case is worried about
+   is at the gateway itself (two admissions arriving at the gate function back-to-back before either
+   has updated any UI state), so driving admission #2 straight at the gateway seam is the correct
+   way to exercise that race, and this approach was sanctioned by the story's own design constraints
+   before the tests were written.
