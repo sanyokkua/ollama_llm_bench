@@ -196,12 +196,15 @@ failure to the circuit breaker.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-075.
-- [ ] EC-PROV-1a's warmup-on facet has a passing test (STORY-075-AC-5).
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/benchmark_pipeline/`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-075.
-- [ ] The module inventory is unchanged (warmup lives inside the existing
+- [x] Every acceptance criterion has a passing test that names STORY-075.
+- [x] EC-PROV-1a's warmup-on facet has a passing test (STORY-075-AC-5).
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/benchmark_pipeline/`.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-075.
+- [x] The module inventory is unchanged (warmup lives inside the existing
   `backend/benchmark_pipeline/` module's `_internal/`).
+- [ ] Tester pass complete (independent test review/hardening).
+- [ ] Spec-conformance-reviewer pass complete.
+- [ ] Story status flipped to `done`.
 
 ## Notes
 
@@ -256,3 +259,41 @@ during story review and settled as follows; the coder implements these values, n
    confirmation: emit an ordinary `run.*` structlog line at warmup start and settle (no new
    event-bus kind, no UI surface); silent-running hides a potentially multi-second model load from
    the run log.
+
+## Notes (implementation, 2026-07-23)
+
+**Observability question settled silent at kickoff.** The open question above was settled
+**silent** at kickoff on 2026-07-23: warmup emits no structlog line and no new event-bus kind.
+The earlier "emit an ordinary `run.*` structlog line" recommendation was withdrawn once the
+pipeline's actual logging shape was checked — the benchmark pipeline emits no structlog calls at
+all, and the per-run log file is built exclusively from `EventBus` events, so a plain structlog
+line at warmup start would never reach the run log as wired; it would be dead code producing
+output nobody reads. Making warmup visible in the run log is a future story's job, and it should
+add a spec-sanctioned event-bus kind (not a structlog call) so the visibility actually lands where
+users look.
+
+**AC-5 proves the breaker trip through row outcomes, not a stability event.** STORY-075-AC-5's
+test asserts the circuit breaker trips by checking that the affected group's `BenchmarkResult`
+rows settle `FAILED_PROVIDER` with the breaker-skip message, not by asserting a
+`_model_stability_changed` `TRIPPED` event on the event bus. That event is currently emitted only
+from the `JUDGE_CHECK` phase's stability-dispatch path, never from `Phase.INFERENCE` where warmup
+lives — a pre-existing gap in the stability-event wiring, not something this story introduced.
+Wiring the stability-changed event into the `INFERENCE` phase so a warmup-triggered trip also
+surfaces there is a follow-up candidate for a future story.
+
+**Two dispatcher-thread-only architecture-scan allowlists extended.**
+`tests/architecture/test_benchmark_pipeline_module.py` and
+`tests/architecture/test_stability_dispatcher_thread_only.py` both allowlist
+`_internal/warmup.py` alongside the existing `_internal/stability_dispatch.py` entry. Warmup runs
+on the pipeline dispatcher thread and blocks on the single unit it submits to the `TaskRunner`
+worker pool — the same sanctioned "dispatcher submits, worker executes one blocking call, breaker
+and adaptive-timeout state are touched only back on the dispatcher thread" pattern the stability
+dispatcher already uses, so it needed the same allowlist entries rather than a new exception
+shape.
+
+**AC-5's `warmup_enabled` flag is read through the mocked `SettingsService` seam.** The
+integration test for AC-5 supplies `benchmark.warmup_enabled=true` via the mocked
+`SettingsService.get_bool("benchmark.warmup_enabled", run=run)` call rather than a raw dict entry
+in a snapshot fixture, because that is how `lifecycle.py` actually reads the frozen flag in
+production (a `SettingsService` call scoped to the run, not a direct snapshot-object attribute
+read). Matching the real read path keeps the test honest about what production code calls.

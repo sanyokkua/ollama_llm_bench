@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-23T12:32:14Z'
+generated_at: '2026-07-23T13:16:08Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2181,6 +2181,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/units.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[api.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[models.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[protocols.py]
@@ -2202,6 +2203,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stage_preserving_retry.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_units.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/containment.py]
@@ -2215,6 +2217,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/units.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[api.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[models.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[protocols.py]
@@ -2236,6 +2239,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stage_preserving_retry.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_units.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/__init__.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/containment.py]
@@ -2249,6 +2253,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/units.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[api.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[models.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[protocols.py]
@@ -2270,6 +2275,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stage_preserving_retry.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_units.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_warmup.py]
       STORY-029-AC-2:
         tests:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_serial_execution.py::test_at_most_one_unit_in_flight_and_persist_before_next
@@ -4798,17 +4804,26 @@ stories:
     - EC-PROV-1a
     acceptance_criteria:
       STORY-075-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_fires_once_before_first_task_inference_when_enabled
       STORY-075-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_off_issues_no_warmup_and_runs_first_task_directly
       STORY-075-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model[model_error-0]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model[success-0]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model[timeout-1]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model[transport_error-1]
       STORY-075-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_budget_read_from_role_inference_ladder
       STORY-075-AC-5:
-        tests: []
+        tests:
+        - tests/integration/test_warmup_on_first_use_model_load_failure.py::test_warmup_timeout_for_unloadable_model_records_provider_failure
       STORY-075-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_hard_stop_at_warmup_halts_run_and_reports_no_breaker_outcome
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -7189,6 +7204,14 @@ edge_cases:
     - STORY-074
     - STORY-075
     tests:
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_hard_stop_at_warmup_halts_run_and_reports_no_breaker_outcome
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_budget_read_from_role_inference_ladder
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_fires_once_before_first_task_inference_when_enabled
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_off_issues_no_warmup_and_runs_first_task_directly
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model[model_error-0]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model[success-0]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model[timeout-1]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model[transport_error-1]
     - src/ollama_llm_bench/backend/persistence/runs/tests/test_model_snapshot_singletons.py::test_second_judge_or_embedding_row_raises_unique_violation[second-embedding-row]
     - src/ollama_llm_bench/backend/persistence/runs/tests/test_model_snapshot_singletons.py::test_second_judge_or_embedding_row_raises_unique_violation[second-judge-row]
     - tests/architecture/test_results_reference_test_snapshot.py::test_every_result_matches_a_test_role_snapshot_row
@@ -7197,6 +7220,7 @@ edge_cases:
     - tests/integration/test_first_use_model_load_failure.py::test_warmup_off_first_use_load_failure_marks_failed_and_advances[transient-load-failure-exhausts-retries]
     - tests/integration/test_resume_admission.py::test_double_resume_admission_is_a_noop_and_reset_is_idempotent
     - tests/integration/test_start_admission.py::test_double_start_admission_is_a_noop
+    - tests/integration/test_warmup_on_first_use_model_load_failure.py::test_warmup_timeout_for_unloadable_model_records_provider_failure
   EC-PROV-3:
     stories:
     - STORY-058
