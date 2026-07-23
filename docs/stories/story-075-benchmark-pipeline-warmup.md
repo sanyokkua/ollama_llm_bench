@@ -202,7 +202,7 @@ failure to the circuit breaker.
 - [x] The traceability record validates with no orphan clause and no orphan test for STORY-075.
 - [x] The module inventory is unchanged (warmup lives inside the existing
   `backend/benchmark_pipeline/` module's `_internal/`).
-- [ ] Tester pass complete (independent test review/hardening).
+- [x] Tester pass complete (independent test review/hardening).
 - [ ] Spec-conformance-reviewer pass complete.
 - [ ] Story status flipped to `done`.
 
