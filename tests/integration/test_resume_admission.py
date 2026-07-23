@@ -1,4 +1,12 @@
-"""Colocated Resume-admission tests (STORY-074, EC-RUN-1a)."""
+"""Integration tests: Resume-admission gate arbitration for the Resume Benchmark widget
+(STORY-074, EC-RUN-1a).
+
+These build a real ``InferenceActivityStore`` to prove gate arbitration end-to-end, which
+requires importing ``backend.stores.inference_activity`` directly -- a real cross-module
+dependency forbidden inside ``ui/``'s colocated ``tests/`` (no file under ``ui/`` may import
+that module; see ``tests/architecture/test_ui_gate_access.py``) -- so these live in
+``tests/integration/`` instead (testing-standard-pyqt skill; 07_TESTING_STANDARD.md layout).
+"""
 
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, cast

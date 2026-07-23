@@ -1,5 +1,15 @@
-"""Colocated Start-admission tests for the New Benchmark widget (STORY-074, EC-RUN-1a)."""
+"""Integration tests: Start-admission gate arbitration for the New Benchmark widget
+(STORY-074, EC-RUN-1a).
 
+These build a real ``InferenceActivityStore`` to prove gate arbitration end-to-end, which
+requires importing ``backend.stores.inference_activity`` directly -- a real cross-module
+dependency forbidden inside ``ui/``'s colocated ``tests/`` (no file under ``ui/`` may import
+that module; see ``tests/architecture/test_ui_gate_access.py``) -- so these live in
+``tests/integration/`` instead (testing-standard-pyqt skill; 07_TESTING_STANDARD.md layout),
+mirroring ``tests/integration/test_new_benchmark_start.py``'s local test-double idiom.
+"""
+
+from collections.abc import Callable
 from typing import cast
 
 from PySide6.QtCore import Qt, QTimer
@@ -18,8 +28,11 @@ from ollama_llm_bench.backend.domain import (
     ProviderType,
     ReadinessState,
     RunId,
+    RunMode,
     RunStartRequest,
 )
+from ollama_llm_bench.backend.events import EventBus, Subscription
+from ollama_llm_bench.backend.mode_visibility import visible_sections
 from ollama_llm_bench.backend.stores.inference_activity import (
     InferenceActivityStore,
     make_inference_activity_store,
@@ -28,8 +41,7 @@ from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader
 from ollama_llm_bench.ui.new_benchmark import NewBenchmarkCollaborators, make_new_benchmark_widget
 from ollama_llm_bench.ui.new_benchmark._internal.view import NewBenchmarkView
 from ollama_llm_bench.ui.new_benchmark.testing import FakeNewBenchmarkGateway, FakeRunValidator
-from ollama_llm_bench.ui.new_benchmark.tests.conftest import FakeEventBus
-from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
+from ollama_llm_bench.ui.theme import PlatformKind, ThemeSetting, make_theme_manager
 
 _PROVIDER_OTHER_ID = "eeeeeeee-0000-4000-8000-000000000000"
 _PROVIDER_OTHER = ProviderConfig(
@@ -81,6 +93,40 @@ class _FixedClock:
         return 0
 
 
+class _FakeSubscription:
+    """A cancellable handle mirroring the real EventBus's Subscription contract."""
+
+    def __init__(self, cancel_fn: Callable[[], None]) -> None:
+        self._cancel_fn = cancel_fn
+
+    def cancel(self) -> None:
+        self._cancel_fn()
+
+
+class _FakeEventBus:
+    """A synchronous, in-process EventBus test double, local to this integration test."""
+
+    def __init__(self) -> None:
+        self._handlers: dict[str, list[Callable[[object], None]]] = {}
+
+    def subscribe(
+        self, signal_name: str, handler: Callable[[object], None], owner: object | None = None
+    ) -> Subscription:
+        self._handlers.setdefault(signal_name, []).append(handler)
+        return _FakeSubscription(lambda: self._handlers[signal_name].remove(handler))
+
+    def emit(self, signal_name: str, payload: object) -> None:
+        for handler in list(self._handlers.get(signal_name, [])):
+            handler(payload)
+
+
+class _RealBackedModeVisibilityPolicy:
+    """Wraps the real backend.mode_visibility.visible_sections."""
+
+    def visible_sections(self, mode: RunMode) -> tuple:  # type: ignore[type-arg]  # matches Protocol's bare tuple return
+        return visible_sections(mode)
+
+
 class _AdmissionRecordingGateway(FakeNewBenchmarkGateway):
     """``start_run`` performs the production gate-first admission contract
     (mirrors ``BenchmarkFlowApi.start``): first acquire wins and is recorded;
@@ -117,13 +163,7 @@ def _confirm_run_summary_dialog(qtbot: QtBot) -> None:
     )
 
 
-def test_double_start_admission_is_a_noop(
-    qtbot: QtBot,
-    fake_event_bus: FakeEventBus,
-    real_mode_visibility_policy: object,
-    theme_manager: ThemeManager,
-    platform_kind: PlatformKind,
-) -> None:
+def test_double_start_admission_is_a_noop(qtbot: QtBot, qapp: QApplication) -> None:
     """Proves: STORY-074-AC-1
 
     Two New Benchmark Start admissions firing before the first has flipped
@@ -133,20 +173,24 @@ def test_double_start_admission_is_a_noop(
     """
     # Arrange -- real gate + admission-recording fake gateway; widget arrange
     # mirrors tests/integration/test_new_benchmark_start.py.
-    gate = make_inference_activity_store(clock=_FixedClock(), event_bus=fake_event_bus)
+    event_bus: EventBus = _FakeEventBus()
+    theme_manager = make_theme_manager(
+        app=qapp, theme_setting=ThemeSetting.DARK, platform_kind=PlatformKind.MACOS
+    )
+    gate = make_inference_activity_store(clock=_FixedClock(), event_bus=event_bus)
     gateway = _AdmissionRecordingGateway(gate=gate)
     gateway.set_providers((_PROVIDER_OTHER, _PROVIDER))
     gateway.set_readiness(_READY_SNAPSHOT)
     collaborators = NewBenchmarkCollaborators(
         gateway=gateway,
-        event_bus=fake_event_bus,
+        event_bus=event_bus,
         task_file_loader=FakeTaskFileLoader(),
-        mode_visibility_policy=real_mode_visibility_policy,  # type: ignore[arg-type]  # structural Protocol
+        mode_visibility_policy=_RealBackedModeVisibilityPolicy(),
         run_validator=FakeRunValidator(entries=()),
         native_pickers=FakeNativePickers(),
         workspace=FakeWorkspaceController(),
         theme_manager=theme_manager,
-        platform_kind=platform_kind,
+        platform_kind=PlatformKind.MACOS,
     )
     view = make_new_benchmark_widget(collaborators=collaborators)
     assert isinstance(view, NewBenchmarkView)
