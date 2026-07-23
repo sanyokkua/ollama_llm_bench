@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-23T13:42:02Z'
+generated_at: '2026-07-23T17:12:07Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4824,6 +4824,492 @@ stories:
       STORY-075-AC-6:
         tests:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_hard_stop_at_warmup_halts_run_and_reports_no_breaker_outcome
+  STORY-076:
+    title: Install the process entry point and the two top-level exception hooks
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-8
+    modules:
+    - backend/infra/
+    edge_cases:
+    - EC-M-8
+    acceptance_criteria:
+      STORY-076-AC-1:
+        tests: []
+      STORY-076-AC-2:
+        tests: []
+  STORY-077:
+    title: Build the composition root, the AppHandle, and the export-filename bridge
+    status: draft
+    spec_clauses:
+    - 01_Main_Window/description.md#31-settings-action
+    - 01_Main_Window/description.md#32-about-action
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
+    - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#2-the-single-execution-runner-guarantee
+    - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#7-the-composition-root
+    - 16_Engineering_Standards/01_PROJECT_STRUCTURE.md#7-the-composition-root
+    modules:
+    - backend/csv_export/
+    - ui/main_window/
+    - ui/results/
+    - ui/resume_benchmark/
+    - ui/theme/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-077-AC-1:
+        tests: []
+      STORY-077-AC-2:
+        tests: []
+      STORY-077-AC-3:
+        tests: []
+      STORY-077-AC-4:
+        tests: []
+      STORY-077-AC-5:
+        tests: []
+      STORY-077-AC-6:
+        tests: []
+      STORY-077-AC-7:
+        tests: []
+      STORY-077-AC-8:
+        tests: []
+  STORY-078:
+    title: Run the launch glue — app-data directory, database open, schema check, and seeding
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#3-the-schema-check-and-the-no-migration-rule
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#4-default-seeding
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-1
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-2
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-3
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#10-seed-data
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#8-schema-versioning--additive-structural-steps-no-data-migration-dd-53
+    modules:
+    - backend/infra/
+    - backend/persistence/app_settings/
+    - backend/persistence/providers/
+    edge_cases:
+    - EC-M-1
+    - EC-M-2
+    - EC-M-3
+    acceptance_criteria:
+      STORY-078-AC-1:
+        tests: []
+      STORY-078-AC-2:
+        tests: []
+      STORY-078-AC-3:
+        tests: []
+      STORY-078-AC-4:
+        tests: []
+      STORY-078-AC-5:
+        tests: []
+  STORY-079:
+    title: Add the single-instance advisory lock with stale-owner recovery
+    status: ready
+    spec_clauses:
+    - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#5-file-lock-policy
+    - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#6-multi-instance-handling
+    modules:
+    - backend/infra/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-079-AC-1:
+        tests: []
+      STORY-079-AC-2:
+        tests: []
+      STORY-079-AC-3:
+        tests: []
+  STORY-080:
+    title: Wire the quit sequence, WAL checkpoint on close, and crash-recovery handling
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-4
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-6
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-7
+    - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#9-crash-recovery-sweep
+    - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#8-shutdown-ordering-guarantees
+    modules:
+    - backend/persistence/results/
+    - backend/settings/
+    - ui/main_window/
+    edge_cases:
+    - EC-M-4
+    - EC-M-6
+    - EC-M-7
+    acceptance_criteria:
+      STORY-080-AC-1:
+        tests: []
+      STORY-080-AC-2:
+        tests: []
+      STORY-080-AC-3:
+        tests: []
+      STORY-080-AC-4:
+        tests: []
+      STORY-080-AC-5:
+        tests: []
+  STORY-081:
+    title: Add the headless end-to-end smoke tier for launch, idle, and clean shutdown
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#5-the-readiness-probe
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-5
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid
+    modules:
+    - backend/readiness/
+    - ui/main_window/
+    edge_cases:
+    - EC-M-5
+    acceptance_criteria:
+      STORY-081-AC-1:
+        tests: []
+      STORY-081-AC-2:
+        tests: []
+  STORY-082:
+    title: Stop per-task timeout exhaustion from tripping the provider circuit breaker
+    status: draft
+    spec_clauses:
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
+    modules:
+    - backend/benchmark_pipeline/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-082-AC-1:
+        tests: []
+      STORY-082-AC-2:
+        tests: []
+  STORY-083:
+    title: Re-apply the theme at runtime on save and open the Settings and About dialogs from the menu
+    status: draft
+    spec_clauses:
+    - 01_Main_Window/description.md#31-settings-action
+    - 01_Main_Window/description.md#32-about-action
+    - 06_Settings_Dialog/description.md#46-display
+    - 06_Settings_Dialog/description.md#6-save-flow-atomic
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching
+    modules:
+    - ui/main_window/
+    - ui/settings_dialog/
+    - ui/theme/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-083-AC-1:
+        tests: []
+      STORY-083-AC-2:
+        tests: []
+      STORY-083-AC-3:
+        tests: []
+      STORY-083-AC-4:
+        tests: []
+  STORY-084:
+    title: Complete drag-and-drop of task files onto the New Benchmark task-files list
+    status: draft
+    spec_clauses:
+    - 02_New_Benchmark_Widget/description.md#43-task-files--task-benchmark-and-graded-benchmark
+    - 02_New_Benchmark_Widget/description.md#5-behaviour-per-element
+    modules:
+    - ui/new_benchmark/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-084-AC-1:
+        tests: []
+      STORY-084-AC-2:
+        tests: []
+      STORY-084-AC-3:
+        tests: []
+  STORY-085:
+    title: Drive a complete benchmark run from the UI through the real pipeline with fake providers
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#6-running-state
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#7-testing-the-qt-free-backend-headlessly
+    modules:
+    - backend/benchmark_pipeline/
+    - ui/new_benchmark/
+    - ui/results/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-085-AC-1:
+        tests: []
+      STORY-085-AC-2:
+        tests: []
+      STORY-085-AC-3:
+        tests: []
+      STORY-085-AC-4:
+        tests: []
+  STORY-086:
+    title: Add an opt-in, env-gated live smoke tier against a local Ollama and LM Studio
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#5-the-readiness-probe
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#3-test-layout
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol
+    modules:
+    - backend/benchmark_pipeline/
+    - backend/provider_openai_compatible/
+    - backend/readiness/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-086-AC-1:
+        tests: []
+      STORY-086-AC-2:
+        tests: []
+      STORY-086-AC-3:
+        tests: []
+      STORY-086-AC-4:
+        tests: []
+  STORY-087:
+    title: Capture every spec screen in both themes and review the captures against the mockups
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching
+    - 08_Cross_Cutting/08-L_ui_standardization.md#14-standardization-review-checklist
+    - 08_Cross_Cutting/08-R_screen_index_and_traceability.md#2-screen-index--every-mockup-and-its-drawn-states
+    modules:
+    - ui/common_dialogs/
+    - ui/main_window/
+    - ui/theme/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-087-AC-1:
+        tests: []
+      STORY-087-AC-2:
+        tests: []
+      STORY-087-AC-3:
+        tests: []
+  STORY-088:
+    title: Close three known test debts — Gemini contract leg, run-log retention, and a shared resume fixture
+    status: draft
+    spec_clauses:
+    - 12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#7-resource-limits-summary
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#7a-the-provider-wire-stub-transport-level-test-double
+    modules:
+    - backend/log_file_writer/
+    - backend/provider_gemini/
+    - ui/resume_benchmark/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-088-AC-1:
+        tests: []
+      STORY-088-AC-2:
+        tests: []
+      STORY-088-AC-3:
+        tests: []
+  STORY-089:
+    title: Set an accessible name, objectName, and tooltip on every interactive control across the UI
+    status: draft
+    spec_clauses:
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#11-accessibility-floor-summary
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
+    modules:
+    - ui/common_dialogs/
+    - ui/main_window/
+    - ui/results/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-089-AC-1:
+        tests: []
+  STORY-090:
+    title: Honor the OS reduced-motion and high-contrast preferences per the accessibility floor
+    status: draft
+    spec_clauses:
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#11-accessibility-floor-summary
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#8-reduced-motion-and-high-contrast
+    modules:
+    - ui/shared/
+    - ui/theme/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-090-AC-1:
+        tests: []
+      STORY-090-AC-2:
+        tests: []
+      STORY-090-AC-3:
+        tests: []
+  STORY-091:
+    title: Add the accessibility-floor verification suite of objectName, accessible-name, click-target, focus-ring, and no-shortcut checks
+    status: draft
+    spec_clauses:
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#4-mouse-only-operation
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#5-focus-indication
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#6-click-target-size
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
+    modules:
+    - ui/main_window/
+    - ui/shared/
+    - ui/theme/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-091-AC-1:
+        tests: []
+      STORY-091-AC-2:
+        tests: []
+      STORY-091-AC-3:
+        tests: []
+      STORY-091-AC-4:
+        tests: []
+      STORY-091-AC-5:
+        tests: []
+  STORY-092:
+    title: Expose the synthetic-size bucket table on the generator's public surface and consume it from the New Benchmark widget
+    status: draft
+    spec_clauses:
+    - 02_New_Benchmark_Widget/description.md#6-validation-rules
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#23-size-definitions
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#8-error-handling
+    modules:
+    - backend/performance_task_generator/
+    - ui/new_benchmark/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-092-AC-1:
+        tests: []
+      STORY-092-AC-2:
+        tests: []
+      STORY-092-AC-3:
+        tests: []
+  STORY-093:
+    title: Close Phase 12 with per-EC union traceability, a risk-mitigation verification sweep, and the real architecture and data-model docs
+    status: draft
+    spec_clauses:
+    - 12_Quality_and_NFRs/06_DATA_INTEGRITY.md#3-the-single-writer-discipline
+    - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#1-purpose-and-scope
+    - 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#3-risk-summary-matrix
+    - 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-013--secret-leakage-through-one-of-the-two-redaction-surfaces-being-bypassed
+    modules:
+    - backend/errors/
+    - backend/persistence/app_settings/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-093-AC-1:
+        tests: []
+      STORY-093-AC-2:
+        tests: []
+      STORY-093-AC-3:
+        tests: []
+  STORY-094:
+    title: Add the per-OS PyInstaller onedir packaging specs and a local artifact smoke-launch check
+    status: draft
+    spec_clauses:
+    - 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-011--cross-platform-packaging-drift-pyinstaller
+    - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#11-minimum-os-versions
+    - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#6-build-backend-and-packaging
+    - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#7-per-os-artifacts
+    modules:
+    - backend/infra/
+    - ui/main_window/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-094-AC-1:
+        tests: []
+      STORY-094-AC-2:
+        tests: []
+      STORY-094-AC-3:
+        tests: []
+  STORY-095:
+    title: Add the tag-triggered release workflow that builds the three OS artifacts with SHA256SUMS under the semver policy
+    status: draft
+    spec_clauses:
+    - 13_Distribution_and_Release/06_VERSIONING_POLICY.md#6-where-the-version-is-shown
+    - 13_Distribution_and_Release/06_VERSIONING_POLICY.md#7-version-tags-and-releases
+    - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#3-cicd-overview
+    - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#8-checksums-and-reproducibility
+    modules:
+    - ui/common_dialogs/
+    - ui/main_window/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-095-AC-1:
+        tests: []
+      STORY-095-AC-2:
+        tests: []
+      STORY-095-AC-3:
+        tests: []
+      STORY-095-AC-4:
+        tests: []
+  STORY-096:
+    title: Write the user-facing install, first-run, unsigned-distribution, and uninstall documentation
+    status: draft
+    spec_clauses:
+    - 13_Distribution_and_Release/02_INSTALLATION.md#1-where-to-download
+    - 13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#1-why-a-security-warning-appears
+    - 13_Distribution_and_Release/05_FIRST_RUN_EXPERIENCE.md#6-the-first-run-sequence
+    - 13_Distribution_and_Release/08_UNINSTALL.md#1-what-a-complete-uninstall-removes
+    modules:
+    - backend/platform/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-096-AC-1:
+        tests: []
+      STORY-096-AC-2:
+        tests: []
+      STORY-096-AC-3:
+        tests: []
+  STORY-097:
+    title: Add accessible names, objectNames, and tooltips to the main window, common dialogs, and shared primitives
+    status: draft
+    spec_clauses:
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
+    modules:
+    - ui/common_dialogs/
+    - ui/main_window/
+    - ui/shared/
+    - ui/shared/model_dropdown/
+    - ui/shared/provider_dropdown/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-097-AC-1:
+        tests: []
+      STORY-097-AC-2:
+        tests: []
+  STORY-098:
+    title: Add accessible names, objectNames, and tooltips to the New Benchmark, Resume, and Progress widgets
+    status: draft
+    spec_clauses:
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
+    modules:
+    - ui/new_benchmark/
+    - ui/progress/
+    - ui/resume_benchmark/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-098-AC-1:
+        tests: []
+      STORY-098-AC-2:
+        tests: []
+  STORY-099:
+    title: Add accessible names, objectNames, and tooltips to the Result, Settings, and Task Editor widgets
+    status: draft
+    spec_clauses:
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
+    modules:
+    - ui/results/
+    - ui/settings_dialog/
+    - ui/task_editor/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-099-AC-1:
+        tests: []
+      STORY-099-AC-2:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -4834,6 +5320,14 @@ clauses:
   01_Main_Window/description.md#3-menu-bar:
     stories:
     - STORY-053
+  01_Main_Window/description.md#31-settings-action:
+    stories:
+    - STORY-077
+    - STORY-083
+  01_Main_Window/description.md#32-about-action:
+    stories:
+    - STORY-077
+    - STORY-083
   01_Main_Window/description.md#4-status-bar:
     stories:
     - STORY-053
@@ -4863,6 +5357,9 @@ clauses:
   02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only:
     stories:
     - STORY-071
+  02_New_Benchmark_Widget/description.md#43-task-files--task-benchmark-and-graded-benchmark:
+    stories:
+    - STORY-084
   02_New_Benchmark_Widget/description.md#44-judge:
     stories:
     - STORY-055
@@ -4878,10 +5375,12 @@ clauses:
   02_New_Benchmark_Widget/description.md#5-behaviour-per-element:
     stories:
     - STORY-054
+    - STORY-084
   02_New_Benchmark_Widget/description.md#6-validation-rules:
     stories:
     - STORY-055
     - STORY-071
+    - STORY-092
   02_New_Benchmark_Widget/mode_specifics/synthetic.md#2-visible-sections:
     stories:
     - STORY-071
@@ -5104,9 +5603,11 @@ clauses:
   06_Settings_Dialog/description.md#46-display:
     stories:
     - STORY-067
+    - STORY-083
   06_Settings_Dialog/description.md#6-save-flow-atomic:
     stories:
     - STORY-067
+    - STORY-083
   06_Settings_Dialog/description.md#8-import-flow:
     stories:
     - STORY-067
@@ -5246,6 +5747,8 @@ clauses:
   08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching:
     stories:
     - STORY-050
+    - STORY-083
+    - STORY-087
   08_Cross_Cutting/08-D_color_palette_and_typography.md#14-wcag-aa-contrast-matrix:
     stories:
     - STORY-050
@@ -5275,6 +5778,7 @@ clauses:
     - STORY-071
     - STORY-072
     - STORY-073
+    - STORY-077
   08_Cross_Cutting/08-D_color_palette_and_typography.md#3-dark-theme-colour-tokens:
     stories:
     - STORY-049
@@ -5489,11 +5993,15 @@ clauses:
   08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system:
     stories:
     - STORY-005
+    - STORY-078
   08_Cross_Cutting/08-L_ui_standardization.md#11-theme-handling:
     stories:
     - STORY-050
     - STORY-052
     - STORY-070
+  08_Cross_Cutting/08-L_ui_standardization.md#14-standardization-review-checklist:
+    stories:
+    - STORY-087
   08_Cross_Cutting/08-L_ui_standardization.md#6-button-styles:
     stories:
     - STORY-051
@@ -5503,6 +6011,56 @@ clauses:
   08_Cross_Cutting/08-L_ui_standardization.md#9-iconography:
     stories:
     - STORY-051
+  08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations:
+    stories:
+    - STORY-076
+    - STORY-077
+    - STORY-078
+    - STORY-081
+  08_Cross_Cutting/08-M_app_lifecycle.md#3-the-schema-check-and-the-no-migration-rule:
+    stories:
+    - STORY-078
+  08_Cross_Cutting/08-M_app_lifecycle.md#4-default-seeding:
+    stories:
+    - STORY-078
+  08_Cross_Cutting/08-M_app_lifecycle.md#5-the-readiness-probe:
+    stories:
+    - STORY-081
+    - STORY-086
+  08_Cross_Cutting/08-M_app_lifecycle.md#6-running-state:
+    stories:
+    - STORY-085
+  08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence:
+    stories:
+    - STORY-080
+  08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy:
+    stories:
+    - STORY-076
+    - STORY-080
+  08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-1:
+    stories:
+    - STORY-078
+  08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-2:
+    stories:
+    - STORY-078
+  08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-3:
+    stories:
+    - STORY-078
+  08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-4:
+    stories:
+    - STORY-080
+  08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-5:
+    stories:
+    - STORY-081
+  08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-6:
+    stories:
+    - STORY-080
+  08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-7:
+    stories:
+    - STORY-080
+  08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-8:
+    stories:
+    - STORY-076
   08_Cross_Cutting/08-O_persistence_schema.md#6-schema-versioning--additive-structural-steps-no-data-migration-dd-53:
     stories:
     - STORY-008
@@ -5537,6 +6095,9 @@ clauses:
     stories:
     - STORY-039
     - STORY-045
+  08_Cross_Cutting/08-R_screen_index_and_traceability.md#2-screen-index--every-mockup-and-its-drawn-states:
+    stories:
+    - STORY-087
   09_Task_Editor/description.md#2-layout:
     stories:
     - STORY-068
@@ -5601,6 +6162,7 @@ clauses:
     stories:
     - STORY-008
     - STORY-012
+    - STORY-078
   10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#2-connection-pragmas:
     stories:
     - STORY-008
@@ -5635,9 +6197,11 @@ clauses:
   10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#8-schema-versioning--additive-structural-steps-no-data-migration-dd-53:
     stories:
     - STORY-008
+    - STORY-078
   10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#9-crash-recovery-sweep:
     stories:
     - STORY-011
+    - STORY-080
   10_Domain_and_Data/04_YAML_TASK_FORMAT.md#3-top-level-file-structure:
     stories:
     - STORY-031
@@ -5883,6 +6447,7 @@ clauses:
     stories:
     - STORY-023
     - STORY-075
+    - STORY-082
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing:
     stories:
     - STORY-023
@@ -5892,6 +6457,7 @@ clauses:
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout:
     stories:
     - STORY-075
+    - STORY-082
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#7-configuration:
     stories:
     - STORY-023
@@ -6088,6 +6654,7 @@ clauses:
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#23-size-definitions:
     stories:
     - STORY-071
+    - STORY-092
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#3-outputs:
     stories:
     - STORY-034
@@ -6100,6 +6667,7 @@ clauses:
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#8-error-handling:
     stories:
     - STORY-034
+    - STORY-092
   11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#11-test-cases:
     stories:
     - STORY-035
@@ -6127,9 +6695,24 @@ clauses:
   12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep:
     stories:
     - STORY-011
+  12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#2-the-single-execution-runner-guarantee:
+    stories:
+    - STORY-077
+  12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#5-file-lock-policy:
+    stories:
+    - STORY-079
+  12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#6-multi-instance-handling:
+    stories:
+    - STORY-079
+  12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#8-shutdown-ordering-guarantees:
+    stories:
+    - STORY-080
   12_Quality_and_NFRs/06_DATA_INTEGRITY.md#2-sqlite-wal-transactional-guarantees:
     stories:
     - STORY-009
+  12_Quality_and_NFRs/06_DATA_INTEGRITY.md#3-the-single-writer-discipline:
+    stories:
+    - STORY-093
   12_Quality_and_NFRs/06_DATA_INTEGRITY.md#4-atomicity-per-write-operation:
     stories:
     - STORY-009
@@ -6139,6 +6722,60 @@ clauses:
   12_Quality_and_NFRs/06_DATA_INTEGRITY.md#7a-unique-on-name-invariants-and-auto-id-atomicity-dd-33:
     stories:
     - STORY-012
+  12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#7-resource-limits-summary:
+    stories:
+    - STORY-088
+  12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method:
+    stories:
+    - STORY-090
+    - STORY-091
+  12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#11-accessibility-floor-summary:
+    stories:
+    - STORY-089
+    - STORY-090
+  12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#4-mouse-only-operation:
+    stories:
+    - STORY-091
+  12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#5-focus-indication:
+    stories:
+    - STORY-091
+  12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#6-click-target-size:
+    stories:
+    - STORY-091
+  12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names:
+    stories:
+    - STORY-089
+    - STORY-091
+    - STORY-097
+    - STORY-098
+    - STORY-099
+  12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names:
+    stories:
+    - STORY-089
+    - STORY-097
+    - STORY-098
+    - STORY-099
+  12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#8-reduced-motion-and-high-contrast:
+    stories:
+    - STORY-090
+  13_Distribution_and_Release/02_INSTALLATION.md#1-where-to-download:
+    stories:
+    - STORY-096
+  13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#1-why-a-security-warning-appears:
+    stories:
+    - STORY-096
+  13_Distribution_and_Release/05_FIRST_RUN_EXPERIENCE.md#6-the-first-run-sequence:
+    stories:
+    - STORY-096
+  13_Distribution_and_Release/06_VERSIONING_POLICY.md#6-where-the-version-is-shown:
+    stories:
+    - STORY-095
+  13_Distribution_and_Release/06_VERSIONING_POLICY.md#7-version-tags-and-releases:
+    stories:
+    - STORY-095
+  13_Distribution_and_Release/08_UNINSTALL.md#1-what-a-complete-uninstall-removes:
+    stories:
+    - STORY-096
   14_Process_and_Traceability/01_MODULE_INVENTORY.md#42-settings-stores-and-readiness-modules:
     stories:
     - STORY-039
@@ -6146,9 +6783,27 @@ clauses:
     stories:
     - STORY-044
     - STORY-046
+  14_Process_and_Traceability/01_MODULE_INVENTORY.md#7-the-composition-root:
+    stories:
+    - STORY-077
+  14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#1-purpose-and-scope:
+    stories:
+    - STORY-093
   14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#EC-PERSIST-6:
     stories:
     - STORY-074
+  15_Risks_and_Open_Questions/01_RISK_REGISTER.md#3-risk-summary-matrix:
+    stories:
+    - STORY-093
+  15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-011--cross-platform-packaging-drift-pyinstaller:
+    stories:
+    - STORY-094
+  ? 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-013--secret-leakage-through-one-of-the-two-redaction-surfaces-being-bypassed
+  : stories:
+    - STORY-093
+  16_Engineering_Standards/01_PROJECT_STRUCTURE.md#7-the-composition-root:
+    stories:
+    - STORY-077
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#2-the-concurrency-model-at-a-glance:
     stories:
     - STORY-040
@@ -6187,6 +6842,43 @@ clauses:
   16_Engineering_Standards/06_LOGGING_STANDARD.md#9-rotation-retention-and-locations:
     stories:
     - STORY-004
+  16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment:
+    stories:
+    - STORY-081
+    - STORY-085
+    - STORY-086
+  16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid:
+    stories:
+    - STORY-081
+    - STORY-085
+  16_Engineering_Standards/07_TESTING_STANDARD.md#3-test-layout:
+    stories:
+    - STORY-086
+  16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol:
+    stories:
+    - STORY-086
+    - STORY-088
+  16_Engineering_Standards/07_TESTING_STANDARD.md#7-testing-the-qt-free-backend-headlessly:
+    stories:
+    - STORY-085
+  16_Engineering_Standards/07_TESTING_STANDARD.md#7a-the-provider-wire-stub-transport-level-test-double:
+    stories:
+    - STORY-088
+  16_Engineering_Standards/08_CICD_AND_PACKAGING.md#11-minimum-os-versions:
+    stories:
+    - STORY-094
+  16_Engineering_Standards/08_CICD_AND_PACKAGING.md#3-cicd-overview:
+    stories:
+    - STORY-095
+  16_Engineering_Standards/08_CICD_AND_PACKAGING.md#6-build-backend-and-packaging:
+    stories:
+    - STORY-094
+  16_Engineering_Standards/08_CICD_AND_PACKAGING.md#7-per-os-artifacts:
+    stories:
+    - STORY-094
+  16_Engineering_Standards/08_CICD_AND_PACKAGING.md#8-checksums-and-reproducibility:
+    stories:
+    - STORY-095
 edge_cases:
   EC-AB-2:
     stories:
@@ -6882,6 +7574,38 @@ edge_cases:
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_sets_verbosity_combo_without_reemitting_signal
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[False]
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_apply_log_warning_label_visibility_reflects_file_write_warning[True]
+  EC-M-1:
+    stories:
+    - STORY-078
+    tests: []
+  EC-M-2:
+    stories:
+    - STORY-078
+    tests: []
+  EC-M-3:
+    stories:
+    - STORY-078
+    tests: []
+  EC-M-4:
+    stories:
+    - STORY-080
+    tests: []
+  EC-M-5:
+    stories:
+    - STORY-081
+    tests: []
+  EC-M-6:
+    stories:
+    - STORY-080
+    tests: []
+  EC-M-7:
+    stories:
+    - STORY-080
+    tests: []
+  EC-M-8:
+    stories:
+    - STORY-076
+    tests: []
   EC-PERF-3:
     stories:
     - STORY-060
@@ -8934,6 +9658,9 @@ modules:
     - STORY-042
     - STORY-074
     - STORY-075
+    - STORY-082
+    - STORY-085
+    - STORY-086
   backend/charts/:
     stories:
     - STORY-033
@@ -8947,6 +9674,7 @@ modules:
   backend/csv_export/:
     stories:
     - STORY-032
+    - STORY-077
   backend/domain/:
     stories:
     - STORY-001
@@ -8960,6 +9688,7 @@ modules:
   backend/errors/:
     stories:
     - STORY-002
+    - STORY-093
   backend/evaluation/:
     stories:
     - STORY-028
@@ -8976,9 +9705,14 @@ modules:
   backend/infra/:
     stories:
     - STORY-004
+    - STORY-076
+    - STORY-078
+    - STORY-079
+    - STORY-094
   backend/log_file_writer/:
     stories:
     - STORY-037
+    - STORY-088
   backend/log_formatting/:
     stories:
     - STORY-036
@@ -8993,20 +9727,25 @@ modules:
   backend/performance_task_generator/:
     stories:
     - STORY-034
+    - STORY-092
   backend/persistence/app_settings/:
     stories:
     - STORY-008
+    - STORY-078
+    - STORY-093
   backend/persistence/model_capabilities/:
     stories:
     - STORY-013
   backend/persistence/providers/:
     stories:
     - STORY-012
+    - STORY-078
   backend/persistence/results/:
     stories:
     - STORY-011
     - STORY-029
     - STORY-074
+    - STORY-080
   backend/persistence/runs/:
     stories:
     - STORY-009
@@ -9017,15 +9756,18 @@ modules:
   backend/platform/:
     stories:
     - STORY-005
+    - STORY-096
   backend/provider_anthropic/:
     stories:
     - STORY-019
   backend/provider_gemini/:
     stories:
     - STORY-020
+    - STORY-088
   backend/provider_openai_compatible/:
     stories:
     - STORY-018
+    - STORY-086
   backend/provider_registry/:
     stories:
     - STORY-017
@@ -9033,6 +9775,8 @@ modules:
   backend/readiness/:
     stories:
     - STORY-016
+    - STORY-081
+    - STORY-086
   backend/retry/:
     stories:
     - STORY-007
@@ -9046,6 +9790,7 @@ modules:
     stories:
     - STORY-014
     - STORY-023
+    - STORY-080
   backend/stores/:
     stories:
     - STORY-039
@@ -9066,21 +9811,40 @@ modules:
     - STORY-065
     - STORY-070
     - STORY-071
+    - STORY-087
+    - STORY-089
+    - STORY-095
+    - STORY-097
   ui/main_window/:
     stories:
     - STORY-053
+    - STORY-077
+    - STORY-080
+    - STORY-081
+    - STORY-083
+    - STORY-087
+    - STORY-089
+    - STORY-091
+    - STORY-094
+    - STORY-095
+    - STORY-097
   ui/new_benchmark/:
     stories:
     - STORY-054
     - STORY-055
     - STORY-071
     - STORY-074
+    - STORY-084
+    - STORY-085
+    - STORY-092
+    - STORY-098
   ui/progress/:
     stories:
     - STORY-058
     - STORY-059
     - STORY-060
     - STORY-073
+    - STORY-098
   ui/results/:
     stories:
     - STORY-061
@@ -9088,30 +9852,50 @@ modules:
     - STORY-063
     - STORY-064
     - STORY-065
+    - STORY-077
+    - STORY-085
+    - STORY-089
+    - STORY-099
   ui/resume_benchmark/:
     stories:
     - STORY-056
     - STORY-057
     - STORY-072
     - STORY-074
+    - STORY-077
+    - STORY-088
+    - STORY-098
   ui/settings_dialog/:
     stories:
     - STORY-066
     - STORY-067
+    - STORY-083
+    - STORY-099
   ui/shared/:
     stories:
     - STORY-051
+    - STORY-090
+    - STORY-091
+    - STORY-097
   ui/shared/model_dropdown/:
     stories:
     - STORY-052
+    - STORY-097
   ui/shared/provider_dropdown/:
     stories:
     - STORY-052
+    - STORY-097
   ui/task_editor/:
     stories:
     - STORY-068
     - STORY-069
+    - STORY-099
   ui/theme/:
     stories:
     - STORY-049
     - STORY-050
+    - STORY-077
+    - STORY-083
+    - STORY-087
+    - STORY-090
+    - STORY-091

@@ -1,10 +1,10 @@
 # ADR-0008 — Exclude OS reduced-motion and high-contrast preferences from the theme module
 
-**Status:** accepted
+**Status:** superseded by ADR-0012
 **Date:** 2026-07-18
 **Deciders:** owner (product), architect
 **Supersedes:** —
-**Superseded by:** —
+**Superseded by:** ADR-0012
 
 ## Context and problem statement
 
@@ -55,6 +55,13 @@ an indefinitely `in-progress` STORY-050 with silently stale front-matter — was
 Phase 10 bootstrap and would keep recurring as a source of confusion without a durable record of
 *why* the gap exists and that it is intentional.
 
+> **Superseded by ADR-0012 (2026-07-23).** At the Phase-12 accessibility-floor verification gate,
+> the spec's release-blocking language for both preferences (`08_ACCESSIBILITY_FLOOR.md` §8, §10,
+> §11) was re-derived and found genuinely mandatory, so this permanent exclusion was reversed.
+> STORY-090 now implements both preferences and STORY-091 verifies them. This body is retained
+> unedited below the status line, per the ADR lifecycle; only the `Status`/`Superseded by` lines
+> and this note record the supersession.
+
 ### Consequences
 
 - Positive — STORY-050 and STORY-051 can close cleanly; Phase 10 is no longer blocked on
@@ -92,7 +99,7 @@ Phase 10 bootstrap and would keep recurring as a source of confusion without a d
 
 ## Links
 
-- Related ADRs: —
+- Related ADRs: superseded by ADR-0012.
 - Spec clauses: `docs/v3_specification/12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md` §8, §11;
   `docs/v3_specification/08_Cross_Cutting/08-D_color_palette_and_typography.md` §12, §15
 - Stories: STORY-050, STORY-051
