@@ -17,6 +17,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Benchmark-pipeline model warmup (`backend/benchmark_pipeline/_internal/warmup.py`): when the
+  run's frozen `benchmark.warmup_enabled` snapshot is `true` (the default), the pipeline issues
+  one lightweight non-streaming pre-load inference per `(provider, model)` test target at its
+  model-switch boundary, before the group's first timed task inference, so cold-load latency no
+  longer pollutes the first measurement. The warmup is sized by the same role=INFERENCE
+  adaptive-timeout ladder as normal inference (full `1 + retry_count` escalation) and feeds the
+  provider circuit breaker's liveness verdict: a ladder-exhausted timeout or connection/transport
+  error records a provider failure (an advertised-but-unloadable model now fails fast and
+  provider-attributably at first use), while any response — including a model-side error — is
+  neutral. Warmup writes no result rows, never excludes a model, leaves adaptive-timeout state
+  untouched, is skipped for non-CLOSED breakers and already-excluded targets, and runs silently
+  (no log line or event). The JUDGE phase gets no warmup. Per
+  `08_Cross_Cutting/08-G_feature_flags.md` §3, `08_CIRCUIT_BREAKER.md` §6.4/§6.9,
+  `07_ADAPTIVE_TIMEOUT.md` §4 (DD-64), and EC-PROV-1a (STORY-075).
+
 - Result widget Details tab (`ui/results/_internal/details_tab/`): per-result table with
   mode-aware column sets (16 columns in SYNTHETIC/TASK mode, all 24 in GRADED), filter chips
   (Verdict/Layer only in GRADED mode), per-column filters, sorting, and column

@@ -1,7 +1,7 @@
 ---
 id: STORY-075
 title: Pre-load each test model with an adaptive-budget warmup at the model-switch boundary and feed its liveness outcome to the circuit breaker
-status: in-progress
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-1a
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
@@ -203,8 +203,8 @@ failure to the circuit breaker.
 - [x] The module inventory is unchanged (warmup lives inside the existing
   `backend/benchmark_pipeline/` module's `_internal/`).
 - [x] Tester pass complete (independent test review/hardening).
-- [ ] Spec-conformance-reviewer pass complete.
-- [ ] Story status flipped to `done`.
+- [x] Spec-conformance-reviewer pass complete.
+- [x] Story status flipped to `done`.
 
 ## Notes
 
@@ -320,3 +320,17 @@ this pattern, strengthening the case for a shared `tests/integration/` conftest 
 a `FakeResultsStore` subclass overriding `update_result` would do; (3) AC-4's `retry_count=1`
 case sleeps one real jittered retry backoff (0.5–1.5 s) — same shape as STORY-074's AC-3
 follow-up; a zero-jitter injectable retry policy for tests would fix both.
+
+**Spec-conformance review (2026-07-23): CONFORMS WITH CONCERNS — all six ACs PASS against an
+independent re-derivation of the cited clauses.** Three observations recorded, none blocking:
+(1) the warmup hardcodes `temperature=0.0` rather than reading the run's `benchmark.temperature`
+— an unstated choice outside the settled-decisions list, harmless (warmup writes no row and
+seeds no adaptive state) and arguably more deterministic; (2) AC-3's outcome table is silent on
+a persistent provider `5xx`/`429`/auth error during warmup — the reviewer's independent reading
+confirms these are responses and therefore liveness-neutral for the warmup (the breaker still
+receives them as `FAILED_PROVIDER` from the first real task per §6.9), which is exactly what the
+implementation's `AppError` catch-all does, so this is an AC-text completeness gap, not a code
+defect; (3) the reviewer confirms the pre-existing per-task-timeout→breaker deviation recorded
+above is real and its disposition (follow-up story) sound, with the framing that the follow-up
+closes a live spec violation — until it lands, §6.9's "per-task timeouts never trip the breaker"
+half remains unsatisfied system-wide even though this story's warmup half now conforms.
