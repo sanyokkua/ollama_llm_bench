@@ -596,6 +596,7 @@ class _BenchmarkFlowApiImpl:
         adaptive_timeout = make_adaptive_timeout_service(snapshot=run.settings_snapshot)
         circuit_breaker = make_circuit_breaker(snapshot=run.settings_snapshot, clock=self._clock)
         retry_count = self._settings_service.get_int("benchmark.retry_count", run=run)
+        warmup_enabled = self._settings_service.get_bool("benchmark.warmup_enabled", run=run)
         collaborators = StabilityCollaborators(
             bus=self._bus,
             clock=self._clock,
@@ -626,6 +627,7 @@ class _BenchmarkFlowApiImpl:
                 adaptive_timeout=adaptive_timeout,
                 circuit_breaker=circuit_breaker,
                 retry_count=retry_count,
+                warmup_enabled=warmup_enabled,
             )
 
         run_all_phases(

@@ -30,6 +30,7 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.units import (
     finalize_inference_success,
     finalize_judge_success,
 )
+from ollama_llm_bench.backend.benchmark_pipeline._internal.warmup import run_model_warmup
 from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.circuit_breaker.protocols import ProviderCircuitBreaker
 from ollama_llm_bench.backend.concurrency import CancellationToken
@@ -65,6 +66,7 @@ if TYPE_CHECKING:
         _InferenceAttemptOutcome,
     )
     from ollama_llm_bench.backend.circuit_breaker.models import CircuitState
+    from ollama_llm_bench.backend.domain.models import ChatResponse
     from ollama_llm_bench.backend.evaluation.models import JudgePhaseResult
 
 __all__: list[str] = ["StabilityCollaborators", "StabilityRunState", "run_stability_phase"]
@@ -119,6 +121,7 @@ def run_stability_phase(  # noqa: PLR0913  # every keyword-only argument is a
     adaptive_timeout: AdaptiveTimeoutService,
     circuit_breaker: ProviderCircuitBreaker,
     retry_count: int,
+    warmup_enabled: bool,
 ) -> None:
     """Dispatch one stability-aware phase (`INFERENCE` or `JUDGE_CHECK`) to
     `run_phase_with_stability` with the role-appropriate closures (STORY-030).
@@ -136,6 +139,7 @@ def run_stability_phase(  # noqa: PLR0913  # every keyword-only argument is a
             adaptive_timeout=adaptive_timeout,
             circuit_breaker=circuit_breaker,
             retry_count=retry_count,
+            warmup_enabled=warmup_enabled,
         )
         return
     if phase is Phase.JUDGE_CHECK:
@@ -172,8 +176,15 @@ def _run_inference_phase(  # noqa: PLR0913  # each parameter is a distinct
     adaptive_timeout: AdaptiveTimeoutService,
     circuit_breaker: ProviderCircuitBreaker,
     retry_count: int,
+    warmup_enabled: bool,
 ) -> None:
-    """Drive the INFERENCE phase's rows through `run_phase_with_stability`."""
+    """Drive the INFERENCE phase's rows through `run_phase_with_stability`.
+
+    When `warmup_enabled`, builds a `before_group` closure over
+    `_internal.warmup.run_model_warmup`, firing once per `(provider, model)`
+    group at the model-switch boundary (STORY-075); `None` when disabled, so
+    `run_phase_with_stability`'s group loop issues no warmup call at all.
+    """
 
     def _stability_target_for(result: BenchmarkResult) -> tuple[ProviderId, ModelName]:
         return result.provider_id, result.model_name
@@ -215,6 +226,18 @@ def _run_inference_phase(  # noqa: PLR0913  # each parameter is a distinct
             error_message="Inference call exhausted adaptive budget for this task.",
         )
 
+    def _warmup_before_group(provider_id: ProviderIdStr, model_name: ModelNameStr) -> None:
+        run_model_warmup(
+            provider_id=provider_id,
+            model_name=model_name,
+            provider_registry=collaborators.provider_registry,
+            adaptive_timeout=adaptive_timeout,
+            circuit_breaker=circuit_breaker,
+            retry_count=retry_count,
+            runner=cast("TaskRunner[ChatResponse]", collaborators.task_runner),
+            token=token,
+        )
+
     run_phase_with_stability(
         groups=groups,
         runner=cast("TaskRunner[_InferenceAttemptOutcome]", collaborators.task_runner),
@@ -229,6 +252,7 @@ def _run_inference_phase(  # noqa: PLR0913  # each parameter is a distinct
         build_attempt_for=_build_attempt_for,
         finalize_success_for=_finalize_success_for,
         on_timeout_exhausted_for=_on_timeout_exhausted_for,
+        before_group=_warmup_before_group if warmup_enabled else None,
     )
 
 

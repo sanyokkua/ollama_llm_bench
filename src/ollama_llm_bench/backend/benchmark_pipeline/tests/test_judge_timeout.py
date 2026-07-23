@@ -231,6 +231,7 @@ def _run_judge_check_phase(
         adaptive_timeout=adaptive_timeout,
         circuit_breaker=circuit_breaker,
         retry_count=0,
+        warmup_enabled=False,
     )
     return patches
 

@@ -96,6 +96,7 @@ def run_phase_with_stability[T](  # noqa: PLR0913  # every keyword-only argument
     finalize_success_for: Callable[[BenchmarkResult], Callable[[T], ResultPatch]],
     on_timeout_exhausted_for: Callable[[BenchmarkResult], Callable[[], ResultPatch]],
     after_row: Callable[[BenchmarkResult, ResultPatch, int], None] | None = None,
+    before_group: Callable[[ProviderIdStr, ModelNameStr], None] | None = None,
 ) -> None:
     """Run one phase's rows through the full stability stack, strictly serially (STORY-030).
 
@@ -130,8 +131,16 @@ def run_phase_with_stability[T](  # noqa: PLR0913  # every keyword-only argument
             call site for run-wide judge-exclusion detection and the
             `_model_stability_changed` composite event. Kept out of this
             function's own body to stay free of judge-specific logic.
+        before_group: Optional hook invoked once per `(provider_id, model_name)`
+            group, after that group's own `token.raise_if_cancelled()` safe
+            checkpoint and before its first row — used only by the INFERENCE
+            call site to fire a model-switch-boundary warmup (STORY-075).
+            `None` for JUDGE_CHECK and whenever warmup is disabled for the run.
     """
-    for _provider_id, _model_name, group_rows in groups:
+    for provider_id, model_name, group_rows in groups:
+        token.raise_if_cancelled()  # model-switch safe checkpoint (STORY-075-AC-6)
+        if before_group is not None:
+            before_group(provider_id, model_name)
         for index, result in enumerate(group_rows):
             token.raise_if_cancelled()
             target_provider_id, target_model_name = stability_target_for(result)

@@ -371,6 +371,7 @@ def _drive_run_all_phases(
             adaptive_timeout=collaborators.adaptive_timeout,
             circuit_breaker=collaborators.circuit_breaker,
             retry_count=0,
+            warmup_enabled=False,
         )
 
     run_all_phases(
