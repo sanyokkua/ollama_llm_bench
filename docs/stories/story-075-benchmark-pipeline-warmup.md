@@ -1,7 +1,7 @@
 ---
 id: STORY-075
 title: Pre-load each test model with an adaptive-budget warmup at the model-switch boundary and feed its liveness outcome to the circuit breaker
-status: ready
+status: in-progress
 spec_clauses:
   - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-1a
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
