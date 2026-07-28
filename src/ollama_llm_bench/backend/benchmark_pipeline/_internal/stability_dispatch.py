@@ -67,8 +67,10 @@ def run_task_with_stability[T](  # noqa: PLR0913  # each parameter is a distinct
 
     Consults the `ProviderCircuitBreaker` and `AdaptiveTimeoutService` before any
     network call, submits exactly one attempt at a time to `runner`, blocks on each
-    attempt's `Future`, and reports every clean outcome back to both services — all
-    from the calling thread, which must be the dispatcher thread.
+    attempt's `Future`, and reports each outcome to the service(s) it is
+    attributable to — all from the calling thread, which must be the dispatcher
+    thread. A per-task timeout reports only to `AdaptiveTimeoutService` while the
+    breaker is CLOSED; every other clean outcome reports to both services.
 
     Args:
         provider_id: The stability target's provider — the row's own provider for
@@ -97,7 +99,9 @@ def run_task_with_stability[T](  # noqa: PLR0913  # each parameter is a distinct
             `observed_ms`.
         adaptive_timeout: Touched only from this function, never from
             `build_attempt`'s returned callable.
-        circuit_breaker: Touched only from this function, same rule.
+        circuit_breaker: Touched only from this function, same rule. Also records
+            a failure when a per-task timeout occurs while it is PROBING, which
+            resolves the probe by re-tripping the breaker with a fresh cooldown.
 
     Returns:
         The phase's terminal `ResultPatch` — from `finalize_success`,
@@ -144,10 +148,11 @@ def run_task_with_stability[T](  # noqa: PLR0913  # each parameter is a distinct
     except TaskCancelledError:
         raise
     except HttpTimeoutError:
-        # A per-task timeout is a MODEL-level signal, never a provider-attributable one:
-        # it feeds only the adaptive-timeout service (which escalates this model's budget
-        # and can exclude this one model), and must NOT reach the breaker while CLOSED —
-        # otherwise one slow model would skip every other model on the same provider
+        # While the breaker is CLOSED, a per-task timeout is a MODEL-level signal, never a
+        # provider-attributable one: it feeds only the adaptive-timeout service (which
+        # escalates this model's budget and can exclude this one model), and must NOT
+        # reach the breaker while CLOSED — otherwise one slow model would skip every
+        # other model on the same provider
         # (08_CIRCUIT_BREAKER.md §6.4 MISS-25, §6.9). The one exception is a PROBING
         # breaker: the admitted probe task IS the breaker's own liveness check (§6.6), and
         # a timed-out probe must resolve it — record_failure re-trips with a fresh cooldown
