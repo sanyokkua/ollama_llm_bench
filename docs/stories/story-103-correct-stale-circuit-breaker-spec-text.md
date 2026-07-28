@@ -33,8 +33,8 @@ Finish DD-71's propagation into `11_Services_and_Algorithms/08_CIRCUIT_BREAKER.m
 the nine sites STORY-102's Notes catalogued as still describing the retired real-task probe, so
 the next reader of the specification sees the dedicated-lightweight-probe design the code (as of
 STORY-100/STORY-101) actually implements, and cannot re-implement the bug this plan fixes from
-stale prose. This is a documentation-only correction under explicit owner sanction — no code
-changes.
+stale prose. This story corrects the specification (no production code changes) and delivers one
+guard test verifying the correction.
 
 ## In scope
 
@@ -110,20 +110,25 @@ changes.
 ### STORY-103-AC-1
 
 Given the nine stale sites of `08_CIRCUIT_BREAKER.md` catalogued in STORY-102's Notes (§6.2's
-`should_skip` column, §6.3's note, §6.5, §6.6, §10.2, §10.3, CB-05, CB-06, CB-14), when this
-story's edit is applied, then every one of the nine sites describes the dedicated-lightweight-probe
-design (a pipeline-issued, single-attempt, per-row liveness call whose outcome always resolves
-the breaker except on cancellation) instead of the retired real-task probe admission, while §1,
-§5, and §6.2's Meaning/pipeline columns are left unchanged and every `spec_clauses:` anchor cited
-anywhere in the story backlog still resolves.
+`should_skip` column, §6.3's note, §6.5, §6.6, §10.2, §10.3, CB-05, CB-06, CB-14), when
+`tests/architecture/test_circuit_breaker_spec_reflects_dd71.py` is run, then the test asserts
+that every one of the nine sites describes the dedicated-lightweight-probe design (a
+pipeline-issued, single-attempt, per-row liveness call whose outcome always resolves the breaker
+except on cancellation) instead of the retired real-task probe admission, §1 and §5 and §6.2's
+Meaning/pipeline columns are left unchanged, every `spec_clauses:` anchor cited anywhere in the
+story backlog still resolves, and test-case row CB-14 no longer states that a per-task timeout
+counts toward the breaker's failure threshold.
 
 ## Test plan
 
-- STORY-103-AC-1 — documentation review, verified by: (a) a diff of
-  `docs/v3_specification/11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` touching only the
-  nine listed sites; (b) `uv run python scripts/validate_traceability.py` showing no new
-  unresolvable-spec-anchor error; (c) `just check`'s markdown-formatting step passing on the
-  edited file.
+- STORY-103-AC-1 — parametrized guard test,
+  `tests/architecture/test_circuit_breaker_spec_reflects_dd71.py`,
+  `test_circuit_breaker_spec_reflects_dd71`, parametrized over the nine stale sites. The test
+  reads `docs/v3_specification/11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` and asserts
+  that each of the nine sites no longer describes the retired real-task probe admission, now
+  describes the dedicated-lightweight-probe design, and that test-case row CB-14 no longer states
+  a per-task timeout counts toward the breaker. The test also verifies by running `uv run python scripts/validate_traceability.py` that no new unresolvable-spec-anchor error is introduced and
+  that `mdformat` passes on the edited file.
 - EC-PROV-3 — covered by STORY-103-AC-1: the edge case's governing spec prose is corrected to
   match the implementation that actually resolves it.
 
@@ -148,3 +153,10 @@ This story's `modules:` entry cites `backend/circuit_breaker/` because that is t
 corrected spec document (`08_CIRCUIT_BREAKER.md`) specifies, even though this story makes no
 code change to that module — `02_STORY_FORMAT.md` requires at least one real module path from
 `01_MODULE_INVENTORY.md`, and no vendored-specification path qualifies as a `modules:` entry.
+
+Guard test added on owner decision: documentation-only stories have no path to `done` under this
+repository's traceability mechanics (every `done` story must have an acceptance criterion with a
+non-empty `tests:` list, populated by parsing pytest's `Proves:` docstrings). Rather than
+document-review without a test, a lightweight parametrized guard test
+(`test_circuit_breaker_spec_reflects_dd71`) verifies the specification's content against the
+current implementation, guarding against silent reverts of the corrected prose.

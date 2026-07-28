@@ -28,7 +28,7 @@ depends_on:
 adrs:
   - ADR-0013
 owner: coder
-estimate: M
+estimate: L
 ---
 
 # STORY-101 — Remove the real-task probe admission from the breaker
@@ -229,10 +229,9 @@ per-task dispatch path for it.
 
 ## Notes
 
-- **`estimate: M` carries eight acceptance criteria**, above `02_STORY_FORMAT.md` §7's nominal
-  "up to six" guidance for `M`. This is a deliberate, owner-sanctioned exception recorded in the
-  implementation plan (`.superpowers/sdd/plan-cb-probe.md`, Task 2): six of the eight criteria
-  are carried forward verbatim from two already-`done` stories this story supersedes
-  (`STORY-023`, `STORY-082`) specifically so that retiring those stories does not silently drop
-  coverage the traceability gate already enforces today. Only two criteria (`AC-3`, `AC-8`) are
-  newly written for this story's own scope.
+- **Eight acceptance criteria, estimate `L`** — the project owner decided that retiring
+  `STORY-023` and `STORY-082` must not silently drop the still-valid acceptance criteria they
+  own today. Six of this story's eight criteria are carried forward verbatim from those two
+  already-`done` stories; only two criteria (`AC-3`, `AC-8`) are newly written for this story's
+  own scope. Since eight criteria exceed the `M` bound of six (per `02_STORY_FORMAT.md` §7), the
+  estimate is `L`.
