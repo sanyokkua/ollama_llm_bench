@@ -1,7 +1,7 @@
 ---
 id: STORY-082
 title: Stop per-task timeout exhaustion from tripping the provider circuit breaker
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
@@ -89,7 +89,31 @@ and the run advances to the next unit.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-082.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-082.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- **Judge-role scope decision.** The fix removes the `circuit_breaker.record_failure(provider_id)`
+  call from the exhausted-timeout branch of `run_task_with_stability`, and that function serves
+  both `role=INFERENCE` and `role=JUDGE` calls — the deletion is unconditional, so it applies to
+  judge-model timeouts too. This is a deliberate reading of the spec, not an oversight: a judge
+  timeout has its own model-level remedy, independent of the provider breaker — the judge model is
+  excluded after `eval.judge_timeout_consecutive_threshold` consecutive max-budget timeouts. The
+  story text above only calls out the inference case explicitly; this note records that the wider
+  blast radius (covering judge calls as well) was a considered decision, not an accident of where
+  the code happened to live.
+- **AC-2 test-strength decision.** The first draft of the AC-2 test used `retry_count=0`, which
+  produces a policy with a single attempt — technically hits the `HttpTimeoutError` branch but only
+  trivially satisfies the criterion's "exhausts its retry ladder" wording, since there is no ladder
+  to exhaust. On review, the project owner decided to strengthen the test to drive a real
+  two-attempt retry ladder instead, accepting the extra ~1 second of real backoff sleep this adds to
+  the suite, so the test genuinely proves the exhausted-ladder path rather than a same-thing
+  single-attempt path.
+- **Preserved warmup signal.** `backend/benchmark_pipeline/_internal/warmup.py` keeps its own,
+  separate `circuit_breaker.record_failure(provider_id)` call on a warmup timeout or transport
+  error. That call does not go through `run_task_with_stability` and was deliberately left
+  untouched by this story, so the breaker's legitimate timeout-based signal — a provider whose
+  model fails to even warm up at a model switch — still trips the breaker as designed.

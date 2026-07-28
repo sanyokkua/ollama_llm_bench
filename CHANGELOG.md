@@ -598,3 +598,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   actions adapter gains a new `open_url(url)` method (raises `OsAdapterError`) for opening the
   repository link in the user's default browser. Per `07_Common_Dialogs/about_dialog.md` §§4–6, 11;
   `error_dialog.md` §§5–6, 9, 12; and `08-E` §21c.
+
+### Fixed
+
+- Benchmark pipeline: a model that repeatedly timed out on a single task no longer trips the
+  provider's circuit breaker and skips that provider's other models. A per-task timeout is now
+  treated purely as a signal about that one model — it still counts toward that model's own
+  adaptive timeout budget and can still exclude just that model — instead of being
+  misattributed to the provider as a whole (STORY-082).
