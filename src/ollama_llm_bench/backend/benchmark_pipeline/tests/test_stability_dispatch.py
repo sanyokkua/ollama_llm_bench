@@ -1,9 +1,12 @@
-"""Proves: STORY-082-AC-1, STORY-082-AC-2
+"""Proves: STORY-082-AC-1, STORY-082-AC-2, STORY-082-AC-3
 
 A per-task inference that exhausts its retry ladder with `HttpTimeoutError` feeds only
 the adaptive-timeout service — it never counts toward the provider circuit breaker
-(`11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4, §6.9) — and settles a
-contained `FAILED_TIMEOUT` patch so the run advances to the next unit.
+while the breaker is CLOSED (`11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4,
+§6.9) — and settles a contained `FAILED_TIMEOUT` patch so the run advances to the next
+unit. The one exception: when the breaker is PROBING and the admitted probe task itself
+times out, the exhausted timeout resolves the probe by re-tripping the breaker with a
+fresh cooldown (§6.5, §6.6) rather than leaving the probe slot claimed forever.
 """
 
 from collections.abc import Callable
@@ -14,10 +17,12 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.stability_dispatch im
     run_task_with_stability,
 )
 from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import FakeClock
+from ollama_llm_bench.backend.circuit_breaker import CircuitState, make_circuit_breaker
 from ollama_llm_bench.backend.circuit_breaker.testing import FakeProviderCircuitBreaker
 from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.domain.models import (
     AdaptiveTimeoutRole,
+    BenchmarkRunSettingEntry,
     ResultPatch,
     ResultStatus,
 )
@@ -132,4 +137,59 @@ def test_exhausted_per_task_timeout_settles_failed_timeout_and_advances() -> Non
     ]
     assert adaptive_timeout.recorded_successes == []
     assert circuit_breaker.recorded_failures == []
+    assert circuit_breaker.recorded_successes == []
+    assert runner.submit_count == _EXPECTED_ATTEMPT_COUNT
+
+
+def test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker() -> None:
+    """Proves: STORY-082-AC-3
+
+    Drives the real `ProviderCircuitBreaker` state machine, not a fake, so this proves
+    actual recovery: trip it to TRIPPED, elapse its cooldown so the next query lazily
+    moves it to PROBING and admits the very next call as the one live probe, then run
+    that probe through `run_task_with_stability` with every attempt raising
+    `HttpTimeoutError`. The exhausted timeout must resolve the probe by re-tripping the
+    breaker with a fresh cooldown window (08_CIRCUIT_BREAKER.md §6.5, §6.6) rather than
+    leaving the probe slot claimed and the provider permanently un-probeable.
+    """
+    # Arrange
+    adaptive_timeout = FakeAdaptiveTimeoutService()
+    breaker_clock = FakeClock()
+    cooldown_seconds = 30
+    snapshot = (
+        BenchmarkRunSettingEntry(setting_key="circuit_breaker.enabled", setting_value="true"),
+        BenchmarkRunSettingEntry(
+            setting_key="circuit_breaker.failure_threshold", setting_value="1"
+        ),
+        BenchmarkRunSettingEntry(
+            setting_key="circuit_breaker.cooldown_seconds", setting_value=str(cooldown_seconds)
+        ),
+    )
+    circuit_breaker = make_circuit_breaker(snapshot=snapshot, clock=breaker_clock)
+    circuit_breaker.record_failure(_PROVIDER_ID)  # threshold=1: trips immediately
+    breaker_clock.advance_monotonic_ms(cooldown_seconds * 1000)  # cooldown elapses
+    timeout_error = HttpTimeoutError(message="timed out", context=ErrorContext())
+    runner = _QueueTaskRunner([_always_raises(timeout_error), _always_raises(timeout_error)])
+    token = CancellationToken(clock=FakeClock())
+
+    # Act
+    patch = run_task_with_stability(
+        provider_id=_PROVIDER_ID,
+        model_name=_MODEL_NAME,
+        role=AdaptiveTimeoutRole.INFERENCE,
+        retry_count=1,
+        build_attempt=lambda timeout_ms: lambda: "unused",
+        finalize_success=lambda raw: ResultPatch(status=ResultStatus.COMPLETED),
+        on_timeout_exhausted=lambda: ResultPatch(status=ResultStatus.FAILED_TIMEOUT),
+        runner=runner,
+        token=token,
+        clock=FakeClock(),
+        adaptive_timeout=adaptive_timeout,
+        circuit_breaker=circuit_breaker,
+    )
+
+    # Assert
+    assert patch.status is ResultStatus.FAILED_TIMEOUT
+    assert circuit_breaker.state(_PROVIDER_ID) is CircuitState.TRIPPED
+    assert circuit_breaker.cooldown_remaining_seconds(_PROVIDER_ID) == cooldown_seconds
     assert runner.submit_count == _EXPECTED_ATTEMPT_COUNT

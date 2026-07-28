@@ -68,6 +68,12 @@ class FakeClock:
     def monotonic_ms(self) -> int:
         return self._monotonic_ms
 
+    def advance_monotonic_ms(self, delta_ms: int) -> None:
+        """Test-only time control (mirrors `circuit_breaker/tests/conftest.py`'s
+        identical helper): move the clock forward deterministically, e.g. to elapse a
+        circuit breaker's cooldown window without a real sleep."""
+        self._monotonic_ms += delta_ms
+
 
 def make_cancellation_token() -> CancellationToken:
     """Build a fresh, uncancelled `CancellationToken` backed by a `FakeClock`."""

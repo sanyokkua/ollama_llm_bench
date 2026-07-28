@@ -18,6 +18,7 @@ from collections.abc import Callable
 
 from ollama_llm_bench.backend.adaptive_timeout.protocols import AdaptiveTimeoutService
 from ollama_llm_bench.backend.benchmark_pipeline._internal.containment import contain_unit_failure
+from ollama_llm_bench.backend.circuit_breaker.models import CircuitState
 from ollama_llm_bench.backend.circuit_breaker.protocols import ProviderCircuitBreaker
 from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
@@ -145,12 +146,18 @@ def run_task_with_stability[T](  # noqa: PLR0913  # each parameter is a distinct
     except HttpTimeoutError:
         # A per-task timeout is a MODEL-level signal, never a provider-attributable one:
         # it feeds only the adaptive-timeout service (which escalates this model's budget
-        # and can exclude this one model), and must NOT reach the breaker — otherwise one
-        # slow model would skip every other model on the same provider
-        # (08_CIRCUIT_BREAKER.md §6.4 MISS-25, §6.9). The breaker's timeout signal comes
-        # exclusively from the warmup probe at a model switch (`_internal/warmup.py`).
+        # and can exclude this one model), and must NOT reach the breaker while CLOSED —
+        # otherwise one slow model would skip every other model on the same provider
+        # (08_CIRCUIT_BREAKER.md §6.4 MISS-25, §6.9). The one exception is a PROBING
+        # breaker: the admitted probe task IS the breaker's own liveness check (§6.6), and
+        # a timed-out probe must resolve it — record_failure re-trips with a fresh cooldown
+        # instead of leaving the probe slot claimed forever with no further probe ever
+        # admitted. A timed-out probe task is therefore also a legitimate breaker timeout
+        # signal, alongside the warmup probe at a model switch (`_internal/warmup.py`).
         # This clause MUST stay above `except _TransientError` — HttpTimeoutError is a
         # TransientError subclass, and reordering would silently restore the failure count.
+        if circuit_breaker.state(provider_id) is CircuitState.PROBING:
+            circuit_breaker.record_failure(provider_id)
         return on_timeout_exhausted()
     except _TransientError as exc:
         circuit_breaker.record_failure(provider_id)
