@@ -11,10 +11,14 @@ Two complementary checks: (1) `_internal/units.py`'s attempt-builder functions
 service — a worker-submitted attempt callable has no way to reach them; (2) every
 stability-service method call anywhere under `backend/benchmark_pipeline/` (excluding
 tests) resolves to a source line inside `_internal/stability_dispatch.py`,
-`_internal/stability_phase.py`, or `_internal/warmup.py` (STORY-075) — all
+`_internal/stability_phase.py`, `_internal/warmup.py` (STORY-075),
+`_internal/provider_probe.py`, or `_internal/lightweight_call.py` (STORY-100) — all
 dispatcher-thread-only modules, invoked between row submissions in
-`run_phase_with_stability`, never from inside a unit passed to
-`TaskRunner.submit()`.
+`run_phase_with_stability`, never from inside a unit passed to `TaskRunner.submit()`.
+`_internal/lightweight_call.py` is allowlisted because it calls
+`AdaptiveTimeoutService.next_budget` (a read, per its own module docstring) from the
+same dispatcher-thread call chain `warmup.py`'s inlined version used before STORY-100's
+extraction — only its single blocking `chat` call actually crosses onto a worker.
 """
 
 import ast
@@ -47,7 +51,13 @@ other breaker/service methods above in the same function.
 """
 
 _DISPATCHER_THREAD_ONLY_FILE_NAMES = frozenset(
-    {"stability_dispatch.py", "stability_phase.py", "warmup.py"}
+    {
+        "stability_dispatch.py",
+        "stability_phase.py",
+        "warmup.py",
+        "provider_probe.py",
+        "lightweight_call.py",
+    }
 )
 
 
@@ -91,7 +101,8 @@ def test_stability_service_methods_called_only_from_dispatcher_thread_modules() 
     `model_state`/`should_skip`/`record_failure`/`cooldown_remaining_seconds` method,
     anywhere under `backend/benchmark_pipeline/` (excluding colocated tests), resolves
     to a source line inside `_internal/stability_dispatch.py`,
-    `_internal/stability_phase.py`, or `_internal/warmup.py` (STORY-075) — all
+    `_internal/stability_phase.py`, `_internal/warmup.py` (STORY-075),
+    `_internal/provider_probe.py`, or `_internal/lightweight_call.py` (STORY-100) — all
     dispatcher-thread-only modules. Every other module (in particular the
     worker-submitted attempt builders in `_internal/units.py`) contains no such call.
     """

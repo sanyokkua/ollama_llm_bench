@@ -97,6 +97,7 @@ def run_phase_with_stability[T](  # noqa: PLR0913  # every keyword-only argument
     on_timeout_exhausted_for: Callable[[BenchmarkResult], Callable[[], ResultPatch]],
     after_row: Callable[[BenchmarkResult, ResultPatch, int], None] | None = None,
     before_group: Callable[[ProviderIdStr, ModelNameStr], None] | None = None,
+    before_row: Callable[[ProviderIdStr, ModelNameStr], None] | None = None,
 ) -> None:
     """Run one phase's rows through the full stability stack, strictly serially (STORY-030).
 
@@ -136,6 +137,15 @@ def run_phase_with_stability[T](  # noqa: PLR0913  # every keyword-only argument
             checkpoint and before its first row — used only by the INFERENCE
             call site to fire a model-switch-boundary warmup (STORY-075).
             `None` for JUDGE_CHECK and whenever warmup is disabled for the run.
+        before_row: Optional hook invoked once per row, after that row's own
+            `token.raise_if_cancelled()` safe checkpoint and after its
+            stability target is resolved, before `run_task_with_stability`
+            runs it — used by both the INFERENCE and JUDGE_CHECK call sites
+            to fire the circuit breaker's dedicated liveness probe
+            (`_internal.provider_probe.run_provider_probe`, STORY-100) on
+            every row targeting a `PROBING` provider. Fires per row, not per
+            group, so a single-group run still gets a fresh chance to
+            resolve the cooldown on every remaining row.
     """
     for provider_id, model_name, group_rows in groups:
         token.raise_if_cancelled()  # model-switch safe checkpoint (STORY-075-AC-6)
@@ -144,6 +154,8 @@ def run_phase_with_stability[T](  # noqa: PLR0913  # every keyword-only argument
         for index, result in enumerate(group_rows):
             token.raise_if_cancelled()
             target_provider_id, target_model_name = stability_target_for(result)
+            if before_row is not None:
+                before_row(target_provider_id, target_model_name)
             patch = run_task_with_stability(
                 provider_id=target_provider_id,
                 model_name=target_model_name,

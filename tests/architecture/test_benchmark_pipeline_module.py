@@ -41,8 +41,15 @@ worker never does" pattern as `dispatcher.py` itself, just factored into its own
 module (see `_internal/stability_dispatch.py`'s module docstring)."""
 _WARMUP_FILE_NAME = "warmup.py"
 """STORY-075: the model-warmup orchestrator likewise runs on the dispatcher thread
-(invoked from `run_phase_with_stability`'s group loop) and blocks on its single
-worker-submitted chat unit via `Future.result()` — the same sanctioned pattern."""
+(invoked from `run_phase_with_stability`'s group loop). Its own `Future.result()`
+call was extracted into `_internal/lightweight_call.py` by STORY-100 (see below);
+`warmup.py` itself no longer contains one, but stays allowlisted defensively."""
+_LIGHTWEIGHT_CALL_FILE_NAME = "lightweight_call.py"
+"""STORY-100: the shared call shape behind both `warmup.py` and
+`_internal/provider_probe.py` runs on the dispatcher thread (only its single
+worker-submitted `chat` unit crosses onto a pool worker) and blocks on that
+unit's `Future.result()` — the same sanctioned pattern as `dispatcher.py`,
+`stability_dispatch.py`, and the (now-delegating) `warmup.py`."""
 
 
 def _iter_source_files() -> list[Path]:
@@ -154,14 +161,21 @@ def test_only_dispatcher_module_calls_future_result() -> None:
     (STORY-030 extends this to the stability-stack retry orchestrator, which
     also runs on the dispatcher thread — see ``_internal/stability_dispatch.py``;
     STORY-075 extends it to the model-warmup orchestrator in
-    ``_internal/warmup.py``, likewise dispatcher-thread-only).
+    ``_internal/warmup.py``; STORY-100 extends it to the shared warmup/probe
+    call shape in ``_internal/lightweight_call.py``, likewise
+    dispatcher-thread-only).
     """
     # Arrange
     other_source_files = [
         source_file
         for source_file in _SOURCE_FILES
         if source_file.name
-        not in (_DISPATCHER_FILE_NAME, _STABILITY_DISPATCH_FILE_NAME, _WARMUP_FILE_NAME)
+        not in (
+            _DISPATCHER_FILE_NAME,
+            _STABILITY_DISPATCH_FILE_NAME,
+            _WARMUP_FILE_NAME,
+            _LIGHTWEIGHT_CALL_FILE_NAME,
+        )
     ]
 
     # Act

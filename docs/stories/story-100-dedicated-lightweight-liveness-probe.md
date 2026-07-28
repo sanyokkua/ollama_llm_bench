@@ -1,7 +1,7 @@
 ---
 id: STORY-100
 title: Issue a dedicated lightweight liveness probe when a provider is PROBING
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-F_spec_issues_log.md#dd-71--circuit-breaker-probing-uses-a-lightweight-liveness-probe-not-a-full-task-2026-06-06
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing
@@ -200,11 +200,53 @@ to its assertions.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-100.
-- [ ] EC-PROV-3 has a passing test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The dispatcher-thread architecture scan's allowlist covers `lightweight_call.py` and
+- [x] Every acceptance criterion has a passing test that names STORY-100.
+- [x] EC-PROV-3 has a passing test.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The dispatcher-thread architecture scan's allowlist covers `lightweight_call.py` and
   `provider_probe.py`.
-- [ ] `test_warmup.py`'s existing assertions pass with no edits.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-100.
-- [ ] The module inventory is unchanged.
+- [x] `test_warmup.py`'s existing assertions pass with no edits.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-100.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+- **08-G feature-flag finding (recorded as required, not re-derived).**
+  `08_Cross_Cutting/08-G_feature_flags.md` line 60 is `benchmark.warmup_enabled`'s only
+  definition, and it scopes the flag strictly to "pre-loads the model before the first timed
+  inference so cold-load latency does not pollute measurements" — nothing in that entry, or
+  anywhere else in the document, ties it to circuit-breaker recovery. `run_provider_probe` is
+  therefore wired unconditionally in `stability_phase.py` (both `_run_inference_phase` and
+  `_run_judge_phase`), never gated by `warmup_enabled`, consistent with
+  `11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md`'s framing of PROBING recovery as breaker
+  machinery, not a warmup optimisation a user can disable.
+- **Deliberate divergence from `warmup.py:95-96`.** `run_provider_probe` does not call
+  `adaptive_timeout.is_excluded(...)` before issuing its call, unlike `run_model_warmup`'s
+  guard. An excluded model is still a valid liveness target for the breaker's own recovery —
+  per-role adaptive-timeout exclusion and provider-level breaker health are independent
+  concerns, and gating the probe on the former would leave a provider stuck `PROBING` whenever
+  its only recently-used model happened to be excluded.
+- **`WARMUP_PROMPT`/`WARMUP_MAX_OUTPUT_TOKENS` re-export was not a dead re-export.** Grepped
+  every importer before moving the constants: only `test_warmup.py` imports them (from
+  `warmup.py`). Since that import site is required to keep working unedited (this story's own
+  constraint), the re-export in `warmup.py` is load-bearing, not speculative — kept as
+  `from ..._internal.lightweight_call import WARMUP_MAX_OUTPUT_TOKENS, WARMUP_PROMPT` plus
+  `warmup.py`'s own `__all__`.
+- **Shared call-shape parameterisation.** `lightweight_call.issue_lightweight_call` takes
+  `attempts` and `budget_attempt_offset` rather than hard-coding either caller's ladder shape.
+  `run_model_warmup` passes `attempts=1 + retry_count, budget_attempt_offset=0` (byte-identical
+  to its pre-refactor loop). `run_provider_probe` passes `attempts=1, budget_attempt_offset=retry_count`, so `with_retry`'s own single-attempt policy
+  (`policy.attempts=1`) enforces ADR-0013's one-attempt shape by construction — no bespoke
+  bypass of `with_retry` was needed — while the one attempt still draws the same top-of-ladder
+  budget a real task's final retry would receive.
+- **Two architecture-scan allowlists needed updating, both found before running `just arch-test` the first time cost a red result:**
+  `tests/architecture/test_stability_dispatcher_thread_only.py`'s
+  `_DISPATCHER_THREAD_ONLY_FILE_NAMES` (breaker/adaptive-timeout method calls) and
+  `tests/architecture/test_benchmark_pipeline_module.py`'s `_LIGHTWEIGHT_CALL_FILE_NAME`
+  addition (the `Future.result()` block-on-futures scan) — both now cover `provider_probe.py`
+  and `lightweight_call.py`. This is the STORY-075 lesson the task brief flagged in advance.
+- **Task 4 (STORY-101) follow-up, left untouched by design.** The breaker's real-task probe
+  admission (`should_skip`'s PROBING branch, `probe_slot_claimed` bookkeeping,
+  `stability_dispatch.py`'s now-superfluous-but-still-correct PROBING conditional) is
+  deliberately still in place after this story — this story only adds the new resolver so the
+  tree is never left without one; removing the old admission path is STORY-101's job.

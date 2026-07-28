@@ -266,6 +266,43 @@ def test_warmup_budget_read_from_role_inference_ladder(mocker: MockerFixture) ->
     assert circuit_breaker.recorded_failures == [_PROVIDER_ID]
 
 
+def test_warmup_behaviour_unchanged_after_probe_extraction(mocker: MockerFixture) -> None:
+    """Proves: STORY-100-AC-5
+
+    After `run_model_warmup` is refactored onto the shared
+    `_internal.lightweight_call.issue_lightweight_call` helper (STORY-100), its
+    observable behaviour stays byte-identical to the pre-refactor shape: it
+    still walks the full `1 + retry_count` attempt ladder (never the probe's
+    single-attempt shape), still sources its request payload from the same
+    `WARMUP_PROMPT`/`WARMUP_MAX_OUTPUT_TOKENS` constants (now re-exported from
+    `_internal.lightweight_call`), and still never calls
+    `circuit_breaker.record_success` on a ladder-exhausted timeout.
+    """
+    retry_count = 2
+    client = _RecordingChatClient(error=HttpTimeoutError(message="no response"))
+    provider_registry = mocker.Mock(spec=ProviderRegistry)
+    provider_registry.get_client.return_value = client
+    adaptive_timeout = FakeAdaptiveTimeoutService(fixed_budget_seconds=9)
+    circuit_breaker = FakeProviderCircuitBreaker()
+
+    run_model_warmup(
+        provider_id=_PROVIDER_ID,
+        model_name=_MODEL_NAME,
+        provider_registry=provider_registry,
+        adaptive_timeout=adaptive_timeout,
+        circuit_breaker=circuit_breaker,
+        retry_count=retry_count,
+        runner=_InlineWarmupRunner(),
+        token=make_cancellation_token(),
+    )
+
+    assert len(client.requests) == 1 + retry_count
+    assert client.requests[0].messages == (ChatMessage(role=ChatRole.USER, content=WARMUP_PROMPT),)
+    assert client.requests[0].max_output_tokens == WARMUP_MAX_OUTPUT_TOKENS
+    assert circuit_breaker.recorded_successes == []
+    assert circuit_breaker.recorded_failures == [_PROVIDER_ID]
+
+
 @pytest.mark.parametrize("state", [CircuitState.TRIPPED, CircuitState.PROBING])
 def test_non_closed_breaker_skips_warmup_with_no_chat_call(
     state: CircuitState, inline_warmup_runner: _InlineWarmupRunner, mocker: MockerFixture

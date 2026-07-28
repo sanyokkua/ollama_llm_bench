@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-28T17:24:58Z'
+generated_at: '2026-07-28T17:46:04Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2177,7 +2177,9 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/grouping.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/lifecycle.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/lightweight_call.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/outcome.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/units.py]
@@ -2199,6 +2201,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_pause_stop.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_resume.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stability_dispatch.py]
@@ -2214,7 +2217,9 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/grouping.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/lifecycle.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/lightweight_call.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/outcome.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/units.py]
@@ -2236,6 +2241,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_pause_stop.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_resume.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stability_dispatch.py]
@@ -2251,7 +2257,9 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/grouping.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/judge_target.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/lifecycle.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/lightweight_call.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/outcome.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_phase.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/units.py]
@@ -2273,6 +2281,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_never_raises.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_outcome_matrix.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_pause_stop.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_resume.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stability_dispatch.py]
@@ -5323,7 +5332,7 @@ stories:
         tests: []
   STORY-100:
     title: Issue a dedicated lightweight liveness probe when a provider is PROBING
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-F_spec_issues_log.md#dd-71--circuit-breaker-probing-uses-a-lightweight-liveness-probe-not-a-full-task-2026-06-06
     - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3
@@ -5336,15 +5345,43 @@ stories:
     - EC-PROV-3
     acceptance_criteria:
       STORY-100-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_is_skipped_unless_probing[closed]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_is_skipped_unless_probing[probing]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_is_skipped_unless_probing[tripped]
       STORY-100-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[bad_request]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[chat_response]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[configuration_error]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[connection_error]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[context_length]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[missing_env_var]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[model_not_available]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[provider_auth]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[rate_limited]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[server_error]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[timeout]
       STORY-100-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_cancellation_reports_no_outcome
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[bad_request]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[chat_response]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[configuration_error]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[connection_error]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[context_length]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[missing_env_var]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[model_not_available]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[provider_auth]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[rate_limited]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[server_error]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[timeout]
       STORY-100-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_fires_per_row_not_per_group
       STORY-100-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_behaviour_unchanged_after_probe_extraction
   STORY-101:
     title: Remove the real-task probe admission from the breaker
     status: ready
@@ -8092,9 +8129,37 @@ edge_cases:
     - STORY-102
     - STORY-103
     tests:
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_cancellation_reports_no_outcome
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_fires_per_row_not_per_group
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_is_skipped_unless_probing[closed]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_is_skipped_unless_probing[probing]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_is_skipped_unless_probing[tripped]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[bad_request]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[chat_response]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[configuration_error]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[connection_error]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[context_length]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[missing_env_var]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[model_not_available]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[provider_auth]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[rate_limited]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[server_error]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_never_leaves_breaker_probing[timeout]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[bad_request]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[chat_response]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[configuration_error]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[connection_error]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[context_length]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[missing_env_var]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[model_not_available]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[provider_auth]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[rate_limited]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[server_error]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[timeout]
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_does_not_record_breaker_failure
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_behaviour_unchanged_after_probe_extraction
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]

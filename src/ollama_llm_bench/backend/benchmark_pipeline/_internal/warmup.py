@@ -7,21 +7,26 @@ never the adaptive-timeout model-exclusion counter (`07_ADAPTIVE_TIMEOUT.md`
 the blocking `chat` call is submitted to a worker, matching
 `_internal.stability_dispatch.run_task_with_stability`'s own thread-affinity
 rule for the two stability services.
+
+The blocking call shape itself lives in `_internal.lightweight_call`, shared
+with `_internal.provider_probe.run_provider_probe` (STORY-100); the two
+callers' outcome handling stays deliberately separate — see
+`_internal.lightweight_call`'s module docstring for why.
 """
 
-from typing import Final
-
 from ollama_llm_bench.backend.adaptive_timeout.protocols import AdaptiveTimeoutService
+from ollama_llm_bench.backend.benchmark_pipeline._internal.lightweight_call import (
+    WARMUP_MAX_OUTPUT_TOKENS,
+    WARMUP_PROMPT,
+    issue_lightweight_call,
+)
 from ollama_llm_bench.backend.circuit_breaker.models import CircuitState
 from ollama_llm_bench.backend.circuit_breaker.protocols import ProviderCircuitBreaker
 from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
 from ollama_llm_bench.backend.domain.models import (
     AdaptiveTimeoutRole,
-    ChatMessage,
-    ChatRequest,
     ChatResponse,
-    ChatRole,
     ModelName,
     ProviderId,
 )
@@ -32,13 +37,8 @@ from ollama_llm_bench.backend.errors import (
     TaskCancelledError,
 )
 from ollama_llm_bench.backend.provider_registry.protocols import ProviderRegistry
-from ollama_llm_bench.backend.retry import default_transient_policy, with_retry
 
 __all__: list[str] = ["WARMUP_MAX_OUTPUT_TOKENS", "WARMUP_PROMPT", "run_model_warmup"]
-
-WARMUP_PROMPT: Final[str] = "Reply with exactly: OK"  # owner-settled, 2026-07-22
-WARMUP_MAX_OUTPUT_TOKENS: Final[int] = 16  # owner-settled, 2026-07-22
-_MS_PER_SECOND: Final[int] = 1000
 
 
 def run_model_warmup(  # noqa: PLR0913  # each keyword-only argument is a distinct
@@ -95,27 +95,17 @@ def run_model_warmup(  # noqa: PLR0913  # each keyword-only argument is a distin
     if adaptive_timeout.is_excluded(provider_id, model_name, AdaptiveTimeoutRole.INFERENCE):
         return
 
-    attempt_index = 0
-
-    def _one_attempt() -> ChatResponse:
-        nonlocal attempt_index
-        attempt_index += 1
-        budget_seconds = adaptive_timeout.next_budget(
-            provider_id, model_name, AdaptiveTimeoutRole.INFERENCE, attempt_index=attempt_index
-        )
-        request = ChatRequest(
-            model=model_name,
-            messages=(ChatMessage(role=ChatRole.USER, content=WARMUP_PROMPT),),
-            timeout_ms=budget_seconds * _MS_PER_SECOND,
-            temperature=0.0,
-            max_output_tokens=WARMUP_MAX_OUTPUT_TOKENS,
-        )
-        client = provider_registry.get_client(provider_id)
-        return runner.submit(lambda: client.chat(request, token=token), token=token).result()
-
-    policy = default_transient_policy(retry_count=retry_count)
     try:
-        with_retry(_one_attempt, policy=policy, token=token)
+        issue_lightweight_call(
+            provider_id=provider_id,
+            model_name=model_name,
+            provider_registry=provider_registry,
+            adaptive_timeout=adaptive_timeout,
+            attempts=1 + retry_count,
+            budget_attempt_offset=0,
+            runner=runner,
+            token=token,
+        )
     except TaskCancelledError:
         raise
     except (HttpTimeoutError, HttpConnectionError):

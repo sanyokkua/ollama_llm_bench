@@ -23,6 +23,9 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.events import (
 from ollama_llm_bench.backend.benchmark_pipeline._internal.judge_target import (
     resolve_judge_target,
 )
+from ollama_llm_bench.backend.benchmark_pipeline._internal.provider_probe import (
+    run_provider_probe,
+)
 from ollama_llm_bench.backend.benchmark_pipeline._internal.units import (
     build_inference_attempt,
     build_judge_attempt,
@@ -184,6 +187,11 @@ def _run_inference_phase(  # noqa: PLR0913  # each parameter is a distinct
     `_internal.warmup.run_model_warmup`, firing once per `(provider, model)`
     group at the model-switch boundary (STORY-075); `None` when disabled, so
     `run_phase_with_stability`'s group loop issues no warmup call at all.
+    Always wires a `before_row` closure over
+    `_internal.provider_probe.run_provider_probe` (STORY-100), unconditional
+    because the probe itself is a no-op unless the row's provider is
+    `PROBING` — it is the circuit breaker's own recovery machinery, not a
+    `benchmark.warmup_enabled`-gated optimisation.
     """
 
     def _stability_target_for(result: BenchmarkResult) -> tuple[ProviderId, ModelName]:
@@ -238,6 +246,18 @@ def _run_inference_phase(  # noqa: PLR0913  # each parameter is a distinct
             token=token,
         )
 
+    def _probe_before_row(provider_id: ProviderIdStr, model_name: ModelNameStr) -> None:
+        run_provider_probe(
+            provider_id=provider_id,
+            model_name=model_name,
+            provider_registry=collaborators.provider_registry,
+            adaptive_timeout=adaptive_timeout,
+            circuit_breaker=circuit_breaker,
+            retry_count=retry_count,
+            runner=cast("TaskRunner[ChatResponse]", collaborators.task_runner),
+            token=token,
+        )
+
     run_phase_with_stability(
         groups=groups,
         runner=cast("TaskRunner[_InferenceAttemptOutcome]", collaborators.task_runner),
@@ -253,6 +273,7 @@ def _run_inference_phase(  # noqa: PLR0913  # each parameter is a distinct
         finalize_success_for=_finalize_success_for,
         on_timeout_exhausted_for=_on_timeout_exhausted_for,
         before_group=_warmup_before_group if warmup_enabled else None,
+        before_row=_probe_before_row,
     )
 
 
@@ -278,6 +299,10 @@ def _run_judge_phase(  # noqa: PLR0913  # each parameter is a distinct collabora
     caller's evaluator construction only returns `None` when the phase is not
     actually enabled — the `ContractViolationError` below is a defensive
     backstop, not this story's primary handling for that case.
+
+    Also wires a `before_row` closure over
+    `_internal.provider_probe.run_provider_probe` (STORY-100) targeting the
+    run's fixed judge pair, so a `PROBING` judge provider is probed too.
     """
     if judge_evaluator is None:
         raise ContractViolationError(
@@ -324,6 +349,18 @@ def _run_judge_phase(  # noqa: PLR0913  # each parameter is a distinct collabora
         del result
         return build_judge_timeout_exhausted_patch()
 
+    def _probe_before_row(provider_id: ProviderIdStr, model_name: ModelNameStr) -> None:
+        run_provider_probe(
+            provider_id=provider_id,
+            model_name=model_name,
+            provider_registry=collaborators.provider_registry,
+            adaptive_timeout=adaptive_timeout,
+            circuit_breaker=circuit_breaker,
+            retry_count=retry_count,
+            runner=cast("TaskRunner[ChatResponse]", collaborators.task_runner),
+            token=token,
+        )
+
     def _after_row(result: BenchmarkResult, patch: ResultPatch, remaining: int) -> None:
         del result
         if patch.status is ResultStatus.FAILED_JUDGE_TIMEOUT:
@@ -362,6 +399,7 @@ def _run_judge_phase(  # noqa: PLR0913  # each parameter is a distinct collabora
         finalize_success_for=_finalize_success_for,
         on_timeout_exhausted_for=_on_timeout_exhausted_for,
         after_row=_after_row,
+        before_row=_probe_before_row,
     )
 
 
