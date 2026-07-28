@@ -95,18 +95,17 @@ def test_exhausted_per_task_timeout_does_not_record_breaker_failure() -> None:
 def test_exhausted_per_task_timeout_settles_failed_timeout_and_advances() -> None:
     """Proves: STORY-082-AC-2
 
-    Removing the breaker call leaves containment intact: the exhausted timeout returns
-    the terminal FAILED_TIMEOUT patch rather than raising — which is what lets the
-    dispatcher persist it and move to the next row — and the adaptive-timeout service
-    is still told about the timeout so it can escalate this model's budget
-    (08_CIRCUIT_BREAKER.md §6.9).
+    Every attempt in the ladder times out; the exhausted timeout returns the terminal
+    FAILED_TIMEOUT patch rather than raising — which lets the dispatcher persist it and
+    move to the next row — and the adaptive-timeout service is still told about the
+    timeout so it can escalate this model's budget (08_CIRCUIT_BREAKER.md §6.9).
     """
     # Arrange
     adaptive_timeout = FakeAdaptiveTimeoutService()
     circuit_breaker = FakeProviderCircuitBreaker()
     circuit_breaker.set_should_skip(_PROVIDER_ID, should_skip=False)
     timeout_error = HttpTimeoutError(message="timed out", context=ErrorContext())
-    runner = _QueueTaskRunner([_always_raises(timeout_error)])
+    runner = _QueueTaskRunner([_always_raises(timeout_error), _always_raises(timeout_error)])
     token = CancellationToken(clock=FakeClock())
 
     # Act
@@ -114,7 +113,7 @@ def test_exhausted_per_task_timeout_settles_failed_timeout_and_advances() -> Non
         provider_id=_PROVIDER_ID,
         model_name=_MODEL_NAME,
         role=AdaptiveTimeoutRole.INFERENCE,
-        retry_count=0,
+        retry_count=1,
         build_attempt=lambda timeout_ms: lambda: "unused",
         finalize_success=lambda raw: ResultPatch(status=ResultStatus.COMPLETED),
         on_timeout_exhausted=lambda: ResultPatch(status=ResultStatus.FAILED_TIMEOUT),
@@ -128,7 +127,9 @@ def test_exhausted_per_task_timeout_settles_failed_timeout_and_advances() -> Non
     # Assert
     assert patch.status is ResultStatus.FAILED_TIMEOUT
     assert adaptive_timeout.recorded_timeouts == [
-        (_PROVIDER_ID, _MODEL_NAME, AdaptiveTimeoutRole.INFERENCE)
+        (_PROVIDER_ID, _MODEL_NAME, AdaptiveTimeoutRole.INFERENCE),
+        (_PROVIDER_ID, _MODEL_NAME, AdaptiveTimeoutRole.INFERENCE),
     ]
     assert adaptive_timeout.recorded_successes == []
     assert circuit_breaker.recorded_failures == []
+    assert runner.submit_count == _EXPECTED_ATTEMPT_COUNT
