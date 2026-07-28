@@ -605,4 +605,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   provider's circuit breaker and skips that provider's other models. A per-task timeout is now
   treated purely as a signal about that one model — it still counts toward that model's own
   adaptive timeout budget and can still exclude just that model — instead of being
-  misattributed to the provider as a whole (STORY-082).
+  misattributed to the provider as a whole. The one exception: when the provider's breaker is
+  already probing whether that provider has recovered, a timed-out probe task still resolves the
+  probe (re-trips the breaker for a fresh cooldown) so the provider can be probed again later,
+  instead of getting stuck unprobeable for the rest of the run. Per
+  `11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4, §6.6, §6.9 (STORY-082).

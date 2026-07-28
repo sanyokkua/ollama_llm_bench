@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-28T14:04:36Z'
+generated_at: '2026-07-28T14:24:02Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4980,10 +4980,13 @@ stories:
     status: done
     spec_clauses:
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#66-probe-behaviour
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
     modules:
     - backend/benchmark_pipeline/
-    edge_cases: []
+    edge_cases:
+    - EC-PROV-3
     acceptance_criteria:
       STORY-082-AC-1:
         tests:
@@ -4991,6 +4994,9 @@ stories:
       STORY-082-AC-2:
         tests:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
+      STORY-082-AC-3:
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker
   STORY-083:
     title: Re-apply the theme at runtime on save and open the Settings and About dialogs from the menu
     status: draft
@@ -6456,6 +6462,10 @@ clauses:
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing:
     stories:
     - STORY-023
+    - STORY-082
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#66-probe-behaviour:
+    stories:
+    - STORY-082
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#67-per-provider-scope:
     stories:
     - STORY-023
@@ -7953,7 +7963,11 @@ edge_cases:
   EC-PROV-3:
     stories:
     - STORY-058
+    - STORY-082
     tests:
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_does_not_record_breaker_failure
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]
