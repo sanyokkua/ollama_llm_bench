@@ -1,7 +1,7 @@
 ---
 id: STORY-082
 title: Stop per-task timeout exhaustion from tripping the provider circuit breaker
-status: draft
+status: ready
 spec_clauses:
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout

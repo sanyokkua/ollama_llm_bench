@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-23T17:12:07Z'
+generated_at: '2026-07-28T13:30:40Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4974,7 +4974,7 @@ stories:
         tests: []
   STORY-082:
     title: Stop per-task timeout exhaustion from tripping the provider circuit breaker
-    status: draft
+    status: ready
     spec_clauses:
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
