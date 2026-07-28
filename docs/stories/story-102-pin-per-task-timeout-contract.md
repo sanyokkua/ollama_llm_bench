@@ -1,7 +1,7 @@
 ---
 id: STORY-102
 title: Pin the per-task-timeout contract; record the CB-14 residue
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
@@ -102,13 +102,13 @@ three states.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-102.
-- [ ] EC-PROV-3 has a passing test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] `CHANGELOG.md` carries a `[Unreleased]` → `Fixed` entry citing
+- [x] Every acceptance criterion has a passing test that names STORY-102.
+- [x] EC-PROV-3 has a passing test.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] `CHANGELOG.md` carries a `[Unreleased]` → `Fixed` entry citing
   `11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md`.
-- [ ] The traceability record validates with no orphan clause and no orphan test for STORY-102.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-102.
+- [x] The module inventory is unchanged.
 
 ## Notes
 
@@ -136,3 +136,30 @@ act on:**
   toward the threshold") directly contradicts §6.4/§6.9 and `08-I_edge_cases.md`'s own
   `EC-PROV-3` description, and contradicts this story's own STORY-102-AC-1; it is the specific
   row that motivated this story's title.
+
+**Implementation landed 2026-07-28.** Added
+`src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_timeout_never_reaches_breaker.py`,
+a single parametrized test (`test_exhausted_timeout_records_zero_breaker_failures_in_every_state`)
+driving the real `make_circuit_breaker` in each of `CLOSED`/`TRIPPED`/`PROBING`. Only the `CLOSED`
+case actually exercises `run_task_with_stability`'s `except HttpTimeoutError` branch — the branch
+this story's title is about — because `failure_threshold=1` makes any leaked `record_failure`
+call immediately observable as an unwanted `CLOSED -> TRIPPED` move. The `TRIPPED` and `PROBING`
+cases are guarded one layer earlier by `should_skip` (per STORY-101, `True` unconditionally in
+both non-`CLOSED` states), so the timeout branch itself is never reached there; those two cases
+are real but structurally different assertions — "no dispatch occurs at all" rather than "the
+dispatch path doesn't misreport" — and are recorded here as narrower, not padding: reintroducing
+`record_failure` on the exhausted-timeout branch only turns the `CLOSED` case RED (verified: with
+the call temporarily reintroduced, `CLOSED` fails `assert state is CLOSED` with the real state
+observed as `TRIPPED`; `TRIPPED`/`PROBING` stay green, exactly as expected since they never reach
+that line). A second, independent regression check confirmed the other two cases are still real
+assertions of their own: temporarily changing `should_skip` to return `True` only for `TRIPPED`
+(simulating a revert of STORY-101's `PROBING` always-skip fix) turned the `PROBING` case RED with
+an `IndexError` from the test's empty-outcome-queue runner — proof a dispatch was attempted where
+none should be. Both regressions were reverted immediately after observing RED; `git status`
+after each revert showed no production-file diff. Promoted the `_QueueTaskRunner`/`_always_raises`
+test-double shape — already duplicated privately across `test_stability_dispatch.py`,
+`test_adaptive_timeout_consumption.py`, and `test_circuit_breaker_consultation.py` — into
+`tests/conftest.py` as `QueueTaskRunner`/`always_raises` for this new test to import rather than
+adding a fourth private copy; the three existing private copies are left untouched (repointing
+them is a follow-up, out of this test-only story's single-module scope). No production code file
+differs from `origin` after this story.

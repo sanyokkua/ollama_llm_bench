@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-28T19:29:55Z'
+generated_at: '2026-07-28T19:42:17Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2201,6 +2201,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stage_preserving_retry.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_timeout_never_reaches_breaker.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[__init__.py]
@@ -2241,6 +2242,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stage_preserving_retry.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_timeout_never_reaches_breaker.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[__init__.py]
@@ -2281,6 +2283,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stage_preserving_retry.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_timeout_never_reaches_breaker.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_warmup.py]
       STORY-029-AC-2:
@@ -5418,7 +5421,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_task_is_skipped_and_reports_nothing
   STORY-102:
     title: Pin the per-task-timeout contract; record the CB-14 residue
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#11-test-cases
@@ -5430,7 +5433,10 @@ stories:
     - EC-PROV-3
     acceptance_criteria:
       STORY-102-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_timeout_never_reaches_breaker.py::test_exhausted_timeout_records_zero_breaker_failures_in_every_state[CLOSED-real-retry-ladder-exhausts-on-timeout]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_timeout_never_reaches_breaker.py::test_exhausted_timeout_records_zero_breaker_failures_in_every_state[PROBING-short-circuited-before-any-dispatch]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_timeout_never_reaches_breaker.py::test_exhausted_timeout_records_zero_breaker_failures_in_every_state[TRIPPED-short-circuited-before-any-dispatch]
   STORY-103:
     title: Correct the stale circuit-breaker spec text
     status: ready
@@ -8163,6 +8169,9 @@ edge_cases:
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_does_not_record_breaker_failure
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_task_is_skipped_and_reports_nothing
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_timeout_never_reaches_breaker.py::test_exhausted_timeout_records_zero_breaker_failures_in_every_state[CLOSED-real-retry-ladder-exhausts-on-timeout]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_timeout_never_reaches_breaker.py::test_exhausted_timeout_records_zero_breaker_failures_in_every_state[PROBING-short-circuited-before-any-dispatch]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_timeout_never_reaches_breaker.py::test_exhausted_timeout_records_zero_breaker_failures_in_every_state[TRIPPED-short-circuited-before-any-dispatch]
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_behaviour_unchanged_after_probe_extraction
     - src/ollama_llm_bench/backend/circuit_breaker/tests/test_config_and_scope.py::test_disabled_breaker_is_inert_and_providers_are_independent
     - src/ollama_llm_bench/backend/circuit_breaker/tests/test_probe_outcome.py::test_probe_success_closes_and_probe_failure_retrips

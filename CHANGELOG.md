@@ -601,6 +601,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Circuit breaker: a new conformance test pins, across all three breaker states (`CLOSED`,
+  `TRIPPED`, `PROBING`), that a per-task inference which exhausts its retry ladder on
+  `HttpTimeoutError` records zero circuit-breaker failures from the ordinary per-task dispatch
+  path — driving the real breaker state machine rather than a fake's call log, so the rule holds
+  independent of which state the breaker happened to be in, not only the one state the original
+  bug report described. Per `11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4 (STORY-102).
+
 - Benchmark pipeline: a model that repeatedly timed out on a single task no longer trips the
   provider's circuit breaker and skips that provider's other models. A per-task timeout is now
   treated purely as a signal about that one model — it still counts toward that model's own

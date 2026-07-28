@@ -181,6 +181,49 @@ class AlwaysPassSanityChecker:
         return True
 
 
+class QueueTaskRunner:
+    """A `TaskRunner` double consuming one scripted outcome per `submit` call, in order.
+
+    For a test that must script a multi-attempt retry ladder deterministically —
+    one distinct outcome per attempt, popped in call order — rather than the single
+    fixed outcome `_InlineTaskRunner`/`inline_task_runner` always return. Consolidates
+    the shape three colocated test files (`test_stability_dispatch.py`,
+    `test_adaptive_timeout_consumption.py`, `test_circuit_breaker_consultation.py`)
+    each already carry as a private, byte-for-byte-identical copy (STORY-102): a new
+    test needing this shape should import it from here rather than adding a fourth
+    copy. Those three existing private copies are left as-is by STORY-102 (test-only,
+    single-story scope) — repointing them at this shared version is a follow-up.
+    """
+
+    def __init__(self, outcomes: list[Callable[[], object]]) -> None:
+        self._outcomes = outcomes
+        self.submit_count = 0
+
+    def submit(self, fn: Callable[[], object], *, token: CancellationToken) -> "Future[object]":
+        del fn
+        del token
+        self.submit_count += 1
+        outcome = self._outcomes.pop(0)
+        future: Future[object] = Future()
+        try:
+            future.set_result(outcome())
+        except BaseException as exc:  # noqa: BLE001  # captured for the Future, not swallowed
+            future.set_exception(exc)
+        return future
+
+
+def always_raises(error: BaseException) -> Callable[[], object]:
+    """Build a zero-arg callable that always raises `error` when called.
+
+    Matches `QueueTaskRunner`'s per-attempt outcome-callable shape.
+    """
+
+    def _outcome() -> object:
+        raise error
+
+    return _outcome
+
+
 class _InlineTaskRunner:
     """Runs a unit synchronously on the calling thread — a shared test double.
 
