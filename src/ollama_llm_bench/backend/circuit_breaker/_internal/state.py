@@ -11,12 +11,12 @@ class _ProviderRecord:
 
     ``cooldown_started_ms`` is set only while ``TRIPPED`` (and carried forward
     into ``PROBING`` until a fresh trip resets it); it is ``None`` while
-    ``CLOSED``. ``probe_slot_claimed`` tracks whether the one post-cooldown
-    probe task has already been admitted (§6.5) and is reset on every fresh
-    ``TRIPPED -> PROBING`` transition.
+    ``CLOSED``. There is no probe-slot field: ``PROBING`` admits no benchmark
+    task (DD-71, ADR-0013) — liveness is decided by the pipeline's dedicated
+    lightweight probe (``_internal.provider_probe.run_provider_probe``), never
+    by an admission bit on this record.
     """
 
     state: CircuitState
     consecutive_failures: int
     cooldown_started_ms: int | None
-    probe_slot_claimed: bool

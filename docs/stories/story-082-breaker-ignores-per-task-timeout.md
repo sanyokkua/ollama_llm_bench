@@ -1,7 +1,7 @@
 ---
 id: STORY-082
 title: Stop per-task timeout exhaustion from tripping the provider circuit breaker
-status: done
+status: superseded
 spec_clauses:
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
@@ -121,6 +121,24 @@ provider permanently un-probeable.
 
 ## Notes
 
+- **Superseded by STORY-101 (2026-07-28).** This story's `AC-3` made the PROBING-conditional
+  `record_failure` call inside `run_task_with_stability`'s exhausted-timeout branch correct
+  under the pre-DD-71 design, where a `PROBING` provider's admitted probe *was* an ordinary
+  real task running through this same dispatch path. STORY-101 completes DD-71's adoption
+  (`08_Cross_Cutting/08-F_spec_issues_log.md`, 2026-06-06): a `PROBING` provider now admits no
+  benchmark task at all — `should_skip` always returns `True` while `PROBING`, and liveness is
+  decided exclusively by the pipeline's dedicated `run_provider_probe` call issued before each
+  row (ADR-0013). This function can therefore no longer be a probe, so the PROBING conditional
+  this story added is deleted outright, along with the now-unused `CircuitState` import; the
+  branch returns to the simple `except HttpTimeoutError: return on_timeout_exhausted()` shape
+  this story started from. `STORY-082-AC-3`'s scenario ("a timed-out probe re-trips the
+  breaker") therefore no longer exists and has no surviving test under this design. This story's
+  other two criteria (`AC-1`, `AC-2`) describe behaviour that is still correct and unchanged;
+  per the project owner's decision recorded in STORY-101's Notes, all three of this story's
+  criteria are carried forward verbatim as `STORY-101-AC-6` through `STORY-101-AC-8` (with
+  `AC-3` rewritten to the new skip-and-report-nothing behaviour), so no coverage is silently
+  dropped by this supersession. This file is retained permanently per
+  `traceability-and-stories.md`; it is never edited again below this note.
 - **Judge-role scope decision.** The fix removes the `circuit_breaker.record_failure(provider_id)`
   call from the exhausted-timeout branch of `run_task_with_stability`, and that function serves
   both `role=INFERENCE` and `role=JUDGE` calls — the deletion (now conditional on the breaker being

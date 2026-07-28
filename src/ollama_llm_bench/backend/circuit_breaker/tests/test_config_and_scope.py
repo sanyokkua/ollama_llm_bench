@@ -1,4 +1,4 @@
-"""Proves STORY-023-AC-5 — a disabled breaker is inert, and per-provider records
+"""Proves STORY-101-AC-5 — a disabled breaker is inert, and per-provider records
 are independent."""
 
 from ollama_llm_bench.backend.circuit_breaker import CircuitState, make_circuit_breaker
@@ -11,7 +11,7 @@ _COOLDOWN_SECONDS = 60
 
 
 def test_disabled_breaker_is_inert_and_providers_are_independent() -> None:
-    """Proves: STORY-023-AC-5
+    """Proves: STORY-101-AC-5
 
     With circuit_breaker.enabled=false, state stays CLOSED and should_skip
     stays False even after failure_threshold-or-more record_failure calls; a

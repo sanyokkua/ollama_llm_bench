@@ -51,27 +51,25 @@ class _ProviderCircuitBreakerImpl:
             record.state = CircuitState.CLOSED
             record.consecutive_failures = 0
             record.cooldown_started_ms = None
-            record.probe_slot_claimed = False
         elif record.state is CircuitState.CLOSED:
             record.consecutive_failures = 0
         # A record_success while TRIPPED cannot occur in correct pipeline usage
         # (a tripped provider is skipped); accepted as a safe no-op.
 
     def should_skip(self, provider_id: ProviderId) -> bool:
-        """Whether the pipeline should skip this provider right now (§6.2, §6.5)."""
+        """Whether the pipeline should skip this provider right now (§6.2, §6.5).
+
+        A pure function of ``state()`` — no side effect, idempotent for any
+        number of calls with no intervening ``record_success``/
+        ``record_failure``. ``PROBING`` always returns ``True``: it admits no
+        benchmark task (DD-71, ADR-0013). Liveness is decided elsewhere, by the
+        pipeline's dedicated ``run_provider_probe`` call issued before each row.
+        """
         if not self._parameters.enabled:
             return False
         record = self._get_or_create_record(provider_id)
         self._maybe_transition_to_probing(record)
-        if record.state is CircuitState.CLOSED:
-            return False
-        if record.state is CircuitState.TRIPPED:
-            return True
-        # PROBING: the first post-cooldown query claims the one probe slot.
-        if record.probe_slot_claimed:
-            return True
-        record.probe_slot_claimed = True
-        return False
+        return record.state is not CircuitState.CLOSED
 
     def cooldown_remaining_seconds(self, provider_id: ProviderId) -> int | None:
         """Seconds left in a tripped provider's cooldown, or ``None`` (§6.5)."""
@@ -90,7 +88,6 @@ class _ProviderCircuitBreakerImpl:
         """Move a record to TRIPPED and stamp a fresh cooldown window (§6.4, §6.5)."""
         record.state = CircuitState.TRIPPED
         record.cooldown_started_ms = self._clock.monotonic_ms()
-        record.probe_slot_claimed = False
 
     def _maybe_transition_to_probing(self, record: _ProviderRecord) -> None:
         """Lazily evaluate the TRIPPED -> PROBING move (§6.5).
@@ -106,7 +103,6 @@ class _ProviderCircuitBreakerImpl:
         elapsed_ms = self._clock.monotonic_ms() - record.cooldown_started_ms
         if elapsed_ms >= cooldown_ms:
             record.state = CircuitState.PROBING
-            record.probe_slot_claimed = False
 
     def _get_or_create_record(self, provider_id: ProviderId) -> _ProviderRecord:
         if provider_id not in self._providers:
@@ -114,6 +110,5 @@ class _ProviderCircuitBreakerImpl:
                 state=CircuitState.CLOSED,
                 consecutive_failures=0,
                 cooldown_started_ms=None,
-                probe_slot_claimed=False,
             )
         return self._providers[provider_id]

@@ -18,7 +18,6 @@ from collections.abc import Callable
 
 from ollama_llm_bench.backend.adaptive_timeout.protocols import AdaptiveTimeoutService
 from ollama_llm_bench.backend.benchmark_pipeline._internal.containment import contain_unit_failure
-from ollama_llm_bench.backend.circuit_breaker.models import CircuitState
 from ollama_llm_bench.backend.circuit_breaker.protocols import ProviderCircuitBreaker
 from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
@@ -69,8 +68,8 @@ def run_task_with_stability[T](  # noqa: PLR0913  # each parameter is a distinct
     network call, submits exactly one attempt at a time to `runner`, blocks on each
     attempt's `Future`, and reports each outcome to the service(s) it is
     attributable to — all from the calling thread, which must be the dispatcher
-    thread. A per-task timeout reports only to `AdaptiveTimeoutService` while the
-    breaker is CLOSED; every other clean outcome reports to both services.
+    thread. A per-task timeout reports only to `AdaptiveTimeoutService`, never the
+    breaker; every other clean outcome reports to both services.
 
     Args:
         provider_id: The stability target's provider — the row's own provider for
@@ -99,9 +98,11 @@ def run_task_with_stability[T](  # noqa: PLR0913  # each parameter is a distinct
             `observed_ms`.
         adaptive_timeout: Touched only from this function, never from
             `build_attempt`'s returned callable.
-        circuit_breaker: Touched only from this function, same rule. Also records
-            a failure when a per-task timeout occurs while it is PROBING, which
-            resolves the probe by re-tripping the breaker with a fresh cooldown.
+        circuit_breaker: Touched only from this function, same rule. A `PROBING`
+            provider is resolved before this function is ever called for that
+            row, by the pipeline's dedicated `run_provider_probe` call (DD-71,
+            ADR-0013) — a per-task timeout inside this function never reports
+            to the breaker.
 
     Returns:
         The phase's terminal `ResultPatch` — from `finalize_success`,
@@ -148,21 +149,18 @@ def run_task_with_stability[T](  # noqa: PLR0913  # each parameter is a distinct
     except TaskCancelledError:
         raise
     except HttpTimeoutError:
-        # While the breaker is CLOSED, a per-task timeout is a MODEL-level signal, never a
-        # provider-attributable one: it feeds only the adaptive-timeout service (which
-        # escalates this model's budget and can exclude this one model), and must NOT
-        # reach the breaker while CLOSED — otherwise one slow model would skip every
-        # other model on the same provider
-        # (08_CIRCUIT_BREAKER.md §6.4 MISS-25, §6.9). The one exception is a PROBING
-        # breaker: the admitted probe task IS the breaker's own liveness check (§6.6), and
-        # a timed-out probe must resolve it — record_failure re-trips with a fresh cooldown
-        # instead of leaving the probe slot claimed forever with no further probe ever
-        # admitted. A timed-out probe task is therefore also a legitimate breaker timeout
-        # signal, alongside the warmup probe at a model switch (`_internal/warmup.py`).
-        # This clause MUST stay above `except _TransientError` — HttpTimeoutError is a
-        # TransientError subclass, and reordering would silently restore the failure count.
-        if circuit_breaker.state(provider_id) is CircuitState.PROBING:
-            circuit_breaker.record_failure(provider_id)
+        # A per-task timeout is a MODEL-level signal, never a provider-attributable
+        # one: it feeds only the adaptive-timeout service (which escalates this
+        # model's budget and can exclude this one model), and must NOT reach the
+        # breaker (08_CIRCUIT_BREAKER.md §6.4 MISS-25, §6.9) — otherwise one slow
+        # model would skip every other model on the same provider. This clause MUST
+        # stay above `except _TransientError` — HttpTimeoutError is a TransientError
+        # subclass, and reordering would silently restore the failure count.
+        #
+        # A `PROBING` provider's liveness is no longer decided here: the pipeline's
+        # dedicated `run_provider_probe` call (DD-71, ADR-0013) resolves `PROBING`
+        # before this function is ever reached for that row, so a real task can no
+        # longer be a probe and this branch never needs to report to the breaker.
         return on_timeout_exhausted()
     except _TransientError as exc:
         circuit_breaker.record_failure(provider_id)

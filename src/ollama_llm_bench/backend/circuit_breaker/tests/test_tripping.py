@@ -1,7 +1,6 @@
-"""Proves STORY-023-AC-2 and STORY-023-AC-3 — exact-threshold tripping, counter
-reset on early success, and the lazy one-probe-slot admission rule."""
-
-import pytest
+"""Proves STORY-101-AC-2 and STORY-101-AC-3 — exact-threshold tripping, counter
+reset on early success, and the post-cooldown PROBING transition admitting no
+benchmark task."""
 
 from ollama_llm_bench.backend.circuit_breaker import CircuitState, make_circuit_breaker
 from ollama_llm_bench.backend.circuit_breaker.tests.conftest import FakeClock, build_snapshot
@@ -12,7 +11,7 @@ _COOLDOWN_SECONDS = 60
 
 
 def test_trips_on_exact_threshold_and_success_resets_counter() -> None:
-    """Proves: STORY-023-AC-2
+    """Proves: STORY-101-AC-2
 
     A CLOSED provider stays CLOSED for `failure_threshold - 1` consecutive
     failures; a record_success below the threshold resets the counter so no
@@ -42,25 +41,13 @@ def test_trips_on_exact_threshold_and_success_resets_counter() -> None:
     assert breaker.should_skip(_PROVIDER) is True
 
 
-@pytest.mark.parametrize(
-    ("query_sequence", "expected_results"),
-    [
-        pytest.param(
-            ["should_skip", "state", "should_skip", "cooldown_remaining_seconds"],
-            [False, CircuitState.PROBING, True, None],
-            id="first-skip-admits-probe-then-second-skip-blocked",
-        ),
-    ],
-)
-def test_lazy_probe_slot_admits_exactly_one_task(
-    query_sequence: list[str], expected_results: list[object]
-) -> None:
-    """Proves: STORY-023-AC-3
+def test_cooldown_elapse_moves_to_probing_and_admits_no_task() -> None:
+    """Proves: STORY-101-AC-3
 
-    Once the cooldown has elapsed, the first `should_skip` query returns
-    False (admitting the probe) and flips `state` to PROBING; every
-    subsequent `should_skip` query returns True until the probe resolves;
-    `cooldown_remaining_seconds` returns None while PROBING.
+    Once the cooldown has elapsed, `state` lazily moves to PROBING; every
+    `should_skip` query — the first and every later one, with no intervening
+    `record_success`/`record_failure` — returns True, admitting no benchmark
+    task; `cooldown_remaining_seconds` returns None while PROBING.
     """
     clock = FakeClock()
     snapshot = build_snapshot(
@@ -74,13 +61,7 @@ def test_lazy_probe_slot_admits_exactly_one_task(
 
     clock.advance_monotonic_ms(_COOLDOWN_SECONDS * 1000)  # cooldown just elapsed
 
-    results: list[object] = []
-    for query in query_sequence:
-        if query == "should_skip":
-            results.append(breaker.should_skip(_PROVIDER))
-        elif query == "state":
-            results.append(breaker.state(_PROVIDER))
-        elif query == "cooldown_remaining_seconds":
-            results.append(breaker.cooldown_remaining_seconds(_PROVIDER))
-
-    assert results == expected_results
+    assert breaker.should_skip(_PROVIDER) is True
+    assert breaker.state(_PROVIDER) == CircuitState.PROBING
+    assert breaker.should_skip(_PROVIDER) is True  # still True, no admission window
+    assert breaker.cooldown_remaining_seconds(_PROVIDER) is None

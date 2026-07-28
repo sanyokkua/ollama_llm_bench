@@ -274,9 +274,10 @@ def test_non_closed_breaker_skips_warmup_with_no_chat_call(
     """Warmup never dispatches to a provider whose breaker is not `CLOSED`.
 
     A `TRIPPED` or `PROBING` breaker state — read via the read-only `state()`
-    query, never `should_skip()`, so a `PROBING` provider's real-task probe
-    slot stays reserved for the breaker's own post-cooldown probe (DD-71) —
-    skips the warmup outright: zero chat calls, zero breaker records.
+    query, never `should_skip()` — skips the warmup outright: zero chat
+    calls, zero breaker records. A `PROBING` provider's liveness is decided
+    exclusively by the pipeline's dedicated `run_provider_probe` call issued
+    before each row (DD-71, ADR-0013), never by warmup admitting a task.
     """
     client = RecordingChatClient(response=ChatResponse(text="OK", total_time_ms=1))
     provider_registry = mocker.Mock(spec=ProviderRegistry)

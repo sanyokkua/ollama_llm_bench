@@ -1,7 +1,7 @@
 ---
 id: STORY-023
 title: Trip a consistently-failing provider out of a run and probe it before closing
-status: done
+status: superseded
 spec_clauses:
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#63-state-diagram
@@ -202,6 +202,20 @@ other `CLOSED` — the two records are independent.
 
 ## Notes
 
+- **Superseded by STORY-101 (2026-07-28).** DD-71 (`08_Cross_Cutting/08-F_spec_issues_log.md`,
+  2026-06-06) redefined the breaker's post-cooldown probe as a dedicated lightweight liveness
+  call issued by the pipeline, never a real benchmark task admitted through `should_skip`.
+  STORY-101 deletes the `probe_slot_claimed` admission mechanism this story built for
+  `STORY-023-AC-3`, collapsing `should_skip`'s `PROBING` branch to an unconditional `True` so it
+  becomes a pure, side-effect-free function of `state()`. `STORY-023-AC-3`'s "the first
+  post-cooldown `should_skip` admits one task" behaviour therefore no longer exists and has no
+  surviving test. This story's other four criteria (`AC-1`, `AC-2`, `AC-4`, `AC-5`) describe
+  behaviour that is still correct and unchanged by the deletion; per the project owner's
+  decision recorded in STORY-101's Notes, all five of this story's criteria are carried forward
+  verbatim as `STORY-101-AC-1` through `STORY-101-AC-5` (with `AC-3` rewritten to the new
+  no-admission behaviour), so no coverage is silently dropped by this supersession. This file is
+  retained permanently per `traceability-and-stories.md`; it is never edited again below this
+  note.
 - `just trace-check` still fails on the same three pre-existing, STORY-023-unrelated gaps
   already documented by STORY-003/STORY-005/STORY-010/STORY-013/STORY-014/STORY-016's own Notes
   sections (`EC-PERSIST-6` dangling row; `EC-PROV-1a`/`EC-RUN-1a` uncovered) — confirmed present

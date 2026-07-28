@@ -1,7 +1,7 @@
 ---
 id: STORY-101
 title: Remove the real-task probe admission from the breaker
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-F_spec_issues_log.md#dd-71--circuit-breaker-probing-uses-a-lightweight-liveness-probe-not-a-full-task-2026-06-06
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
@@ -215,20 +215,40 @@ per-task dispatch path for it.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-101.
-- [ ] EC-PROV-3 has a passing test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] `docs/stories/story-023-provider-circuit-breaker.md` and
+- [x] Every acceptance criterion has a passing test that names STORY-101.
+- [x] EC-PROV-3 has a passing test.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] `docs/stories/story-023-provider-circuit-breaker.md` and
   `docs/stories/story-082-breaker-ignores-per-task-timeout.md` are `status: superseded`,
   each naming STORY-101 as the superseding story.
-- [ ] All nine `Proves:` docstring lines that named a retired criterion are repointed onto their
+- [x] All nine `Proves:` docstring lines that named a retired criterion are repointed onto their
   STORY-101 equivalent, with no orphan test left naming a superseded story's AC.
-- [ ] The traceability record validates with no orphan clause and no orphan test, and no error
+- [x] The traceability record validates with no orphan clause and no orphan test, and no error
   arising from the two supersessions.
-- [ ] The module inventory is unchanged.
+- [x] The module inventory is unchanged.
 
 ## Notes
 
+- **Implementation landed 2026-07-28.** Deleted `_ProviderRecord.probe_slot_claimed`
+  (`_internal/state.py`) and every reader/writer of it in `_internal/breaker.py`:
+  `should_skip`'s `PROBING` branch now collapses to `return record.state is not CircuitState.CLOSED`, with the resets removed from `_trip`, `record_success`, and
+  `_maybe_transition_to_probing`. A whole-tree grep for `probe_slot_claimed` after the change
+  returns zero matches. `protocols.py` and `__init__.py` got docstring-only corrections; no
+  `ProviderCircuitBreaker` method was added, removed, or resignatured.
+  `benchmark_pipeline/_internal/stability_dispatch.py`'s PROBING conditional and its
+  `CircuitState` import were deleted; the `except HttpTimeoutError:` branch returned to
+  `return on_timeout_exhausted()`, and the `except AppError:` branch was left byte-for-byte
+  unchanged.
+- **TDD evidence for the two new state-machine rules.** With the pre-fix `breaker.py`/`state.py`
+  restored via `git stash` (new tests kept in place), `uv run pytest src/ollama_llm_bench/backend/circuit_breaker/tests/test_state_machine.py src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py -q` fails: the
+  `probing_implies_no_admission` invariant and `test_cooldown_elapse_moves_to_probing_and_admits_no_task`
+  both fail with `assert False is True` on the old `should_skip`'s first post-cooldown call (it
+  returned `False` to admit the one probe task). Isolating `should_skip_is_idempotent` alone
+  (invariant `probing_implies_no_admission` temporarily disabled) reproduces the same failure
+  independently: `assert first == second` fails with `False == True` on the old implementation —
+  confirming the idempotence rule by itself would have caught the original bug class. Restoring
+  the fixed `breaker.py`/`state.py` returns both files to green
+  (`uv run pytest src/ollama_llm_bench/backend/circuit_breaker src/ollama_llm_bench/backend/benchmark_pipeline -q` → 114 passed).
 - **Eight acceptance criteria, estimate `L`** — the project owner decided that retiring
   `STORY-023` and `STORY-082` must not silently drop the still-valid acceptance criteria they
   own today. Six of this story's eight criteria are carried forward verbatim from those two

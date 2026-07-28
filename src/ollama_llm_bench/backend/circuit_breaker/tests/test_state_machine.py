@@ -1,5 +1,7 @@
-"""Proves STORY-023-AC-1 — the breaker's state machine matches §6.2-§6.5 for every
-legal transition."""
+"""Proves STORY-101-AC-1 — the breaker's state machine matches §6.2-§6.5 for every
+legal transition. Also exercises STORY-101-AC-3's PROBING-admits-no-task invariant
+via the `should_skip_is_idempotent` rule and the `probing_implies_no_admission`
+invariant (the AC-3 proving test itself lives in `test_tripping.py`)."""
 
 import math
 
@@ -37,7 +39,6 @@ class _CircuitBreakerStateMachine(RuleBasedStateMachine):
         self.expected_state = CircuitState.CLOSED
         self.expected_failures = 0
         self.expected_cooldown_started_ms: int | None = None
-        self.expected_probe_claimed = False
 
     def _sync_lazy_probe_transition(self) -> None:
         if self.expected_state is CircuitState.TRIPPED:
@@ -45,7 +46,6 @@ class _CircuitBreakerStateMachine(RuleBasedStateMachine):
             elapsed_ms = self.clock.monotonic_ms() - self.expected_cooldown_started_ms
             if elapsed_ms >= _COOLDOWN_MS:
                 self.expected_state = CircuitState.PROBING
-                self.expected_probe_claimed = False
 
     @rule()
     def record_success(self) -> None:
@@ -55,7 +55,6 @@ class _CircuitBreakerStateMachine(RuleBasedStateMachine):
             self.expected_state = CircuitState.CLOSED
             self.expected_failures = 0
             self.expected_cooldown_started_ms = None
-            self.expected_probe_claimed = False
         elif self.expected_state is CircuitState.CLOSED:
             self.expected_failures = 0
         # TRIPPED: no-op.
@@ -69,11 +68,9 @@ class _CircuitBreakerStateMachine(RuleBasedStateMachine):
             if self.expected_failures >= _FAILURE_THRESHOLD:
                 self.expected_state = CircuitState.TRIPPED
                 self.expected_cooldown_started_ms = self.clock.monotonic_ms()
-                self.expected_probe_claimed = False
         elif self.expected_state is CircuitState.PROBING:
             self.expected_state = CircuitState.TRIPPED
             self.expected_cooldown_started_ms = self.clock.monotonic_ms()
-            self.expected_probe_claimed = False
         # TRIPPED: skipped-task bookkeeping, no-op.
 
     @rule(delta_ms=st.integers(min_value=0, max_value=_COOLDOWN_MS * 2))
@@ -88,15 +85,18 @@ class _CircuitBreakerStateMachine(RuleBasedStateMachine):
     @rule()
     def query_should_skip(self) -> None:
         self._sync_lazy_probe_transition()
-        expected_skip: bool
-        if self.expected_state is CircuitState.CLOSED:
-            expected_skip = False
-        elif self.expected_state is CircuitState.TRIPPED:
-            expected_skip = True
-        else:
-            expected_skip = self.expected_probe_claimed
-            self.expected_probe_claimed = True
+        expected_skip = self.expected_state is not CircuitState.CLOSED
         assert self.breaker.should_skip(_PROVIDER) == expected_skip
+
+    @rule()
+    def should_skip_is_idempotent(self) -> None:
+        """STORY-101-AC-3: repeated `should_skip` queries with no intervening
+        mutation return the same value every time, in every state — the
+        property the old probe-slot design violated for PROBING."""
+        self._sync_lazy_probe_transition()
+        first = self.breaker.should_skip(_PROVIDER)
+        second = self.breaker.should_skip(_PROVIDER)
+        assert first == second
 
     @rule()
     def query_cooldown_remaining(self) -> None:
@@ -114,6 +114,14 @@ class _CircuitBreakerStateMachine(RuleBasedStateMachine):
         self._sync_lazy_probe_transition()
         assert self.breaker.state(_PROVIDER) == self.expected_state
 
+    @invariant()
+    def probing_implies_no_admission(self) -> None:
+        """STORY-101-AC-3: whenever the breaker is PROBING, `should_skip` must
+        be `True` — PROBING never admits a benchmark task."""
+        self._sync_lazy_probe_transition()
+        if self.expected_state is CircuitState.PROBING:
+            assert self.breaker.should_skip(_PROVIDER) is True
+
 
 # Hypothesis builds `.TestCase` dynamically per state machine, so it is a runtime
 # value, not a statically-known type -- mypy cannot check a class-body subclassing a
@@ -124,11 +132,14 @@ class TestCircuitBreakerStateMachine(_CircuitBreakerStateMachine.TestCase):  # t
     """Runs ``_CircuitBreakerStateMachine`` as a pytest-collected unittest.TestCase."""
 
     def runTest(self) -> None:
-        """Proves: STORY-023-AC-1
+        """Proves: STORY-101-AC-1
 
         Walks every legal record_success/record_failure/clock-advance/query
         sequence and checks the resulting (state, should_skip,
         cooldown_remaining_seconds) against the §6.2-§6.5 state machine after
-        every step.
+        every step. Also runs the `should_skip_is_idempotent` rule and the
+        `probing_implies_no_admission` invariant proving STORY-101-AC-3:
+        `should_skip` is a pure, side-effect-free function of state that
+        always returns `True` while PROBING.
         """
         super().runTest()

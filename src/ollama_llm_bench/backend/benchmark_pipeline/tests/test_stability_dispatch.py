@@ -1,12 +1,13 @@
-"""Proves: STORY-082-AC-1, STORY-082-AC-2, STORY-082-AC-3
+"""Proves: STORY-101-AC-6, STORY-101-AC-7, STORY-101-AC-8
 
 A per-task inference that exhausts its retry ladder with `HttpTimeoutError` feeds only
 the adaptive-timeout service — it never counts toward the provider circuit breaker
-while the breaker is CLOSED (`11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4,
-§6.9) — and settles a contained `FAILED_TIMEOUT` patch so the run advances to the next
-unit. The one exception: when the breaker is PROBING and the admitted probe task itself
-times out, the exhausted timeout resolves the probe by re-tripping the breaker with a
-fresh cooldown (§6.5, §6.6) rather than leaving the probe slot claimed forever.
+(`11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4, §6.9) — and settles a
+contained `FAILED_TIMEOUT` patch so the run advances to the next unit. A row targeting
+a `PROBING` provider is skipped by `should_skip` before `run_task_with_stability` ever
+submits a network call, reporting nothing to the breaker: liveness for a `PROBING`
+provider is decided exclusively by the pipeline's dedicated `run_provider_probe` call
+(DD-71, ADR-0013), never by admitting an ordinary task through this dispatch path.
 """
 
 from collections.abc import Callable
@@ -61,7 +62,7 @@ def _always_raises(error: BaseException) -> Callable[[], object]:
 
 
 def test_exhausted_per_task_timeout_does_not_record_breaker_failure() -> None:
-    """Proves: STORY-082-AC-1
+    """Proves: STORY-101-AC-6
 
     Every attempt in the ladder times out; the breaker's consecutive-failure count for
     the provider is unchanged, because a per-task `FAILED_TIMEOUT` is a model-level
@@ -98,7 +99,7 @@ def test_exhausted_per_task_timeout_does_not_record_breaker_failure() -> None:
 
 
 def test_exhausted_per_task_timeout_settles_failed_timeout_and_advances() -> None:
-    """Proves: STORY-082-AC-2
+    """Proves: STORY-101-AC-7
 
     Every attempt in the ladder times out; the exhausted timeout returns the terminal
     FAILED_TIMEOUT patch rather than raising — which lets the dispatcher persist it and
@@ -141,16 +142,17 @@ def test_exhausted_per_task_timeout_settles_failed_timeout_and_advances() -> Non
     assert runner.submit_count == _EXPECTED_ATTEMPT_COUNT
 
 
-def test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker() -> None:
-    """Proves: STORY-082-AC-3
+def test_probing_provider_task_is_skipped_and_reports_nothing() -> None:
+    """Proves: STORY-101-AC-8
 
-    Drives the real `ProviderCircuitBreaker` state machine, not a fake, so this proves
-    actual recovery: trip it to TRIPPED, elapse its cooldown so the next query lazily
-    moves it to PROBING and admits the very next call as the one live probe, then run
-    that probe through `run_task_with_stability` with every attempt raising
-    `HttpTimeoutError`. The exhausted timeout must resolve the probe by re-tripping the
-    breaker with a fresh cooldown window (08_CIRCUIT_BREAKER.md §6.5, §6.6) rather than
-    leaving the probe slot claimed and the provider permanently un-probeable.
+    Drives the real `ProviderCircuitBreaker` state machine, not a fake: trip it to
+    TRIPPED, elapse its cooldown so the next query lazily moves it to PROBING. A row
+    targeting that provider must be skipped by `should_skip` before
+    `run_task_with_stability` ever submits a network call — no attempt is made (the
+    runner's outcome queue is empty; a submit call would raise `IndexError`), the
+    breaker stays PROBING exactly as it was (no `record_success`/`record_failure`
+    is ever reached from this dispatch path), and the row settles as an ordinary
+    tripped/probing skip (`FAILED_PROVIDER`).
     """
     # Arrange
     adaptive_timeout = FakeAdaptiveTimeoutService()
@@ -168,8 +170,8 @@ def test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker() -> N
     circuit_breaker = make_circuit_breaker(snapshot=snapshot, clock=breaker_clock)
     circuit_breaker.record_failure(_PROVIDER_ID)  # threshold=1: trips immediately
     breaker_clock.advance_monotonic_ms(cooldown_seconds * 1000)  # cooldown elapses
-    timeout_error = HttpTimeoutError(message="timed out", context=ErrorContext())
-    runner = _QueueTaskRunner([_always_raises(timeout_error), _always_raises(timeout_error)])
+    assert circuit_breaker.state(_PROVIDER_ID) is CircuitState.PROBING
+    runner = _QueueTaskRunner([])  # any submit call is a bug: raises IndexError
     token = CancellationToken(clock=FakeClock())
 
     # Act
@@ -189,7 +191,7 @@ def test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker() -> N
     )
 
     # Assert
-    assert patch.status is ResultStatus.FAILED_TIMEOUT
-    assert circuit_breaker.state(_PROVIDER_ID) is CircuitState.TRIPPED
-    assert circuit_breaker.cooldown_remaining_seconds(_PROVIDER_ID) == cooldown_seconds
-    assert runner.submit_count == _EXPECTED_ATTEMPT_COUNT
+    assert patch.status is ResultStatus.FAILED_PROVIDER
+    assert circuit_breaker.state(_PROVIDER_ID) is CircuitState.PROBING
+    assert circuit_breaker.should_skip(_PROVIDER_ID) is True
+    assert runner.submit_count == 0

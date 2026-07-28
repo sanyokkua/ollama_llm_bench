@@ -34,7 +34,13 @@ class ProviderCircuitBreaker(Protocol):
     def should_skip(self, provider_id: ProviderId) -> bool:
         """Whether the pipeline should skip this provider right now.
 
-        fast-synchronous; never raises.
+        fast-synchronous; never raises. A pure function of ``state()`` — it has
+        no side effect and is idempotent for repeated calls with no
+        intervening ``record_success``/``record_failure``. ``PROBING`` admits
+        no benchmark task and always returns ``True``: the provider's
+        liveness is decided by a dedicated lightweight call the pipeline
+        issues before each row (DD-71, ADR-0013), never by admitting an
+        ordinary task through this method.
         """
         ...
 

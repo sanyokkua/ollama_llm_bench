@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-28T18:55:56Z'
+generated_at: '2026-07-28T19:12:03Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1722,7 +1722,7 @@ stories:
         - src/ollama_llm_bench/backend/adaptive_timeout/tests/test_error_handling.py::test_excluded_bucket_ignores_late_outcomes
   STORY-023:
     title: Trip a consistently-failing provider out of a run and probe it before closing
-    status: done
+    status: superseded
     spec_clauses:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#18-provider-circuit-breaker
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
@@ -1738,20 +1738,15 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-023-AC-1:
-        tests:
-        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_state_machine.py::TestCircuitBreakerStateMachine::runTest
+        tests: []
       STORY-023-AC-2:
-        tests:
-        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py::test_trips_on_exact_threshold_and_success_resets_counter
+        tests: []
       STORY-023-AC-3:
-        tests:
-        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py::test_lazy_probe_slot_admits_exactly_one_task[first-skip-admits-probe-then-second-skip-blocked]
+        tests: []
       STORY-023-AC-4:
-        tests:
-        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_probe_outcome.py::test_probe_success_closes_and_probe_failure_retrips
+        tests: []
       STORY-023-AC-5:
-        tests:
-        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_config_and_scope.py::test_disabled_breaker_is_inert_and_providers_are_independent
+        tests: []
   STORY-024:
     title: Provide the data-driven mode-visibility policy over the RunMode x ConfigSection table
     status: done
@@ -4986,7 +4981,7 @@ stories:
         tests: []
   STORY-082:
     title: Stop per-task timeout exhaustion from tripping the provider circuit breaker
-    status: done
+    status: superseded
     spec_clauses:
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing
@@ -4998,14 +4993,11 @@ stories:
     - EC-PROV-3
     acceptance_criteria:
       STORY-082-AC-1:
-        tests:
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_does_not_record_breaker_failure
+        tests: []
       STORY-082-AC-2:
-        tests:
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
+        tests: []
       STORY-082-AC-3:
-        tests:
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker
+        tests: []
   STORY-083:
     title: Re-apply the theme at runtime on save and open the Settings and About dialogs from the menu
     status: draft
@@ -5386,7 +5378,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_behaviour_unchanged_after_probe_extraction
   STORY-101:
     title: Remove the real-task probe admission from the breaker
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-F_spec_issues_log.md#dd-71--circuit-breaker-probing-uses-a-lightweight-liveness-probe-not-a-full-task-2026-06-06
     - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3
@@ -5401,21 +5393,29 @@ stories:
     - EC-PROV-3
     acceptance_criteria:
       STORY-101-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_state_machine.py::TestCircuitBreakerStateMachine::runTest
       STORY-101-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py::test_trips_on_exact_threshold_and_success_resets_counter
       STORY-101-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py::test_cooldown_elapse_moves_to_probing_and_admits_no_task
       STORY-101-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_probe_outcome.py::test_probe_success_closes_and_probe_failure_retrips
       STORY-101-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/circuit_breaker/tests/test_config_and_scope.py::test_disabled_breaker_is_inert_and_providers_are_independent
       STORY-101-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_does_not_record_breaker_failure
       STORY-101-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
       STORY-101-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_task_is_skipped_and_reports_nothing
   STORY-102:
     title: Pin the per-task-timeout contract; record the CB-14 residue
     status: ready
@@ -8162,8 +8162,13 @@ edge_cases:
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_wired_into_judge_phase_targets_judge_pair_not_row_model
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_does_not_record_breaker_failure
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
-    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_task_is_skipped_and_reports_nothing
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_behaviour_unchanged_after_probe_extraction
+    - src/ollama_llm_bench/backend/circuit_breaker/tests/test_config_and_scope.py::test_disabled_breaker_is_inert_and_providers_are_independent
+    - src/ollama_llm_bench/backend/circuit_breaker/tests/test_probe_outcome.py::test_probe_success_closes_and_probe_failure_retrips
+    - src/ollama_llm_bench/backend/circuit_breaker/tests/test_state_machine.py::TestCircuitBreakerStateMachine::runTest
+    - src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py::test_cooldown_elapse_moves_to_probing_and_admits_no_task
+    - src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py::test_trips_on_exact_threshold_and_success_resets_counter
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[COMPLETED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[FAILED]
     - src/ollama_llm_bench/ui/progress/tests/test_controller.py::test_badge_reflects_terminal_or_paused_stage_via_real_wiring[PAUSED]

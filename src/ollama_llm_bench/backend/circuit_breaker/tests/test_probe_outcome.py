@@ -1,4 +1,4 @@
-"""Proves STORY-023-AC-4 — a probe's outcome closes or re-trips the breaker."""
+"""Proves STORY-101-AC-4 — a probe's outcome closes or re-trips the breaker."""
 
 from ollama_llm_bench.backend.circuit_breaker import (
     ProviderCircuitBreaker,
@@ -20,7 +20,7 @@ def _trip_and_advance_to_probing(clock: FakeClock, breaker: ProviderCircuitBreak
 
 
 def test_probe_success_closes_and_probe_failure_retrips() -> None:
-    """Proves: STORY-023-AC-4
+    """Proves: STORY-101-AC-4
 
     A record_success while PROBING closes the breaker with a zero counter; a
     record_failure while PROBING (in an independent scenario) re-trips the
