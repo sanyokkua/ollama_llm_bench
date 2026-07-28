@@ -36,10 +36,10 @@ retry-laddered inference path," so a still-down provider's re-trip is decided in
 the minutes a `(1+retry_count)×`-escalating real task would cost. DD-71 names its own affected spec
 areas as `08_CIRCUIT_BREAKER.md` §intro, §6.x, and the state table — but the file was never actually
 edited to match everywhere DD-71 names. §1 (Purpose) and §5 (Postconditions), and part of §6.2's state
-table, already carry DD-71's language verbatim. §6.4's paragraph on warmup timeouts, §6.5, and §6.6's
-own probe-behaviour walkthrough (quoted above) still carry the older, pre-DD-71 description of a real
-task as the probe. This split — some sections correctly updated, most not — is itself something a
-later reader needs a rule for, not just a one-off correction.
+table, already carry DD-71's language verbatim. §6.5 and §6.6's own probe-behaviour walkthrough
+(quoted above) still carry the older, pre-DD-71 description of a real task as the probe. This split —
+some sections correctly updated, most not — is itself something a later reader needs a rule for, not
+just a one-off correction.
 
 This ADR does not re-decide anything DD-71 already settled: the probe is, and stays, a dedicated
 lightweight liveness call, not a real task. What DD-71 left open, and what a coder implementing the
