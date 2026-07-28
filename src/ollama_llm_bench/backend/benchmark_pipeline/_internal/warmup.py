@@ -73,9 +73,12 @@ def run_model_warmup(  # noqa: PLR0913  # each keyword-only argument is a distin
         model_name: The warmup target's model.
         provider_registry: Resolves `provider_id` to a live `LLMClient`.
         adaptive_timeout: Touched only from this function, never from the
-            worker-submitted `chat` callable — read-only `next_budget`/
-            `is_excluded` queries only; no adaptive-timeout state is ever
-            written by a warmup.
+            worker-submitted `chat` callable — `next_budget`/`is_excluded`
+            queries only. `is_excluded` is a pure read; `next_budget` is not
+            — it also materializes/updates the target's adaptive-timeout
+            bucket (see `AdaptiveTimeoutService.next_budget`'s own
+            contract). No outcome-reporting method
+            (`record_success`/`record_timeout`) is ever called by a warmup.
         circuit_breaker: Touched only from this function, same rule as
             `adaptive_timeout`; a read-only `state()` query plus, on a
             no-response failure, `record_failure`.

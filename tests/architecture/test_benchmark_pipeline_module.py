@@ -39,11 +39,6 @@ _STABILITY_DISPATCH_FILE_NAME = "stability_dispatch.py"
 thread — its per-attempt `Future.result()` call is the same "dispatcher blocks,
 worker never does" pattern as `dispatcher.py` itself, just factored into its own
 module (see `_internal/stability_dispatch.py`'s module docstring)."""
-_WARMUP_FILE_NAME = "warmup.py"
-"""STORY-075: the model-warmup orchestrator likewise runs on the dispatcher thread
-(invoked from `run_phase_with_stability`'s group loop). Its own `Future.result()`
-call was extracted into `_internal/lightweight_call.py` by STORY-100 (see below);
-`warmup.py` itself no longer contains one, but stays allowlisted defensively."""
 _LIGHTWEIGHT_CALL_FILE_NAME = "lightweight_call.py"
 """STORY-100: the shared call shape behind both `warmup.py` and
 `_internal/provider_probe.py` runs on the dispatcher thread (only its single
@@ -160,10 +155,13 @@ def test_only_dispatcher_module_calls_future_result() -> None:
     thread is the only sanctioned block-on-futures orchestrator" constraint
     (STORY-030 extends this to the stability-stack retry orchestrator, which
     also runs on the dispatcher thread — see ``_internal/stability_dispatch.py``;
-    STORY-075 extends it to the model-warmup orchestrator in
-    ``_internal/warmup.py``; STORY-100 extends it to the shared warmup/probe
-    call shape in ``_internal/lightweight_call.py``, likewise
-    dispatcher-thread-only).
+    STORY-100 extends it to the shared warmup/probe call shape in
+    ``_internal/lightweight_call.py``, likewise dispatcher-thread-only —
+    ``_internal/warmup.py`` itself no longer contains a ``Future.result()``
+    call since that STORY-100 extraction, so it is deliberately *not*
+    allowlisted here: a ``.result()`` call reappearing in ``warmup.py`` would
+    be a real regression this test should catch, not a false positive to
+    exempt away).
     """
     # Arrange
     other_source_files = [
@@ -173,7 +171,6 @@ def test_only_dispatcher_module_calls_future_result() -> None:
         not in (
             _DISPATCHER_FILE_NAME,
             _STABILITY_DISPATCH_FILE_NAME,
-            _WARMUP_FILE_NAME,
             _LIGHTWEIGHT_CALL_FILE_NAME,
         )
     ]

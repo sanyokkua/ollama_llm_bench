@@ -132,11 +132,11 @@ no later group boundary would otherwise ever occur to notice the cooldown had el
 Before routing a row, `run_provider_probe` behaves per the breaker's current state for that
 row's provider:
 
-| Breaker state before the row is routed | `run_provider_probe` behaviour                                                            |
-| -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `CLOSED`                               | Returns immediately; zero `client.chat` calls; no breaker method invoked                  |
-| `TRIPPED`                              | Returns immediately; zero `client.chat` calls; no breaker method invoked                  |
-| `PROBING`                              | Issues exactly one lightweight liveness call against the row's `(provider, model)` target |
+| Breaker state before the row is routed | `run_provider_probe` behaviour                                                                                                                            |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLOSED`                               | Returns immediately; zero `client.chat` calls; no `record_success`/`record_failure` invoked (a `state()` read still occurs, to make the routing decision) |
+| `TRIPPED`                              | Returns immediately; zero `client.chat` calls; no `record_success`/`record_failure` invoked (a `state()` read still occurs, to make the routing decision) |
+| `PROBING`                              | Issues exactly one lightweight liveness call against the row's `(provider, model)` target                                                                 |
 
 ### STORY-100-AC-2
 
@@ -190,13 +190,28 @@ to its assertions.
   `test_probe_never_leaves_breaker_probing`; plus `test_probe_cancellation_reports_no_outcome`
   for the `TaskCancelledError` branch.
 - STORY-100-AC-4 — unit/integration (one group, three or more rows, real breaker, advanced fake
-  clock), same file, `test_probe_fires_per_row_not_per_group`.
+  clock), same file, `test_probe_fires_per_row_not_per_group`. Extended in the review-fix wave
+  by two production-wiring tests in the same file,
+  `test_probe_wired_into_inference_phase_before_row` and
+  `test_probe_wired_into_judge_phase_targets_judge_pair_not_row_model` — both drive the real
+  `_internal.stability_phase.run_stability_phase` entry point (not a hand-rolled `before_row`
+  closure) with a real breaker already `PROBING`, proving the two actual
+  `before_row=_probe_before_row` wiring lines in `stability_phase.py` are present; the judge
+  variant additionally proves the probe targets the run's fixed judge pair, never the row's own
+  test model.
 - STORY-100-AC-5 — regression, colocated
   `src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py` (existing suite,
   unedited assertions) plus a new parity test in the same file,
   `test_warmup_behaviour_unchanged_after_probe_extraction`.
 - EC-PROV-3 — covered by STORY-100-AC-2/AC-3/AC-4 together: the outcome map and the
   never-leaves-PROBING invariant are what let a tripped provider actually recover mid-run.
+- Architecture constraint (review-fix wave) —
+  `tests/architecture/test_stability_dispatcher_thread_only.py`,
+  `test_probe_touches_stability_services_only_from_dispatcher_thread`: AST-walks
+  `lightweight_call.py` and `provider_probe.py` specifically and asserts no stability-service
+  method call appears inside the callable argument passed to a `.submit(...)` call — the
+  positive counterpart the original implementation's skip-list-only extension of
+  `_DISPATCHER_THREAD_ONLY_FILE_NAMES` was missing.
 
 ## Definition of done
 
@@ -250,3 +265,71 @@ to its assertions.
   `stability_dispatch.py`'s now-superfluous-but-still-correct PROBING conditional) is
   deliberately still in place after this story — this story only adds the new resolver so the
   tree is never left without one; removing the old admission path is STORY-101's job.
+
+### Review-fix wave (2026-07-28)
+
+- **Thread-affinity check was structured backwards.** The original allowlist extension to
+  `_DISPATCHER_THREAD_ONLY_FILE_NAMES` in
+  `tests/architecture/test_stability_dispatcher_thread_only.py` is a *skip list* for the
+  existing "which modules may call a stability-service method at all" scan — adding
+  `lightweight_call.py`/`provider_probe.py` to it correctly let those two modules pass that
+  scan, but also meant nothing checked *where inside* those files the calls happen. Added the
+  missing positive counterpart,
+  `test_probe_touches_stability_services_only_from_dispatcher_thread`: it AST-walks both files
+  for any stability-service method call inside the callable argument passed to a
+  `.submit(...)` call — the actual dispatcher/worker boundary. Verified load-bearing by
+  temporarily moving a `next_budget` call into `lightweight_call.py`'s submitted
+  `lambda: client.chat(...)` and confirming the new test failed, then reverting. The original
+  skip-list entries were kept — they remain necessary for the existing scan and are not
+  subsumed by the new positive check, which tests a different property.
+- **Production wiring had no test.** `_internal/stability_phase.py`'s two
+  `before_row=_probe_before_row` lines (`_run_inference_phase`, `_run_judge_phase`) are the
+  probe's only real entry point and were unproven — `test_probe_fires_per_row_not_per_group`
+  drives its own hand-rolled `before_row` closure, never the real wiring. Added
+  `test_probe_wired_into_inference_phase_before_row` and
+  `test_probe_wired_into_judge_phase_targets_judge_pair_not_row_model`, both driving the real
+  `run_stability_phase` entry point with a real breaker already `PROBING`. Verified
+  load-bearing by temporarily setting each `before_row=` line to `None` and confirming the
+  matching test failed, then reverting.
+- **`warmup.py` dropped from the `Future.result()` exclusion tuple.** It no longer contains a
+  `.result()` call since this story's own extraction into `lightweight_call.py`; keeping it
+  allowlisted "defensively" would silently permit a future regression reintroducing one.
+  Removed; `just arch-test` stays green, confirming the file is genuinely clean.
+- **Duplicated test doubles consolidated.** `RecordingChatClient` and `InlineCallableRunner`
+  (the byte-identical `_RecordingChatClient`/`_InlineWarmupRunner`/`_InlineStabilityRunner`/
+  `_InlineProbeRunner`/`_InlineRowRunner` doubles duplicated across `test_warmup.py` and
+  `test_provider_probe.py`) now live once in
+  `src/ollama_llm_bench/backend/benchmark_pipeline/tests/conftest.py`; both files import them
+  and `cast(...)` to the narrower `TaskRunner[T]` each call site needs, mirroring the pattern
+  `_internal/stability_phase.py` itself already uses for `collaborators.task_runner`.
+- **`provider_probe.py`'s invariant docstring narrowed.** It previously claimed "no exit path
+  other than `TaskCancelledError` leaves the provider `PROBING`", but the guard is
+  `except AppError`. Reworded to state the invariant over the `AppError` hierarchy specifically,
+  and to note that a non-`AppError` exception escapes `_dispatch_run`
+  (`_internal/lifecycle.py`) uncaught, failing the whole run loudly via the dispatcher thread's
+  own exception hook rather than silently wedging one provider `PROBING`. No `finally` was
+  added — inventing a breaker outcome for an unknown exception is policy ADR-0013 does not
+  authorize.
+- **"Read-only `next_budget`" claim corrected in three places** (`provider_probe.py`,
+  `lightweight_call.py`, and `warmup.py` — the last touched by this review wave too, so
+  corrected under the project's "fix what you touch" rule). `AdaptiveTimeoutService.next_budget`
+  calls `_get_or_create_bucket(...)` and assigns `bucket.last_queried_budget_ms` — it is not a
+  pure read. The three docstrings now state this precisely: no *outcome-reporting* method
+  (`record_success`/`record_timeout`) is ever called by a warmup or a probe, which is the actual
+  invariant those callers rely on.
+- **`_SINGLE_ATTEMPT` given `Final`**, matching `lightweight_call.py`'s sibling constants
+  (`coding-style.md`'s module-level-constant rule).
+- **AC-1's table reworded.** "no breaker method invoked" was imprecise — `run_provider_probe`
+  necessarily calls `circuit_breaker.state(...)` even in the `CLOSED`/`TRIPPED` cases, to decide
+  whether to run at all. Reworded to "no `record_success`/`record_failure` invoked (a `state()`
+  read still occurs...)" so a later reader does not mistake the `state()` read for a violation.
+- **Recorded observation, not acted on (out of scope for this story).** `run_provider_probe`
+  hard-codes the INFERENCE adaptive-timeout role
+  (`adaptive_timeout.next_budget(..., AdaptiveTimeoutRole.INFERENCE, ...)` via
+  `issue_lightweight_call`), so a judge-phase probe sizes itself from the inference ladder and
+  materializes an `(judge_provider, judge_model, INFERENCE)` adaptive-timeout bucket that would
+  otherwise not exist. ADR-0013 specifies the INFERENCE role for the probe, so changing this
+  would contradict an accepted decision record — not something this review-fix wave may do.
+  Impact appears bounded: the judge phase's own real attempts re-query their own
+  `role=JUDGE` budget immediately afterward, so the stray INFERENCE bucket is otherwise inert.
+  Left for a future story if the accepted decision is ever revisited.

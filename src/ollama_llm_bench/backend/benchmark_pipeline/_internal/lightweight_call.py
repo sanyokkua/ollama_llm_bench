@@ -74,9 +74,14 @@ def issue_lightweight_call(  # noqa: PLR0913  # each keyword-only argument is a
         provider_id: The call target's provider.
         model_name: The call target's model.
         provider_registry: Resolves `provider_id` to a live `LLMClient`.
-        adaptive_timeout: Touched only from this function, a read-only
-            `next_budget` query per attempt; no adaptive-timeout state is
-            ever written here.
+        adaptive_timeout: Touched only from this function — one
+            `next_budget` query per attempt. `next_budget` is not a pure
+            read: it also materializes/updates the target's adaptive-timeout
+            bucket (see `AdaptiveTimeoutService.next_budget`'s own
+            contract). No outcome-reporting method
+            (`record_success`/`record_timeout`) is ever called here; that
+            distinction, not "read-only", is what this module's callers
+            actually rely on.
         attempts: The total attempt count `with_retry`'s policy allows.
         budget_attempt_offset: Added to each loop-local 1-based attempt
             number before it is used to query `next_budget`'s ladder

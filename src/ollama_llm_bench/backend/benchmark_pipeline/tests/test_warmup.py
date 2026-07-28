@@ -8,8 +8,7 @@ model-switch-boundary wiring through `run_stability_phase`/
 `run_phase_with_stability` for the INFERENCE phase.
 """
 
-from collections.abc import Callable
-from concurrent.futures import Future
+from typing import cast
 
 import pytest
 from pytest_mock import MockerFixture
@@ -30,12 +29,15 @@ from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.benchmark_pipeline.testing import make_benchmark_result
 from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import (
     FakeClock,
+    InlineCallableRunner,
+    RecordingChatClient,
     make_cancellation_token,
     make_task,
 )
 from ollama_llm_bench.backend.circuit_breaker.models import CircuitState
 from ollama_llm_bench.backend.circuit_breaker.testing import FakeProviderCircuitBreaker
 from ollama_llm_bench.backend.concurrency import CancellationToken
+from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
 from ollama_llm_bench.backend.domain.models import (
     AdaptiveTimeoutRole,
     BenchmarkResult,
@@ -72,48 +74,10 @@ _PROVIDER_ID: ProviderId = "11111111-1111-4111-8111-111111111111"
 _MODEL_NAME: ModelName = "llama3"
 
 
-class _RecordingChatClient:
-    """Minimal `LLMClient` double exposing only `chat`, scripted per test.
-
-    Appends every `ChatRequest` it receives, then either returns a fixed
-    `ChatResponse` or raises a fixed `AppError` on every call.
-    """
-
-    def __init__(
-        self, *, response: ChatResponse | None = None, error: AppError | None = None
-    ) -> None:
-        self._response = response
-        self._error = error
-        self.requests: list[ChatRequest] = []
-
-    def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse:
-        del token
-        self.requests.append(request)
-        if self._error is not None:
-            raise self._error
-        assert self._response is not None
-        return self._response
-
-
-class _InlineWarmupRunner:
-    """Runs a submitted warmup callable synchronously on the calling thread."""
-
-    def submit(
-        self, fn: Callable[[], ChatResponse], *, token: CancellationToken
-    ) -> "Future[ChatResponse]":
-        del token
-        future: Future[ChatResponse] = Future()
-        try:
-            future.set_result(fn())
-        except BaseException as exc:  # noqa: BLE001  # captured for the Future, not swallowed
-            future.set_exception(exc)
-        return future
-
-
 @pytest.fixture
-def inline_warmup_runner() -> _InlineWarmupRunner:
+def inline_warmup_runner() -> TaskRunner[ChatResponse]:
     """A `TaskRunner[ChatResponse]` double running every submission inline."""
-    return _InlineWarmupRunner()
+    return cast("TaskRunner[ChatResponse]", InlineCallableRunner())
 
 
 class _RecordingAdaptiveTimeout:
@@ -186,7 +150,7 @@ class _RecordingAdaptiveTimeout:
 def test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model(
     chat_behaviour: str,
     expected_failure_count: int,
-    inline_warmup_runner: _InlineWarmupRunner,
+    inline_warmup_runner: TaskRunner[ChatResponse],
     mocker: MockerFixture,
 ) -> None:
     """Proves: STORY-075-AC-3
@@ -202,7 +166,7 @@ def test_warmup_outcome_drives_circuit_breaker_and_never_excludes_model(
         "timeout": HttpTimeoutError(message="no response"),
         "transport_error": HttpConnectionError(message="connection reset"),
     }.get(chat_behaviour)
-    client = _RecordingChatClient(response=response, error=error)
+    client = RecordingChatClient(response=response, error=error)
     provider_registry = mocker.Mock(spec=ProviderRegistry)
     provider_registry.get_client.return_value = client
     adaptive_timeout = FakeAdaptiveTimeoutService(fixed_budget_seconds=5)
@@ -235,7 +199,7 @@ def test_warmup_budget_read_from_role_inference_ladder(mocker: MockerFixture) ->
     `role=INFERENCE` at each 1-based attempt index.
     """
     retry_count = 1
-    client = _RecordingChatClient(error=HttpTimeoutError(message="no response"))
+    client = RecordingChatClient(error=HttpTimeoutError(message="no response"))
     provider_registry = mocker.Mock(spec=ProviderRegistry)
     provider_registry.get_client.return_value = client
     adaptive_timeout = _RecordingAdaptiveTimeout(
@@ -250,7 +214,7 @@ def test_warmup_budget_read_from_role_inference_ladder(mocker: MockerFixture) ->
         adaptive_timeout=adaptive_timeout,
         circuit_breaker=circuit_breaker,
         retry_count=retry_count,
-        runner=_InlineWarmupRunner(),
+        runner=cast("TaskRunner[ChatResponse]", InlineCallableRunner()),
         token=make_cancellation_token(),
     )
 
@@ -279,7 +243,7 @@ def test_warmup_behaviour_unchanged_after_probe_extraction(mocker: MockerFixture
     `circuit_breaker.record_success` on a ladder-exhausted timeout.
     """
     retry_count = 2
-    client = _RecordingChatClient(error=HttpTimeoutError(message="no response"))
+    client = RecordingChatClient(error=HttpTimeoutError(message="no response"))
     provider_registry = mocker.Mock(spec=ProviderRegistry)
     provider_registry.get_client.return_value = client
     adaptive_timeout = FakeAdaptiveTimeoutService(fixed_budget_seconds=9)
@@ -292,7 +256,7 @@ def test_warmup_behaviour_unchanged_after_probe_extraction(mocker: MockerFixture
         adaptive_timeout=adaptive_timeout,
         circuit_breaker=circuit_breaker,
         retry_count=retry_count,
-        runner=_InlineWarmupRunner(),
+        runner=cast("TaskRunner[ChatResponse]", InlineCallableRunner()),
         token=make_cancellation_token(),
     )
 
@@ -305,7 +269,7 @@ def test_warmup_behaviour_unchanged_after_probe_extraction(mocker: MockerFixture
 
 @pytest.mark.parametrize("state", [CircuitState.TRIPPED, CircuitState.PROBING])
 def test_non_closed_breaker_skips_warmup_with_no_chat_call(
-    state: CircuitState, inline_warmup_runner: _InlineWarmupRunner, mocker: MockerFixture
+    state: CircuitState, inline_warmup_runner: TaskRunner[ChatResponse], mocker: MockerFixture
 ) -> None:
     """Warmup never dispatches to a provider whose breaker is not `CLOSED`.
 
@@ -314,7 +278,7 @@ def test_non_closed_breaker_skips_warmup_with_no_chat_call(
     slot stays reserved for the breaker's own post-cooldown probe (DD-71) —
     skips the warmup outright: zero chat calls, zero breaker records.
     """
-    client = _RecordingChatClient(response=ChatResponse(text="OK", total_time_ms=1))
+    client = RecordingChatClient(response=ChatResponse(text="OK", total_time_ms=1))
     provider_registry = mocker.Mock(spec=ProviderRegistry)
     provider_registry.get_client.return_value = client
     adaptive_timeout = FakeAdaptiveTimeoutService()
@@ -338,7 +302,7 @@ def test_non_closed_breaker_skips_warmup_with_no_chat_call(
 
 
 def test_already_excluded_target_skips_warmup_with_no_chat_call(
-    inline_warmup_runner: _InlineWarmupRunner, mocker: MockerFixture
+    inline_warmup_runner: TaskRunner[ChatResponse], mocker: MockerFixture
 ) -> None:
     """Warmup never dispatches when the target is already role=INFERENCE excluded.
 
@@ -346,7 +310,7 @@ def test_already_excluded_target_skips_warmup_with_no_chat_call(
     `role=INFERENCE` never receives a warmup call and never touches the
     circuit breaker.
     """
-    client = _RecordingChatClient(response=ChatResponse(text="OK", total_time_ms=1))
+    client = RecordingChatClient(response=ChatResponse(text="OK", total_time_ms=1))
     provider_registry = mocker.Mock(spec=ProviderRegistry)
     provider_registry.get_client.return_value = client
     adaptive_timeout = FakeAdaptiveTimeoutService()
@@ -496,21 +460,6 @@ class _RecordingResultsStore:
         return self._inner.recover_in_flight_results()
 
 
-class _InlineStabilityRunner:
-    """Runs every submission synchronously — serves both the warmup's
-    `TaskRunner[ChatResponse]` and the stability dispatcher's own
-    `TaskRunner[_InferenceAttemptOutcome]` uses of `collaborators.task_runner`."""
-
-    def submit(self, fn: Callable[[], object], *, token: CancellationToken) -> "Future[object]":
-        del token
-        future: Future[object] = Future()
-        try:
-            future.set_result(fn())
-        except BaseException as exc:  # noqa: BLE001  # captured for the Future, not swallowed
-            future.set_exception(exc)
-        return future
-
-
 def _make_minimal_run() -> BenchmarkRun:
     """Build a minimal `BenchmarkRun` — unused by the INFERENCE stability
     path beyond being a required parameter (no judge-target resolution or
@@ -581,7 +530,7 @@ def _run_inference_stability_phase(
         provider_registry=_SingleClientProviderRegistry(client),  # type: ignore[arg-type]  # structurally satisfies ProviderRegistry
         results_store=results_store,
         settings_service=mocker.Mock(),
-        task_runner=_InlineStabilityRunner(),
+        task_runner=InlineCallableRunner(),
     )
     run_stability_phase(
         phase=Phase.INFERENCE,
@@ -699,7 +648,7 @@ def test_hard_stop_at_warmup_halts_run_and_reports_no_breaker_outcome(
         provider_registry=_SingleClientProviderRegistry(client),  # type: ignore[arg-type]  # structurally satisfies ProviderRegistry
         results_store=results_store,
         settings_service=mocker.Mock(),
-        task_runner=_InlineStabilityRunner(),
+        task_runner=InlineCallableRunner(),
     )
 
     with pytest.raises(TaskCancelledError):

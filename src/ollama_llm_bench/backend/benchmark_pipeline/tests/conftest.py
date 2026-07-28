@@ -12,6 +12,8 @@ from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.domain.models import (
     BenchmarkRunSettingEntry,
     BenchmarkTask,
+    ChatRequest,
+    ChatResponse,
     Difficulty,
     GateLease,
     InferenceActivity,
@@ -21,6 +23,7 @@ from ollama_llm_bench.backend.domain.models import (
     TaskOrigin,
 )
 from ollama_llm_bench.backend.embedding.protocols import EmbeddingService
+from ollama_llm_bench.backend.errors import AppError
 from ollama_llm_bench.backend.infra.protocols import Clock
 from ollama_llm_bench.backend.persistence.results.testing import FakeResultsStore
 from ollama_llm_bench.backend.persistence.runs.protocols import RunsStore
@@ -84,6 +87,57 @@ def make_cancellation_token() -> CancellationToken:
 def fake_clock() -> Clock:
     """A deterministic `Clock` fixture, fresh per test."""
     return FakeClock()
+
+
+class RecordingChatClient:
+    """Minimal `LLMClient` double exposing only `chat`, scripted per test.
+
+    Appends every `ChatRequest` it receives, then either returns a fixed
+    `ChatResponse` or raises a fixed `AppError` on every call. Shared by
+    `test_warmup.py` and `test_provider_probe.py` (STORY-100 review-fix
+    wave) — both files need a byte-identical `LLMClient` double for the
+    shared `_internal.lightweight_call.issue_lightweight_call` call shape
+    behind `run_model_warmup`/`run_provider_probe`.
+    """
+
+    def __init__(
+        self, *, response: ChatResponse | None = None, error: AppError | None = None
+    ) -> None:
+        self._response = response
+        self._error = error
+        self.requests: list[ChatRequest] = []
+
+    def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse:
+        del token
+        self.requests.append(request)
+        if self._error is not None:
+            raise self._error
+        assert self._response is not None
+        return self._response
+
+
+class InlineCallableRunner:
+    """Runs any submitted callable synchronously on the calling thread,
+    capturing a raised exception on the returned `Future` instead of
+    letting it propagate out of `submit` itself.
+
+    Structurally a `TaskRunner[object]`; cast to a narrower `TaskRunner[T]`
+    at each call site — the same `cast(...)` pattern
+    `_internal.stability_phase.StabilityCollaborators.task_runner` callers
+    already use. Shared by `test_warmup.py` and `test_provider_probe.py`
+    (STORY-100 review-fix wave): both needed the same inline-runner shape
+    for the warmup/probe call sites and for `run_phase_with_stability`'s
+    own per-attempt submission.
+    """
+
+    def submit(self, fn: Callable[[], object], *, token: CancellationToken) -> "Future[object]":
+        del token
+        future: Future[object] = Future()
+        try:
+            future.set_result(fn())
+        except BaseException as exc:  # noqa: BLE001  # captured for the Future, not swallowed
+            future.set_exception(exc)
+        return future
 
 
 class _InlineTaskRunner:

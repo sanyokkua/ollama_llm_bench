@@ -6,7 +6,7 @@ Source of truth: `docs/v3_specification/11_Services_and_Algorithms/16_CONCURRENC
 and `16_Engineering_Standards/04_CONCURRENCY_STANDARD.md` ("do not add locking to them;
 instead, make sure any new call site that touches them is on the dispatcher thread").
 
-Two complementary checks: (1) `_internal/units.py`'s attempt-builder functions
+Three complementary checks: (1) `_internal/units.py`'s attempt-builder functions
 (`build_inference_attempt`, `build_judge_attempt`) never import either stability
 service — a worker-submitted attempt callable has no way to reach them; (2) every
 stability-service method call anywhere under `backend/benchmark_pipeline/` (excluding
@@ -16,14 +16,31 @@ tests) resolves to a source line inside `_internal/stability_dispatch.py`,
 dispatcher-thread-only modules, invoked between row submissions in
 `run_phase_with_stability`, never from inside a unit passed to `TaskRunner.submit()`.
 `_internal/lightweight_call.py` is allowlisted because it calls
-`AdaptiveTimeoutService.next_budget` (a read, per its own module docstring) from the
-same dispatcher-thread call chain `warmup.py`'s inlined version used before STORY-100's
-extraction — only its single blocking `chat` call actually crosses onto a worker.
+`AdaptiveTimeoutService.next_budget` from the same dispatcher-thread call chain
+`warmup.py`'s inlined version used before STORY-100's extraction — only its single
+blocking `chat` call actually crosses onto a worker. (`next_budget` itself is not a
+pure read — it also materializes/updates the target's adaptive-timeout bucket; the
+dispatcher-thread-only rule applies regardless of whether a stability-service call
+happens to read or write.)
+(3) (STORY-100 review-fix wave) check (2)'s allowlist only proves *which* modules may
+call a stability-service method at all — it does not, by itself, prove that within an
+allowlisted module the call happens on the correct side of the dispatcher/worker
+boundary. `test_probe_touches_stability_services_only_from_dispatcher_thread` closes
+that gap for the two modules STORY-100 added: it AST-walks `lightweight_call.py` and
+`provider_probe.py` specifically, and asserts no stability-service method call appears
+inside the lambda/callable argument passed to a `.submit(...)` call — the exact point
+work crosses from the dispatcher thread onto a `TaskRunner` worker thread. Checks (2)
+and (3) are deliberately complementary, not redundant: (2) would not catch a stability
+call moved onto the worker side of an already-allowlisted module, and (3) alone would
+not catch a brand-new module quietly gaining stability-service access outside the
+allowlist.
 """
 
 import ast
 import inspect
 from pathlib import Path
+
+import pytest
 
 from ollama_llm_bench.backend import benchmark_pipeline
 
@@ -115,6 +132,80 @@ def test_stability_service_methods_called_only_from_dispatcher_thread_modules() 
         for node in ast.walk(tree):
             if isinstance(node, ast.Attribute) and node.attr in _STABILITY_SERVICE_METHOD_NAMES:
                 offending_calls.append((source_file.name, node.attr))
+
+    # Assert
+    assert offending_calls == []
+
+
+_PROBE_STABILITY_METHOD_NAMES = frozenset(
+    {"next_budget", "state", "record_success", "record_failure", "is_excluded"}
+)
+"""The stability-service method names this file's positive check (below) watches
+for inside a submitted callable. Unlike `_STABILITY_SERVICE_METHOD_NAMES` above,
+`state` is included here — the two files this check scans
+(`lightweight_call.py`, `provider_probe.py`) have no unrelated `.state` attribute
+access to collide with, so the exclusion that check needs does not apply here."""
+
+_PROBE_MODULE_FILE_NAMES: tuple[str, ...] = ("lightweight_call.py", "provider_probe.py")
+
+
+def _probe_module_paths() -> list[Path]:
+    return [
+        _BENCHMARK_PIPELINE_PACKAGE_ROOT / "_internal" / file_name
+        for file_name in _PROBE_MODULE_FILE_NAMES
+    ]
+
+
+def _submitted_callables(tree: ast.Module) -> list[ast.AST]:
+    """Return every first-positional-argument node passed to a `.submit(...)`
+    call anywhere in `tree` — the boundary where work crosses from the
+    dispatcher thread onto a `TaskRunner` worker thread."""
+    return [
+        node.args[0]
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "submit"
+        and node.args
+    ]
+
+
+def _stability_method_names_within(node: ast.AST) -> list[str]:
+    """Return every stability-service method name referenced anywhere inside `node`."""
+    return [
+        sub.attr
+        for sub in ast.walk(node)
+        if isinstance(sub, ast.Attribute) and sub.attr in _PROBE_STABILITY_METHOD_NAMES
+    ]
+
+
+@pytest.mark.parametrize("source_file", _probe_module_paths(), ids=_PROBE_MODULE_FILE_NAMES)
+def test_probe_touches_stability_services_only_from_dispatcher_thread(source_file: Path) -> None:
+    """Proves: STORY-100 architecture constraint
+
+    Within `_internal/lightweight_call.py` and `_internal/provider_probe.py`
+    (STORY-100), no stability-service method call
+    (`next_budget`/`state`/`record_success`/`record_failure`/`is_excluded`)
+    appears inside the lambda/callable argument passed to a `.submit(...)`
+    call. `_STABILITY_SERVICE_METHOD_NAMES`'s allowlist above only proves
+    these two modules are permitted to call a stability-service method at
+    all; it does not, on its own, prove the call stays on the dispatcher
+    side of the `TaskRunner` boundary within them — this check closes that
+    gap. Verified load-bearing by temporarily moving a
+    `next_budget`/`record_failure` call into `lightweight_call.py`'s
+    submitted `lambda: client.chat(...)` and observing this test fail before
+    reverting (see the story's Notes).
+    """
+    # Arrange
+    tree = ast.parse(source_file.read_text(encoding="utf-8"), filename=str(source_file))
+    submitted_callables = _submitted_callables(tree)
+
+    # Act
+    offending_calls = [
+        method_name
+        for callable_node in submitted_callables
+        for method_name in _stability_method_names_within(callable_node)
+    ]
 
     # Assert
     assert offending_calls == []

@@ -5,15 +5,21 @@ breaker, the never-leaves-PROBING invariant over the full reachable outcome set
 (driving the real `make_circuit_breaker`), and its per-row (not per-group)
 invocation through `_internal.dispatcher.run_phase_with_stability`'s `before_row`
 hook.
+
+Also proves (STORY-100 review-fix wave) that the probe's production wiring —
+`_internal.stability_phase._run_inference_phase`/`_run_judge_phase`'s own
+`before_row=_probe_before_row` lines — is actually present, by driving the real
+`run_stability_phase` entry point (not a hand-rolled `before_row` closure) with a
+real breaker already `PROBING`.
 """
 
 from collections.abc import Callable
-from concurrent.futures import Future
 from typing import TYPE_CHECKING, cast
 
 import pytest
 from pytest_mock import MockerFixture
 
+from ollama_llm_bench.backend.adaptive_timeout import make_adaptive_timeout_service
 from ollama_llm_bench.backend.adaptive_timeout.testing import FakeAdaptiveTimeoutService
 from ollama_llm_bench.backend.benchmark_pipeline._internal.dispatcher import (
     run_phase_with_stability,
@@ -21,10 +27,20 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.dispatcher import (
 from ollama_llm_bench.backend.benchmark_pipeline._internal.provider_probe import (
     run_provider_probe,
 )
+from ollama_llm_bench.backend.benchmark_pipeline._internal.stability_phase import (
+    StabilityCollaborators,
+    StabilityRunState,
+    run_stability_phase,
+)
+from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.benchmark_pipeline.testing import make_benchmark_result
 from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import (
+    STABILITY_SETTING_ENTRIES,
     FakeClock,
+    InlineCallableRunner,
+    RecordingChatClient,
     make_cancellation_token,
+    make_task,
 )
 from ollama_llm_bench.backend.circuit_breaker import make_circuit_breaker
 from ollama_llm_bench.backend.circuit_breaker.models import CircuitState
@@ -33,15 +49,23 @@ from ollama_llm_bench.backend.concurrency import CancellationToken
 from ollama_llm_bench.backend.domain.models import (
     AdaptiveTimeoutRole,
     BenchmarkResult,
+    BenchmarkRun,
+    BenchmarkRunModelEntry,
     BenchmarkRunSettingEntry,
+    BenchmarkTask,
+    ChatChunk,
     ChatRequest,
     ChatResponse,
     ModelName,
     ModelNameStr,
+    ModelRole,
     ProviderId,
     ProviderIdStr,
     ResultPatch,
     ResultStatus,
+    RunMode,
+    RunStatus,
+    Verdict,
 )
 from ollama_llm_bench.backend.errors import (
     AppError,
@@ -57,8 +81,15 @@ from ollama_llm_bench.backend.errors import (
     ProviderServerError,
     TaskCancelledError,
 )
+from ollama_llm_bench.backend.evaluation.models import JudgePhaseOutcome, JudgePhaseResult
+from ollama_llm_bench.backend.events.protocols import EventBus
 from ollama_llm_bench.backend.persistence.results.testing import FakeResultsStore
-from ollama_llm_bench.backend.provider_registry.protocols import ProviderRegistry
+from ollama_llm_bench.backend.provider_registry.protocols import (
+    ChatStream,
+    LLMClient,
+    ProviderRegistry,
+)
+from ollama_llm_bench.backend.settings.protocols import SettingsService
 
 if TYPE_CHECKING:
     from ollama_llm_bench.backend.concurrency.protocols import TaskRunner
@@ -75,44 +106,6 @@ _BREAKER_SNAPSHOT: tuple[BenchmarkRunSettingEntry, ...] = (
         setting_key="circuit_breaker.cooldown_seconds", setting_value=str(_COOLDOWN_SECONDS)
     ),
 )
-
-
-class _RecordingChatClient:
-    """Minimal `LLMClient` double exposing only `chat`, scripted per test.
-
-    Appends every `ChatRequest` it receives, then either returns a fixed
-    `ChatResponse` or raises a fixed `AppError` on every call.
-    """
-
-    def __init__(
-        self, *, response: ChatResponse | None = None, error: AppError | None = None
-    ) -> None:
-        self._response = response
-        self._error = error
-        self.requests: list[ChatRequest] = []
-
-    def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse:
-        del token
-        self.requests.append(request)
-        if self._error is not None:
-            raise self._error
-        assert self._response is not None
-        return self._response
-
-
-class _InlineProbeRunner:
-    """Runs a submitted probe callable synchronously on the calling thread."""
-
-    def submit(
-        self, fn: Callable[[], ChatResponse], *, token: CancellationToken
-    ) -> "Future[ChatResponse]":
-        del token
-        future: Future[ChatResponse] = Future()
-        try:
-            future.set_result(fn())
-        except BaseException as exc:  # noqa: BLE001  # captured for the Future, not swallowed
-            future.set_exception(exc)
-        return future
 
 
 def _registry_returning(mocker: MockerFixture, *, client: object) -> ProviderRegistry:
@@ -151,7 +144,7 @@ def test_probe_is_skipped_unless_probing(
     state issues exactly one lightweight liveness call and (per the
     `ChatResponse` outcome) closes the breaker.
     """
-    client = _RecordingChatClient(response=_OK_RESPONSE)
+    client = RecordingChatClient(response=_OK_RESPONSE)
     provider_registry = _registry_returning(mocker, client=client)
     adaptive_timeout = FakeAdaptiveTimeoutService(fixed_budget_seconds=5)
     circuit_breaker = FakeProviderCircuitBreaker()
@@ -164,7 +157,7 @@ def test_probe_is_skipped_unless_probing(
         adaptive_timeout=adaptive_timeout,
         circuit_breaker=circuit_breaker,
         retry_count=0,
-        runner=_InlineProbeRunner(),
+        runner=cast("TaskRunner[ChatResponse]", InlineCallableRunner()),
         token=make_cancellation_token(),
     )
 
@@ -261,7 +254,7 @@ def test_probe_outcome_maps_to_close_or_retrip(  # noqa: PLR0913  # every parame
     transport failure or a pre-call `ConfigurationError`/`MissingEnvVarError`
     re-trips it (`record_failure`).
     """
-    client = _RecordingChatClient(response=chat_response, error=chat_error)
+    client = RecordingChatClient(response=chat_response, error=chat_error)
     provider_registry = (
         _registry_raising(mocker, error=get_client_error)
         if get_client_error is not None
@@ -278,7 +271,7 @@ def test_probe_outcome_maps_to_close_or_retrip(  # noqa: PLR0913  # every parame
         adaptive_timeout=adaptive_timeout,
         circuit_breaker=circuit_breaker,
         retry_count=0,
-        runner=_InlineProbeRunner(),
+        runner=cast("TaskRunner[ChatResponse]", InlineCallableRunner()),
         token=make_cancellation_token(),
     )
 
@@ -325,7 +318,7 @@ def test_probe_never_leaves_breaker_probing(
     clock.advance_monotonic_ms((_COOLDOWN_SECONDS * 1000) + 1)
     assert breaker.state(_PROVIDER_ID) is CircuitState.PROBING
 
-    client = _RecordingChatClient(response=chat_response, error=chat_error)
+    client = RecordingChatClient(response=chat_response, error=chat_error)
     provider_registry = (
         _registry_raising(mocker, error=get_client_error)
         if get_client_error is not None
@@ -340,7 +333,7 @@ def test_probe_never_leaves_breaker_probing(
         adaptive_timeout=adaptive_timeout,
         circuit_breaker=breaker,
         retry_count=0,
-        runner=_InlineProbeRunner(),
+        runner=cast("TaskRunner[ChatResponse]", InlineCallableRunner()),
         token=make_cancellation_token(),
     )
 
@@ -354,7 +347,7 @@ def test_probe_cancellation_reports_no_outcome(mocker: MockerFixture) -> None:
     uncontained and reports neither a success nor a failure to the breaker —
     the one exit path allowed to leave the provider `PROBING`.
     """
-    client = _RecordingChatClient(error=TaskCancelledError(message="stopped mid-probe"))
+    client = RecordingChatClient(error=TaskCancelledError(message="stopped mid-probe"))
     provider_registry = _registry_returning(mocker, client=client)
     adaptive_timeout = FakeAdaptiveTimeoutService(fixed_budget_seconds=5)
     circuit_breaker = FakeProviderCircuitBreaker()
@@ -368,7 +361,7 @@ def test_probe_cancellation_reports_no_outcome(mocker: MockerFixture) -> None:
             adaptive_timeout=adaptive_timeout,
             circuit_breaker=circuit_breaker,
             retry_count=0,
-            runner=_InlineProbeRunner(),
+            runner=cast("TaskRunner[ChatResponse]", InlineCallableRunner()),
             token=make_cancellation_token(),
         )
 
@@ -377,22 +370,6 @@ def test_probe_cancellation_reports_no_outcome(mocker: MockerFixture) -> None:
 
 
 # --- AC-4: per-row, not per-group, invocation through the dispatcher's hook ---
-
-
-class _InlineRowRunner:
-    """Runs any submitted callable synchronously — serves both
-    `run_phase_with_stability`'s per-attempt runner use and the probe's own
-    `TaskRunner[ChatResponse]` use of the same instance, cast per call site
-    (mirrors `test_warmup.py`'s `_InlineStabilityRunner`)."""
-
-    def submit(self, fn: Callable[[], object], *, token: CancellationToken) -> "Future[object]":
-        del token
-        future: Future[object] = Future()
-        try:
-            future.set_result(fn())
-        except BaseException as exc:  # noqa: BLE001  # captured for the Future, not swallowed
-            future.set_exception(exc)
-        return future
 
 
 def _failing_attempt_builder(timeout_ms: int) -> Callable[[], object]:
@@ -420,10 +397,10 @@ def test_probe_fires_per_row_not_per_group(mocker: MockerFixture) -> None:
     """
     clock = FakeClock()
     breaker = make_circuit_breaker(snapshot=_BREAKER_SNAPSHOT, clock=clock)
-    probe_client = _RecordingChatClient(response=_OK_RESPONSE)
+    probe_client = RecordingChatClient(response=_OK_RESPONSE)
     probe_provider_registry = _registry_returning(mocker, client=probe_client)
     adaptive_timeout = FakeAdaptiveTimeoutService(fixed_budget_seconds=5)
-    runner = _InlineRowRunner()
+    runner = InlineCallableRunner()
     token = make_cancellation_token()
     results_store = FakeResultsStore()
 
@@ -503,3 +480,287 @@ def test_probe_fires_per_row_not_per_group(mocker: MockerFixture) -> None:
     ]
     assert len(probe_client.requests) == 1
     assert breaker.state(_PROVIDER_ID) is CircuitState.CLOSED
+
+
+# --- Production-wiring constraint: the real `before_row=_probe_before_row` lines in
+# `_internal.stability_phase._run_inference_phase`/`_run_judge_phase`, driven through
+# the real `run_stability_phase` entry point rather than a hand-rolled closure ---
+
+_INFERENCE_WIRING_PROVIDER_ID: ProviderId = "44444444-4444-4444-8444-444444444444"
+_INFERENCE_WIRING_MODEL_NAME: ModelName = "wiring-model"
+_JUDGE_WIRING_TEST_PROVIDER_ID: ProviderId = "55555555-5555-4555-8555-555555555555"
+_JUDGE_WIRING_TEST_MODEL_NAME: ModelName = "row-test-model"
+_JUDGE_WIRING_JUDGE_PROVIDER_ID: ProviderId = "66666666-6666-4666-8666-666666666666"
+_JUDGE_WIRING_JUDGE_MODEL_NAME: ModelName = "judge-model"
+
+
+class _OneChunkChatStream:
+    """A minimal `ChatStream` double yielding a single canned chunk then a response."""
+
+    def __init__(self, *, model: ModelName) -> None:
+        self._yielded = False
+        self._model = model
+
+    def __iter__(self) -> "_OneChunkChatStream":
+        return self
+
+    def __next__(self) -> ChatChunk:
+        if self._yielded:
+            raise StopIteration
+        self._yielded = True
+        return ChatChunk(content="OK", delta_tokens=1)
+
+    def trailing_response(self) -> ChatResponse:
+        return ChatResponse(text=f"response for {self._model}", total_time_ms=1)
+
+
+class _ProbeVsInferenceClient:
+    """An `LLMClient` double distinguishing the probe's `chat` call from the
+    row's own `chat_stream` inference call, recording each into a shared,
+    test-owned call log as `("probe", model)`/`("inference", model)` — the
+    load-bearing differentiator for
+    `test_probe_wired_into_inference_phase_before_row`: only the dedicated
+    probe ever calls `chat`, so a `chat` entry preceding the row's own
+    `chat_stream` entry proves the `before_row` hook fired.
+    """
+
+    def __init__(self, *, call_log: list[tuple[str, str]]) -> None:
+        self._call_log = call_log
+
+    def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse:
+        del token
+        self._call_log.append(("probe", request.model))
+        return _OK_RESPONSE
+
+    def chat_stream(self, request: ChatRequest, *, token: CancellationToken) -> ChatStream:
+        del token
+        self._call_log.append(("inference", request.model))
+        return _OneChunkChatStream(model=request.model)
+
+
+class _SingleClientProviderRegistry:
+    """A `ProviderRegistry` double resolving every provider id to one shared client."""
+
+    def __init__(self, client: object) -> None:
+        self._client = client
+
+    def list_enabled(self) -> tuple[object, ...]:
+        return ()
+
+    def get_client(self, provider_id: ProviderId) -> LLMClient:
+        del provider_id
+        return self._client  # type: ignore[return-value]  # structurally satisfies LLMClient
+
+    def reload(self) -> None:
+        return None
+
+
+class _AlwaysPassSanityChecker:
+    """A `SanityChecker` double that always passes."""
+
+    def check(self, *, response: str, task: BenchmarkTask) -> bool:
+        del response, task
+        return True
+
+
+class _AlwaysResolvedJudgeEvaluator:
+    """A `JudgeEvaluator` double that always resolves PASS on the first
+    attempt — this test needs the judge row to settle normally, not to
+    exercise the judge-timeout ladder `test_judge_timeout.py` already
+    covers."""
+
+    def evaluate(
+        self,
+        *,
+        response: str,
+        system_prompt_sent: str | None,
+        task: BenchmarkTask,
+        timeout_ms: int,
+        token: CancellationToken,
+    ) -> JudgePhaseResult:
+        del response, system_prompt_sent, task, timeout_ms, token
+        return JudgePhaseResult(
+            outcome=JudgePhaseOutcome.RESOLVED,
+            verdict=Verdict.PASS,
+            reasoning="ok",
+            time_ms=1,
+            completion_tokens=1,
+        )
+
+
+def _make_wiring_run(
+    *, judge_provider_id: ProviderId | None = None, judge_model_name: ModelName | None = None
+) -> BenchmarkRun:
+    """Build a minimal `BenchmarkRun`, optionally carrying a `ModelRole.JUDGE`
+    entry distinct from its `ModelRole.TEST` entry (both wiring tests need a
+    valid `run` argument; only the judge-phase test needs a resolvable judge
+    target)."""
+    models: tuple[BenchmarkRunModelEntry, ...] = ()
+    if judge_provider_id is not None and judge_model_name is not None:
+        models = (
+            BenchmarkRunModelEntry(
+                role=ModelRole.TEST,
+                provider_id=_JUDGE_WIRING_TEST_PROVIDER_ID,
+                model_name=_JUDGE_WIRING_TEST_MODEL_NAME,
+            ),
+            BenchmarkRunModelEntry(
+                role=ModelRole.JUDGE, provider_id=judge_provider_id, model_name=judge_model_name
+            ),
+        )
+    return BenchmarkRun(
+        run_id=1,
+        run_name=None,
+        timestamp="2026-01-01T00:00:00+00:00",
+        run_mode=RunMode.GRADED,
+        status=RunStatus.INCOMPLETE,
+        total_tasks=1,
+        completed_tasks=0,
+        total_elapsed_ms=0,
+        schema_version=1,
+        created_at="2026-01-01T00:00:00+00:00",
+        models=models,
+    )
+
+
+def test_probe_wired_into_inference_phase_before_row(mocker: MockerFixture) -> None:
+    """Proves: STORY-100 production-wiring constraint
+
+    Driving `run_stability_phase(phase=Phase.INFERENCE, ...)` — the
+    pipeline's real entry point, not a hand-rolled `before_row` closure —
+    with a real `ProviderCircuitBreaker` already `PROBING` for the row's own
+    provider proves `_run_inference_phase`'s `before_row=_probe_before_row`
+    wiring is actually present: the probe's lightweight `client.chat` call
+    is issued, against the row's own `(provider, model)` target, before the
+    row's own `client.chat_stream` inference call. Deleting that wiring line
+    leaves the row's own `chat_stream` call as the breaker's post-cooldown
+    probe-slot admission instead (the still-present pre-STORY-101 fallback
+    in `circuit_breaker.should_skip`), so no `chat` call would ever precede
+    it — this test fails in that case (verified manually; see the story's
+    Notes).
+    """
+    clock = FakeClock()
+    breaker = make_circuit_breaker(snapshot=_BREAKER_SNAPSHOT, clock=clock)
+    breaker.record_failure(_INFERENCE_WIRING_PROVIDER_ID)
+    clock.advance_monotonic_ms((_COOLDOWN_SECONDS * 1000) + 1)
+    assert breaker.state(_INFERENCE_WIRING_PROVIDER_ID) is CircuitState.PROBING
+
+    call_log: list[tuple[str, str]] = []
+    client = _ProbeVsInferenceClient(call_log=call_log)
+    row = make_benchmark_result(
+        result_id=1,
+        task_id="task-1",
+        provider_id=_INFERENCE_WIRING_PROVIDER_ID,
+        model_name=_INFERENCE_WIRING_MODEL_NAME,
+    )
+    results_store = FakeResultsStore()
+    results_store.create_results((row,))
+    groups = ((_INFERENCE_WIRING_PROVIDER_ID, _INFERENCE_WIRING_MODEL_NAME, (row,)),)
+    collaborators = StabilityCollaborators(
+        bus=mocker.Mock(spec=EventBus),
+        clock=clock,
+        provider_registry=cast("ProviderRegistry", _SingleClientProviderRegistry(client)),
+        results_store=results_store,
+        settings_service=mocker.Mock(spec=SettingsService),
+        task_runner=InlineCallableRunner(),
+    )
+
+    run_stability_phase(
+        phase=Phase.INFERENCE,
+        groups=groups,
+        run=_make_wiring_run(),
+        tasks_by_id={"task-1": make_task(task_id="task-1")},
+        sanity_checker=_AlwaysPassSanityChecker(),
+        judge_evaluator=None,
+        token=make_cancellation_token(),
+        keyword_enabled=False,
+        cosine_enabled=False,
+        judge_enabled=False,
+        force_judge_on_prior_failure=False,
+        collaborators=collaborators,
+        state=StabilityRunState(),
+        adaptive_timeout=make_adaptive_timeout_service(snapshot=STABILITY_SETTING_ENTRIES),
+        circuit_breaker=breaker,
+        retry_count=0,
+        warmup_enabled=False,
+    )
+
+    assert call_log == [
+        ("probe", _INFERENCE_WIRING_MODEL_NAME),
+        ("inference", _INFERENCE_WIRING_MODEL_NAME),
+    ]
+    assert breaker.state(_INFERENCE_WIRING_PROVIDER_ID) is CircuitState.CLOSED
+
+
+def test_probe_wired_into_judge_phase_targets_judge_pair_not_row_model(
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-100 production-wiring constraint
+
+    Driving `run_stability_phase(phase=Phase.JUDGE_CHECK, ...)` with a real
+    `ProviderCircuitBreaker` already `PROBING` for the run's fixed judge
+    provider — never the row's own test provider, which differs here —
+    proves `_run_judge_phase`'s `before_row=_probe_before_row` wiring fires
+    the probe against the judge pair: `get_client` is called with the judge
+    provider id, and the probe's `chat` request names the judge model, never
+    the row's own `(provider_id, model_name)`. The judge phase's own logic
+    never calls `LLMClient.chat`/`get_client` directly (it goes through the
+    injected `JudgeEvaluator` instead), so deleting the wiring line means
+    `get_client` is never called at all here — this test fails in that case
+    (verified manually; see the story's Notes).
+    """
+    clock = FakeClock()
+    breaker = make_circuit_breaker(snapshot=_BREAKER_SNAPSHOT, clock=clock)
+    breaker.record_failure(_JUDGE_WIRING_JUDGE_PROVIDER_ID)
+    clock.advance_monotonic_ms((_COOLDOWN_SECONDS * 1000) + 1)
+    assert breaker.state(_JUDGE_WIRING_JUDGE_PROVIDER_ID) is CircuitState.PROBING
+
+    probe_client = RecordingChatClient(response=_OK_RESPONSE)
+    provider_registry = mocker.Mock(spec=ProviderRegistry)
+    provider_registry.get_client.return_value = probe_client
+
+    row = make_benchmark_result(
+        result_id=1,
+        task_id="task-1",
+        provider_id=_JUDGE_WIRING_TEST_PROVIDER_ID,
+        model_name=_JUDGE_WIRING_TEST_MODEL_NAME,
+        status=ResultStatus.AWAITING_JUDGE_CHECK,
+    )
+    results_store = FakeResultsStore()
+    results_store.create_results((row,))
+    groups = ((_JUDGE_WIRING_TEST_PROVIDER_ID, _JUDGE_WIRING_TEST_MODEL_NAME, (row,)),)
+    collaborators = StabilityCollaborators(
+        bus=mocker.Mock(spec=EventBus),
+        clock=clock,
+        provider_registry=cast("ProviderRegistry", provider_registry),
+        results_store=results_store,
+        settings_service=mocker.Mock(spec=SettingsService),
+        task_runner=InlineCallableRunner(),
+    )
+
+    run_stability_phase(
+        phase=Phase.JUDGE_CHECK,
+        groups=groups,
+        run=_make_wiring_run(
+            judge_provider_id=_JUDGE_WIRING_JUDGE_PROVIDER_ID,
+            judge_model_name=_JUDGE_WIRING_JUDGE_MODEL_NAME,
+        ),
+        tasks_by_id={"task-1": make_task(task_id="task-1")},
+        sanity_checker=_AlwaysPassSanityChecker(),
+        judge_evaluator=_AlwaysResolvedJudgeEvaluator(),
+        token=make_cancellation_token(),
+        keyword_enabled=False,
+        cosine_enabled=False,
+        judge_enabled=True,
+        force_judge_on_prior_failure=False,
+        collaborators=collaborators,
+        state=StabilityRunState(),
+        adaptive_timeout=make_adaptive_timeout_service(snapshot=STABILITY_SETTING_ENTRIES),
+        circuit_breaker=breaker,
+        retry_count=0,
+        warmup_enabled=False,
+    )
+
+    provider_registry.get_client.assert_called_once_with(_JUDGE_WIRING_JUDGE_PROVIDER_ID)
+    assert len(probe_client.requests) == 1
+    assert probe_client.requests[0].model == _JUDGE_WIRING_JUDGE_MODEL_NAME
+    assert breaker.state(_JUDGE_WIRING_JUDGE_PROVIDER_ID) is CircuitState.CLOSED

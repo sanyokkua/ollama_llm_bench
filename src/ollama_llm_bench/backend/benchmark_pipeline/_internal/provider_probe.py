@@ -14,6 +14,8 @@ single `(provider, model)` group would otherwise never revisit the provider once
 trips, since no later group boundary exists to notice the cooldown's expiry.
 """
 
+from typing import Final
+
 from ollama_llm_bench.backend.adaptive_timeout.protocols import AdaptiveTimeoutService
 from ollama_llm_bench.backend.benchmark_pipeline._internal.lightweight_call import (
     issue_lightweight_call,
@@ -35,7 +37,7 @@ from ollama_llm_bench.backend.provider_registry.protocols import ProviderRegistr
 
 __all__: list[str] = ["run_provider_probe"]
 
-_SINGLE_ATTEMPT = 1
+_SINGLE_ATTEMPT: Final[int] = 1
 
 
 def run_provider_probe(  # noqa: PLR0913  # each keyword-only argument is a distinct
@@ -72,11 +74,20 @@ def run_provider_probe(  # noqa: PLR0913  # each keyword-only argument is a dist
     target for the breaker's own recovery — that per-role exclusion
     bookkeeping is independent of whether the provider itself is reachable.
 
-    Invariant: no exit path other than `TaskCancelledError` leaves the
-    provider `PROBING` — every other reachable outcome calls exactly one of
-    `record_success`/`record_failure` before returning. A bare
-    `except AppError: return` is forbidden in this function; every `AppError`
-    branch below ends in a breaker call.
+    Invariant: for every reachable `AppError` outcome of the single probe
+    attempt, this function calls exactly one of `record_success`/
+    `record_failure` before returning, so the breaker is never left
+    `PROBING` on that path. A bare `except AppError: return` is forbidden in
+    this function; every `AppError` branch below ends in a breaker call.
+    `TaskCancelledError` (an `AppError` leaf) is the one deliberate
+    exception, re-raised with no breaker call. This invariant is stated over
+    the `AppError` hierarchy specifically: a non-`AppError` exception
+    escaping `issue_lightweight_call` (an untranslated adapter leak, for
+    example) is not caught here either, and propagates out of
+    `_dispatch_run` (`_internal/lifecycle.py`) uncaught — `_dispatch_run`'s
+    own `except TaskCancelledError: pass` does not catch it — reaching the
+    dispatcher thread's own exception hook and crashing the run loudly,
+    rather than silently leaving this one provider wedged `PROBING`.
 
     Args:
         provider_id: The probe target's provider.
@@ -85,8 +96,12 @@ def run_provider_probe(  # noqa: PLR0913  # each keyword-only argument is a dist
             run's fixed judge model when called from the JUDGE_CHECK phase's.
         provider_registry: Resolves `provider_id` to a live `LLMClient`.
         adaptive_timeout: Touched only from this function, never from a
-            worker-submitted callable — a read-only `next_budget` query
-            only; no adaptive-timeout state is ever written by a probe.
+            worker-submitted callable — supplies the probe's single
+            `next_budget` query. `next_budget` is not a pure read: it also
+            materializes/updates the target's adaptive-timeout bucket (see
+            `AdaptiveTimeoutService.next_budget`'s own contract) — but no
+            outcome-reporting method (`record_success`/`record_timeout`) is
+            ever called by a probe.
         circuit_breaker: Touched only from this function, same rule: a
             read-only `state()` query plus exactly one of `record_success`/
             `record_failure` on every non-cancellation exit.
