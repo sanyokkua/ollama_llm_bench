@@ -612,8 +612,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   provider's circuit breaker and skips that provider's other models. A per-task timeout is now
   treated purely as a signal about that one model — it still counts toward that model's own
   adaptive timeout budget and can still exclude just that model — instead of being
-  misattributed to the provider as a whole. The one exception: when the provider's breaker is
-  already probing whether that provider has recovered, a timed-out probe task still resolves the
-  probe (re-trips the breaker for a fresh cooldown) so the provider can be probed again later,
-  instead of getting stuck unprobeable for the rest of the run. Per
-  `11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4, §6.6, §6.9 (STORY-082).
+  misattributed to the provider as a whole. This still holds exactly as shipped: an exhausted
+  per-task timeout never records a circuit-breaker failure, in any breaker state. The original
+  fix's other half no longer applies: it made a timed-out *probe* task resolve the breaker itself
+  (re-tripping it for a fresh cooldown) because a real benchmark task doubled as the breaker's
+  post-cooldown liveness probe, so an unresolved probe left the provider stuck unprobeable for
+  the rest of the run. STORY-101 removed that real-task probe entirely — probes are no longer
+  tasks on the per-task dispatch path — and replaced it with a dedicated lightweight liveness
+  call that the pipeline issues directly and that resolves the breaker on every outcome. Per
+  `11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4, §6.6, §6.9 (STORY-082; superseded in
+  part by STORY-101).

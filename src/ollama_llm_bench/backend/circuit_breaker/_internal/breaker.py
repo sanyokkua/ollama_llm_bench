@@ -37,7 +37,7 @@ class _ProviderCircuitBreakerImpl:
             if record.consecutive_failures >= self._parameters.failure_threshold:
                 self._trip(record)
         elif record.state is CircuitState.PROBING:
-            # The single probe task failed — re-trip for a fresh cooldown window.
+            # The dedicated lightweight liveness probe failed — re-trip for a fresh cooldown window.
             self._trip(record)
         # A record_failure while TRIPPED is skipped-task bookkeeping; it neither
         # extends nor shortens the cooldown.

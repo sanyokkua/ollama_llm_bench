@@ -51,7 +51,7 @@ no later group boundary would otherwise ever occur to notice the cooldown had el
 - `backend/benchmark_pipeline/_internal/provider_probe.py` (new): `run_provider_probe(...)`,
   the dedicated liveness probe described in ADR-0013. Returns immediately unless the breaker
   reports `CircuitState.PROBING`; otherwise calls the `lightweight_call.py` helper with
-  `attempts=1` at the first-attempt adaptive budget
+  `attempts=1` at the top-of-ladder adaptive budget
   (`adaptive_timeout.next_budget(provider_id, model_name, AdaptiveTimeoutRole.INFERENCE, attempt_index=1 + retry_count)`)
   and maps every reachable outcome to exactly one breaker call per ADR-0013's outcome map. Does
   **not** consult `adaptive_timeout.is_excluded` — an excluded model is still a valid liveness
