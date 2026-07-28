@@ -112,7 +112,7 @@ The breaker keeps, per provider, a small record: the current `CircuitState`, a c
 |---|---|---|---|
 | `CLOSED` | The provider is in normal use. The failure counter is below the trip threshold. | `False` | Routes tasks to the provider normally. |
 | `TRIPPED` | The provider failed `failure_threshold` times in a row. A cooldown window is running. | `True` | Skips every task against the provider; each skipped task's result is recorded as a provider failure without a network call. |
-| `PROBING` | The cooldown window has elapsed. The breaker will issue one **lightweight liveness probe** (DD-71), not a full task. | `False` for the first query after the cooldown elapses; `True` for subsequent queries until the probe resolves | Issues the lightweight warmup-style probe (single short budget, no retry ladder); on success the next real task proceeds, on failure the breaker re-trips. |
+| `PROBING` | The cooldown window has elapsed. The breaker will issue one **lightweight liveness probe** (DD-71), not a full task. | `True` unconditionally — the pipeline issues the dedicated lightweight probe (§6.6) before the next row instead of admitting any task through `should_skip` | Issues the lightweight warmup-style probe (single short budget, no retry ladder); on success the next real task proceeds, on failure the breaker re-trips. |
 
 The `TRIPPED → PROBING` move is *lazy*: the breaker does not run a timer. The transition is evaluated whenever `state`, `should_skip`, or `cooldown_remaining_seconds` is called — if the provider is `TRIPPED` and `monotonic_ms() - cooldown_started >= cooldown_ms`, the call observes (and commits) the move to `PROBING`. This keeps the breaker free of background tasks.
 
@@ -140,8 +140,12 @@ stateDiagram-v2
     end note
 
     note right of PROBING
-        Exactly one task is
-        admitted as the probe.
+        should_skip is True
+        throughout; the pipeline
+        issues a dedicated
+        lightweight probe call
+        before the next row,
+        never a real task.
     end note
 ```
 
@@ -197,25 +201,26 @@ When the breaker trips, it stamps `cooldown_started` with the current monotonic 
 
 When any query observes `monotonic_ms() - cooldown_started >= cooldown_ms`, the breaker moves the provider from `TRIPPED` to `PROBING` and emits the stability event. From that moment:
 
-- The **first** `should_skip` query after the move returns `False` — this is the call the pipeline makes when it is about to route a task; it lets exactly that one task through as the probe.
-- The breaker marks that it has handed out the probe slot; **subsequent** `should_skip` queries return `True` again until the probe's outcome arrives via `record_success` or `record_failure`. This prevents the pipeline from sending a second task to a still-unproven provider while the probe is in flight.
+- `should_skip` returns `True` unconditionally while the provider is `PROBING` — no task is ever admitted through `should_skip` as a probe. Before routing the next row whose target is this provider, the pipeline instead issues a **dedicated lightweight probe call** (§6.6) and reports its outcome directly to `record_success`/`record_failure`; `should_skip` itself never changes value or has a side effect.
+- Because every row against a `PROBING` provider is a fresh opportunity for the dedicated probe to run, the cooldown's expiry is noticed on the very next row the dispatcher reaches for that provider, regardless of how many `(provider, model)` groups the run targets.
 - `cooldown_remaining_seconds` returns `None` once the provider is `PROBING` — the cooldown is over.
 
 The cooldown is *fixed*, not exponential: a re-trip after a failed probe starts another window of the same `cooldown_ms` length. A fixed window keeps the behaviour predictable and bounded; the pipeline's overall run budget, not an escalating breaker, is what ultimately limits how long a dead provider is retried.
 
 ### 6.6 Probe behaviour
 
-The breaker does not itself issue a probe call — it has no `LLMClient` and performs no network work. The "probe" is simply the next real benchmark task the pipeline routes to the provider once the breaker reports `PROBING` and admits it:
+The breaker does not itself issue a probe call — it has no `LLMClient` and performs no network work. The probe is a **dedicated lightweight warmup-style call** (`run_provider_probe`, ADR-0013), issued by the pipeline immediately before it would otherwise route a row whose target's provider is `PROBING` — it is never a real benchmark task on the retry-laddered inference path, and `should_skip` admits nothing (§6.2, §6.5):
 
-1. The pipeline, about to dispatch a task whose target's provider is `PROBING`, calls `should_skip` — the first post-cooldown call returns `False`.
-2. The pipeline routes that one real task to the provider through the normal inference path (adaptive timeout, retry, the `LLMClient`).
-3. While that task runs, every other task against the same provider sees `should_skip == True` and is skipped.
-4. The task ends. The pipeline reports its outcome:
-   - A `COMPLETED` result → `record_success` → the breaker closes; the provider is back in full service and its failure counter is zero.
-   - A `FAILED_PROVIDER` or `FAILED_TIMEOUT` result → `record_failure` → the breaker re-trips for a fresh `cooldown_ms` window.
-   - A `FAILED_INFERENCE` or `ERRORED` result → neutral; the breaker stays `PROBING` and the *next* task the pipeline routes to the provider becomes the probe instead. (A model error during the probe says nothing about provider reachability, so the breaker does not let it decide.)
+1. The pipeline, about to dispatch a row whose target's provider is `PROBING`, issues the dedicated probe call instead of routing that row through the normal inference path. The probe makes **exactly one** network attempt — no retry ladder, no backoff — at the first-attempt adaptive-timeout budget (the same role=INFERENCE ladder a normal call uses, at attempt index `1 + retry_count`, so a merely slow-but-alive provider gets a generous budget without the multi-attempt cost a real task's retries would add).
+2. While the probe runs, every other task against the same provider sees `should_skip == True` and is skipped, exactly as during `TRIPPED`.
+3. The probe ends. The pipeline reports its outcome:
+   - A chat response comes back — including a provider-response error such as a `4xx`/`5xx` `AppError` — → `record_success` → the breaker closes; the provider is back in full service and its failure counter is zero. Any response at all, including an error the provider itself produced, proves the provider is alive.
+   - A connection or timeout failure (`HttpTimeoutError`, `HttpConnectionError`), or a configuration/missing-environment-variable error raised before any network call is attempted → `record_failure` → the breaker re-trips for a fresh `cooldown_ms` window.
+   - A cancellation re-raises and reports nothing; the breaker's state is unchanged.
 
-Using a real task as the probe means the breaker costs nothing extra: the probe task is work the run had to do anyway. The Readiness Service's own provider probe (`11_Services_and_Algorithms/09_READINESS_PROBE.md`) is a separate, lighter `probe_health` call used outside a run; the circuit breaker does not call it.
+   There is no remaining "neutral" outcome other than cancellation: every other branch resolves the breaker in one call, because there is no next probe candidate for the breaker to defer to.
+
+The dedicated probe means the breaker's liveness check is bounded to one budget's worth of wall time even against a wedged provider — never the `(1+retry_count)×`-escalating cost a real task's retry ladder would add. The Readiness Service's own provider probe (`11_Services_and_Algorithms/09_READINESS_PROBE.md`) is a separate, lighter `probe_health` call used outside a run; the circuit breaker does not call it.
 
 ### 6.7 Per-provider scope
 
@@ -306,16 +311,16 @@ A run targets `(openai_cloud, gpt-4o-mini)`; `failure_threshold = 5`, `cooldown_
 
 1. Tasks 7 through 11 each end `FAILED_PROVIDER` (each having exhausted its retries first). The pipeline calls `record_failure("openai_cloud")` after each. On the fifth, the counter reaches `5`; the breaker trips, stamps the cooldown start, and emits `_model_stability_changed` with `TRIPPED`.
 2. Tasks 12 through 40 target the same provider. For each, the pipeline calls `should_skip("openai_cloud")`, gets `True`, skips the task, and records its result as a provider failure with no network call. The run advances through them in milliseconds instead of minutes. `cooldown_remaining_seconds` ticks down from `60`.
-3. Sixty seconds after the trip, the host comes back. The pipeline, about to route task 41, calls `should_skip` — the cooldown has elapsed, so the breaker moves to `PROBING` and this first query returns `False`.
-4. Task 41 runs against the provider as the probe and completes. The pipeline calls `record_success("openai_cloud")`; the breaker closes, resets the counter to `0`, and emits `_model_stability_changed` with `CLOSED`.
+3. Sixty seconds after the trip, the host comes back. Before routing task 41, the pipeline calls `should_skip` — the cooldown has elapsed, so the breaker moves to `PROBING`, but `should_skip` still returns `True`; the pipeline issues the dedicated lightweight probe call instead of routing task 41 itself.
+4. The probe call completes with a response. The pipeline calls `record_success("openai_cloud")`; the breaker closes, resets the counter to `0`, and emits `_model_stability_changed` with `CLOSED`. Task 41 then runs normally against the now-`CLOSED` provider.
 5. Tasks 42 onward run normally.
 
 ### 10.3 Edge case — a failed probe re-trips the breaker
 
 Same run; the host is still down when the cooldown elapses.
 
-1. After 60 seconds the breaker moves to `PROBING`; task 41 is admitted as the probe.
-2. Task 41 ends `FAILED_TIMEOUT`. The pipeline calls `record_failure("openai_cloud")`; the breaker, being `PROBING`, re-trips and starts a fresh 60-second cooldown.
+1. After 60 seconds the breaker moves to `PROBING`. Before routing task 41, the pipeline issues the dedicated lightweight probe call.
+2. The probe's single attempt times out without a response. The pipeline calls `record_failure("openai_cloud")`; the breaker, being `PROBING`, re-trips and starts a fresh 60-second cooldown. Task 41 itself was never dispatched.
 3. The skip-everything behaviour resumes for another window. The cycle repeats until either a probe succeeds or the run ends.
 4. While the provider sits in cooldown, every other targeted provider in the run continues at full speed — the breaker is per-provider.
 
@@ -329,8 +334,8 @@ Same run; the host is still down when the cooldown elapses.
 | CB-02 | `failure_threshold - 1` consecutive `record_failure`, then a `record_success` | The breaker stays `CLOSED`; the counter is reset to `0` by the success. |
 | CB-03 | `failure_threshold` consecutive `record_failure` | The breaker becomes `TRIPPED`; one `_model_stability_changed` event is emitted. |
 | CB-04 | `should_skip` while `TRIPPED` and the cooldown is still running | Returns `True`; `cooldown_remaining_seconds` returns a positive integer. |
-| CB-05 | Advance the clock past `cooldown_seconds`, then query `should_skip` | The breaker moves to `PROBING`; the first query returns `False`; `cooldown_remaining_seconds` returns `None`. |
-| CB-06 | A second `should_skip` while the probe task is still in flight | Returns `True` — only one task is admitted as the probe. |
+| CB-05 | Advance the clock past `cooldown_seconds`, then query `should_skip` | The breaker moves to `PROBING`; `should_skip` returns `True`; `cooldown_remaining_seconds` returns `None`; the pipeline issues the dedicated probe call on the next row instead of admitting a task. |
+| CB-06 | `should_skip` queried again while the dedicated probe call is in flight | Returns `True` — `should_skip` is `True` unconditionally throughout `PROBING`; no task is ever admitted through it. |
 | CB-07 | `record_success` while `PROBING` | The breaker closes; the failure counter is `0`; a `_model_stability_changed` event is emitted. |
 | CB-08 | `record_failure` while `PROBING` | The breaker re-trips; a fresh cooldown window starts. |
 | CB-09 | `record_failure` for a `FAILED_INFERENCE` task (model-side error) | The pipeline does not call `record_failure`; the counter is unchanged — verified by feeding the breaker only provider-attributable failures. |
@@ -338,5 +343,5 @@ Same run; the host is still down when the cooldown elapses.
 | CB-11 | A user-cancelled task | The pipeline reports neither success nor failure; the breaker's counter and state are unchanged. |
 | CB-12 | `circuit_breaker.enabled = false` | `state` is always `CLOSED`, `should_skip` always `False`; `record_failure` after `failure_threshold` failures still does not trip. |
 | CB-13 | A new run after a previous run tripped a provider | The provider starts the new run `CLOSED` with a zero counter — breaker state is run-scoped. |
-| CB-14 | A `FAILED_TIMEOUT` task | Counts as a provider-attributable failure toward the threshold. |
+| CB-14 | A per-task `FAILED_TIMEOUT` result, in any breaker state | Never counts toward the breaker's failure threshold (§6.4, §6.9) — a per-task timeout is a model-level signal handled by adaptive timeout, not a provider-attributable failure. The probe's own timeout is a distinct case, covered by CB-08's `record_failure` while `PROBING` row. |
 | CB-15 | One task that retried three times then failed | The breaker receives exactly one `record_failure`, not three — it counts tasks, not attempts. |

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-28T19:42:17Z'
+generated_at: '2026-07-28T19:57:53Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5439,7 +5439,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_timeout_never_reaches_breaker.py::test_exhausted_timeout_records_zero_breaker_failures_in_every_state[TRIPPED-short-circuited-before-any-dispatch]
   STORY-103:
     title: Correct the stale circuit-breaker spec text
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3
     - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#102-edge-case--a-provider-goes-down-trips-and-recovers
@@ -5455,7 +5455,16 @@ stories:
     - EC-PROV-3
     acceptance_criteria:
       STORY-103-AC-1:
-        tests: []
+        tests:
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[10.2-worked-example-recovery-step]
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[10.3-worked-example-failed-recovery-step]
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[6.2-should_skip-column]
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[6.3-state-diagram-note]
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[6.5-cooldown-and-transition-to-probing]
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[6.6-probe-behaviour]
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-05]
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-06]
+        - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-14]
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -8233,6 +8242,15 @@ edge_cases:
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[KEYWORD_CHECK]
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[PAUSED]
     - src/ollama_llm_bench/ui/progress/tests/test_view.py::test_stage_badge_tone_per_stage_table[STOPPED]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[10.2-worked-example-recovery-step]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[10.3-worked-example-failed-recovery-step]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[6.2-should_skip-column]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[6.3-state-diagram-note]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[6.5-cooldown-and-transition-to-probing]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[6.6-probe-behaviour]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-05]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-06]
+    - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-14]
   EC-PROV-4:
     stories:
     - STORY-058

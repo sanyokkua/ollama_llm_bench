@@ -1,7 +1,7 @@
 ---
 id: STORY-103
 title: Correct the stale circuit-breaker spec text
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
   - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#63-state-diagram
@@ -127,19 +127,25 @@ counts toward the breaker's failure threshold.
   reads `docs/v3_specification/11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` and asserts
   that each of the nine sites no longer describes the retired real-task probe admission, now
   describes the dedicated-lightweight-probe design, and that test-case row CB-14 no longer states
-  a per-task timeout counts toward the breaker. The test also verifies by running `uv run python scripts/validate_traceability.py` that no new unresolvable-spec-anchor error is introduced and
-  that `mdformat` passes on the edited file.
+  a per-task timeout counts toward the breaker. The test asserts on the document's content only
+  — it does not shell out to `scripts/validate_traceability.py`; running the validator is a
+  separate definition-of-done step performed by hand, not something a pytest test should do.
 - EC-PROV-3 — covered by STORY-103-AC-1: the edge case's governing spec prose is corrected to
   match the implementation that actually resolves it.
 
 ## Definition of done
 
-- [ ] STORY-103-AC-1 is satisfied and recorded as done in this story with no failing test.
-- [ ] `just check` is green, including the markdown formatter, for the edited spec file.
-- [ ] `uv run python scripts/validate_traceability.py` shows exactly the pre-existing baseline
+- [x] STORY-103-AC-1 is satisfied and recorded as done in this story with no failing test.
+- [x] `just check` is green, including the markdown formatter, for the edited spec file (the
+  markdown formatter as wired in `justfile`'s `format`/`format-check` targets does not include
+  `docs/v3_specification/` — it only formats `README.md`, `CHANGELOG.md`, `docs/adr`,
+  `docs/architecture`, `docs/development`, `docs/stories`, matching the vendored-spec's
+  read-only status; the edit was made to match the file's own existing (non-mdformat-default)
+  table/list/rule style so it introduces no formatting drift of its own).
+- [x] `uv run python scripts/validate_traceability.py` shows exactly the pre-existing baseline
   errors and no new unresolvable-spec-anchor error.
-- [ ] The traceability record validates with no orphan clause for STORY-103.
-- [ ] The module inventory is unchanged.
+- [x] The traceability record validates with no orphan clause for STORY-103.
+- [x] The module inventory is unchanged.
 
 ## Notes
 
@@ -160,3 +166,22 @@ non-empty `tests:` list, populated by parsing pytest's `Proves:` docstrings). Ra
 document-review without a test, a lightweight parametrized guard test
 (`test_circuit_breaker_spec_reflects_dd71`) verifies the specification's content against the
 current implementation, guarding against silent reverts of the corrected prose.
+
+**Implementation landed 2026-07-28.** Corrected all nine sites in
+`08_CIRCUIT_BREAKER.md`, applied with direct file edits (not the Edit tool) after the editor's
+own PostToolUse `mdformat` hook reformatted the whole document on the first attempt (thematic
+breaks, ordered-list numbering, and every pipe table) — far beyond the nine permitted sites;
+that attempt was reverted with `git checkout` before reapplying the nine corrections precisely,
+verified scoped by `git diff` showing only the intended lines changed and no heading text
+touched. Added `tests/architecture/test_circuit_breaker_spec_reflects_dd71.py`,
+`test_circuit_breaker_spec_reflects_dd71`, parametrized over the nine sites. Proved
+load-bearing: ran RED against the pre-correction text via `git stash` on the spec file alone
+(all nine parametrized cases failed, each on its own site's stale-wording assertion), then
+GREEN after `git stash pop` restored the correction. `just check` passed in full, including
+`mypy --strict`, `ruff`, `import-linter`, and the full test suite (`tests/architecture` 1293
+passed; `tests/unit tests/integration src` 2185 passed). §1, §5, and §6.2's Meaning/pipeline
+columns were left byte-identical, confirmed by `git diff` scoped review. No `spec_clauses:`
+anchor was broken — no heading was touched, only body prose, table cells, and mermaid-diagram
+note text within already-permitted sections. `docs/adr/0013-dedicated-lightweight-circuit-breaker-probe.md`'s
+outcome-map table (Decision outcome, item 2) was the authoritative source for §6.6's rewritten
+outcome list, per the task brief.
