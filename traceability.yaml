@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-28T14:24:02Z'
+generated_at: '2026-07-28T16:05:13Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5321,6 +5321,96 @@ stories:
         tests: []
       STORY-099-AC-2:
         tests: []
+  STORY-100:
+    title: Issue a dedicated lightweight liveness probe when a provider is PROBING
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-F_spec_issues_log.md#dd-71--circuit-breaker-probing-uses-a-lightweight-liveness-probe-not-a-full-task-2026-06-06
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#66-probe-behaviour
+    modules:
+    - backend/benchmark_pipeline/
+    edge_cases:
+    - EC-PROV-3
+    acceptance_criteria:
+      STORY-100-AC-1:
+        tests: []
+      STORY-100-AC-2:
+        tests: []
+      STORY-100-AC-3:
+        tests: []
+      STORY-100-AC-4:
+        tests: []
+      STORY-100-AC-5:
+        tests: []
+  STORY-101:
+    title: Remove the real-task probe admission from the breaker
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-F_spec_issues_log.md#dd-71--circuit-breaker-probing-uses-a-lightweight-liveness-probe-not-a-full-task-2026-06-06
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#63-state-diagram
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
+    modules:
+    - backend/benchmark_pipeline/
+    - backend/circuit_breaker/
+    edge_cases:
+    - EC-PROV-3
+    acceptance_criteria:
+      STORY-101-AC-1:
+        tests: []
+      STORY-101-AC-2:
+        tests: []
+      STORY-101-AC-3:
+        tests: []
+      STORY-101-AC-4:
+        tests: []
+      STORY-101-AC-5:
+        tests: []
+      STORY-101-AC-6:
+        tests: []
+      STORY-101-AC-7:
+        tests: []
+      STORY-101-AC-8:
+        tests: []
+  STORY-102:
+    title: Pin the per-task-timeout contract; record the CB-14 residue
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#11-test-cases
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#69-interaction-with-adaptive-timeout
+    modules:
+    - backend/benchmark_pipeline/
+    edge_cases:
+    - EC-PROV-3
+    acceptance_criteria:
+      STORY-102-AC-1:
+        tests: []
+  STORY-103:
+    title: Correct the stale circuit-breaker spec text
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#102-edge-case--a-provider-goes-down-trips-and-recovers
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#103-edge-case--a-failed-probe-re-trips-the-breaker
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#11-test-cases
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#63-state-diagram
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing
+    - 11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#66-probe-behaviour
+    modules:
+    - backend/circuit_breaker/
+    edge_cases:
+    - EC-PROV-3
+    acceptance_criteria:
+      STORY-103-AC-1:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -5935,6 +6025,10 @@ clauses:
     stories:
     - STORY-017
     - STORY-052
+  ? 08_Cross_Cutting/08-F_spec_issues_log.md#dd-71--circuit-breaker-probing-uses-a-lightweight-liveness-probe-not-a-full-task-2026-06-06
+  : stories:
+    - STORY-100
+    - STORY-101
   08_Cross_Cutting/08-G_feature_flags.md#3-benchmark--benchmark-behaviour:
     stories:
     - STORY-014
@@ -5955,6 +6049,12 @@ clauses:
     stories:
     - STORY-074
     - STORY-075
+  08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-3:
+    stories:
+    - STORY-100
+    - STORY-101
+    - STORY-102
+    - STORY-103
   08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-4b:
     stories:
     - STORY-073
@@ -6448,24 +6548,45 @@ clauses:
   11_Services_and_Algorithms/07_ADAPTIVE_TIMEOUT.md#9-threading-and-concurrency:
     stories:
     - STORY-022
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#102-edge-case--a-provider-goes-down-trips-and-recovers:
+    stories:
+    - STORY-103
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#103-edge-case--a-failed-probe-re-trips-the-breaker:
+    stories:
+    - STORY-103
+  11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#11-test-cases:
+    stories:
+    - STORY-102
+    - STORY-103
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#62-the-three-states:
     stories:
     - STORY-023
+    - STORY-101
+    - STORY-103
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#63-state-diagram:
     stories:
     - STORY-023
+    - STORY-101
+    - STORY-103
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#64-failure-counting-and-the-trip-threshold:
     stories:
     - STORY-023
     - STORY-075
     - STORY-082
+    - STORY-100
+    - STORY-102
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#65-cooldown-and-the-transition-to-probing:
     stories:
     - STORY-023
     - STORY-082
+    - STORY-100
+    - STORY-101
+    - STORY-103
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#66-probe-behaviour:
     stories:
     - STORY-082
+    - STORY-100
+    - STORY-103
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#67-per-provider-scope:
     stories:
     - STORY-023
@@ -6473,6 +6594,8 @@ clauses:
     stories:
     - STORY-075
     - STORY-082
+    - STORY-101
+    - STORY-102
   11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md#7-configuration:
     stories:
     - STORY-023
@@ -7964,6 +8087,10 @@ edge_cases:
     stories:
     - STORY-058
     - STORY-082
+    - STORY-100
+    - STORY-101
+    - STORY-102
+    - STORY-103
     tests:
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_does_not_record_breaker_failure
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
@@ -9680,12 +9807,17 @@ modules:
     - STORY-082
     - STORY-085
     - STORY-086
+    - STORY-100
+    - STORY-101
+    - STORY-102
   backend/charts/:
     stories:
     - STORY-033
   backend/circuit_breaker/:
     stories:
     - STORY-023
+    - STORY-101
+    - STORY-103
   backend/concurrency/:
     stories:
     - STORY-006
