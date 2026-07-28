@@ -58,8 +58,8 @@ def run_provider_probe(  # noqa: PLR0913  # each keyword-only argument is a dist
     Returns immediately unless `circuit_breaker.state(provider_id)` is
     `CircuitState.PROBING` — a `CLOSED` or `TRIPPED` provider makes no
     network call and touches no other breaker method. When `PROBING`, issues
-    exactly one lightweight liveness call at the first-attempt adaptive
-    budget (`adaptive_timeout.next_budget(..., attempt_index=1 +
+    exactly one lightweight liveness call at the top of the adaptive-timeout
+    ladder (`adaptive_timeout.next_budget(..., attempt_index=1 +
     retry_count)`) — no retry ladder, no backoff, no second attempt — and
     maps its outcome onto exactly one breaker call, per ADR-0013's outcome
     table: any `ChatResponse`, or any other provider-response `AppError`

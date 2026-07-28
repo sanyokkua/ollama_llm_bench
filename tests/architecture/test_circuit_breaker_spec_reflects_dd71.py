@@ -41,7 +41,7 @@ _SITE_CASES: tuple[tuple[str, str, str], ...] = (
         "6.2-should_skip-column",
         "`False` for the first query after the cooldown elapses; `True` for subsequent "
         "queries until the probe resolves",
-        "`True` unconditionally",
+        "before the next row instead of admitting any task through `should_skip`",
     ),
     (
         "6.3-state-diagram-note",
@@ -51,7 +51,7 @@ _SITE_CASES: tuple[tuple[str, str, str], ...] = (
     (
         "6.5-cooldown-and-transition-to-probing",
         "it lets exactly that one task through as the probe",
-        "dedicated lightweight probe call",
+        "no task is ever admitted through `should_skip` as a probe",
     ),
     (
         "6.6-probe-behaviour",
@@ -67,7 +67,7 @@ _SITE_CASES: tuple[tuple[str, str, str], ...] = (
     (
         "10.3-worked-example-failed-recovery-step",
         "task 41 is admitted as the probe",
-        "the pipeline issues the dedicated lightweight probe call",
+        "Task 41 itself was never dispatched",
     ),
     (
         "CB-05",
