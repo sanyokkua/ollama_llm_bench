@@ -143,7 +143,14 @@ def run_task_with_stability[T](  # noqa: PLR0913  # each parameter is a distinct
     except TaskCancelledError:
         raise
     except HttpTimeoutError:
-        circuit_breaker.record_failure(provider_id)
+        # A per-task timeout is a MODEL-level signal, never a provider-attributable one:
+        # it feeds only the adaptive-timeout service (which escalates this model's budget
+        # and can exclude this one model), and must NOT reach the breaker — otherwise one
+        # slow model would skip every other model on the same provider
+        # (08_CIRCUIT_BREAKER.md §6.4 MISS-25, §6.9). The breaker's timeout signal comes
+        # exclusively from the warmup probe at a model switch (`_internal/warmup.py`).
+        # This clause MUST stay above `except _TransientError` — HttpTimeoutError is a
+        # TransientError subclass, and reordering would silently restore the failure count.
         return on_timeout_exhausted()
     except _TransientError as exc:
         circuit_breaker.record_failure(provider_id)
