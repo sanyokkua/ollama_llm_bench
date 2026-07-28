@@ -18,6 +18,7 @@ from ollama_llm_bench.backend.domain.models import (
     GateLease,
     InferenceActivity,
     Iso8601Utc,
+    ProviderId,
     RequiredTerms,
     ResultPatch,
     TaskOrigin,
@@ -28,7 +29,7 @@ from ollama_llm_bench.backend.infra.protocols import Clock
 from ollama_llm_bench.backend.persistence.results.testing import FakeResultsStore
 from ollama_llm_bench.backend.persistence.runs.protocols import RunsStore
 from ollama_llm_bench.backend.persistence.tasks.protocols import TasksStore
-from ollama_llm_bench.backend.provider_registry.protocols import ProviderRegistry
+from ollama_llm_bench.backend.provider_registry.protocols import LLMClient, ProviderRegistry
 from ollama_llm_bench.backend.settings.protocols import RunSnapshotBuilder, SettingsService
 from ollama_llm_bench.backend.stores.inference_activity.protocols import InferenceActivityStore
 
@@ -138,6 +139,46 @@ class InlineCallableRunner:
         except BaseException as exc:  # noqa: BLE001  # captured for the Future, not swallowed
             future.set_exception(exc)
         return future
+
+
+class SingleClientProviderRegistry:
+    """A `ProviderRegistry` double resolving every provider id to one shared client.
+
+    Shared by `test_warmup.py` and `test_provider_probe.py` (STORY-100 polish
+    wave) — both files need the same one-client-for-every-provider-id double
+    when driving `run_stability_phase` end to end. Callers wrap a construction
+    site in `cast("ProviderRegistry", SingleClientProviderRegistry(client))`
+    rather than adding a second `# type: ignore` at the call site — `list_enabled`
+    intentionally returns `tuple[object, ...]` (unused by any test here), which
+    is why `get_client`'s own `# type: ignore[return-value]` is the only
+    suppression this double needs.
+    """
+
+    def __init__(self, client: object) -> None:
+        self._client = client
+
+    def list_enabled(self) -> tuple[object, ...]:
+        return ()
+
+    def get_client(self, provider_id: ProviderId) -> LLMClient:
+        del provider_id
+        return self._client  # type: ignore[return-value]  # structurally satisfies LLMClient
+
+    def reload(self) -> None:
+        return None
+
+
+class AlwaysPassSanityChecker:
+    """A `SanityChecker` double that always passes.
+
+    Shared by `test_warmup.py` and `test_provider_probe.py` (STORY-100 polish
+    wave) — both drive `run_stability_phase` with sanity checking enabled but
+    irrelevant to what they're proving.
+    """
+
+    def check(self, *, response: str, task: BenchmarkTask) -> bool:
+        del response, task
+        return True
 
 
 class _InlineTaskRunner:

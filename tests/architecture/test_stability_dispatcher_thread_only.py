@@ -156,18 +156,58 @@ def _probe_module_paths() -> list[Path]:
     ]
 
 
-def _submitted_callables(tree: ast.Module) -> list[ast.AST]:
-    """Return every first-positional-argument node passed to a `.submit(...)`
-    call anywhere in `tree` — the boundary where work crosses from the
-    dispatcher thread onto a `TaskRunner` worker thread."""
+def _submit_calls(tree: ast.Module) -> list[ast.Call]:
+    """Return every `.submit(...)` call node anywhere in `tree`."""
     return [
-        node.args[0]
+        node
         for node in ast.walk(tree)
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "submit"
-        and node.args
     ]
+
+
+def _submitted_argument(call: ast.Call) -> ast.AST | None:
+    """Return the callable argument passed to a `.submit(...)` call, whichever
+    shape it is passed in: positional (`submit(fn, ...)`) or keyword
+    (`submit(fn=...)`). Returns `None` if neither shape supplies one."""
+    if call.args:
+        return call.args[0]
+    for keyword in call.keywords:
+        if keyword.arg == "fn":
+            return keyword.value
+    return None
+
+
+def _function_defs_named(tree: ast.Module, name: str) -> list[ast.FunctionDef]:
+    """Return every `FunctionDef` named `name` anywhere in `tree` — module-level
+    or nested — so a bare `ast.Name` submitted-callable reference (a named
+    nested function, e.g. `def _worker(): ...` then `runner.submit(_worker, ...)`)
+    resolves to the function body it names, rather than being invisible to the
+    walker as a plain name reference."""
+    return [
+        node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == name
+    ]
+
+
+def _submitted_callables(tree: ast.Module) -> list[ast.AST]:
+    """Return every callable node submitted via a `.submit(...)` call anywhere
+    in `tree` — the boundary where work crosses from the dispatcher thread onto
+    a `TaskRunner` worker thread. Covers three shapes: the inline lambda
+    (`submit(lambda: ...)`), the keyword form (`submit(fn=...)`), and a bare
+    name referring to a named nested function (`submit(_worker, ...)`), which
+    is resolved to that function's `FunctionDef` body so its contents are
+    scanned too."""
+    callables: list[ast.AST] = []
+    for call in _submit_calls(tree):
+        argument = _submitted_argument(call)
+        if argument is None:
+            continue
+        if isinstance(argument, ast.Name):
+            callables.extend(_function_defs_named(tree, argument.id))
+        else:
+            callables.append(argument)
+    return callables
 
 
 def _stability_method_names_within(node: ast.AST) -> list[str]:

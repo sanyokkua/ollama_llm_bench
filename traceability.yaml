@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-28T18:42:37Z'
+generated_at: '2026-07-28T18:55:56Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5379,6 +5379,8 @@ stories:
       STORY-100-AC-4:
         tests:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_fires_per_row_not_per_group
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_wired_into_inference_phase_before_row
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_wired_into_judge_phase_targets_judge_pair_not_row_model
       STORY-100-AC-5:
         tests:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_warmup_behaviour_unchanged_after_probe_extraction
@@ -8156,6 +8158,8 @@ edge_cases:
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[rate_limited]
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[server_error]
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_outcome_maps_to_close_or_retrip[timeout]
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_wired_into_inference_phase_before_row
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_provider_probe.py::test_probe_wired_into_judge_phase_targets_judge_pair_not_row_model
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_does_not_record_breaker_failure
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_exhausted_per_task_timeout_settles_failed_timeout_and_advances
     - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_stability_dispatch.py::test_probing_provider_whose_probe_task_times_out_re_trips_the_breaker

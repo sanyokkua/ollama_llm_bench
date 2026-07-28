@@ -28,9 +28,11 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.warmup import (
 from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.benchmark_pipeline.testing import make_benchmark_result
 from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import (
+    AlwaysPassSanityChecker,
     FakeClock,
     InlineCallableRunner,
     RecordingChatClient,
+    SingleClientProviderRegistry,
     make_cancellation_token,
     make_task,
 )
@@ -42,7 +44,6 @@ from ollama_llm_bench.backend.domain.models import (
     AdaptiveTimeoutRole,
     BenchmarkResult,
     BenchmarkRun,
-    BenchmarkTask,
     CancelReason,
     ChatChunk,
     ChatMessage,
@@ -66,7 +67,6 @@ from ollama_llm_bench.backend.errors import (
 from ollama_llm_bench.backend.persistence.results.testing import FakeResultsStore
 from ollama_llm_bench.backend.provider_registry.protocols import (
     ChatStream,
-    LLMClient,
     ProviderRegistry,
 )
 
@@ -404,31 +404,6 @@ class _HardStopAtWarmupClient:
         raise AssertionError(message)
 
 
-class _SingleClientProviderRegistry:
-    """A `ProviderRegistry` double resolving every provider id to one shared client."""
-
-    def __init__(self, client: object) -> None:
-        self._client = client
-
-    def list_enabled(self) -> tuple[object, ...]:
-        return ()
-
-    def get_client(self, provider_id: ProviderId) -> LLMClient:
-        del provider_id
-        return self._client  # type: ignore[return-value]  # structurally satisfies LLMClient
-
-    def reload(self) -> None:
-        return None
-
-
-class _AlwaysPassSanityChecker:
-    """A `SanityChecker` double that always passes."""
-
-    def check(self, *, response: str, task: BenchmarkTask) -> bool:
-        del response, task
-        return True
-
-
 class _RecordingResultsStore:
     """Wraps a `FakeResultsStore`, additionally logging every `update_result`
     call's `result_id` so AC-1 can prove a warmup never writes a result row."""
@@ -527,7 +502,7 @@ def _run_inference_stability_phase(
     collaborators = StabilityCollaborators(
         bus=mocker.Mock(),
         clock=FakeClock(),
-        provider_registry=_SingleClientProviderRegistry(client),  # type: ignore[arg-type]  # structurally satisfies ProviderRegistry
+        provider_registry=cast("ProviderRegistry", SingleClientProviderRegistry(client)),
         results_store=results_store,
         settings_service=mocker.Mock(),
         task_runner=InlineCallableRunner(),
@@ -537,7 +512,7 @@ def _run_inference_stability_phase(
         groups=groups,
         run=_make_minimal_run(),
         tasks_by_id=tasks_by_id,
-        sanity_checker=_AlwaysPassSanityChecker(),
+        sanity_checker=AlwaysPassSanityChecker(),
         judge_evaluator=None,
         token=token,
         keyword_enabled=False,
@@ -645,7 +620,7 @@ def test_hard_stop_at_warmup_halts_run_and_reports_no_breaker_outcome(
     collaborators = StabilityCollaborators(
         bus=mocker.Mock(),
         clock=FakeClock(),
-        provider_registry=_SingleClientProviderRegistry(client),  # type: ignore[arg-type]  # structurally satisfies ProviderRegistry
+        provider_registry=cast("ProviderRegistry", SingleClientProviderRegistry(client)),
         results_store=results_store,
         settings_service=mocker.Mock(),
         task_runner=InlineCallableRunner(),
@@ -657,7 +632,7 @@ def test_hard_stop_at_warmup_halts_run_and_reports_no_breaker_outcome(
             groups=groups,
             run=_make_minimal_run(),
             tasks_by_id=tasks_by_id,
-            sanity_checker=_AlwaysPassSanityChecker(),
+            sanity_checker=AlwaysPassSanityChecker(),
             judge_evaluator=None,
             token=token,
             keyword_enabled=False,

@@ -36,9 +36,11 @@ from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
 from ollama_llm_bench.backend.benchmark_pipeline.testing import make_benchmark_result
 from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import (
     STABILITY_SETTING_ENTRIES,
+    AlwaysPassSanityChecker,
     FakeClock,
     InlineCallableRunner,
     RecordingChatClient,
+    SingleClientProviderRegistry,
     make_cancellation_token,
     make_task,
 )
@@ -86,7 +88,6 @@ from ollama_llm_bench.backend.events.protocols import EventBus
 from ollama_llm_bench.backend.persistence.results.testing import FakeResultsStore
 from ollama_llm_bench.backend.provider_registry.protocols import (
     ChatStream,
-    LLMClient,
     ProviderRegistry,
 )
 from ollama_llm_bench.backend.settings.protocols import SettingsService
@@ -538,31 +539,6 @@ class _ProbeVsInferenceClient:
         return _OneChunkChatStream(model=request.model)
 
 
-class _SingleClientProviderRegistry:
-    """A `ProviderRegistry` double resolving every provider id to one shared client."""
-
-    def __init__(self, client: object) -> None:
-        self._client = client
-
-    def list_enabled(self) -> tuple[object, ...]:
-        return ()
-
-    def get_client(self, provider_id: ProviderId) -> LLMClient:
-        del provider_id
-        return self._client  # type: ignore[return-value]  # structurally satisfies LLMClient
-
-    def reload(self) -> None:
-        return None
-
-
-class _AlwaysPassSanityChecker:
-    """A `SanityChecker` double that always passes."""
-
-    def check(self, *, response: str, task: BenchmarkTask) -> bool:
-        del response, task
-        return True
-
-
 class _AlwaysResolvedJudgeEvaluator:
     """A `JudgeEvaluator` double that always resolves PASS on the first
     attempt — this test needs the judge row to settle normally, not to
@@ -623,7 +599,7 @@ def _make_wiring_run(
 
 
 def test_probe_wired_into_inference_phase_before_row(mocker: MockerFixture) -> None:
-    """Proves: STORY-100 production-wiring constraint
+    """Proves: STORY-100-AC-4
 
     Driving `run_stability_phase(phase=Phase.INFERENCE, ...)` — the
     pipeline's real entry point, not a hand-rolled `before_row` closure —
@@ -658,7 +634,7 @@ def test_probe_wired_into_inference_phase_before_row(mocker: MockerFixture) -> N
     collaborators = StabilityCollaborators(
         bus=mocker.Mock(spec=EventBus),
         clock=clock,
-        provider_registry=cast("ProviderRegistry", _SingleClientProviderRegistry(client)),
+        provider_registry=cast("ProviderRegistry", SingleClientProviderRegistry(client)),
         results_store=results_store,
         settings_service=mocker.Mock(spec=SettingsService),
         task_runner=InlineCallableRunner(),
@@ -669,7 +645,7 @@ def test_probe_wired_into_inference_phase_before_row(mocker: MockerFixture) -> N
         groups=groups,
         run=_make_wiring_run(),
         tasks_by_id={"task-1": make_task(task_id="task-1")},
-        sanity_checker=_AlwaysPassSanityChecker(),
+        sanity_checker=AlwaysPassSanityChecker(),
         judge_evaluator=None,
         token=make_cancellation_token(),
         keyword_enabled=False,
@@ -694,7 +670,7 @@ def test_probe_wired_into_inference_phase_before_row(mocker: MockerFixture) -> N
 def test_probe_wired_into_judge_phase_targets_judge_pair_not_row_model(
     mocker: MockerFixture,
 ) -> None:
-    """Proves: STORY-100 production-wiring constraint
+    """Proves: STORY-100-AC-4
 
     Driving `run_stability_phase(phase=Phase.JUDGE_CHECK, ...)` with a real
     `ProviderCircuitBreaker` already `PROBING` for the run's fixed judge
@@ -745,7 +721,7 @@ def test_probe_wired_into_judge_phase_targets_judge_pair_not_row_model(
             judge_model_name=_JUDGE_WIRING_JUDGE_MODEL_NAME,
         ),
         tasks_by_id={"task-1": make_task(task_id="task-1")},
-        sanity_checker=_AlwaysPassSanityChecker(),
+        sanity_checker=AlwaysPassSanityChecker(),
         judge_evaluator=_AlwaysResolvedJudgeEvaluator(),
         token=make_cancellation_token(),
         keyword_enabled=False,
