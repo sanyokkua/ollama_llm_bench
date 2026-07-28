@@ -608,11 +608,11 @@ def test_probe_wired_into_inference_phase_before_row(mocker: MockerFixture) -> N
     wiring is actually present: the probe's lightweight `client.chat` call
     is issued, against the row's own `(provider, model)` target, before the
     row's own `client.chat_stream` inference call. Deleting that wiring line
-    leaves the row's own `chat_stream` call as the breaker's post-cooldown
-    probe-slot admission instead (the still-present pre-STORY-101 fallback
-    in `circuit_breaker.should_skip`), so no `chat` call would ever precede
-    it — this test fails in that case (verified manually; see the story's
-    Notes).
+    means `should_skip` observes a still-`PROBING` provider with no
+    lightweight probe call ever issued against it, so the row is skipped
+    rather than dispatched: no `chat` call would ever precede a (never-made)
+    `chat_stream` call — this test fails in that case (verified manually; see
+    the story's Notes).
     """
     clock = FakeClock()
     breaker = make_circuit_breaker(snapshot=_BREAKER_SNAPSHOT, clock=clock)

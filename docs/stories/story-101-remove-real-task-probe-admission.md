@@ -36,10 +36,10 @@ estimate: L
 ## Goal
 
 Finish DD-71's adoption by deleting the breaker's old real-task probe-slot mechanism, now that
-STORY-100 has landed the dedicated lightweight probe that replaces it. `should_skip` becomes a
-pure function of the breaker's state, with no side effect and no probe slot to claim — while
-`PROBING`, it always returns `True`, and the pipeline's per-row `run_provider_probe` hook is the
-only thing that ever resolves a `PROBING` provider. This story also carries the supersession
+STORY-100 has landed the dedicated lightweight probe that replaces it. `should_skip` becomes an
+idempotent function of the breaker's state, with no probe slot to claim — while `PROBING`, it
+always returns `True`, and the pipeline's per-row `run_provider_probe` hook is the only thing
+that ever resolves a `PROBING` provider. This story also carries the supersession
 bookkeeping the removal requires: two already-`done` stories (STORY-023, STORY-082) each own an
 acceptance criterion that only made sense under the old real-task-probe design, and this story
 retires those two stories, restates every one of their still-valid criteria as its own, and
@@ -51,9 +51,8 @@ story's acceptance criterion has no proving test.
 - `backend/circuit_breaker/_internal/state.py`: remove `probe_slot_claimed` from
   `_ProviderRecord` — there is no longer a slot to claim.
 - `backend/circuit_breaker/_internal/breaker.py`: `should_skip`'s `PROBING` branch collapses to
-  `return True` unconditionally, making `should_skip` a pure function of `state()` with no side
-  effect; drop the `probe_slot_claimed` resets in `_trip`, `record_success`, and
-  `_maybe_transition_to_probing`.
+  `return True` unconditionally, making `should_skip` idempotent for `state()`; drop the
+  `probe_slot_claimed` resets in `_trip`, `record_success`, and `_maybe_transition_to_probing`.
 - `backend/circuit_breaker/protocols.py`: docstring-only correction — `PROBING` admits no task;
   the probe is issued by the pipeline (DD-71, ADR-0013). No method is added or resignatured.
 - `backend/circuit_breaker/__init__.py`: correct the module docstring, which currently says the
@@ -185,7 +184,7 @@ per-task dispatch path for it.
 
 - STORY-101-AC-1 — property (`RuleBasedStateMachine`), colocated
   `src/ollama_llm_bench/backend/circuit_breaker/tests/test_state_machine.py`,
-  `test_circuit_breaker_state_machine_matches_spec` — repointed from `STORY-023-AC-1`.
+  `TestCircuitBreakerStateMachine::runTest` — repointed from `STORY-023-AC-1`.
 - STORY-101-AC-2 — unit, colocated
   `src/ollama_llm_bench/backend/circuit_breaker/tests/test_tripping.py`,
   `test_trips_on_exact_threshold_and_success_resets_counter` — repointed from `STORY-023-AC-2`.

@@ -16,7 +16,7 @@ def _trip_and_advance_to_probing(clock: FakeClock, breaker: ProviderCircuitBreak
     for _ in range(_FAILURE_THRESHOLD):
         breaker.record_failure(_PROVIDER)
     clock.advance_monotonic_ms(_COOLDOWN_SECONDS * 1000)
-    breaker.should_skip(_PROVIDER)  # admits the probe
+    breaker.should_skip(_PROVIDER)  # forces the lazy TRIPPED -> PROBING transition
 
 
 def test_probe_success_closes_and_probe_failure_retrips() -> None:

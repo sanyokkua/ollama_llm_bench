@@ -59,11 +59,14 @@ class _ProviderCircuitBreakerImpl:
     def should_skip(self, provider_id: ProviderId) -> bool:
         """Whether the pipeline should skip this provider right now (§6.2, §6.5).
 
-        A pure function of ``state()`` — no side effect, idempotent for any
-        number of calls with no intervening ``record_success``/
-        ``record_failure``. ``PROBING`` always returns ``True``: it admits no
-        benchmark task (DD-71, ADR-0013). Liveness is decided elsewhere, by the
-        pipeline's dedicated ``run_provider_probe`` call issued before each row.
+        Returns exactly what ``state()`` implies, and is idempotent: repeated
+        calls with no intervening ``record_success``/``record_failure``
+        return the same value. Like ``state()`` and
+        ``cooldown_remaining_seconds``, it evaluates the lazy TRIPPED ->
+        PROBING transition, so it is dispatcher-thread-only. ``PROBING``
+        always returns ``True``: it admits no benchmark task (DD-71,
+        ADR-0013). Liveness is decided elsewhere, by the pipeline's dedicated
+        ``run_provider_probe`` call issued before each row.
         """
         if not self._parameters.enabled:
             return False

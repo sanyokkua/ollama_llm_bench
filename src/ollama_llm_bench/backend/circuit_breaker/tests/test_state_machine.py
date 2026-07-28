@@ -139,7 +139,7 @@ class TestCircuitBreakerStateMachine(_CircuitBreakerStateMachine.TestCase):  # t
         cooldown_remaining_seconds) against the §6.2-§6.5 state machine after
         every step. Also runs the `should_skip_is_idempotent` rule and the
         `probing_implies_no_admission` invariant proving STORY-101-AC-3:
-        `should_skip` is a pure, side-effect-free function of state that
-        always returns `True` while PROBING.
+        `should_skip` is idempotent for repeated calls with no intervening
+        mutation, and always returns `True` while PROBING.
         """
         super().runTest()
