@@ -63,7 +63,8 @@ class InstanceLockHandle(Protocol):
         """Release the advisory lock and close its descriptor.
 
         Idempotent: releasing an already-released handle is a no-op.
-        fast-synchronous; never raises.
+        fast-synchronous; never raises an ``OSError`` from the unlock or the
+        close.
         """
         ...
 

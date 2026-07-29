@@ -19,11 +19,8 @@ from ollama_llm_bench.backend.infra._internal.instance_lock import (
     default_primitives,
 )
 from ollama_llm_bench.backend.infra.api import acquire_instance_lock
-from ollama_llm_bench.backend.infra.models import (
-    InstanceLockHandle,
-    InstanceLockOutcome,
-    InstanceLockRecord,
-)
+from ollama_llm_bench.backend.infra.models import InstanceLockOutcome, InstanceLockRecord
+from ollama_llm_bench.backend.infra.protocols import InstanceLockHandle
 from ollama_llm_bench.backend.infra.tests.conftest import FAKE_NOW_UTC, FakeClock
 
 
@@ -39,7 +36,7 @@ def test_first_acquisition_succeeds_and_records_pid_and_timestamp(
     start timestamp.
     """
     # Arrange
-    expected_lock_file = tmp_path / LOCK_FILENAME
+    expected_lock_file = tmp_path / ".instance.lock"
 
     # Act
     result = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
@@ -426,3 +423,49 @@ def test_default_primitives_on_non_posix_host_names_the_platform(
 
     # Assert
     assert "'nt'" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("pid", [0, -1])
+def test_is_pid_alive_rejects_non_positive_pid_without_probing_the_kernel(pid: int) -> None:
+    """Pin the ``pid <= 0`` guard at the top of ``is_pid_alive``.
+
+    A hand-edited or corrupt lock record can decode with ``pid: 0``. Without
+    this guard, ``os.kill(0, 0)`` probes the *entire process group* rather
+    than a single process and reports success, so a zero or negative pid
+    must be rejected before ever reaching ``os.kill`` -- otherwise a lock
+    left behind by a corrupt record would be judged live forever and the
+    application would be permanently blocked from starting.
+    """
+    # Arrange
+    primitives = PosixLockPrimitives()
+
+    # Act
+    alive = primitives.is_pid_alive(pid)
+
+    # Assert
+    assert alive is False
+
+
+def test_is_pid_alive_reports_a_pid_no_process_owns_as_dead() -> None:
+    """A pid that names no process at all must be reported dead."""
+    # Arrange
+    primitives = PosixLockPrimitives()
+    dead_pid = _find_dead_pid()
+
+    # Act
+    alive = primitives.is_pid_alive(dead_pid)
+
+    # Assert
+    assert alive is False
+
+
+def test_is_pid_alive_reports_the_current_process_as_alive() -> None:
+    """This process's own pid must be reported alive."""
+    # Arrange
+    primitives = PosixLockPrimitives()
+
+    # Act
+    alive = primitives.is_pid_alive(os.getpid())
+
+    # Assert
+    assert alive is True

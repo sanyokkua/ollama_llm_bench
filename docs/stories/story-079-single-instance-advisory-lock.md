@@ -116,9 +116,10 @@ unlock, one around the descriptor close).
 The `finally` guarantees the close always runs, even if the unlock call raises something other
 than `OSError`; the `suppress(OSError)` around each call absorbs the specific failure each one
 can legitimately raise on its own.
-This matters because `release()` promises its caller it never raises: the application's shutdown
-sequence and the test-cleanup fixture both call it unconditionally during teardown and must not
-have that teardown itself throw.
+This matters because `release()` promises its caller it never raises an `OSError` from the unlock
+or the close: the application's shutdown sequence and the test-cleanup fixture both call it
+unconditionally during teardown and must not have that teardown itself throw over the specific
+failure mode `fcntl.flock`/`os.close` can produce.
 
 This helper is POSIX-only: `default_primitives()` returns `PosixLockPrimitives`, built on
 `fcntl.flock` for the exclusive advisory lock and `os.kill(pid, 0)` for the liveness check.
@@ -127,8 +128,16 @@ On a non-POSIX host (`os.name != "posix"`), `default_primitives()` raises a type
 unprotected with no single-instance guarantee.
 Windows support is a follow-up story that adds an `msvcrt`-based `LockPrimitives` implementation;
 the `LockPrimitives` Protocol seam is designed so that is a drop-in replacement for
-`PosixLockPrimitives`, with no change needed to `acquire_instance_lock_impl`, `api.py`, or the
-existing tests.
+`PosixLockPrimitives`, with no change needed to `acquire_instance_lock_impl` or `api.py`. The
+seam earns its keep here: it also captures `is_pid_alive`, which a Windows implementer *must*
+reimplement rather than reuse, because `os.kill(pid, 0)` on Windows terminates the target process
+instead of merely probing it.
+The existing tests are the one part of this claim that does not hold as-is: all six test fakes in
+`test_instance_lock.py` (`_UnlockFailsPrimitives`, `LaggingLockPrimitives`, and the rest) subclass
+the concrete `PosixLockPrimitives`, whose `try_lock_exclusive`/`unlock` methods `import fcntl` at
+call time, so on Windows constructing any of those fakes raises `ImportError` before the AC-3
+proof can even run. A Windows follow-up needs a platform-neutral fake base the POSIX and
+`msvcrt` fakes both subclass, not a reuse of these fakes as written.
 
 Releasing the lock deliberately does not delete `<app-data>/.instance.lock`.
 Deleting the file on release would let a concurrent acquirer's `os.open` create a new inode at
@@ -138,6 +147,16 @@ failure this story exists to prevent.
 Leaving the file in place is safe because the lock's identity is the `flock`, not the file's
 presence — a subsequent launch reopens the same path and takes the lock cleanly whether or not a
 stale, unlocked file is already sitting there.
+
+A related hazard was considered and deliberately left unhandled: the release path never deletes
+the lock file (above) because deleting races a concurrent acquirer into locking a different
+inode. The acquire path has the mirror hazard: if something *outside* the application deletes
+`.instance.lock` while a holder is still live, the next `os.open(..., O_CREAT)` creates a fresh
+inode and both instances would then run at once. The standard defence is to compare
+`os.fstat(fd).st_ino`/`st_dev` against `os.stat(lock_file)` right after taking the lock and retry
+once on mismatch. This is not implemented because the application itself never deletes the file
+— it would only defend against an outside actor deleting it, which is out of scope for this
+story.
 
 `just trace-check`'s eight `EC-M-1` through `EC-M-8` failures ("named by a story but has no
 proving test") are pre-existing Phase-11 debt from the still-unimplemented STORY-076, STORY-078,

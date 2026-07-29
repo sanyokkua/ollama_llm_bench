@@ -1,8 +1,11 @@
-"""Public surface for ``backend/infra/``: Clock, two-stream logging, path resolution.
+"""Public surface for ``backend/infra/``: Clock, two-stream logging, path resolution,
+and the single-instance advisory lock.
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
 §5 (Clock); ``docs/v3_specification/16_Engineering_Standards/06_LOGGING_STANDARD.md``
-§§2-3, 6-7, 9; ``docs/v3_specification/10_Domain_and_Data/07_FILE_LAYOUT.md`` §8.1.
+§§2-3, 6-7, 9; ``docs/v3_specification/10_Domain_and_Data/07_FILE_LAYOUT.md`` §8.1;
+``docs/v3_specification/12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md`` §5 (file-lock
+policy) and §6 (multi-instance handling).
 """
 
 from collections.abc import Iterator

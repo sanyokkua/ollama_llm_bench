@@ -1,15 +1,20 @@
-"""Cross-cutting Qt-free infrastructure: Clock, two-stream logging, OS path resolution.
+"""Cross-cutting Qt-free infrastructure: Clock, two-stream logging, OS path resolution,
+and the single-instance advisory lock.
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
 §5 (Clock); ``docs/v3_specification/16_Engineering_Standards/06_LOGGING_STANDARD.md``;
-``docs/v3_specification/10_Domain_and_Data/07_FILE_LAYOUT.md``.
+``docs/v3_specification/10_Domain_and_Data/07_FILE_LAYOUT.md``;
+``docs/v3_specification/12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md`` §5 (file-lock
+policy) and §6 (multi-instance handling).
 
 This module gives every other module the small, cross-cutting infrastructure it depends
 on to be deterministically testable and correctly observable: an injectable time source
 (``Clock``), the application's two independent, correctly-redacted log streams
-(``configure_logging`` for ``app.*``, ``open_run_log`` for ``run.*``), and a resolved
+(``configure_logging`` for ``app.*``, ``open_run_log`` for ``run.*``), a resolved
 on-disk path API layered over the platform-detected application-data root
-(``app_log_path``, ``run_log_path``, and their parent-directory variants).
+(``app_log_path``, ``run_log_path``, and their parent-directory variants), and the
+process-lifetime single-instance advisory lock (``acquire_instance_lock``) that stops a
+second copy of the application from writing the same data directory.
 """
 
 from ollama_llm_bench.backend.infra.api import (
