@@ -1,7 +1,7 @@
 ---
 id: STORY-079
 title: Add the single-instance advisory lock with stale-owner recovery
-status: ready
+status: done
 spec_clauses:
   - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#5-file-lock-policy
   - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#6-multi-instance-handling
@@ -99,7 +99,17 @@ then the stale lock is reclaimed and acquisition succeeds.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-079.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/infra/`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-079.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `backend/infra/`.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Notes
+
+Implementation: `backend/infra/_internal/instance_lock.py` — the acquire algorithm sits behind the
+`LockPrimitives` Protocol seam so the stale-reclaim branch (which depends on kernel lock-visibility
+lag) is deterministically testable via `LaggingLockPrimitives` in the colocated test suite.
+
+The `_HeldInstanceLock.release()` method uses two separate `contextlib.suppress(OSError)` blocks
+(one for unlock, one for close) so a failing unlock does not prevent the close, and both failures
+are silently absorbed to honour the "never raises" contract.
