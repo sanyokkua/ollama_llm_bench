@@ -271,6 +271,22 @@ class TaskEditorController:
         subscription = self._file_change_watcher.watch(path, self._on_file_changed_on_disk)
         self._watch_subscriptions[path] = subscription
 
+    def _rebaseline_watch(self, path: str) -> None:
+        """Restart ``path``'s watch after the editor itself wrote the file
+        (STORY-112-AC-4).
+
+        The watcher reports a path whose on-disk bytes differ from the ones it
+        last read, and it cannot tell who wrote them -- so without this, a
+        successful Save would immediately flag its own file as changed by
+        someone else. Cancelling and re-watching re-reads the bytes the editor
+        just wrote as the new baseline, leaving the file in ``Watching`` rather
+        than ``Conflict`` (09_Task_Editor/state_machine.md §3, §8).
+        """
+        subscription = self._watch_subscriptions.pop(path, None)
+        if subscription is not None:
+            subscription.cancel()
+        self._watch_file(path)
+
     def _on_file_changed_on_disk(self, path: str) -> None:
         index = self._find_buffer_index(path)
         if index is None:
@@ -507,6 +523,7 @@ class TaskEditorController:
             dialogs.show_save_failure(reason=result.failure_reason, detail=result.detail)
             return False
         buffer.is_dirty = False
+        self._rebaseline_watch(buffer.source_path)
         self._validate_buffer(buffer)
         self._event_bus.emit(
             SIGNAL_TASK_FILE_CHANGED,

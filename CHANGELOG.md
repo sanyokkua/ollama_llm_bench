@@ -17,6 +17,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- On-disk task-file change watch (`adapters/file_system_actions`: `make_file_change_watcher`,
+  plus the `FileChangeWatcher`/`FileWatchSubscription` Protocols). While a task file is open in
+  the Task Editor, the application now notices when that file's contents change on disk — because
+  it was edited in another program, or a version-control checkout replaced it — and flags the
+  file's row so the editor can offer to reload it. The watcher compares file *content*, not the
+  modification time, so a rewrite that leaves the bytes unchanged raises no alarm
+  (`09_Task_Editor/state_machine.md` §8); it polls on one shared timer rather than using
+  `QFileSystemWatcher`, which loses its watch when a path is replaced by rename — exactly how
+  both the application's own save and a checkout replace a file. The Task Editor re-baselines a
+  file's watch after each successful save, so the editor's own write is never reported back to it
+  as somebody else's change (STORY-112).
+
 - Benchmark-pipeline model warmup (`backend/benchmark_pipeline/_internal/warmup.py`): when the
   run's frozen `benchmark.warmup_enabled` snapshot is `true` (the default), the pipeline issues
   one lightweight non-streaming pre-load inference per `(provider, model)` test target at its

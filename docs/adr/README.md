@@ -18,3 +18,14 @@ Index of all Architecture Decision Records (ADRs) for Ollama LLM Bench. Format a
 | [ADR-0011](0011-testing-standard-extensions-live-tier-and-screenshot-harness.md)    | Extend the testing standard with an env-gated live tier and a screenshot/mockup-review harness     | accepted   | —          | —             |
 | [ADR-0012](0012-honor-os-reduced-motion-and-high-contrast-preferences.md)           | Honor the OS reduced-motion and high-contrast preferences to meet the release-blocking floor       | accepted   | ADR-0008   | —             |
 | [ADR-0013](0013-dedicated-lightweight-circuit-breaker-probe.md)                     | Issue a dedicated lightweight liveness call as the circuit breaker's post-cooldown probe           | accepted   | —          | —             |
+| [ADR-0014](0014-house-ui-adapter-gateways-in-one-adapters-module.md)                | House the seven concrete UI adapter gateways in one new `adapters/ui_gateways/` module             | proposed   | —          | —             |
+
+## Pending owner ratification
+
+ADR-0014 is the only `proposed` entry above. It is staged here rather than in the specification's
+`15_Risks_and_Open_Questions/03_PROPOSED_ADRS.md` staging area because that file is part of the
+read-only vendored specification. Its decision requires one owner-approved correction to
+`14_Process_and_Traceability/01_MODULE_INVENTORY.md` (one new `adapters/ui_gateways/` row plus the
+matching count-table cells); the four exact edits are listed in the ADR. Per
+`04_ADR_FORMAT.md` §8 a `proposed` ADR may not be cited in any story's `adrs:` front-matter, so
+STORY-104 … STORY-111 carry `adrs: []` and stay `draft` until it is accepted.

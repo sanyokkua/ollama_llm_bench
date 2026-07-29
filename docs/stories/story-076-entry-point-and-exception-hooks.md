@@ -1,7 +1,7 @@
 ---
 id: STORY-076
 title: Install the process entry point and the two top-level exception hooks
-status: draft
+status: ready
 spec_clauses:
   - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
   - 08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy
@@ -47,7 +47,10 @@ failed benchmark task cannot take down the whole session.
 ## Out of scope
 
 - The object-graph wiring, `AppHandle`, and the export-filename bridge — owned by STORY-077.
-- The database open / schema check / seeding launch glue — owned by STORY-078.
+- Opening the single database write connection — owned by STORY-077, which opens it once and
+  injects it into its dependents.
+- The database schema check, the app-data-directory hardening, and default seeding — owned by
+  STORY-078.
 - The single-instance advisory lock — owned by STORY-079.
 - The quit sequence and the shutdown ordering — owned by STORY-080.
 - The pipeline's own "mark the affected run FAILED on a worker exception" logic — already delivered
@@ -69,12 +72,26 @@ failed benchmark task cannot take down the whole session.
 
 - `backend/infra/` is Qt-free; the application-log write and any redaction the hook uses are
   Qt-free, and the Qt modal is shown from `__main__.py`, never from `backend/infra/` (ADR-0010).
+- **The two hook functions live in `__main__.py`, not on `backend/infra/`'s public surface.** This
+  story adds no new public API symbol, which is what keeps it inside the `S` bound. It cites
+  `backend/infra/` because that is the module it *wires* (`configure_logging`, the clock) —
+  `__main__.py` is not an extractable `modules:` value, and ADR-0010 sanctions Phase-11 stories
+  citing the modules they wire rather than only the ones they change.
 - No `asyncio`, `anyio`, or `qasync`; the only event loop is `app.exec()`.
 - The exception logged by the hook is redacted before it reaches the application log (no secret
   value is written), reusing the existing `backend/errors/` redaction — this story adds no new
   redaction path.
 - The user-interface-thread hook's exit path performs the ordered shutdown through the `AppHandle`
   shutdown handle (STORY-077) so the database is checkpointed and closed cleanly before exit.
+- **The `compose.py` 50–200-line budget is shared.** STORY-077-AC-5 asserts that budget as a
+  standing invariant on the *final* `compose.py`, not as a snapshot at STORY-077's merge. Any line
+  this story adds to `compose.py` or its entry-point glue spends from the same budget, so keep the
+  entry-point surface in `__main__.py` and add nothing to `compose.py` that does not have to be
+  there.
+- Reuse the existing `make_error_dialog` on `ui/common_dialogs/`'s public surface for the blocking
+  modal (its `FATAL` pattern already requires a `quit_callback`, which is exactly this hook's
+  shape) rather than hand-building a `QMessageBox` — it costs fewer lines and needs no new public
+  symbol.
 
 ## Acceptance criteria
 

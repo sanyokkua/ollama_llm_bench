@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-29T09:15:16Z'
+generated_at: '2026-07-29T15:20:46Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4842,7 +4842,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_hard_stop_at_warmup_halts_run_and_reports_no_breaker_outcome
   STORY-076:
     title: Install the process entry point and the two top-level exception hooks
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
     - 08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy
@@ -4892,8 +4892,8 @@ stories:
       STORY-077-AC-8:
         tests: []
   STORY-078:
-    title: Run the launch glue — app-data directory, database open, schema check, and seeding
-    status: draft
+    title: Run the launch glue — app-data directory, schema check, seeding, and the abort modals
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system
     - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
@@ -5474,6 +5474,207 @@ stories:
         - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-05]
         - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-06]
         - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-14]
+  STORY-104:
+    title: Give every UI adapter gateway exactly one production implementation
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#23-the-application-context
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#6-ui-modules
+    modules:
+    - ui/common_dialogs/
+    - ui/main_window/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-104-AC-1:
+        tests: []
+      STORY-104-AC-2:
+        tests: []
+  STORY-105:
+    title: Implement the concrete Main Window gateway over settings, readiness, and the run flow
+    status: draft
+    spec_clauses:
+    - 01_Main_Window/implementation_structure.md#6-dependency-protocols
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b1-mainwindowgateway
+    modules:
+    - ui/main_window/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-105-AC-1:
+        tests: []
+      STORY-105-AC-2:
+        tests: []
+      STORY-105-AC-3:
+        tests: []
+  STORY-106:
+    title: Implement the concrete New Benchmark gateway over settings, providers, readiness, and run start
+    status: draft
+    spec_clauses:
+    - 02_New_Benchmark_Widget/implementation_structure.md#7-dependency-protocols
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
+    modules:
+    - ui/common_dialogs/
+    - ui/new_benchmark/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-106-AC-1:
+        tests: []
+      STORY-106-AC-2:
+        tests: []
+      STORY-106-AC-3:
+        tests: []
+      STORY-106-AC-4:
+        tests: []
+  STORY-107:
+    title: Implement the concrete Progress gateway over the run controls, run reads, and the manual probe
+    status: draft
+    spec_clauses:
+    - 04_Progress_Widget/implementation_structure.md#8-dependency-protocols
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
+    modules:
+    - ui/common_dialogs/
+    - ui/progress/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-107-AC-1:
+        tests: []
+      STORY-107-AC-2:
+        tests: []
+      STORY-107-AC-3:
+        tests: []
+      STORY-107-AC-4:
+        tests: []
+  STORY-108:
+    title: Implement the concrete Result gateway over the run reads, charts, exports, and run analysis
+    status: draft
+    spec_clauses:
+    - 05_Result_Widget/implementation_structure.md#9-dependency-protocols
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#21-public-api-surface
+    - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#9-threading-and-concurrency
+    modules:
+    - ui/results/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-108-AC-1:
+        tests: []
+      STORY-108-AC-2:
+        tests: []
+      STORY-108-AC-3:
+        tests: []
+      STORY-108-AC-4:
+        tests: []
+      STORY-108-AC-5:
+        tests: []
+  STORY-109:
+    title: Implement the concrete Resume gateway over the run, result, and task stores and the resume command
+    status: draft
+    spec_clauses:
+    - 03_Resume_Benchmark_Widget/implementation_structure.md#7-dependency-protocols
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway
+    - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#8-error-handling
+    modules:
+    - ui/common_dialogs/
+    - ui/resume_benchmark/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-109-AC-1:
+        tests: []
+      STORY-109-AC-2:
+        tests: []
+      STORY-109-AC-3:
+        tests: []
+      STORY-109-AC-4:
+        tests: []
+      STORY-109-AC-5:
+        tests: []
+  STORY-110:
+    title: Implement the concrete Settings gateway with an atomic Save, an atomic Reset, and import/export
+    status: draft
+    spec_clauses:
+    - 06_Settings_Dialog/description.md#6-save-flow-atomic
+    - 06_Settings_Dialog/description.md#9-reset-flow
+    - 06_Settings_Dialog/implementation_structure.md#7-dependency-protocols
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
+    modules:
+    - backend/settings/
+    - ui/settings_dialog/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-110-AC-1:
+        tests: []
+      STORY-110-AC-2:
+        tests: []
+      STORY-110-AC-3:
+        tests: []
+      STORY-110-AC-4:
+        tests: []
+      STORY-110-AC-5:
+        tests: []
+      STORY-110-AC-6:
+        tests: []
+  STORY-111:
+    title: Implement the concrete Task Editor gateway over the settings, workspace, and run-registry reads
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway
+    - 09_Task_Editor/implementation_structure.md#7-dependency-protocols
+    modules:
+    - ui/task_editor/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-111-AC-1:
+        tests: []
+      STORY-111-AC-2:
+        tests: []
+  STORY-112:
+    title: Implement the on-disk task-file change watcher in the file-system-actions adapter
+    status: done
+    spec_clauses:
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#21c-filesystemactions
+    - 09_Task_Editor/implementation_structure.md#7-dependency-protocols
+    - 09_Task_Editor/state_machine.md#3-per-file-state
+    - 09_Task_Editor/state_machine.md#8-external-file-change-watch
+    - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#5-adapters-modules
+    modules:
+    - adapters/file_system_actions/
+    - ui/task_editor/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-112-AC-1:
+        tests:
+        - tests/integration/test_task_file_change_watcher.py::test_changed_content_notifies_the_watcher_once
+      STORY-112-AC-2:
+        tests:
+        - tests/integration/test_task_file_change_watcher.py::test_content_preserving_rewrite_does_not_notify
+      STORY-112-AC-3:
+        tests:
+        - tests/integration/test_task_file_change_watcher.py::test_cancel_is_idempotent_and_stops_notifications
+      STORY-112-AC-4:
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller_watch_rebaseline.py::test_saving_through_the_editor_does_not_raise_a_conflict
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -5504,6 +5705,9 @@ clauses:
   01_Main_Window/description.md#8-close-confirmation-behaviour:
     stories:
     - STORY-053
+  01_Main_Window/implementation_structure.md#6-dependency-protocols:
+    stories:
+    - STORY-105
   01_Main_Window/implementation_structure.md#8-stores-fanout:
     stories:
     - STORY-039
@@ -5545,6 +5749,9 @@ clauses:
     - STORY-055
     - STORY-071
     - STORY-092
+  02_New_Benchmark_Widget/implementation_structure.md#7-dependency-protocols:
+    stories:
+    - STORY-106
   02_New_Benchmark_Widget/mode_specifics/synthetic.md#2-visible-sections:
     stories:
     - STORY-071
@@ -5585,6 +5792,9 @@ clauses:
   03_Resume_Benchmark_Widget/description.md#7-event-bus-integration:
     stories:
     - STORY-056
+  03_Resume_Benchmark_Widget/implementation_structure.md#7-dependency-protocols:
+    stories:
+    - STORY-109
   04_Progress_Widget/description.md#12-event-bus-integration:
     stories:
     - STORY-058
@@ -5638,6 +5848,9 @@ clauses:
   04_Progress_Widget/implementation_structure.md#43-logcontroller:
     stories:
     - STORY-060
+  04_Progress_Widget/implementation_structure.md#8-dependency-protocols:
+    stories:
+    - STORY-107
   05_Result_Widget/description.md#12-event-bus-integration:
     stories:
     - STORY-061
@@ -5674,6 +5887,9 @@ clauses:
   05_Result_Widget/implementation_structure.md#6-view-model-structs:
     stories:
     - STORY-046
+  05_Result_Widget/implementation_structure.md#9-dependency-protocols:
+    stories:
+    - STORY-108
   05_Result_Widget/tabs/charts_tab.md#11-empty-states:
     stories:
     - STORY-064
@@ -5772,12 +5988,17 @@ clauses:
     stories:
     - STORY-067
     - STORY-083
+    - STORY-110
   06_Settings_Dialog/description.md#8-import-flow:
     stories:
     - STORY-067
   06_Settings_Dialog/description.md#9-reset-flow:
     stories:
     - STORY-067
+    - STORY-110
+  06_Settings_Dialog/implementation_structure.md#7-dependency-protocols:
+    stories:
+    - STORY-110
   06_Settings_Dialog/sub_dialogs/provider_edit.md#51-entry-validation-inline:
     stories:
     - STORY-066
@@ -5859,6 +6080,16 @@ clauses:
   07_Common_Dialogs/run_summary_dialog.md#8-preflight-re-check-on-open:
     stories:
     - STORY-055
+  08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer:
+    stories:
+    - STORY-104
+    - STORY-105
+    - STORY-106
+    - STORY-107
+    - STORY-108
+    - STORY-109
+    - STORY-110
+    - STORY-111
   08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution:
     stories:
     - STORY-029
@@ -6014,9 +6245,20 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#21c-filesystemactions:
     stories:
     - STORY-048
+    - STORY-112
+  08_Cross_Cutting/08-E_interfaces_contracts.md#23-the-application-context:
+    stories:
+    - STORY-104
   08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract:
     stories:
     - STORY-041
+    - STORY-105
+    - STORY-106
+    - STORY-107
+    - STORY-108
+    - STORY-109
+    - STORY-110
+    - STORY-111
   08_Cross_Cutting/08-E_interfaces_contracts.md#5-clock:
     stories:
     - STORY-004
@@ -6043,25 +6285,39 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#76-appsettingsstore:
     stories:
     - STORY-008
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06:
+    stories:
+    - STORY-104
+    - STORY-105
+    - STORY-106
+    - STORY-107
+    - STORY-108
+    - STORY-109
+    - STORY-110
+    - STORY-111
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b1-mainwindowgateway:
     stories:
     - STORY-053
+    - STORY-105
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway:
     stories:
     - STORY-054
     - STORY-055
     - STORY-071
+    - STORY-106
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway:
     stories:
     - STORY-056
     - STORY-057
     - STORY-072
+    - STORY-109
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway:
     stories:
     - STORY-058
     - STORY-059
     - STORY-060
     - STORY-073
+    - STORY-107
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway:
     stories:
     - STORY-061
@@ -6070,14 +6326,17 @@ clauses:
     - STORY-064
     - STORY-065
     - STORY-072
+    - STORY-108
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway:
     stories:
     - STORY-066
     - STORY-067
+    - STORY-110
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway:
     stories:
     - STORY-068
     - STORY-069
+    - STORY-111
   08_Cross_Cutting/08-E_interfaces_contracts.md#8-settings-service:
     stories:
     - STORY-014
@@ -6311,6 +6570,14 @@ clauses:
   09_Task_Editor/implementation_structure.md#7-dependency-protocols:
     stories:
     - STORY-039
+    - STORY-111
+    - STORY-112
+  09_Task_Editor/state_machine.md#3-per-file-state:
+    stories:
+    - STORY-112
+  09_Task_Editor/state_machine.md#8-external-file-change-watch:
+    stories:
+    - STORY-112
   10_Domain_and_Data/01_DOMAIN_MODEL.md#315-in-memory-only-entities:
     stories:
     - STORY-001
@@ -6729,6 +6996,7 @@ clauses:
   11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#8-error-handling:
     stories:
     - STORY-025
+    - STORY-109
   11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#9-threading-and-concurrency:
     stories:
     - STORY-025
@@ -6872,6 +7140,9 @@ clauses:
   11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#11-test-cases:
     stories:
     - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#21-public-api-surface:
+    stories:
+    - STORY-108
   11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#61-applicability-gate:
     stories:
     - STORY-035
@@ -6893,6 +7164,9 @@ clauses:
   11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#8-error-handling:
     stories:
     - STORY-035
+  11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#9-threading-and-concurrency:
+    stories:
+    - STORY-108
   12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep:
     stories:
     - STORY-011
@@ -6984,6 +7258,10 @@ clauses:
     stories:
     - STORY-044
     - STORY-046
+    - STORY-112
+  14_Process_and_Traceability/01_MODULE_INVENTORY.md#6-ui-modules:
+    stories:
+    - STORY-104
   14_Process_and_Traceability/01_MODULE_INVENTORY.md#7-the-composition-root:
     stories:
     - STORY-077
@@ -9877,6 +10155,7 @@ modules:
     - STORY-048
     - STORY-064
     - STORY-070
+    - STORY-112
   adapters/native_pickers/:
     stories:
     - STORY-048
@@ -10052,6 +10331,7 @@ modules:
     - STORY-014
     - STORY-023
     - STORY-080
+    - STORY-110
   backend/stores/:
     stories:
     - STORY-039
@@ -10076,6 +10356,10 @@ modules:
     - STORY-089
     - STORY-095
     - STORY-097
+    - STORY-104
+    - STORY-106
+    - STORY-107
+    - STORY-109
   ui/main_window/:
     stories:
     - STORY-053
@@ -10089,6 +10373,8 @@ modules:
     - STORY-094
     - STORY-095
     - STORY-097
+    - STORY-104
+    - STORY-105
   ui/new_benchmark/:
     stories:
     - STORY-054
@@ -10099,6 +10385,7 @@ modules:
     - STORY-085
     - STORY-092
     - STORY-098
+    - STORY-106
   ui/progress/:
     stories:
     - STORY-058
@@ -10106,6 +10393,7 @@ modules:
     - STORY-060
     - STORY-073
     - STORY-098
+    - STORY-107
   ui/results/:
     stories:
     - STORY-061
@@ -10117,6 +10405,7 @@ modules:
     - STORY-085
     - STORY-089
     - STORY-099
+    - STORY-108
   ui/resume_benchmark/:
     stories:
     - STORY-056
@@ -10126,12 +10415,14 @@ modules:
     - STORY-077
     - STORY-088
     - STORY-098
+    - STORY-109
   ui/settings_dialog/:
     stories:
     - STORY-066
     - STORY-067
     - STORY-083
     - STORY-099
+    - STORY-110
   ui/shared/:
     stories:
     - STORY-051
@@ -10151,6 +10442,8 @@ modules:
     - STORY-068
     - STORY-069
     - STORY-099
+    - STORY-111
+    - STORY-112
   ui/theme/:
     stories:
     - STORY-049

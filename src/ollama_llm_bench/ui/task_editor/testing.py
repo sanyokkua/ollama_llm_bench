@@ -82,3 +82,13 @@ class FakeFileChangeWatcher:
         """Test helper: simulate an on-disk content change for ``path``."""
         for handler in list(self._handlers.get(path, [])):
             handler(path)
+
+    def live_watch_count(self, path: str) -> int:
+        """Test helper: how many uncancelled watches are registered for ``path``.
+
+        Distinguishes a watch that was cancelled and re-registered (still one)
+        from one that was re-registered while the stale watch leaked (two) --
+        ``watched_paths`` alone cannot tell those apart because it only ever
+        grows.
+        """
+        return len(self._handlers.get(path, []))

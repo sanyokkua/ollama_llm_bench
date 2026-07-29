@@ -1,8 +1,20 @@
-"""``FileSystemActions`` Protocol (08-E §21c)."""
+"""``FileSystemActions`` Protocol (08-E §21c), plus the ``FileChangeWatcher``/
+``FileWatchSubscription`` pair backing the Task Editor's on-disk change watch
+(``09_Task_Editor/state_machine.md`` §8).
 
+``FileChangeWatcher`` and ``FileWatchSubscription`` are **deliberate duplicates** of the
+declarations in ``ui/task_editor/protocols.py``, which stays their source of truth for the
+shape: the Task Editor owns them, but ``adapters/*`` may not import ``ui/*``
+(``import-linter``), so ``api.py`` cannot annotate ``make_file_change_watcher``'s return type
+with the UI module's copy. The concrete ``PollingFileChangeWatcher`` satisfies both
+structurally, with no import in either direction -- the same seam ADR-0014 chose for the
+seven UI gateways. Any change to the UI declaration must be mirrored here.
+"""
+
+from collections.abc import Callable
 from typing import Protocol
 
-__all__: list[str] = ["FileSystemActions"]
+__all__: list[str] = ["FileChangeWatcher", "FileSystemActions", "FileWatchSubscription"]
 
 
 class FileSystemActions(Protocol):
@@ -181,5 +193,46 @@ class FileSystemActions(Protocol):
 
         Raises:
             OsAdapterError: The write failed (permission denied, disk full).
+        """
+        ...
+
+
+class FileWatchSubscription(Protocol):
+    """A handle to one active per-path file-change watch.
+
+    Mirror of ``ui.task_editor.protocols.FileWatchSubscription`` -- see this
+    module's docstring for why the declaration is duplicated.
+    """
+
+    def cancel(self) -> None:
+        """Stop watching the path this subscription was created for.
+
+        fast-synchronous; idempotent -- calling it more than once is a no-op.
+        """
+        ...
+
+
+class FileChangeWatcher(Protocol):
+    """Detects an open task file changing on disk while it is open in the editor
+    (``09_Task_Editor/state_machine.md`` §8, EC-TE-06).
+
+    Mirror of ``ui.task_editor.protocols.FileChangeWatcher`` -- see this module's
+    docstring for why the declaration is duplicated.
+    """
+
+    def watch(self, path: str, on_changed: Callable[[str], None]) -> FileWatchSubscription:
+        """Start watching ``path`` for on-disk content changes.
+
+        fast-synchronous; callable from the GUI thread. ``on_changed`` is
+        invoked with ``path`` only when the on-disk content actually differs
+        from what was last read -- a touch that does not change content is
+        ignored.
+
+        Args:
+            path: The absolute path of the open task file to watch.
+            on_changed: Called with ``path`` when its on-disk content changes.
+
+        Returns:
+            A subscription handle for explicit early cancellation (e.g. on close).
         """
         ...
