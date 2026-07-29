@@ -63,6 +63,15 @@ class PosixLockPrimitives:
     """
 
     def try_lock_exclusive(self, fd: int) -> bool:
+        """Take a non-blocking exclusive ``flock`` on ``fd``.
+
+        Args:
+            fd: The open file descriptor to lock.
+
+        Returns:
+            ``True`` if the lock was taken; ``False`` if it is already held
+            elsewhere.
+        """
         import fcntl  # noqa: PLC0415  # fcntl is POSIX-only; a module-level import breaks import on Windows
 
         try:
@@ -74,11 +83,26 @@ class PosixLockPrimitives:
         return True
 
     def unlock(self, fd: int) -> None:
+        """Drop the ``flock`` held on ``fd``.
+
+        Args:
+            fd: The open file descriptor whose lock is dropped.
+        """
         import fcntl  # noqa: PLC0415  # fcntl is POSIX-only; a module-level import breaks import on Windows
 
         fcntl.flock(fd, fcntl.LOCK_UN)
 
     def is_pid_alive(self, pid: int) -> bool:
+        """Report whether ``pid`` currently names a live process via ``os.kill(pid, 0)``.
+
+        Args:
+            pid: The process identifier to probe.
+
+        Returns:
+            ``True`` when the process exists (including when it is owned by
+            another user and only a permission error is observable);
+            ``False`` when it does not.
+        """
         if pid <= 0:
             return False
         try:
@@ -90,6 +114,11 @@ class PosixLockPrimitives:
         return True
 
     def current_pid(self) -> int:
+        """Return this process's PID via ``os.getpid()``.
+
+        Returns:
+            This process's operating-system process identifier.
+        """
         return os.getpid()
 
 
@@ -112,14 +141,15 @@ class _HeldInstanceLock:
         if fd is None:
             return
         self._fd = None
-        try:
+        # Both the unlock and the close are best-effort: the descriptor is being
+        # abandoned either way, and closing it drops the flock regardless of
+        # whether the explicit unlock call above succeeded, because a flock
+        # lives on the open file description, not on any handle to it. Either
+        # call failing must not break release()'s "never raises" promise.
+        with contextlib.suppress(OSError):
             self._primitives.unlock(fd)
-        finally:
-            # The descriptor is being abandoned either way and the process is
-            # shutting down -- a failure to close it here must not break
-            # release()'s "never raises" promise.
-            with contextlib.suppress(OSError):
-                os.close(fd)
+        with contextlib.suppress(OSError):
+            os.close(fd)
 
 
 def default_primitives() -> LockPrimitives:
@@ -148,6 +178,23 @@ def acquire_instance_lock_impl(
 ) -> InstanceLockResult:
     """Take, refuse, or reclaim the single-instance lock in ``app_data_root``.
 
+    A lock that appears held is only honoured while its recorded owner is a live
+    process. When the recorded PID names no live process — or the record is
+    unreadable — the lock is stale (SPEC-035) and is retaken, so a crash never
+    leaves the data directory permanently locked.
+
+    Args:
+        app_data_root: The already-created application data directory the lock
+            file lives in.
+        clock: The time source stamping the lock record's start timestamp.
+        primitives: The operating-system operations backing the acquire
+            algorithm.
+
+    Returns:
+        The acquire/refuse outcome; on success it carries the release handle,
+        and the lock file now names this process. On refusal it carries the
+        live holder's record, if readable.
+
     Raises:
         ConfigurationError: The lock file could not be opened, or taking,
             claiming, or reading the lock's ownership record failed with an
@@ -160,19 +207,46 @@ def acquire_instance_lock_impl(
     lock_file = app_data_root / LOCK_FILENAME
     fd = _open_lock_file(lock_file)
     holder: InstanceLockRecord | None = None
+    handed_off = False
     try:
         if primitives.try_lock_exclusive(fd):
-            return _claim(lock_file=lock_file, fd=fd, clock=clock, primitives=primitives)
+            claimed = _claim(lock_file=lock_file, fd=fd, clock=clock, primitives=primitives)
+            handed_off = True
+            return claimed
         holder = _read_record(fd)
+        if _is_stale(holder=holder, primitives=primitives) and primitives.try_lock_exclusive(fd):
+            reclaimed = _claim(lock_file=lock_file, fd=fd, clock=clock, primitives=primitives)
+            handed_off = True
+            return reclaimed
     except OSError as exc:
-        os.close(fd)
         raise ConfigurationError(
-            message=f"Cannot take the instance lock at '{lock_file}': {exc.strerror}.",
+            message=f"Cannot take the instance lock at '{lock_file}': {exc.strerror or exc}.",
         ) from exc
-    os.close(fd)
+    finally:
+        if not handed_off:
+            with contextlib.suppress(OSError):
+                os.close(fd)
     return InstanceLockResult(
         outcome=InstanceLockOutcome.ALREADY_RUNNING, lock_file=lock_file, holder=holder
     )
+
+
+def _is_stale(*, holder: InstanceLockRecord | None, primitives: LockPrimitives) -> bool:
+    """Report whether an apparently-held lock's recorded owner is already gone.
+
+    An unreadable record counts as stale: a first instance that died between
+    creating the lock file and writing its record leaves an empty body, and that
+    must be reclaimable rather than permanently blocking (SPEC-035).
+
+    Args:
+        holder: The ownership record read off the lock file, or ``None`` when
+            the record was unreadable.
+        primitives: Supplies the liveness check for the recorded PID.
+
+    Returns:
+        ``True`` when the lock has no live owner and should be reclaimed.
+    """
+    return holder is None or not primitives.is_pid_alive(holder.pid)
 
 
 def _open_lock_file(lock_file: Path) -> int:
@@ -186,7 +260,7 @@ def _open_lock_file(lock_file: Path) -> int:
         return os.open(lock_file, os.O_RDWR | os.O_CREAT, _LOCK_FILE_MODE)
     except OSError as exc:
         raise ConfigurationError(
-            message=f"Cannot open the instance lock file at '{lock_file}': {exc.strerror}.",
+            message=f"Cannot open the instance lock file at '{lock_file}': {exc.strerror or exc}.",
         ) from exc
 
 
@@ -196,6 +270,13 @@ def _read_record(fd: int) -> InstanceLockRecord | None:
     The file's content is external data -- it may be empty (a first instance
     crashed between creating and writing it) or hand-edited -- so an unreadable
     body is reported as "no known owner", never raised.
+
+    Args:
+        fd: The open lock-file descriptor to read from.
+
+    Returns:
+        The decoded ownership record, or ``None`` when the body is empty,
+        truncated, or otherwise not a valid ``InstanceLockRecord``.
     """
     os.lseek(fd, 0, os.SEEK_SET)
     raw = os.read(fd, _MAX_RECORD_BYTES)
@@ -208,7 +289,17 @@ def _read_record(fd: int) -> InstanceLockRecord | None:
 def _claim(
     *, lock_file: Path, fd: int, clock: Clock, primitives: LockPrimitives
 ) -> InstanceLockResult:
-    """Write this process's ownership record into an already-locked descriptor."""
+    """Write this process's ownership record into an already-locked descriptor.
+
+    Args:
+        lock_file: The lock file path, carried through onto the result.
+        fd: The already-locked file descriptor to write the record into.
+        clock: The time source stamping the record's start timestamp.
+        primitives: Supplies this process's PID for the record.
+
+    Returns:
+        An ``ACQUIRED`` result holding the release handle for ``fd``.
+    """
     record = InstanceLockRecord(pid=primitives.current_pid(), started_at=clock.now_utc())
     payload = msgspec.json.encode(record)
     os.ftruncate(fd, 0)
@@ -228,6 +319,10 @@ def _write_all(fd: int, payload: bytes) -> None:
     ``os.write`` may write fewer bytes than requested even for a regular
     file; a single unguarded call would silently truncate the ownership
     record on that rare partial write.
+
+    Args:
+        fd: The open, writable file descriptor to write to.
+        payload: The encoded bytes to write in full.
     """
     written = 0
     while written < len(payload):

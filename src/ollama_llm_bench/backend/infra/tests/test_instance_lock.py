@@ -6,10 +6,18 @@ Source of truth: ``docs/v3_specification/12_Quality_and_NFRs/05_CONCURRENCY_GUAR
 
 import os
 from pathlib import Path
+from typing import override
 
 import msgspec
+import pytest
 
-from ollama_llm_bench.backend.infra._internal.instance_lock import LOCK_FILENAME
+from ollama_llm_bench.backend.errors import ConfigurationError
+from ollama_llm_bench.backend.infra._internal.instance_lock import (
+    LOCK_FILENAME,
+    PosixLockPrimitives,
+    acquire_instance_lock_impl,
+    default_primitives,
+)
 from ollama_llm_bench.backend.infra.api import acquire_instance_lock
 from ollama_llm_bench.backend.infra.models import (
     InstanceLockHandle,
@@ -77,6 +85,7 @@ def test_second_acquisition_against_live_owner_refuses_and_touches_nothing(
 def test_release_leaves_the_lock_file_on_disk(
     tmp_path: Path,
     fake_clock: FakeClock,
+    held_locks: list[InstanceLockHandle],
 ) -> None:
     """Pin the deliberate decision that ``release()`` never deletes the lock file.
 
@@ -91,9 +100,239 @@ def test_release_leaves_the_lock_file_on_disk(
     expected_lock_file = tmp_path / LOCK_FILENAME
     result = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
     assert result.lock is not None
+    held_locks.append(result.lock)
 
     # Act
     result.lock.release()
 
     # Assert
     assert expected_lock_file.exists()
+
+
+class _UnlockFailsPrimitives(PosixLockPrimitives):
+    """``LockPrimitives`` whose ``unlock`` always raises, driving ``release()``'s error path."""
+
+    def unlock(self, fd: int) -> None:
+        """Simulate ``fcntl.flock(fd, LOCK_UN)`` failing with an OS error."""
+        raise OSError("Simulated unlock failure")
+
+
+def test_release_does_not_raise_when_unlock_fails(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+) -> None:
+    """``release()`` must never raise, even when the underlying unlock call fails.
+
+    ``InstanceLockHandle.release()`` is documented as "never raises" because two
+    callers depend on that promise: the application's shutdown sequence, and the
+    ``held_locks`` teardown fixture, whose release loop would abort on the first
+    failure and leak every remaining lock into the rest of the test session.
+    """
+    # Arrange
+    primitives = _UnlockFailsPrimitives()
+    result = acquire_instance_lock_impl(
+        app_data_root=tmp_path, clock=fake_clock, primitives=primitives
+    )
+    assert result.lock is not None
+
+    # Act
+    result.lock.release()
+
+    # Assert
+    assert result.lock.lock_file == tmp_path / LOCK_FILENAME
+
+
+_HIGHEST_PROBED_PID = 2**15 - 1
+
+
+def _find_dead_pid() -> int:
+    """Return a PID no live process owns, probing down from the top of the PID space."""
+    primitives = PosixLockPrimitives()
+    candidate = _HIGHEST_PROBED_PID
+    while primitives.is_pid_alive(candidate):
+        candidate -= 1
+    return candidate
+
+
+class LaggingLockPrimitives(PosixLockPrimitives):
+    """Report the lock as held once, then behave normally.
+
+    Simulates the kernel's lock visibility lagging a crashed owner's reaping --
+    the exact window ``05_CONCURRENCY_GUARANTEES.md`` §5 says the PID-liveness
+    check exists to close.
+    """
+
+    def __init__(self) -> None:
+        self.refusals_remaining = 1
+
+    @override
+    def try_lock_exclusive(self, fd: int) -> bool:
+        if self.refusals_remaining > 0:
+            self.refusals_remaining -= 1
+            return False
+        return super().try_lock_exclusive(fd)
+
+
+def test_stale_lock_from_dead_pid_is_reclaimed(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+    held_locks: list[InstanceLockHandle],
+) -> None:
+    """Proves: STORY-079-AC-3
+
+    Given a lock file whose recorded PID is not a live process, and a lock that
+    still appears held because the operating system has not yet published the
+    dead owner's release, acquisition reclaims the stale lock and succeeds,
+    rewriting the file to name this process.
+    """
+    # Arrange
+    stale = InstanceLockRecord(pid=_find_dead_pid(), started_at="2026-07-28T09:15:00Z")
+    lock_file = tmp_path / LOCK_FILENAME
+    lock_file.write_bytes(msgspec.json.encode(stale))
+
+    # Act
+    result = acquire_instance_lock_impl(
+        app_data_root=tmp_path, clock=fake_clock, primitives=LaggingLockPrimitives()
+    )
+    assert result.lock is not None
+    held_locks.append(result.lock)
+    written = msgspec.json.decode(lock_file.read_bytes(), type=InstanceLockRecord)
+
+    # Assert
+    assert result.outcome is InstanceLockOutcome.ACQUIRED
+    assert written == InstanceLockRecord(pid=os.getpid(), started_at=FAKE_NOW_UTC)
+
+
+def test_release_is_idempotent(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+) -> None:
+    """Release a held lock twice; the second call is a no-op, not a bad file descriptor.
+
+    The shutdown sequence and the crash path can both reach the release step, so
+    a double release must not raise.
+    """
+    # Arrange
+    result = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    assert result.lock is not None
+
+    # Act
+    result.lock.release()
+    result.lock.release()
+    reacquired = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    assert reacquired.lock is not None
+    reacquired.lock.release()
+
+    # Assert
+    assert reacquired.outcome is InstanceLockOutcome.ACQUIRED
+
+
+def test_unreadable_lock_record_is_treated_as_no_owner(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+    held_locks: list[InstanceLockHandle],
+) -> None:
+    """A hand-edited or half-written lock file is data, not a crash.
+
+    An instance that died between creating ``.instance.lock`` and writing its
+    record leaves an empty body; that must be reclaimable, not fatal.
+    """
+    # Arrange
+    lock_file = tmp_path / LOCK_FILENAME
+    lock_file.write_bytes(b"not json at all")
+
+    # Act
+    result = acquire_instance_lock_impl(
+        app_data_root=tmp_path, clock=fake_clock, primitives=LaggingLockPrimitives()
+    )
+    assert result.lock is not None
+    held_locks.append(result.lock)
+
+    # Assert
+    assert result.outcome is InstanceLockOutcome.ACQUIRED
+
+
+class _LockingFailsPrimitives(PosixLockPrimitives):
+    """``LockPrimitives`` whose ``try_lock_exclusive`` always raises an OS error."""
+
+    @override
+    def try_lock_exclusive(self, fd: int) -> bool:
+        """Simulate an OS-level failure while attempting to take the advisory lock."""
+        raise OSError("Simulated try_lock_exclusive failure")
+
+
+def test_lock_failure_does_not_strand_the_descriptor(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+    held_locks: list[InstanceLockHandle],
+) -> None:
+    """A failed lock attempt must close its descriptor rather than leak the flock.
+
+    A stranded flock from this failure would make the app refuse to start
+    against its own orphaned lock on the very next launch attempt.
+    """
+    # Arrange
+    primitives = _LockingFailsPrimitives()
+
+    # Act
+    with pytest.raises(ConfigurationError):
+        acquire_instance_lock_impl(app_data_root=tmp_path, clock=fake_clock, primitives=primitives)
+    retry = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    assert retry.lock is not None
+    held_locks.append(retry.lock)
+
+    # Assert
+    assert retry.outcome is InstanceLockOutcome.ACQUIRED
+
+
+class _ClaimFailsPrimitives(PosixLockPrimitives):
+    """``LockPrimitives`` whose ``current_pid`` raises once the flock is already held."""
+
+    @override
+    def current_pid(self) -> int:
+        """Simulate an OS-level failure while writing the ownership record."""
+        raise OSError("Simulated current_pid failure")
+
+
+def test_claim_failure_after_locking_does_not_strand_the_lock(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+    held_locks: list[InstanceLockHandle],
+) -> None:
+    """A failure writing the ownership record after locking must not strand the flock.
+
+    This is the exact self-wedge scenario ``handed_off`` exists to prevent: if the
+    descriptor stayed open on this path, the app would refuse to start against
+    its own orphaned lock on the very next launch attempt.
+    """
+    # Arrange
+    primitives = _ClaimFailsPrimitives()
+
+    # Act
+    with pytest.raises(ConfigurationError):
+        acquire_instance_lock_impl(app_data_root=tmp_path, clock=fake_clock, primitives=primitives)
+    retry = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    assert retry.lock is not None
+    held_locks.append(retry.lock)
+
+    # Assert
+    assert retry.outcome is InstanceLockOutcome.ACQUIRED
+
+
+def test_default_primitives_on_non_posix_host_names_the_platform(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-POSIX host cannot enforce the single-instance guarantee at all.
+
+    The failure message must name the actual platform so a user reading the
+    launch error understands why, not merely that something is unsupported.
+    """
+    # Arrange
+    monkeypatch.setattr(os, "name", "nt")
+
+    # Act
+    with pytest.raises(ConfigurationError) as exc_info:
+        default_primitives()
+
+    # Assert
+    assert "'nt'" in str(exc_info.value)
