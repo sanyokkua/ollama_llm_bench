@@ -93,8 +93,13 @@ def acquire_instance_lock(*, app_data_root: Path, clock: Clock) -> InstanceLockR
 
     Raises:
         ConfigurationError: The lock file could not be opened — the directory is
-            missing or unwritable — or this host provides no POSIX advisory
-            locking.
+            missing or unwritable — this host provides no POSIX advisory
+            locking, or taking/claiming the lock itself failed with an OS
+            error (e.g. no advisory-lock slots left, or the data volume is
+            full while writing the ownership record). The lock's file
+            descriptor is always closed before this is raised, so a later
+            retry in the same process is never wedged against its own prior
+            attempt.
     """
     return acquire_instance_lock_impl(
         app_data_root=app_data_root, clock=clock, primitives=default_primitives()

@@ -72,3 +72,28 @@ def test_second_acquisition_against_live_owner_refuses_and_touches_nothing(
     assert second.lock is None
     assert second.holder == InstanceLockRecord(pid=os.getpid(), started_at=FAKE_NOW_UTC)
     assert after == before
+
+
+def test_release_leaves_the_lock_file_on_disk(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+) -> None:
+    """Pin the deliberate decision that ``release()`` never deletes the lock file.
+
+    Deleting the file on release would race a concurrent acquirer: it could
+    create and lock a brand-new file at a different inode in the instant
+    between this process's delete and the next process's open, so this
+    process and the new one would each believe they alone hold the
+    single-instance lock. Leaving the file in place after release closes that
+    race -- every acquirer, past and future, locks the same inode.
+    """
+    # Arrange
+    expected_lock_file = tmp_path / LOCK_FILENAME
+    result = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    assert result.lock is not None
+
+    # Act
+    result.lock.release()
+
+    # Assert
+    assert expected_lock_file.exists()

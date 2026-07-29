@@ -11,6 +11,7 @@ stale-reclaim branch — which depends on the kernel's lock visibility lagging a
 dead owner's reaping — is deterministically testable.
 """
 
+import contextlib
 import errno
 import os
 from pathlib import Path
@@ -111,8 +112,14 @@ class _HeldInstanceLock:
         if fd is None:
             return
         self._fd = None
-        self._primitives.unlock(fd)
-        os.close(fd)
+        try:
+            self._primitives.unlock(fd)
+        finally:
+            # The descriptor is being abandoned either way and the process is
+            # shutting down -- a failure to close it here must not break
+            # release()'s "never raises" promise.
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
 
 def default_primitives() -> LockPrimitives:
@@ -139,11 +146,26 @@ def default_primitives() -> LockPrimitives:
 def acquire_instance_lock_impl(
     *, app_data_root: Path, clock: Clock, primitives: LockPrimitives
 ) -> InstanceLockResult:
-    """Take, refuse, or reclaim the single-instance lock in ``app_data_root``."""
+    """Take, refuse, or reclaim the single-instance lock in ``app_data_root``.
+
+    Raises:
+        ConfigurationError: The lock file could not be opened, or taking or
+            claiming the lock failed with an OS error that leaves nothing
+            reclaimable (e.g. no advisory-lock slots left, or the data volume
+            is full while writing the ownership record). The descriptor is
+            always closed first, so the failure never wedges this process
+            against its own future retries.
+    """
     lock_file = app_data_root / LOCK_FILENAME
     fd = _open_lock_file(lock_file)
-    if primitives.try_lock_exclusive(fd):
-        return _claim(lock_file=lock_file, fd=fd, clock=clock, primitives=primitives)
+    try:
+        if primitives.try_lock_exclusive(fd):
+            return _claim(lock_file=lock_file, fd=fd, clock=clock, primitives=primitives)
+    except OSError as exc:
+        os.close(fd)
+        raise ConfigurationError(
+            message=f"Cannot take the instance lock at '{lock_file}': {exc.strerror}.",
+        ) from exc
     holder = _read_record(fd)
     os.close(fd)
     return InstanceLockResult(
@@ -186,12 +208,25 @@ def _claim(
 ) -> InstanceLockResult:
     """Write this process's ownership record into an already-locked descriptor."""
     record = InstanceLockRecord(pid=primitives.current_pid(), started_at=clock.now_utc())
+    payload = msgspec.json.encode(record)
     os.ftruncate(fd, 0)
     os.lseek(fd, 0, os.SEEK_SET)
-    os.write(fd, msgspec.json.encode(record))
+    _write_all(fd, payload)
     os.fsync(fd)
     return InstanceLockResult(
         outcome=InstanceLockOutcome.ACQUIRED,
         lock_file=lock_file,
         lock=_HeldInstanceLock(lock_file=lock_file, fd=fd, primitives=primitives),
     )
+
+
+def _write_all(fd: int, payload: bytes) -> None:
+    """Write every byte of ``payload`` to ``fd``, looping over any partial write.
+
+    ``os.write`` may write fewer bytes than requested even for a regular
+    file; a single unguarded call would silently truncate the ownership
+    record on that rare partial write.
+    """
+    written = 0
+    while written < len(payload):
+        written += os.write(fd, payload[written:])

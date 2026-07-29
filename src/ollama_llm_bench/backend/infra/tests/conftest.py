@@ -7,6 +7,7 @@ in ``backend/infra/protocols.py``) and a logging-state reset fixture so one test
 
 from collections.abc import Iterator
 import logging
+from typing import Final
 
 import pytest
 
@@ -34,7 +35,7 @@ def fake_platform_detector(tmp_path):  # type: ignore[no-untyped-def]
     return FakePlatformDetector(tmp_path)
 
 
-FAKE_NOW_UTC = "2026-07-29T12:00:00Z"
+FAKE_NOW_UTC: Final[str] = "2026-07-29T12:00:00Z"
 
 
 class FakeClock:
