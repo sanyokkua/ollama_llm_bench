@@ -1,7 +1,7 @@
 ---
 id: STORY-107
 title: Implement the concrete Progress gateway over the run controls, run reads, and the manual probe
-status: draft
+status: ready
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -11,6 +11,7 @@ spec_clauses:
 modules:
   - ui/progress/
   - ui/common_dialogs/
+  - adapters/ui_gateways/
 acceptance_criteria:
   - STORY-107-AC-1
   - STORY-107-AC-2
@@ -18,7 +19,8 @@ acceptance_criteria:
   - STORY-107-AC-4
 edge_cases: []
 depends_on: []
-adrs: []
+adrs:
+  - ADR-0014
 owner: coder
 estimate: M
 ---
@@ -77,30 +79,8 @@ provider probe. All of it goes through one object the widget holds.
 
 ## Design constraints
 
-- **Where the code lands, and why `modules:` names user-interface modules.** The implementation lands
-  in `adapters/ui_gateways/`, which the read-only module inventory does not yet list; ADR-0014 records
-  the pending one-row correction. `modules:` names the user-interface modules whose gateway Protocols
-  this story satisfies, per the STORY-076/ADR-0010 precedent. Add `adapters/ui_gateways/` once the
-  correction is ratified.
-- Three of the fourteen methods are documented local additions this module's own Protocol already
-  records and this story must implement: `list_runs()` (for the rename pencil's name-uniqueness
-  check), `is_run_active()` (for the bounded reconciliation timer), and `run_log_write_failed()` (for
-  the log view's file-write warning). None of the three is in §7b.4; all three are pure extensions of
-  the widget's own Protocol.
-- `manual_provider_probe()` returns `None`, and the probe result arrives later as a stability event,
-  so it must submit the probe to the single `TaskRunner` and return rather than probing on the
-  calling thread. It must never call the circuit breaker directly (D-R-06).
-- `run_log_write_failed()` is a cheap boolean read of the run-log writer's most recent write outcome.
-  It is polled once per handled log event, so it must not touch the file system.
-- `get_setting` returns `str | None`, so it reads through `AppSettingsStore.get_setting(key)`;
-  `set_setting` writes through `SettingsService.set(key, value)`. Same refinement as STORY-105.
-- Constructing the gateway must be side-effect free — no backend read, no probe, no network call — so
-  STORY-077-AC-2 (`build_app` issues no network call) holds.
-- `RenameRunGateway` (`ui/common_dialogs/protocols.py`) declares `list_runs` and `rename_run`, both of
-  which this gateway exposes with identical signatures. Satisfy it structurally; write no separate
-  class and no shim.
-- The gateway holds no Qt symbol on its public surface. `adapters/ui_gateways/` must not import `ui`
-  (`import-linter`); the Protocols are satisfied structurally.
+- **Where the code lands.** The implementation lands in `adapters/ui_gateways/`. ADR-0014 is
+  accepted and its inventory row now exists, so `modules:` names that path directly.
 
 ## Acceptance criteria
 
@@ -164,5 +144,5 @@ then the factory returns a gateway and no method was invoked on any collaborator
 - [ ] Every acceptance criterion has a passing test that names STORY-107.
 - [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory change ADR-0014 describes has been ratified and applied, and
-  `adapters/ui_gateways/` appears in this story's `modules:`.
+- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+  `modules:` names it.

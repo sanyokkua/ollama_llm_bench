@@ -1,7 +1,7 @@
 ---
 id: STORY-111
 title: Implement the concrete Task Editor gateway over the settings, workspace, and run-registry reads
-status: draft
+status: ready
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -10,12 +10,14 @@ spec_clauses:
   - 09_Task_Editor/implementation_structure.md#7-dependency-protocols
 modules:
   - ui/task_editor/
+  - adapters/ui_gateways/
 acceptance_criteria:
   - STORY-111-AC-1
   - STORY-111-AC-2
 edge_cases: []
 depends_on: []
-adrs: []
+adrs:
+  - ADR-0014
 owner: coder
 estimate: M
 ---
@@ -67,24 +69,8 @@ running benchmark is currently using so the user does not edit it out from under
 
 ## Design constraints
 
-- **Where the code lands, and why `modules:` says `ui/task_editor/`.** The implementation lands in
-  `adapters/ui_gateways/`, which the read-only module inventory does not yet list; ADR-0014 records the
-  pending one-row correction. `modules:` names the user-interface module whose gateway Protocol this
-  story satisfies, per the STORY-076/ADR-0010 precedent. Add `adapters/ui_gateways/` once the
-  correction is ratified.
-- `get_setting` returns `str | None`, so it reads through `AppSettingsStore.get_setting(key)`;
-  `set_setting` writes through `SettingsService.set(key, value)` so the settings-changed event still
-  fires. `SettingsService` has no nullable getter, which is why both collaborators are needed.
-- `active_workspace()` returns `str`, never `None` — it reads the workspace store's current state,
-  which always has a value.
-- `active_run_task_paths()` returns an empty tuple when no run is active. It must never raise, because
-  it is read on every files-pane repaint to drive the in-use marker.
-- All four methods are fast-synchronous, so none may touch the `TaskRunner`; the gateway needs no
-  worker.
-- Constructing the gateway must be side-effect free — no backend read, no network call — so
-  STORY-077-AC-2 (`build_app` issues no network call) holds.
-- The gateway holds no Qt symbol on its public surface. `adapters/ui_gateways/` must not import `ui`
-  (`import-linter`); the Protocol is satisfied structurally.
+- **Where the code lands.** The implementation lands in `adapters/ui_gateways/`. ADR-0014 is
+  accepted and its inventory row now exists, so `modules:` names that path directly.
 
 ## Acceptance criteria
 
@@ -119,5 +105,5 @@ then it returns an empty tuple and raises no exception.
 - [ ] Every acceptance criterion has a passing test that names STORY-111.
 - [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory change ADR-0014 describes has been ratified and applied, and
-  `adapters/ui_gateways/` appears in this story's `modules:`.
+- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+  `modules:` names it.

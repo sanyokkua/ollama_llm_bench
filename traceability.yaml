@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-29T15:20:46Z'
+generated_at: '2026-07-29T16:35:26Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5483,6 +5483,7 @@ stories:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
     - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#6-ui-modules
     modules:
+    - adapters/ui_gateways/
     - ui/common_dialogs/
     - ui/main_window/
     edge_cases: []
@@ -5493,26 +5494,43 @@ stories:
         tests: []
   STORY-105:
     title: Implement the concrete Main Window gateway over settings, readiness, and the run flow
-    status: draft
+    status: done
     spec_clauses:
     - 01_Main_Window/implementation_structure.md#6-dependency-protocols
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b1-mainwindowgateway
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4a-the-dispatcher-thread-dd-38
     modules:
+    - adapters/ui_gateways/
     - ui/main_window/
     edge_cases: []
     acceptance_criteria:
       STORY-105-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[get_active_workspace]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[get_splitter_sizes]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[get_theme]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[get_window_geometry]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[is_run_active]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[readiness_snapshot]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[reprobe]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[set_active_workspace]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[set_splitter_sizes]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[set_theme]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[set_window_geometry]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_each_method_performs_its_backend_interaction[shutdown]
       STORY-105-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_reprobe_runs_the_probe_on_the_dispatcher_thread
       STORY-105-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-106:
     title: Implement the concrete New Benchmark gateway over settings, providers, readiness, and run start
-    status: draft
+    status: ready
     spec_clauses:
     - 02_New_Benchmark_Widget/implementation_structure.md#7-dependency-protocols
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
@@ -5520,6 +5538,7 @@ stories:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
     modules:
+    - adapters/ui_gateways/
     - ui/common_dialogs/
     - ui/new_benchmark/
     edge_cases: []
@@ -5534,7 +5553,7 @@ stories:
         tests: []
   STORY-107:
     title: Implement the concrete Progress gateway over the run controls, run reads, and the manual probe
-    status: draft
+    status: ready
     spec_clauses:
     - 04_Progress_Widget/implementation_structure.md#8-dependency-protocols
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
@@ -5542,6 +5561,7 @@ stories:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
     modules:
+    - adapters/ui_gateways/
     - ui/common_dialogs/
     - ui/progress/
     edge_cases: []
@@ -5556,7 +5576,7 @@ stories:
         tests: []
   STORY-108:
     title: Implement the concrete Result gateway over the run reads, charts, exports, and run analysis
-    status: draft
+    status: ready
     spec_clauses:
     - 05_Result_Widget/implementation_structure.md#9-dependency-protocols
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
@@ -5566,6 +5586,7 @@ stories:
     - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#21-public-api-surface
     - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#9-threading-and-concurrency
     modules:
+    - adapters/ui_gateways/
     - ui/results/
     edge_cases: []
     acceptance_criteria:
@@ -5581,7 +5602,7 @@ stories:
         tests: []
   STORY-109:
     title: Implement the concrete Resume gateway over the run, result, and task stores and the resume command
-    status: draft
+    status: ready
     spec_clauses:
     - 03_Resume_Benchmark_Widget/implementation_structure.md#7-dependency-protocols
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
@@ -5590,6 +5611,7 @@ stories:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway
     - 11_Services_and_Algorithms/11_RUN_DRIFT_DETECTOR.md#8-error-handling
     modules:
+    - adapters/ui_gateways/
     - ui/common_dialogs/
     - ui/resume_benchmark/
     edge_cases: []
@@ -5616,6 +5638,7 @@ stories:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
     modules:
+    - adapters/ui_gateways/
     - backend/settings/
     - ui/settings_dialog/
     edge_cases: []
@@ -5634,7 +5657,7 @@ stories:
         tests: []
   STORY-111:
     title: Implement the concrete Task Editor gateway over the settings, workspace, and run-registry reads
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
@@ -5642,6 +5665,7 @@ stories:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway
     - 09_Task_Editor/implementation_structure.md#7-dependency-protocols
     modules:
+    - adapters/ui_gateways/
     - ui/task_editor/
     edge_cases: []
     acceptance_criteria:
@@ -6212,6 +6236,7 @@ clauses:
   08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service:
     stories:
     - STORY-016
+    - STORY-105
   08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store:
     stories:
     - STORY-015
@@ -7297,6 +7322,7 @@ clauses:
     stories:
     - STORY-041
     - STORY-042
+    - STORY-105
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#5-the-cancellationtoken:
     stories:
     - STORY-006
@@ -10180,6 +10206,16 @@ modules:
   adapters/store_qt_bridge/:
     stories:
     - STORY-044
+  adapters/ui_gateways/:
+    stories:
+    - STORY-104
+    - STORY-105
+    - STORY-106
+    - STORY-107
+    - STORY-108
+    - STORY-109
+    - STORY-110
+    - STORY-111
   adapters/workspace_controller/:
     stories:
     - STORY-045

@@ -10,6 +10,7 @@ spec_clauses:
 modules:
   - ui/main_window/
   - ui/common_dialogs/
+  - adapters/ui_gateways/
 acceptance_criteria:
   - STORY-104-AC-1
   - STORY-104-AC-2
@@ -22,7 +23,8 @@ depends_on:
   - STORY-109
   - STORY-110
   - STORY-111
-adrs: []
+adrs:
+  - ADR-0014
 owner: coder
 estimate: M
 ---
@@ -83,24 +85,8 @@ per-gateway child stories that write the implementations.
 
 ## Design constraints
 
-- **Where the code lands, and why `modules:` does not say so.** Every child story's code lands in
-  `adapters/ui_gateways/`, a module the read-only module inventory does not yet list. ADR-0014
-  records the one-row inventory correction that would add it and is `proposed`, awaiting the owner.
-  Until then a `modules:` entry naming that path fails `just trace-check`, so this story and its
-  children cite the inventoried user-interface module whose gateway Protocol they satisfy, on the
-  STORY-076/ADR-0010 precedent that a Phase-11 story may cite the module it wires. When the
-  correction lands, add `adapters/ui_gateways/` to `modules:` here and in every child.
-- This story adds no public API symbol; it is verification plus coordination over work delivered by
-  the child stories.
-- The gateway Protocols themselves stay declared in the user-interface modules that consume them.
-  `adapters/ui_gateways/` declares no gateway Protocol of its own and never imports `ui`, so each
-  concrete class satisfies its Protocol structurally — the `import-linter` direction
-  (`adapters/*` must not import `ui`) is unchanged.
-- `RunValidator` (`ui/new_benchmark/protocols.py`) is deliberately excluded. Its own docstring places
-  the concrete implementation in `backend/benchmark_pipeline/`, not the adapters layer, so it is a
-  backend service story, not a gateway story. It is still unowned — see this story's Notes.
-- No `setStyleSheet`, no colour literal, no `asyncio`/`anyio`/`qasync` in any touched module
-  (architecture-test enforced).
+- **Where the code lands.** The implementation lands in `adapters/ui_gateways/`. ADR-0014 is
+  accepted and its inventory row now exists, so `modules:` names that path directly.
 
 ## Acceptance criteria
 
@@ -151,8 +137,8 @@ adapter class written specifically for it:
 - [ ] The seven child stories (STORY-105 … STORY-111) are `done`.
 - [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory change ADR-0014 describes has been ratified and applied, and
-  `adapters/ui_gateways/` appears in this story's and every child story's `modules:`.
+- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+  `modules:` names it.
 
 ## Notes
 

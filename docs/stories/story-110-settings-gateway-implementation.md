@@ -13,6 +13,7 @@ spec_clauses:
 modules:
   - ui/settings_dialog/
   - backend/settings/
+  - adapters/ui_gateways/
 acceptance_criteria:
   - STORY-110-AC-1
   - STORY-110-AC-2
@@ -22,7 +23,8 @@ acceptance_criteria:
   - STORY-110-AC-6
 edge_cases: []
 depends_on: []
-adrs: []
+adrs:
+  - ADR-0014
 owner: coder
 estimate: L
 ---
@@ -90,16 +92,8 @@ and the import and export actions read and write the real backup files.
 
 ## Design constraints
 
-- **Where the code lands, and why `modules:` names `ui/settings_dialog/`.** The gateway
-  implementation lands in `adapters/ui_gateways/`, which the read-only module inventory does not yet
-  list; ADR-0014 records the pending one-row correction. `modules:` names the user-interface module
-  whose gateway Protocol this story satisfies, per the STORY-076/ADR-0010 precedent, plus
-  `backend/settings/`, which this story genuinely changes. Add `adapters/ui_gateways/` once the
-  correction is ratified.
-- Eight of the twenty-two methods are documented local additions this module's own Protocol already
-  records and this story must implement: the six import/export methods and `save_all` /
-  `reset_to_defaults`. `08-E` §7b.6 lists no import/export method at all — a confirmed spec gap
-  recorded by STORY-067.
+- **Where the code lands.** The implementation lands in `adapters/ui_gateways/`. ADR-0014 is
+  accepted and its inventory row now exists, so `modules:` names that path directly.
 - **Atomicity is this gateway's own responsibility.** `save_all` and `reset_to_defaults` exist
   precisely because two independent void calls cannot express all-or-nothing. Each must wrap both
   store writes in one real database transaction on the single write connection, so that a failure in
@@ -226,5 +220,5 @@ probe ran.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
 - [ ] The blocking-gateway-method marshalling conflict recorded in Design constraints has its own
   accepted ADR, and this story's implementation follows it.
-- [ ] The module inventory change ADR-0014 describes has been ratified and applied, and
-  `adapters/ui_gateways/` appears in this story's `modules:`.
+- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+  `modules:` names it.

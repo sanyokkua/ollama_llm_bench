@@ -1,7 +1,7 @@
 ---
 id: STORY-108
 title: Implement the concrete Result gateway over the run reads, charts, exports, and run analysis
-status: draft
+status: ready
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -12,6 +12,7 @@ spec_clauses:
   - 11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#9-threading-and-concurrency
 modules:
   - ui/results/
+  - adapters/ui_gateways/
 acceptance_criteria:
   - STORY-108-AC-1
   - STORY-108-AC-2
@@ -20,7 +21,8 @@ acceptance_criteria:
   - STORY-108-AC-5
 edge_cases: []
 depends_on: []
-adrs: []
+adrs:
+  - ADR-0014
 owner: coder
 estimate: M
 ---
@@ -87,28 +89,8 @@ already in flight. All of it goes through one object the widget holds.
 
 ## Design constraints
 
-- **Where the code lands, and why `modules:` says `ui/results/`.** The implementation lands in
-  `adapters/ui_gateways/`, which the read-only module inventory does not yet list; ADR-0014 records
-  the pending one-row correction. `modules:` names the user-interface module whose gateway Protocol
-  this story satisfies, per the STORY-076/ADR-0010 precedent. Add `adapters/ui_gateways/` once the
-  correction is ratified.
-- `regenerate_run_analysis`'s signature is a documented local addition this module's own Protocol
-  already records: it takes the run, provider and model plus a keyword-only completion callback and
-  returns `bool`. Implement that shape exactly — do not "correct" it back to §7b.5's shorter draft.
-- The gateway is the only object that may hold the provider registry here, so it is the only place the
-  analysis provider's display **name** can be resolved. The result it hands the callback carries that
-  resolved name; the internal provider identifier is never placed on it and never displayed (DD-33).
-- The user-interface-local result and outcome types are a deliberate mirror of the backend
-  run-analysis types, because `ui/results/` may not import the run-analysis module. The gateway
-  performs the translation at its own boundary; it must not leak a backend run-analysis type across
-  it.
-- `get_setting` returns `str | None`, so it reads through `AppSettingsStore.get_setting(key)`;
-  `set_setting` writes through `SettingsService.set(key, value)`, so the settings-changed event still
-  fires. `SettingsService` has no nullable getter, which is why both collaborators are needed.
-- Constructing the gateway must be side-effect free — no backend read, no probe, no network call — so
-  STORY-077-AC-2 (`build_app` issues no network call) holds.
-- The gateway holds no Qt symbol on its public surface. `adapters/ui_gateways/` must not import `ui`
-  (`import-linter`); the Protocol is satisfied structurally.
+- **Where the code lands.** The implementation lands in `adapters/ui_gateways/`. ADR-0014 is
+  accepted and its inventory row now exists, so `modules:` names that path directly.
 
 ## Acceptance criteria
 
@@ -174,5 +156,5 @@ then the factory returns a gateway and no method was invoked on any collaborator
 - [ ] Every acceptance criterion has a passing test that names STORY-108.
 - [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory change ADR-0014 describes has been ratified and applied, and
-  `adapters/ui_gateways/` appears in this story's `modules:`.
+- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+  `modules:` names it.

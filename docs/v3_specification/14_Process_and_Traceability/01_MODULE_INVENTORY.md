@@ -73,6 +73,7 @@ flowchart TD
         OSA_NP["adapters/native_pickers/"]
         OSA_CB["adapters/clipboard/"]
         OSA_FS["adapters/file_system_actions/"]
+        UIGW["adapters/ui_gateways/"]
     end
     subgraph BACKEND["Backend feature services (Qt-free)"]
         PIPELINE["backend/benchmark_pipeline/"]
@@ -221,6 +222,7 @@ Adapters modules are the only layer permitted to import both PySide6 and `backen
 | `adapters/native_pickers/` | OS-integration adapter for the native save / open-file / open-folder pickers. | `NativePickers` Protocol; `make_native_pickers` | PySide6 | yes | Per-OS branches isolated in `_internal/`; tested with platform-aware fakes. Owns the `SavePickerOptions`, `FilePickerOptions`, and `FolderPickerOptions` Structs. |
 | `adapters/clipboard/` | OS-integration adapter for clipboard copy. | `Clipboard` Protocol; `make_clipboard` | PySide6 | yes | Per-OS branches isolated in `_internal/`; tested with platform-aware fakes. |
 | `adapters/file_system_actions/` | OS-integration adapter for the "open in file manager" surface action. | `FileSystemActions` Protocol; `make_file_system_actions` | PySide6, `platformdirs` | yes | Per-OS branches isolated in `_internal/`; tested with platform-aware fakes. |
+| `adapters/ui_gateways/` | Implement the seven per-widget UI adapter gateways of `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b over the backend Protocols, so no UI module holds a backend Store/Service Protocol. | the seven `make_*_gateway` factories | PySide6, `backend/*` Protocols, `backend/infra` (`TaskRunner`) | yes | Seven sub-feature packages under `_internal/`, one per gateway; carries no business logic — delegation, view-model conversion and thread marshalling only. |
 
 ## 6. UI Modules
 
@@ -259,11 +261,11 @@ There is exactly one composition root. It and the entry point are the only files
 | Backend provider modules | 4 | 4 | 0 | 0 |
 | Backend pipeline, evaluation, embedding, adaptive timeout (incl. `backend/circuit_breaker/`, `backend/mode_visibility/`, `backend/run_drift/`, `backend/model_helpers/`) | 8 | 8 | 0 | 0 |
 | Backend presentation-support, task files, and data exchange (incl. `yaml_formatter`, `backend/html_rendering/`, `backend/run_analysis/`, `backend/performance_task_generator/`, `backend/log_formatting/`, `backend/log_file_writer/`, `backend/import_export/`) | 10 | 10 | 0 | 0 |
-| Adapters modules (incl. `adapters/qt_inference_activity_bridge/` and the three sibling OS-adapter packages `adapters/native_pickers/`, `adapters/clipboard/`, `adapters/file_system_actions/`) | 11 | 11 | 0 | 0 |
+| Adapters modules (incl. `adapters/qt_inference_activity_bridge/` and the three sibling OS-adapter packages `adapters/native_pickers/`, `adapters/clipboard/`, `adapters/file_system_actions/`) | 12 | 12 | 0 | 0 |
 | UI modules (incl. `ui/shared/provider_dropdown/` and `ui/shared/model_dropdown/` sub-features under `ui/shared/`) | 10 | 10 | 0 | 0 |
 | Composition root | 2 | 0 | 1 (`compose.py`) | 0 |
-| **Total** | **62** | **53** | **8** | **1** |
+| **Total** | **63** | **54** | **8** | **1** |
 
-The persistence layer is now six sibling sub-feature packages (one per aggregate root) rather than one umbrella module. With the cross-cutting `backend/platform/`, `backend/concurrency/`, and `backend/retry/` packages enumerated alongside `domain`/`errors`/`events`/`infra`, the backend-shared-infrastructure row totals thirteen modules with the `integration`-tested set at six within that row. The OS-adapter surface is now three sibling adapters (`adapters/native_pickers/`, `adapters/clipboard/`, `adapters/file_system_actions/`) rather than one umbrella, raising the adapters row from nine to eleven modules.
+The persistence layer is now six sibling sub-feature packages (one per aggregate root) rather than one umbrella module. With the cross-cutting `backend/platform/`, `backend/concurrency/`, and `backend/retry/` packages enumerated alongside `domain`/`errors`/`events`/`infra`, the backend-shared-infrastructure row totals thirteen modules with the `integration`-tested set at six within that row. The OS-adapter surface is now three sibling adapters (`adapters/native_pickers/`, `adapters/clipboard/`, `adapters/file_system_actions/`) rather than one umbrella, raising the adapters row from nine to eleven modules; `adapters/ui_gateways/` (ADR-0014), which houses the seven per-widget UI gateways of `08_Cross_Cutting/08-E_interfaces_contracts.md` §7b, raises it further to twelve.
 
 Every module with logic-bearing code has a test target. The single `partial` module (`backend/domain/`) is a pure re-export and DTO package whose Structs are validated by the `test_dtos_are_frozen_kw_only` architecture test rather than by a behaviour suite. Each story in `02_STORY_FORMAT.md` cites one or more module paths from this inventory in its `modules:` front-matter; `03_TRACEABILITY.md` validates that every cited path exists here.

@@ -1,7 +1,7 @@
 ---
 id: STORY-109
 title: Implement the concrete Resume gateway over the run, result, and task stores and the resume command
-status: draft
+status: ready
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -12,6 +12,7 @@ spec_clauses:
 modules:
   - ui/resume_benchmark/
   - ui/common_dialogs/
+  - adapters/ui_gateways/
 acceptance_criteria:
   - STORY-109-AC-1
   - STORY-109-AC-2
@@ -20,7 +21,8 @@ acceptance_criteria:
   - STORY-109-AC-5
 edge_cases: []
 depends_on: []
-adrs: []
+adrs:
+  - ADR-0014
 owner: coder
 estimate: L
 ---
@@ -83,35 +85,8 @@ All of it goes through one object the panel holds.
 
 ## Design constraints
 
-- **Where the code lands, and why `modules:` names user-interface modules.** The implementation lands
-  in `adapters/ui_gateways/`, which the read-only module inventory does not yet list; ADR-0014 records
-  the pending one-row correction. `modules:` names the user-interface modules whose gateway Protocols
-  this story satisfies, per the STORY-076/ADR-0010 precedent. Add `adapters/ui_gateways/` once the
-  correction is ratified.
-- Two of the twenty-two methods are documented local additions this module's own Protocol already
-  records and this story must implement: `detect_drift(run_id)` (the Resume Summary dialog's fresh
-  drift check) and `serialize_table(run_id, table, fmt)` (the Summary and Details exports). Both are
-  pure extensions of the widget's own Protocol.
-- `serialize_table` must accept the **same** token vocabulary as `ResultGateway.serialize_table` —
-  `"summary"`/`"details"` for the table and `"csv"`/`"markdown"` for the format — so both gateways can
-  share one serialiser collaborator.
-- `detect_drift` refreshes readiness first, then runs the pure comparison, and never raises: an
-  unreachable provider or a missing model comes back as a drift warning, not an exception.
-- `reset_results` and `reset_results_for_retry` are distinct and must not be collapsed:
-  `reset_results` resets the whole task to pending, while `reset_results_for_retry` preserves a
-  judge-only failure's existing response so the retry resumes at the judge stage (DD-66). Each returns
-  the count it reset.
-- `get_sort_setting` returns a `(column, descending)` pair, so the read goes through
-  `AppSettingsStore.get_setting(...)` (which can report "unset") and the write through
-  `SettingsService`. `SettingsService` has no nullable getter, which is why both collaborators are
-  needed.
-- Constructing the gateway must be side-effect free — no backend read, no probe, no network call — so
-  STORY-077-AC-2 (`build_app` issues no network call) holds.
-- `RenameRunGateway`, `ResumeSummaryGateway` and `RetrySelectionGateway`
-  (`ui/common_dialogs/protocols.py`) are all method-name subsets of this gateway. Satisfy all three
-  structurally; write no separate class and no shim for any of them.
-- The gateway holds no Qt symbol on its public surface. `adapters/ui_gateways/` must not import `ui`
-  (`import-linter`); the Protocols are satisfied structurally.
+- **Where the code lands.** The implementation lands in `adapters/ui_gateways/`. ADR-0014 is
+  accepted and its inventory row now exists, so `modules:` names that path directly.
 
 ## Acceptance criteria
 
@@ -196,5 +171,5 @@ then the factory returns a gateway and no method was invoked on any collaborator
 - [ ] Every acceptance criterion has a passing test that names STORY-109.
 - [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory change ADR-0014 describes has been ratified and applied, and
-  `adapters/ui_gateways/` appears in this story's `modules:`.
+- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+  `modules:` names it.

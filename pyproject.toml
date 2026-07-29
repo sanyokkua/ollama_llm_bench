@@ -231,6 +231,12 @@ forbidden_modules = [
   "ollama_llm_bench.backend.provider_gemini",
 ]
 
+[[tool.importlinter.contracts]]
+name = "Adapters never import the UI layer"
+type = "forbidden"
+source_modules = ["ollama_llm_bench.adapters"]
+forbidden_modules = ["ollama_llm_bench.ui"]
+
 [tool.pytest.ini_options]
 testpaths = ["src", "tests"]
 pythonpath = ["src"]

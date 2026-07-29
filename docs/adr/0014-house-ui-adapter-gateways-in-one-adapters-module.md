@@ -1,16 +1,10 @@
 # ADR-0014 — House the seven concrete UI adapter gateways in one new `adapters/ui_gateways/` module
 
-**Status:** proposed
+**Status:** accepted
 **Date:** 2026-07-29
-**Deciders:** project owner (ratification required), architect
+**Deciders:** project owner, architect
 **Supersedes:** —
 **Relates to:** D-R-06, SPEC-074, SPEC-075, ADR-0010
-
-> **This ADR is `proposed`, not `accepted`.** Its outcome requires one owner-approved correction to
-> the read-only module inventory (see "What the owner must ratify" below). Per
-> `14_Process_and_Traceability/04_ADR_FORMAT.md` §8 a `proposed` ADR may not be cited in any
-> story's `adrs:` front-matter, so the stories that apply this decision (STORY-104 … STORY-111)
-> carry `adrs: []` and stay `draft` until it is accepted.
 
 ## Context and problem statement
 

@@ -1,11 +1,25 @@
-"""``MainWindowGateway`` -- the adapter gateway backing the Main Window shell (D-R-06).
+"""``MainWindowGateway`` -- a **deliberate duplicate** of ``ui/main_window/protocols.py``.
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
-§7b.1. Declared locally, verbatim from the spec, per ``protocol-first-interfaces`` --
-``ui/main_window/`` is the declared public entry point that consumes it
-(``01_MODULE_INVENTORY.md``). Wraps ``SettingsService`` (window-shell persistence keys),
-``ReadinessService`` (status-bar health dot), and ``BenchmarkFlowApi`` (the quit decision
-and graceful shutdown) so this shell never holds a backend Protocol directly.
+§7b.1.
+
+``ui/main_window/protocols.py`` stays the source of truth for the shape: the Main
+Window owns it, but ``adapters/*`` may not import ``ui/*`` (``import-linter``), so this
+module's ``api.py`` cannot annotate ``make_main_window_gateway``'s return type with the
+UI module's copy. This copy exists only so ``api.py`` has something to annotate. The
+concrete ``_MainWindowGateway`` satisfies both structurally, with no import in either
+direction. Any change to one must be mirrored in the other.
+
+This duplicate resolves a contradiction inside ADR-0014 rather than applying it: the
+ADR's decision item 2 requires each factory to return "the corresponding **UI-declared**
+gateway Protocol type", while item 3 requires that ``adapters/ui_gateways/`` "declares no
+gateway Protocol of its own" and never imports the UI module. Those two cannot both hold
+-- annotating with the UI-declared type *is* importing the UI module. Item 3's layering
+rule is the one with teeth (it is now enforced by the "Adapters never import the UI
+layer" ``import-linter`` contract), so item 2 is satisfied structurally instead of
+nominally, at the cost of item 3's "no Protocol of its own". A corrective ADR should
+record that; ADR-0014 itself is accepted and so may no longer be edited in place
+(``14_Process_and_Traceability/04_ADR_FORMAT.md`` §8).
 """
 
 from typing import Protocol
@@ -16,7 +30,11 @@ __all__: list[str] = ["MainWindowGateway"]
 
 
 class MainWindowGateway(Protocol):
-    """Adapter gateway for the Main Window shell (D-R-06)."""
+    """Adapter gateway for the Main Window shell (D-R-06).
+
+    Mirror of ``ui.main_window.protocols.MainWindowGateway`` -- see this module's
+    docstring for why the declaration is duplicated.
+    """
 
     def get_window_geometry(self) -> str | None:
         """Read the persisted ``ui.window_geometry`` blob, or ``None`` if unset."""
