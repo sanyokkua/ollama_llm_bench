@@ -110,6 +110,38 @@ Implementation: `backend/infra/_internal/instance_lock.py` — the acquire algor
 `LockPrimitives` Protocol seam so the stale-reclaim branch (which depends on kernel lock-visibility
 lag) is deterministically testable via `LaggingLockPrimitives` in the colocated test suite.
 
-The `_HeldInstanceLock.release()` method uses two separate `contextlib.suppress(OSError)` blocks
-(one for unlock, one for close) so a failing unlock does not prevent the close, and both failures
-are silently absorbed to honour the "never raises" contract.
+The `_HeldInstanceLock.release()` method wraps the unlock call in a `try`/`finally`, with a
+`contextlib.suppress(OSError)` inside each of the `try` and `finally` bodies (one around the
+unlock, one around the descriptor close).
+The `finally` guarantees the close always runs, even if the unlock call raises something other
+than `OSError`; the `suppress(OSError)` around each call absorbs the specific failure each one
+can legitimately raise on its own.
+This matters because `release()` promises its caller it never raises: the application's shutdown
+sequence and the test-cleanup fixture both call it unconditionally during teardown and must not
+have that teardown itself throw.
+
+This helper is POSIX-only: `default_primitives()` returns `PosixLockPrimitives`, built on
+`fcntl.flock` for the exclusive advisory lock and `os.kill(pid, 0)` for the liveness check.
+On a non-POSIX host (`os.name != "posix"`), `default_primitives()` raises a typed
+`ConfigurationError` naming the platform, so the application aborts startup rather than running
+unprotected with no single-instance guarantee.
+Windows support is a follow-up story that adds an `msvcrt`-based `LockPrimitives` implementation;
+the `LockPrimitives` Protocol seam is designed so that is a drop-in replacement for
+`PosixLockPrimitives`, with no change needed to `acquire_instance_lock_impl`, `api.py`, or the
+existing tests.
+
+Releasing the lock deliberately does not delete `<app-data>/.instance.lock`.
+Deleting the file on release would let a concurrent acquirer's `os.open` create a new inode at
+the same path and lock that new inode instead of the one the releasing process held; both
+processes could then believe they hold the lock and run at the same time, which is exactly the
+failure this story exists to prevent.
+Leaving the file in place is safe because the lock's identity is the `flock`, not the file's
+presence — a subsequent launch reopens the same path and takes the lock cleanly whether or not a
+stale, unlocked file is already sitting there.
+
+`just trace-check`'s eight `EC-M-1` through `EC-M-8` failures ("named by a story but has no
+proving test") are pre-existing Phase-11 debt from the still-unimplemented STORY-076, STORY-078,
+STORY-080, and STORY-081.
+They were present before this story started and are unaffected by it; verified by running
+`just trace-check` after this story's changes and confirming the failure count stayed at exactly
+eight, every failing id is `EC-M-*`, and no `STORY-079` line appears among them.

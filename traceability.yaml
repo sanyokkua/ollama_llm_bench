@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-28T20:31:25Z'
+generated_at: '2026-07-29T09:04:04Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -155,6 +155,8 @@ stories:
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.SettingsImportItem]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.SettingsImportPreview]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.import_export.models.SettingsImportResult]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.infra.models.InstanceLockRecord]
+        - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.infra.models.InstanceLockResult]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.log_file_writer.models.WriteOutcome]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_dtos_are_frozen_kw_only[ollama_llm_bench.backend.platform.models.PlatformProfile]
@@ -261,6 +263,8 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.SettingsImportItem]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.SettingsImportPreview]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.import_export.models.SettingsImportResult]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.infra.models.InstanceLockRecord]
+        - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.infra.models.InstanceLockResult]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.log_file_writer.models.WriteOutcome]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_struct_instance_is_immutable[ollama_llm_bench.backend.platform.models.PlatformProfile]
@@ -367,6 +371,8 @@ stories:
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.SettingsImportItem]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.SettingsImportPreview]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.import_export.models.SettingsImportResult]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.infra.models.InstanceLockRecord]
+        - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.infra.models.InstanceLockResult]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.log_file_writer.models.WriteOutcome]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.model_helpers.models.CapabilityObservation]
         - tests/architecture/test_dtos.py::test_struct_rejects_positional_construction[ollama_llm_bench.backend.platform.models.PlatformProfile]
@@ -4919,7 +4925,7 @@ stories:
         tests: []
   STORY-079:
     title: Add the single-instance advisory lock with stale-owner recovery
-    status: ready
+    status: done
     spec_clauses:
     - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#5-file-lock-policy
     - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#6-multi-instance-handling
@@ -4928,11 +4934,14 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-079-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/infra/tests/test_instance_lock.py::test_first_acquisition_succeeds_and_records_pid_and_timestamp
       STORY-079-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/infra/tests/test_instance_lock.py::test_second_acquisition_against_live_owner_refuses_and_touches_nothing
       STORY-079-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/infra/tests/test_instance_lock.py::test_stale_lock_from_dead_pid_is_reclaimed
   STORY-080:
     title: Wire the quit sequence, WAL checkpoint on close, and crash-recovery handling
     status: draft
