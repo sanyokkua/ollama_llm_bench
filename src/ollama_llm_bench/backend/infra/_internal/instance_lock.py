@@ -141,15 +141,17 @@ class _HeldInstanceLock:
         if fd is None:
             return
         self._fd = None
-        # Both the unlock and the close are best-effort: the descriptor is being
-        # abandoned either way, and closing it drops the flock regardless of
-        # whether the explicit unlock call above succeeded, because a flock
-        # lives on the open file description, not on any handle to it. Either
-        # call failing must not break release()'s "never raises" promise.
-        with contextlib.suppress(OSError):
-            self._primitives.unlock(fd)
-        with contextlib.suppress(OSError):
-            os.close(fd)
+        # The close always runs, even if unlock raises: closing the descriptor
+        # drops the flock regardless of whether the explicit unlock call above
+        # succeeded, because a flock lives on the open file description, not on
+        # any handle to it. Either call failing must not break release()'s
+        # "never raises" promise.
+        try:
+            with contextlib.suppress(OSError):
+                self._primitives.unlock(fd)
+        finally:
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
 
 def default_primitives() -> LockPrimitives:

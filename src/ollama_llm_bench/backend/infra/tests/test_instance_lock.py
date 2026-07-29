@@ -112,6 +112,7 @@ def test_release_leaves_the_lock_file_on_disk(
 class _UnlockFailsPrimitives(PosixLockPrimitives):
     """``LockPrimitives`` whose ``unlock`` always raises, driving ``release()``'s error path."""
 
+    @override
     def unlock(self, fd: int) -> None:
         """Simulate ``fcntl.flock(fd, LOCK_UN)`` failing with an OS error."""
         raise OSError("Simulated unlock failure")
@@ -120,6 +121,7 @@ class _UnlockFailsPrimitives(PosixLockPrimitives):
 def test_release_does_not_raise_when_unlock_fails(
     tmp_path: Path,
     fake_clock: FakeClock,
+    held_locks: list[InstanceLockHandle],
 ) -> None:
     """``release()`` must never raise, even when the underlying unlock call fails.
 
@@ -137,9 +139,12 @@ def test_release_does_not_raise_when_unlock_fails(
 
     # Act
     result.lock.release()
+    reacquired = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    assert reacquired.lock is not None
+    held_locks.append(reacquired.lock)
 
     # Assert
-    assert result.lock.lock_file == tmp_path / LOCK_FILENAME
+    assert reacquired.outcome is InstanceLockOutcome.ACQUIRED
 
 
 _HIGHEST_PROBED_PID = 2**15 - 1
@@ -163,10 +168,12 @@ class LaggingLockPrimitives(PosixLockPrimitives):
     """
 
     def __init__(self) -> None:
+        """Arm exactly one simulated refusal before real ``flock`` behaviour resumes."""
         self.refusals_remaining = 1
 
     @override
     def try_lock_exclusive(self, fd: int) -> bool:
+        """Report the lock as already held on the first call, then delegate to ``flock``."""
         if self.refusals_remaining > 0:
             self.refusals_remaining -= 1
             return False
@@ -253,11 +260,18 @@ def test_unreadable_lock_record_is_treated_as_no_owner(
 
 
 class _LockingFailsPrimitives(PosixLockPrimitives):
-    """``LockPrimitives`` whose ``try_lock_exclusive`` always raises an OS error."""
+    """``LockPrimitives`` that takes the real flock, then reports the attempt as failed."""
 
     @override
     def try_lock_exclusive(self, fd: int) -> bool:
-        """Simulate an OS-level failure while attempting to take the advisory lock."""
+        """Take the real ``flock`` via ``super()``, then raise as if the call itself failed.
+
+        Taking the real lock first is what makes this fake able to detect a
+        stranded descriptor: if the caller's cleanup does not close ``fd``, the
+        flock taken here is still held when a fresh acquisition retries, and
+        that retry is refused.
+        """
+        super().try_lock_exclusive(fd)
         raise OSError("Simulated try_lock_exclusive failure")
 
 
@@ -310,6 +324,82 @@ def test_claim_failure_after_locking_does_not_strand_the_lock(
 
     # Act
     with pytest.raises(ConfigurationError):
+        acquire_instance_lock_impl(app_data_root=tmp_path, clock=fake_clock, primitives=primitives)
+    retry = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    assert retry.lock is not None
+    held_locks.append(retry.lock)
+
+    # Assert
+    assert retry.outcome is InstanceLockOutcome.ACQUIRED
+
+
+class _AlwaysRefusesPrimitives(PosixLockPrimitives):
+    """``LockPrimitives`` that reports every liveness check and lock attempt as failed."""
+
+    @override
+    def try_lock_exclusive(self, fd: int) -> bool:
+        """Report every lock attempt -- initial or retry -- as already held elsewhere."""
+        return False
+
+    @override
+    def is_pid_alive(self, pid: int) -> bool:
+        """Report every recorded owner as dead, so staleness alone never blocks reclaim."""
+        return False
+
+
+def test_stale_lock_whose_retry_still_fails_refuses_rather_than_forcing(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+) -> None:
+    """A lock judged stale must still be refused if retaking it fails.
+
+    Without the ``and`` guard on the second lock attempt in
+    ``acquire_instance_lock_impl``, a stale-judged lock would be forced open
+    even though the retry itself reports failure -- letting two instances run
+    at once, which is the one thing this module exists to prevent.
+    """
+    # Arrange
+    lock_file = tmp_path / LOCK_FILENAME
+    lock_file.write_bytes(b"")
+    primitives = _AlwaysRefusesPrimitives()
+
+    # Act
+    result = acquire_instance_lock_impl(
+        app_data_root=tmp_path, clock=fake_clock, primitives=primitives
+    )
+
+    # Assert
+    assert result.outcome is InstanceLockOutcome.ALREADY_RUNNING
+
+
+class _ClaimFailsWithProgrammerErrorPrimitives(PosixLockPrimitives):
+    """``LockPrimitives`` whose ``current_pid`` raises a non-``OSError`` after locking."""
+
+    @override
+    def current_pid(self) -> int:
+        """Simulate a bug -- a non-OS failure -- while writing the ownership record."""
+        raise RuntimeError("Simulated non-OSError failure")
+
+
+def test_non_os_error_after_locking_propagates_and_still_releases_the_lock(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+    held_locks: list[InstanceLockHandle],
+) -> None:
+    """A non-``OSError`` escaping after the flock is taken must propagate unwrapped.
+
+    ``acquire_instance_lock_impl`` only translates ``OSError`` into
+    ``ConfigurationError``; anything else is not an environment failure the
+    caller can retry past, so it must surface as-is rather than being coerced
+    into the taxonomy. The ``finally`` block must still drop the real flock
+    already taken before the failure, or every later acquisition in this
+    process would be refused by its own orphaned lock.
+    """
+    # Arrange
+    primitives = _ClaimFailsWithProgrammerErrorPrimitives()
+
+    # Act
+    with pytest.raises(RuntimeError):
         acquire_instance_lock_impl(app_data_root=tmp_path, clock=fake_clock, primitives=primitives)
     retry = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
     assert retry.lock is not None
