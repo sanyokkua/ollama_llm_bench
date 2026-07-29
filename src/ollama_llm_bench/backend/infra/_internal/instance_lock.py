@@ -29,6 +29,7 @@ from ollama_llm_bench.backend.infra.protocols import Clock
 LOCK_FILENAME: Final[str] = ".instance.lock"
 _LOCK_FILE_MODE: Final[int] = 0o600
 _LOCK_BUSY_ERRNOS: Final[frozenset[int]] = frozenset({errno.EACCES, errno.EAGAIN})
+_MAX_RECORD_BYTES: Final[int] = 4096
 
 
 class LockPrimitives(Protocol):
@@ -143,8 +144,11 @@ def acquire_instance_lock_impl(
     fd = _open_lock_file(lock_file)
     if primitives.try_lock_exclusive(fd):
         return _claim(lock_file=lock_file, fd=fd, clock=clock, primitives=primitives)
+    holder = _read_record(fd)
     os.close(fd)
-    return InstanceLockResult(outcome=InstanceLockOutcome.ALREADY_RUNNING, lock_file=lock_file)
+    return InstanceLockResult(
+        outcome=InstanceLockOutcome.ALREADY_RUNNING, lock_file=lock_file, holder=holder
+    )
 
 
 def _open_lock_file(lock_file: Path) -> int:
@@ -160,6 +164,21 @@ def _open_lock_file(lock_file: Path) -> int:
         raise ConfigurationError(
             message=f"Cannot open the instance lock file at '{lock_file}': {exc.strerror}.",
         ) from exc
+
+
+def _read_record(fd: int) -> InstanceLockRecord | None:
+    """Read the ownership record off a lock file without modifying it.
+
+    The file's content is external data -- it may be empty (a first instance
+    crashed between creating and writing it) or hand-edited -- so an unreadable
+    body is reported as "no known owner", never raised.
+    """
+    os.lseek(fd, 0, os.SEEK_SET)
+    raw = os.read(fd, _MAX_RECORD_BYTES)
+    try:
+        return msgspec.json.decode(raw, type=InstanceLockRecord)
+    except (msgspec.DecodeError, msgspec.ValidationError):
+        return None
 
 
 def _claim(

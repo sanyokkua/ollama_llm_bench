@@ -43,3 +43,32 @@ def test_first_acquisition_succeeds_and_records_pid_and_timestamp(
     assert result.outcome is InstanceLockOutcome.ACQUIRED
     assert result.lock_file == expected_lock_file
     assert written == InstanceLockRecord(pid=os.getpid(), started_at=FAKE_NOW_UTC)
+
+
+def test_second_acquisition_against_live_owner_refuses_and_touches_nothing(
+    tmp_path: Path,
+    fake_clock: FakeClock,
+    held_locks: list[InstanceLockHandle],
+) -> None:
+    """Proves: STORY-079-AC-2
+
+    Given the lock is held by a live process, a second acquisition against the
+    same data directory reports "already running", hands back no release handle,
+    names the live holder, and leaves every file in the data directory unchanged
+    -- no database is opened and nothing is written.
+    """
+    # Arrange
+    first = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    assert first.lock is not None
+    held_locks.append(first.lock)
+    before = {path.name: path.read_bytes() for path in sorted(tmp_path.iterdir())}
+
+    # Act
+    second = acquire_instance_lock(app_data_root=tmp_path, clock=fake_clock)
+    after = {path.name: path.read_bytes() for path in sorted(tmp_path.iterdir())}
+
+    # Assert
+    assert second.outcome is InstanceLockOutcome.ALREADY_RUNNING
+    assert second.lock is None
+    assert second.holder == InstanceLockRecord(pid=os.getpid(), started_at=FAKE_NOW_UTC)
+    assert after == before
