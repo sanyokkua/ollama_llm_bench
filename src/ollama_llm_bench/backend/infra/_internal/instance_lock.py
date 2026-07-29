@@ -149,24 +149,26 @@ def acquire_instance_lock_impl(
     """Take, refuse, or reclaim the single-instance lock in ``app_data_root``.
 
     Raises:
-        ConfigurationError: The lock file could not be opened, or taking or
-            claiming the lock failed with an OS error that leaves nothing
-            reclaimable (e.g. no advisory-lock slots left, or the data volume
-            is full while writing the ownership record). The descriptor is
-            always closed first, so the failure never wedges this process
-            against its own future retries.
+        ConfigurationError: The lock file could not be opened, or taking,
+            claiming, or reading the lock's ownership record failed with an
+            OS error that leaves nothing reclaimable (e.g. no advisory-lock
+            slots left, or the data volume is full while writing the
+            ownership record). The descriptor is always closed first, so the
+            failure never wedges this process against its own future
+            retries.
     """
     lock_file = app_data_root / LOCK_FILENAME
     fd = _open_lock_file(lock_file)
+    holder: InstanceLockRecord | None = None
     try:
         if primitives.try_lock_exclusive(fd):
             return _claim(lock_file=lock_file, fd=fd, clock=clock, primitives=primitives)
+        holder = _read_record(fd)
     except OSError as exc:
         os.close(fd)
         raise ConfigurationError(
             message=f"Cannot take the instance lock at '{lock_file}': {exc.strerror}.",
         ) from exc
-    holder = _read_record(fd)
     os.close(fd)
     return InstanceLockResult(
         outcome=InstanceLockOutcome.ALREADY_RUNNING, lock_file=lock_file, holder=holder
