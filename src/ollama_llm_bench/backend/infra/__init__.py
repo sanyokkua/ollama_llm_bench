@@ -13,6 +13,7 @@ on-disk path API layered over the platform-detected application-data root
 """
 
 from ollama_llm_bench.backend.infra.api import (
+    acquire_instance_lock,
     app_log_dir,
     app_log_path,
     configure_logging,
@@ -21,11 +22,21 @@ from ollama_llm_bench.backend.infra.api import (
     run_log_dir,
     run_log_path,
 )
-from ollama_llm_bench.backend.infra.protocols import Clock, PlatformDetector
+from ollama_llm_bench.backend.infra.models import (
+    InstanceLockOutcome,
+    InstanceLockRecord,
+    InstanceLockResult,
+)
+from ollama_llm_bench.backend.infra.protocols import Clock, InstanceLockHandle, PlatformDetector
 
 __all__: list[str] = [
     "Clock",
+    "InstanceLockHandle",
+    "InstanceLockOutcome",
+    "InstanceLockRecord",
+    "InstanceLockResult",
     "PlatformDetector",
+    "acquire_instance_lock",
     "app_log_dir",
     "app_log_path",
     "configure_logging",

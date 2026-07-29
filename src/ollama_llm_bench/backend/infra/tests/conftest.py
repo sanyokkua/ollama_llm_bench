@@ -14,6 +14,7 @@ from ollama_llm_bench.backend.infra._internal.logging_setup import (
     _INSTALLED_MARKER_ATTR,
     _QUEUE_LISTENER_ATTR,
 )
+from ollama_llm_bench.backend.infra.protocols import InstanceLockHandle
 
 
 class FakePlatformDetector:
@@ -31,6 +32,39 @@ class FakePlatformDetector:
 def fake_platform_detector(tmp_path):  # type: ignore[no-untyped-def]
     """A fake ``PlatformDetector`` rooted at a fresh ``tmp_path`` per test."""
     return FakePlatformDetector(tmp_path)
+
+
+FAKE_NOW_UTC = "2026-07-29T12:00:00Z"
+
+
+class FakeClock:
+    """A ``Clock`` returning a fixed instant, so timestamp assertions are exact."""
+
+    def now_utc(self) -> str:
+        return FAKE_NOW_UTC
+
+    def monotonic_ms(self) -> int:
+        return 0
+
+
+@pytest.fixture
+def fake_clock() -> FakeClock:
+    """A ``Clock`` frozen at ``FAKE_NOW_UTC``."""
+    return FakeClock()
+
+
+@pytest.fixture
+def held_locks() -> Iterator[list[InstanceLockHandle]]:
+    """Collect acquired lock handles and release them all after the test.
+
+    An acquired advisory lock plus its open file descriptor is process-global
+    state; without this teardown one test's lock would refuse the next test's
+    acquisition on a shared path and leak a file descriptor.
+    """
+    handles: list[InstanceLockHandle] = []
+    yield handles
+    for handle in handles:
+        handle.release()
 
 
 @pytest.fixture(autouse=True)

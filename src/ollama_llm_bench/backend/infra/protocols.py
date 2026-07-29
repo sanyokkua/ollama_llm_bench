@@ -19,6 +19,7 @@ from ollama_llm_bench.backend.domain.models import Iso8601Utc
 
 __all__: list[str] = [
     "Clock",
+    "InstanceLockHandle",
     "PlatformDetector",
 ]
 
@@ -39,6 +40,30 @@ class Clock(Protocol):
         The value has no calendar meaning; only differences between two calls
         are meaningful. fast-synchronous; callable from any thread. Never
         raises.
+        """
+        ...
+
+
+class InstanceLockHandle(Protocol):
+    """A held single-instance advisory lock, owned for the process lifetime.
+
+    The composition root holds this from launch until the shutdown sequence's
+    lock-release step (``05_CONCURRENCY_GUARANTEES.md`` §8 step 5). Releasing
+    unlocks and closes the underlying descriptor; it deliberately does not
+    delete the lock file, because deleting races a concurrent acquirer into
+    locking a different inode.
+    """
+
+    @property
+    def lock_file(self) -> Path:
+        """The lock file this handle holds."""
+        ...
+
+    def release(self) -> None:
+        """Release the advisory lock and close its descriptor.
+
+        Idempotent: releasing an already-released handle is a no-op.
+        fast-synchronous; never raises.
         """
         ...
 

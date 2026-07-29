@@ -13,6 +13,10 @@ from pathlib import Path
 import icontract
 
 from ollama_llm_bench.backend.infra._internal.clock import SystemClock
+from ollama_llm_bench.backend.infra._internal.instance_lock import (
+    acquire_instance_lock_impl,
+    default_primitives,
+)
 from ollama_llm_bench.backend.infra._internal.logging_setup import (
     DEFAULT_ROTATION_BACKUP_COUNT,
     DEFAULT_ROTATION_MAX_BYTES,
@@ -25,9 +29,11 @@ from ollama_llm_bench.backend.infra._internal.path_resolution import (
     run_log_path,
 )
 from ollama_llm_bench.backend.infra._internal.run_context import open_run_logger
+from ollama_llm_bench.backend.infra.models import InstanceLockResult
 from ollama_llm_bench.backend.infra.protocols import Clock, PlatformDetector
 
 __all__: list[str] = [
+    "acquire_instance_lock",
     "app_log_dir",
     "app_log_path",
     "configure_logging",
@@ -51,6 +57,48 @@ def make_system_clock() -> Clock:
         A ``Clock`` backed by the system clock and a monotonic counter.
     """
     return SystemClock()
+
+
+@icontract.require(
+    lambda app_data_root: app_data_root.is_absolute(),
+    "app_data_root must be an absolute path — this codebase's own PlatformDetector "
+    "never resolves a relative app-data root, so a relative path here indicates a "
+    "bug in the caller, not a bad environment",
+)
+@icontract.ensure(
+    lambda result, app_data_root: result.lock_file.parent == app_data_root,
+    "the reported lock file must live directly inside the requested data directory — "
+    "a violation here means this module's own path arithmetic is broken",
+)
+def acquire_instance_lock(*, app_data_root: Path, clock: Clock) -> InstanceLockResult:
+    """Take the process-lifetime single-instance lock on ``<app-data>/.instance.lock``.
+
+    Succeeds for the first instance pointed at ``app_data_root`` and refuses any
+    later instance while a live process holds the lock. A lock left behind by a
+    process that is no longer alive is treated as stale and reclaimed (SPEC-035),
+    so a crash never permanently blocks the next launch.
+
+    A refused acquisition opens no database and writes nothing into the data
+    directory — it is reported as data on the returned result, never as a raised
+    error, because a second copy running is a user situation and not a bug.
+
+    Args:
+        app_data_root: The already-created application data directory the lock
+            file lives in.
+        clock: The time source stamping the lock record's start timestamp.
+
+    Returns:
+        The acquire/refuse outcome; on success it carries the release handle the
+        composition root holds until the shutdown sequence releases it.
+
+    Raises:
+        ConfigurationError: The lock file could not be opened — the directory is
+            missing or unwritable — or this host provides no POSIX advisory
+            locking.
+    """
+    return acquire_instance_lock_impl(
+        app_data_root=app_data_root, clock=clock, primitives=default_primitives()
+    )
 
 
 @icontract.require(
