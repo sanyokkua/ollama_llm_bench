@@ -15,7 +15,11 @@ class NotificationService(Protocol):
         fast-synchronous; must be called on the Qt main thread. Never raises.
 
         Args:
-            text: The already-redacted message to display.
+            text: The message to display, exactly as the caller means it to
+                appear. UI/display surfaces do not apply redaction (redaction
+                is scoped to the ``app.*`` log pipeline and provider-SDK
+                error-message wrapping at the adapter boundary --
+                ``08_Cross_Cutting/08-E_interfaces_contracts.md`` §22).
             duration_ms: How long the toast stays visible, in milliseconds.
         """
         ...
@@ -26,7 +30,11 @@ class NotificationService(Protocol):
         fast-synchronous; must be called on the Qt main thread. Never raises.
 
         Args:
-            text: The already-redacted message to display.
+            text: The message to display, exactly as the caller means it to
+                appear. UI/display surfaces do not apply redaction (redaction
+                is scoped to the ``app.*`` log pipeline and provider-SDK
+                error-message wrapping at the adapter boundary --
+                ``08_Cross_Cutting/08-E_interfaces_contracts.md`` §22).
             duration_ms: How long the toast stays visible, in milliseconds.
         """
         ...
@@ -39,7 +47,11 @@ class NotificationService(Protocol):
         Never raises.
 
         Args:
-            text: The already-redacted message to display.
+            text: The message to display, exactly as the caller means it to
+                appear. UI/display surfaces do not apply redaction (redaction
+                is scoped to the ``app.*`` log pipeline and provider-SDK
+                error-message wrapping at the adapter boundary --
+                ``08_Cross_Cutting/08-E_interfaces_contracts.md`` §22).
             blocking: Selects a modal dialog (``True``) or a toast (``False``).
         """
         ...

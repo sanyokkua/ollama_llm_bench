@@ -1,16 +1,18 @@
-"""``MainWindowGateway`` -- a **deliberate duplicate** of ``ui/main_window/protocols.py``.
+"""``MainWindowGateway``/``NewBenchmarkGateway`` -- **deliberate duplicates** of
+``ui/main_window/protocols.py`` and ``ui/new_benchmark/protocols.py`` respectively.
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
-§7b.1.
+§7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``).
 
-``ui/main_window/protocols.py`` stays the source of truth for the shape: the Main
-Window owns it, but ``adapters/*`` may not import ``ui/*`` (``import-linter``), so this
-module's ``api.py`` cannot annotate ``make_main_window_gateway``'s return type with the
-UI module's copy. This copy exists only so ``api.py`` has something to annotate. The
-concrete ``_MainWindowGateway`` satisfies both structurally, with no import in either
-direction. Any change to one must be mirrored in the other.
+Each owning UI module's ``protocols.py`` stays the source of truth for its gateway's
+shape: the widget owns it, but ``adapters/*`` may not import ``ui/*``
+(``import-linter``), so this module's ``api.py`` cannot annotate a `make_*_gateway`
+factory's return type with the UI module's copy. These copies exist only so ``api.py``
+has something to annotate. Each concrete gateway class satisfies both its own copy here
+and the UI module's copy structurally, with no import in either direction. Any change to
+one side of a pair must be mirrored in the other.
 
-This duplicate resolves a contradiction inside ADR-0014 rather than applying it: the
+This duplication resolves a contradiction inside ADR-0014 rather than applying it: the
 ADR's decision item 2 requires each factory to return "the corresponding **UI-declared**
 gateway Protocol type", while item 3 requires that ``adapters/ui_gateways/`` "declares no
 gateway Protocol of its own" and never imports the UI module. Those two cannot both hold
@@ -24,9 +26,15 @@ record that; ADR-0014 itself is accepted and so may no longer be edited in place
 
 from typing import Protocol
 
-from ollama_llm_bench.backend.domain import AppReadinessSnapshot
+from ollama_llm_bench.backend.domain import (
+    AppReadinessSnapshot,
+    ProviderConfig,
+    RunId,
+    RunStartRequest,
+    SettingKey,
+)
 
-__all__: list[str] = ["MainWindowGateway"]
+__all__: list[str] = ["MainWindowGateway", "NewBenchmarkGateway"]
 
 
 class MainWindowGateway(Protocol):
@@ -91,4 +99,58 @@ class MainWindowGateway(Protocol):
 
     def shutdown(self, timeout_ms: int) -> None:
         """Stop the active run gracefully on application quit (bounded wait)."""
+        ...
+
+
+class NewBenchmarkGateway(Protocol):
+    """Adapter gateway for the New Benchmark widget (D-R-06).
+
+    Mirror of ``ui.new_benchmark.protocols.NewBenchmarkGateway`` -- see this module's
+    docstring for why the declaration is duplicated.
+    """
+
+    def get_setting(self, key: SettingKey) -> str | None:
+        """Read a user-saved setting (Advanced-Options defaults,
+        ``benchmark.last_mode``, ``embedding.hide_from_test_models``), or ``None``.
+
+        fast-synchronous.
+        """
+        ...
+
+    def set_setting(self, key: SettingKey, value: str) -> None:
+        """Persist a user-saved setting (e.g. ``benchmark.last_mode``).
+
+        fast-synchronous.
+        """
+        ...
+
+    def provider_list(self) -> tuple[ProviderConfig, ...]:
+        """Return the enabled providers, in display order, for the model picker.
+
+        fast-synchronous.
+        """
+        ...
+
+    def readiness_snapshot(self) -> AppReadinessSnapshot:
+        """Return the current readiness snapshot for the pre-run readiness gate.
+
+        fast-synchronous.
+        """
+        ...
+
+    def start_run(self, request: RunStartRequest) -> RunId:
+        """Start a benchmark run from the assembled request; returns the run id.
+
+        fast-synchronous (enqueues to the dispatcher thread and returns).
+        """
+        ...
+
+    def notify_error(self, message: str) -> None:
+        """Surface a non-blocking, user-facing error toast (STORY-055-AC-7).
+
+        fast-synchronous. Used when the Run Summary dialog factory refuses to open
+        (the preflight re-check failed) -- the widget's own fields stay untouched.
+        ``message`` is passed through unchanged -- UI/display surfaces do not apply
+        redaction (``08-E`` §22, STORY-106-AC-3).
+        """
         ...

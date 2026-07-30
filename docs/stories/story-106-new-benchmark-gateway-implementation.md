@@ -1,13 +1,14 @@
 ---
 id: STORY-106
 title: Implement the concrete New Benchmark gateway over settings, providers, readiness, and run start
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b2-newbenchmarkgateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
   - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
   - 02_New_Benchmark_Widget/implementation_structure.md#7-dependency-protocols
+  - 07_Common_Dialogs/run_summary_dialog.md#8-preflight-re-check-on-open
 modules:
   - ui/new_benchmark/
   - ui/common_dialogs/
@@ -73,6 +74,10 @@ the pipeline — all through one object it holds, so the panel never touches a s
   view-model conversion belong to the adapter; the controller never sees a backend Protocol.
 - `02_New_Benchmark_Widget/implementation_structure.md#7-dependency-protocols` — the panel's
   dependency set, read as the capabilities the adapter wires behind this gateway.
+- `07_Common_Dialogs/run_summary_dialog.md#8-preflight-re-check-on-open` — the actual authority for
+  `notify_error`'s existence (a non-blocking toast naming the failure when the preflight re-check
+  fails); the sixth method is a local addition per §7b's purpose-built-facade rule, not one of the
+  five verbatim `08-E` §7b.2 methods.
 
 ## Design constraints
 
@@ -93,7 +98,7 @@ collaborators and returns that collaborator's value unchanged:
 | `provider_list()`         | returns the provider registry's enabled providers, in the order it supplied |
 | `readiness_snapshot()`    | returns the readiness service's current snapshot without probing            |
 | `start_run(request)`      | passes `request` to the flow API's start entry point and returns its run id |
-| `notify_error(message)`   | passes the redacted `message` to the notification service                   |
+| `notify_error(message)`   | passes `message` to the notification service unchanged                      |
 
 ### STORY-106-AC-2
 
@@ -104,9 +109,20 @@ then it returns that run id without waiting for the run to reach any status.
 
 ### STORY-106-AC-3
 
-Given a message containing a value the redaction module treats as a secret,
+Given a message, including one containing a value the redaction module treats as a secret,
 when `notify_error(message)` is called,
-then the string handed to the notification service contains no part of that secret value.
+then the exact string is handed to the notification service unchanged, with no redaction applied.
+
+`08_Cross_Cutting/08-E_interfaces_contracts.md` §22 (backed by
+`10_Domain_and_Data/08_REDACTION_PATTERNS.md` §1) restricts redaction to exactly two surfaces — the
+`app.*` log pipeline and provider-SDK error-message wrapping at the adapter boundary — and states that
+UI/display surfaces do not apply it (the earlier `redact_for_display` was deliberately retired). A
+user-facing toast is a display surface, so `notify_error` must not call `redact`; doing so would risk
+the denylist's catch-all patterns silently masking legitimate diagnostic text (e.g. a long hex model
+digest) that the Run Summary dialog's preflight-refusal toast (`run_summary_dialog.md` §8,
+EC-RS-2/3/4) needs to show verbatim. This corrects an initial draft of this criterion that required
+redaction here, based on a stale "already-redacted" phrase in `NotificationService`'s own docstring
+(`08-E` §20 itself never says this) — that docstring is corrected alongside this story.
 
 ### STORY-106-AC-4
 
@@ -122,7 +138,7 @@ then the factory returns a gateway and no method was invoked on any collaborator
   `src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py`,
   `test_each_method_performs_its_backend_interaction`.
 - STORY-106-AC-2 — unit, same file, `test_start_run_returns_the_run_id_without_waiting`.
-- STORY-106-AC-3 — unit, same file, `test_notify_error_redacts_before_notifying`.
+- STORY-106-AC-3 — unit, same file, `test_notify_error_passes_the_message_through_unchanged`.
 - STORY-106-AC-4 — unit, same file, `test_constructing_the_gateway_touches_no_collaborator`.
 - The `RunSummaryGateway` structural-satisfaction check is proven by STORY-104-AC-2, not duplicated
   here.

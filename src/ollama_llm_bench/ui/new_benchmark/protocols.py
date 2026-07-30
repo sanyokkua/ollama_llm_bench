@@ -79,10 +79,12 @@ class NewBenchmarkGateway(Protocol):
         ...
 
     def notify_error(self, message: str) -> None:
-        """Surface a non-blocking, redacted, user-facing error toast (STORY-055-AC-7).
+        """Surface a non-blocking, user-facing error toast (STORY-055-AC-7).
 
         fast-synchronous. Used when the Run Summary dialog factory refuses to open
         (the preflight re-check failed) -- the widget's own fields stay untouched.
+        ``message`` is passed through unchanged -- UI/display surfaces do not apply
+        redaction (``08-E`` §22, STORY-106-AC-3).
         """
         ...
 

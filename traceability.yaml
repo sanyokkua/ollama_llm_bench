@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-29T16:35:26Z'
+generated_at: '2026-07-30T08:38:49Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5530,9 +5530,10 @@ stories:
         - src/ollama_llm_bench/adapters/ui_gateways/tests/test_main_window_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-106:
     title: Implement the concrete New Benchmark gateway over settings, providers, readiness, and run start
-    status: ready
+    status: done
     spec_clauses:
     - 02_New_Benchmark_Widget/implementation_structure.md#7-dependency-protocols
+    - 07_Common_Dialogs/run_summary_dialog.md#8-preflight-re-check-on-open
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -5544,13 +5545,23 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-106-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_each_method_performs_its_backend_interaction[get_setting_stored]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_each_method_performs_its_backend_interaction[get_setting_unset]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_each_method_performs_its_backend_interaction[notify_error]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_each_method_performs_its_backend_interaction[provider_list]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_each_method_performs_its_backend_interaction[readiness_snapshot]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_each_method_performs_its_backend_interaction[set_setting]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_each_method_performs_its_backend_interaction[start_run]
       STORY-106-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_start_run_returns_the_run_id_without_waiting
       STORY-106-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_notify_error_passes_the_message_through_unchanged
       STORY-106-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-107:
     title: Implement the concrete Progress gateway over the run controls, run reads, and the manual probe
     status: ready
@@ -6104,6 +6115,7 @@ clauses:
   07_Common_Dialogs/run_summary_dialog.md#8-preflight-re-check-on-open:
     stories:
     - STORY-055
+    - STORY-106
   08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer:
     stories:
     - STORY-104
