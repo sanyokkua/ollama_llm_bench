@@ -1,13 +1,16 @@
 """``MainWindowGateway``/``NewBenchmarkGateway``/``ProgressGateway``/``ResultGateway``/
-``ResumeGateway`` -- **deliberate duplicates** of ``ui/main_window/protocols.py``,
-``ui/new_benchmark/protocols.py``, ``ui/progress/protocols.py``, ``ui/results/protocols.py``,
-and ``ui/resume_benchmark/protocols.py`` respectively. Also declares
-``ManualProviderProbeCommand`` and ``RunLogWriteStatus``, the two adapter-local collaborator
-Protocols the concrete ``ProgressGateway`` implementation depends on (see
-``_internal/progress/gateway.py``'s docstring for why each is adapter-local/single-consumer
-rather than a named backend service), and ``JudgeAnalysisGenerationOutcome`` /
-``JudgeAnalysisGenerationResult``, the locally-declared mirrors of
-``backend.run_analysis.RunAnalysisOutcome`` / ``RunAnalysisResult`` that
+``ResumeGateway``/``TaskEditorGateway`` -- **deliberate duplicates** of
+``ui/main_window/protocols.py``, ``ui/new_benchmark/protocols.py``,
+``ui/progress/protocols.py``, ``ui/results/protocols.py``,
+``ui/resume_benchmark/protocols.py``, and ``ui/task_editor/protocols.py`` respectively.
+Also declares ``ManualProviderProbeCommand`` and ``RunLogWriteStatus``, the two
+adapter-local collaborator Protocols the concrete ``ProgressGateway`` implementation
+depends on (see ``_internal/progress/gateway.py``'s docstring for why each is
+adapter-local/single-consumer rather than a named backend service), ``ActiveRunTaskPaths``,
+the adapter-local collaborator Protocol the concrete ``TaskEditorGateway`` implementation
+depends on for the in-use-task-file marker (see below for why it is adapter-local), and
+``JudgeAnalysisGenerationOutcome`` / ``JudgeAnalysisGenerationResult``, the locally-declared
+mirrors of ``backend.run_analysis.RunAnalysisOutcome`` / ``RunAnalysisResult`` that
 ``ResultGateway.regenerate_run_analysis`` returns through its ``on_complete`` callback
 (``ui/results/`` may not import ``backend.run_analysis`` directly, per STORY-061's
 Definition of done -- see ``ui/results/protocols.py``'s own docstring for the full
@@ -15,7 +18,7 @@ rationale, mirrored here for the same reason as every other duplicate in this mo
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
 §7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``), §7b.3 (``ResumeGateway``),
-§7b.4 (``ProgressGateway``), §7b.5 (``ResultGateway``).
+§7b.4 (``ProgressGateway``), §7b.5 (``ResultGateway``), §7b.7 (``TaskEditorGateway``).
 
 ``ResultGateway.chart_data``'s return type is ``ChartData | HeatmapData`` here, matching
 ``ui/results/protocols.py``'s own copy (corrected by the STORY-108 spec-conformance fix
@@ -73,6 +76,7 @@ from ollama_llm_bench.backend.domain import (
 from ollama_llm_bench.backend.run_drift import DriftWarning
 
 __all__: list[str] = [
+    "ActiveRunTaskPaths",
     "JudgeAnalysisGenerationOutcome",
     "JudgeAnalysisGenerationResult",
     "MainWindowGateway",
@@ -82,7 +86,33 @@ __all__: list[str] = [
     "ResultGateway",
     "ResumeGateway",
     "RunLogWriteStatus",
+    "TaskEditorGateway",
 ]
+
+
+class ActiveRunTaskPaths(Protocol):
+    """Adapter-local collaborator resolving the currently executing run's task-file
+    paths, for the Task Editor's in-use marker (STORY-111-AC-1).
+
+    No backend Protocol tracks this today -- ``RunRegistryStore`` only exposes
+    ``active_run_id()`` (which run, not its task files), and
+    ``RunStartRequest.task_paths`` is explicitly never persisted
+    (``10_Domain_and_Data/02_DTOS_AND_ENUMS.md`` §7.3: "The request is consumed
+    at run creation; it is never persisted."). Whatever future
+    component actually persists/tracks a run's originating task-file paths (out of
+    this story's scope) is the natural owner of this state; this Protocol is the
+    gateway's read-only query surface onto it, scoped to exactly the one lookup
+    ``TaskEditorGateway.active_run_task_paths()`` needs once it already knows a run
+    is active.
+    """
+
+    def task_paths_for(self, run_id: RunId) -> tuple[str, ...]:
+        """Return the absolute task-file paths backing ``run_id``.
+
+        fast-synchronous. ``run_id`` is always a currently-active run id (the
+        caller short-circuits on ``None`` before calling this).
+        """
+        ...
 
 
 class ManualProviderProbeCommand(Protocol):
@@ -509,5 +539,44 @@ class ResumeGateway(Protocol):
         ``table`` is ``"summary"``/``"details"``, ``fmt`` is ``"csv"``/``"markdown"``
         -- the same token vocabulary as ``ResultGateway.serialize_table`` so both
         gateways can share one ``TableSerializer`` collaborator.
+        """
+        ...
+
+
+class TaskEditorGateway(Protocol):
+    """Adapter gateway for the Task Editor workspace (D-R-06).
+
+    Mirror of ``ui.task_editor.protocols.TaskEditorGateway`` -- see this module's
+    docstring for why the declaration is duplicated.
+    """
+
+    def get_setting(self, key: SettingKey) -> str | None:
+        """Read a workspace settings key, or ``None`` if unset.
+
+        fast-synchronous. Keys: ``task_editor.auto_format_on_save``,
+        ``task_editor.warn_on_empty_grading_criteria``,
+        ``task_editor.validation_debounce_ms``, ``ui.task_editor_last_folder``.
+        """
+        ...
+
+    def set_setting(self, key: SettingKey, value: str) -> None:
+        """Persist a workspace settings key (e.g. ``ui.task_editor_last_folder``).
+
+        fast-synchronous.
+        """
+        ...
+
+    def active_workspace(self) -> str:
+        """Read the current active workspace (``"benchmark"``/``"task_editor"``).
+
+        fast-synchronous.
+        """
+        ...
+
+    def active_run_task_paths(self) -> tuple[str, ...]:
+        """Read the active run's task file paths for the in-use marker.
+
+        fast-synchronous. Returns the absolute paths of every task file backing
+        the currently executing run, or ``()`` when no run is active.
         """
         ...

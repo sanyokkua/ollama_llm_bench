@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-30T16:33:33Z'
+generated_at: '2026-07-30T17:43:52Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5735,7 +5735,7 @@ stories:
         tests: []
   STORY-111:
     title: Implement the concrete Task Editor gateway over the settings, workspace, and run-registry reads
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
@@ -5748,9 +5748,15 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-111-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_task_editor_gateway.py::test_each_method_performs_its_backend_interaction[active_run_task_paths]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_task_editor_gateway.py::test_each_method_performs_its_backend_interaction[active_workspace]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_task_editor_gateway.py::test_each_method_performs_its_backend_interaction[get_setting_stored]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_task_editor_gateway.py::test_each_method_performs_its_backend_interaction[get_setting_unset]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_task_editor_gateway.py::test_each_method_performs_its_backend_interaction[set_setting]
       STORY-111-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_task_editor_gateway.py::test_active_run_task_paths_is_empty_when_no_run_is_active
   STORY-112:
     title: Implement the on-disk task-file change watcher in the file-system-actions adapter
     status: done

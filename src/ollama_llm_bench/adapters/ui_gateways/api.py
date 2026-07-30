@@ -7,14 +7,15 @@ the concrete ``NewBenchmarkGateway`` over ``AppSettingsStore``, ``SettingsServic
 ``NotificationService``, the concrete ``ProgressGateway`` over ``BenchmarkFlowApi``,
 ``RunsStore``, ``ResultsStore``, ``AppSettingsStore``, ``SettingsService``,
 ``PlatformDetector``, a ``TaskRunner``, a ``Clock``, and the two adapter-local
-manual-probe/run-log-write-status collaborators, and the concrete ``ResumeGateway``
+manual-probe/run-log-write-status collaborators, the concrete ``ResumeGateway``
 over ``RunsStore``, ``ResultsStore``, ``TasksStore``, ``AppSettingsStore``,
 ``ReadinessService``, ``ProvidersStore``, ``ProviderRegistry``, ``RunDriftDetector``,
-``BenchmarkFlowApi``, ``TableSerializer``, and a ``Clock`` -- the adapters that let the
-Main Window shell,
-the New Benchmark widget, the Progress widget, and the Resume Benchmark widget reach
-the backend without ever holding a backend Store or Service Protocol themselves
-(D-R-06).
+``BenchmarkFlowApi``, ``TableSerializer``, and a ``Clock``, and the concrete
+``TaskEditorGateway`` over ``AppSettingsStore``, ``SettingsService``, ``WorkspaceStore``,
+``RunRegistryStore``, and the adapter-local ``ActiveRunTaskPaths`` collaborator -- the
+adapters that let the Main Window shell, the New Benchmark widget, the Progress widget,
+the Resume Benchmark widget, and the Task Editor workspace reach the backend without
+ever holding a backend Store or Service Protocol themselves (D-R-06).
 """
 
 import icontract
@@ -40,7 +41,12 @@ from ollama_llm_bench.adapters.ui_gateways._internal.resume.gateway import (
     ResumeGatewayCollaborators,
     _ResumeGateway,
 )
+from ollama_llm_bench.adapters.ui_gateways._internal.task_editor.gateway import (
+    TaskEditorGatewayCollaborators,
+    _TaskEditorGateway,
+)
 from ollama_llm_bench.adapters.ui_gateways.protocols import (
+    ActiveRunTaskPaths,
     JudgeAnalysisGenerationOutcome,
     JudgeAnalysisGenerationResult,
     MainWindowGateway,
@@ -50,6 +56,7 @@ from ollama_llm_bench.adapters.ui_gateways.protocols import (
     ResultGateway,
     ResumeGateway,
     RunLogWriteStatus,
+    TaskEditorGateway,
 )
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi
 from ollama_llm_bench.backend.charts import ChartAggregator
@@ -66,9 +73,11 @@ from ollama_llm_bench.backend.readiness import ReadinessService
 from ollama_llm_bench.backend.run_analysis import RunAnalysisService
 from ollama_llm_bench.backend.run_drift import RunDriftDetector
 from ollama_llm_bench.backend.settings import SettingsService
+from ollama_llm_bench.backend.stores import RunRegistryStore, WorkspaceStore
 from ollama_llm_bench.backend.stores.inference_activity import InferenceActivityStore
 
 __all__: list[str] = [
+    "ActiveRunTaskPaths",
     "JudgeAnalysisGenerationOutcome",
     "JudgeAnalysisGenerationResult",
     "MainWindowGateway",
@@ -78,11 +87,13 @@ __all__: list[str] = [
     "ResultGateway",
     "ResumeGateway",
     "RunLogWriteStatus",
+    "TaskEditorGateway",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
     "make_progress_gateway",
     "make_result_gateway",
     "make_resume_gateway",
+    "make_task_editor_gateway",
 ]
 
 
@@ -565,5 +576,72 @@ def make_resume_gateway(  # noqa: PLR0913  # eleven distinct required collaborat
             flow=flow,
             serializer=serializer,
             clock=clock,
+        )
+    )
+
+
+@icontract.require(
+    lambda app_settings: app_settings is not None,
+    "app_settings is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda settings: settings is not None,
+    "settings is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda workspace_store: workspace_store is not None,
+    "workspace_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda run_registry: run_registry is not None,
+    "run_registry is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda active_run_task_paths: active_run_task_paths is not None,
+    "active_run_task_paths is a required collaborator wired by compose.py",
+)
+@icontract.ensure(
+    lambda result: result is not None,
+    "make_task_editor_gateway must always return a usable gateway — a violation "
+    "here means this factory's own wiring is broken, not that a caller passed bad input",
+)
+def make_task_editor_gateway(
+    *,
+    app_settings: AppSettingsStore,
+    settings: SettingsService,
+    workspace_store: WorkspaceStore,
+    run_registry: RunRegistryStore,
+    active_run_task_paths: ActiveRunTaskPaths,
+) -> TaskEditorGateway:
+    """Construct the Task Editor workspace's adapter gateway.
+
+    Construction is side-effect free: it performs no backend read and no network
+    call.
+
+    Args:
+        app_settings: The user-saved settings store the nullable workspace-settings
+            reads (``task_editor.auto_format_on_save``,
+            ``task_editor.warn_on_empty_grading_criteria``,
+            ``task_editor.validation_debounce_ms``, ``ui.task_editor_last_folder``)
+            go through.
+        settings: The settings service writes go through, so the
+            settings-changed event fires on every write.
+        workspace_store: The reactive store backing the active-workspace read.
+        run_registry: The reactive store backing the active-run-id read that
+            gates whether the in-use-task-paths lookup runs at all.
+        active_run_task_paths: The collaborator resolving an active run's
+            task-file paths for the in-use marker.
+
+    Returns:
+        A ``TaskEditorGateway`` ready to be handed to
+        ``make_task_editor_workspace`` (STORY-077).
+    """
+    return _TaskEditorGateway(
+        collaborators=TaskEditorGatewayCollaborators(
+            app_settings=app_settings,
+            settings=settings,
+            workspace_store=workspace_store,
+            run_registry=run_registry,
+            active_run_task_paths=active_run_task_paths,
         )
     )

@@ -1,7 +1,7 @@
 ---
 id: STORY-111
 title: Implement the concrete Task Editor gateway over the settings, workspace, and run-registry reads
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -102,8 +102,31 @@ then it returns an empty tuple and raises no exception.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-111.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+- [x] Every acceptance criterion has a passing test that names STORY-111.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
   `modules:` names it.
+
+## Notes
+
+- Implemented by the `coder` agent; reviewed by `spec-conformance-reviewer` — verdict "conforms
+  with concerns" (2026-07-30). Both concerns resolved same-day: (1) a docstring in
+  `adapters/ui_gateways/protocols.py` mis-cited `08-E` §7b.7 as the source for
+  "`RunStartRequest.task_paths` is never persisted" — corrected to cite
+  `10_Domain_and_Data/02_DTOS_AND_ENUMS.md` §7.3, the actual source; (2) three docstrings
+  incorrectly attributed the construction-side-effect-free test to STORY-111-AC-1 — corrected
+  to describe it as an unnumbered parity test (matching STORY-105..109's own construction
+  proofs), since this story defines only AC-1 and AC-2.
+- The reviewer's substantive finding — that `active_run_task_paths()`'s in-use-marker path is
+  satisfied through the new adapter-local `ActiveRunTaskPaths` Protocol, which nothing yet
+  implements — is not a defect in this story: it was the explicit, user-confirmed scope
+  decision going into this story (see "Resolved gap" above), mirroring the precedent
+  `RunLogWriteStatus`/`ManualProviderProbeCommand` set in STORY-107. It remains an open item for
+  whichever future story extends `RunRegistryStore` (or an adapter-side tracker) to actually
+  supply a run's task-file paths, and for STORY-077 to notice the gap when wiring this gateway
+  into `compose.py`.
+- `just trace-check` still reports the 8 pre-existing `EC-M-1`..`EC-M-8` failures tracked as a
+  deliberate Phase 11 gap (verified unchanged via `git stash`/`git stash pop` against the base
+  commit) — unrelated to this story; STORY-111's own two acceptance criteria are fully covered
+  with no orphan clause or test.

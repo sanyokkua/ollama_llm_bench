@@ -2,12 +2,14 @@
 
 Houses one sub-feature package per widget under ``_internal/``, exposing one
 ``make_*_gateway`` factory per widget so no UI module ever holds a backend Store or
-Service Protocol directly (D-R-06). Five of the seven gateways are implemented so far --
+Service Protocol directly (D-R-06). Six of the seven gateways are implemented so far --
 Main Window (STORY-105), New Benchmark (STORY-106), Progress (STORY-107), Result
-(STORY-108), and Resume (STORY-109); the remaining two land in later stories.
+(STORY-108), Resume (STORY-109), and Task Editor (STORY-111); the remaining one lands in
+a later story.
 """
 
 from ollama_llm_bench.adapters.ui_gateways.api import (
+    ActiveRunTaskPaths,
     JudgeAnalysisGenerationOutcome,
     JudgeAnalysisGenerationResult,
     MainWindowGateway,
@@ -17,14 +19,17 @@ from ollama_llm_bench.adapters.ui_gateways.api import (
     ResultGateway,
     ResumeGateway,
     RunLogWriteStatus,
+    TaskEditorGateway,
     make_main_window_gateway,
     make_new_benchmark_gateway,
     make_progress_gateway,
     make_result_gateway,
     make_resume_gateway,
+    make_task_editor_gateway,
 )
 
 __all__: list[str] = [
+    "ActiveRunTaskPaths",
     "JudgeAnalysisGenerationOutcome",
     "JudgeAnalysisGenerationResult",
     "MainWindowGateway",
@@ -34,9 +39,11 @@ __all__: list[str] = [
     "ResultGateway",
     "ResumeGateway",
     "RunLogWriteStatus",
+    "TaskEditorGateway",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
     "make_progress_gateway",
     "make_result_gateway",
     "make_resume_gateway",
+    "make_task_editor_gateway",
 ]
