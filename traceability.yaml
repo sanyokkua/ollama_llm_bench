@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-30T17:43:52Z'
+generated_at: '2026-07-30T20:20:42Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5706,15 +5706,22 @@ stories:
         - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-110:
     title: Implement the concrete Settings gateway with an atomic Save, an atomic Reset, and import/export
-    status: draft
+    status: ready
     spec_clauses:
+    - 06_Settings_Dialog/description.md#33-per-row-actions
     - 06_Settings_Dialog/description.md#6-save-flow-atomic
     - 06_Settings_Dialog/description.md#9-reset-flow
     - 06_Settings_Dialog/implementation_structure.md#7-dependency-protocols
+    - 06_Settings_Dialog/sub_dialogs/provider_edit.md#82-test-inference
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#4-the-threading-contract
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7-persistence-stores
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#12-anti-patterns
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4a-the-dispatcher-thread-dd-38
     modules:
     - adapters/ui_gateways/
     - backend/settings/
@@ -5732,6 +5739,12 @@ stories:
       STORY-110-AC-5:
         tests: []
       STORY-110-AC-6:
+        tests: []
+      STORY-110-AC-7:
+        tests: []
+      STORY-110-AC-8:
+        tests: []
+      STORY-110-AC-9:
         tests: []
   STORY-111:
     title: Implement the concrete Task Editor gateway over the settings, workspace, and run-registry reads
@@ -6082,6 +6095,7 @@ clauses:
   06_Settings_Dialog/description.md#33-per-row-actions:
     stories:
     - STORY-066
+    - STORY-110
   06_Settings_Dialog/description.md#34-embedding-section:
     stories:
     - STORY-066
@@ -6113,6 +6127,7 @@ clauses:
   06_Settings_Dialog/sub_dialogs/provider_edit.md#82-test-inference:
     stories:
     - STORY-066
+    - STORY-110
   06_Settings_Dialog/sub_dialogs/provider_edit.md#9-validation:
     stories:
     - STORY-066
@@ -6314,6 +6329,7 @@ clauses:
     - STORY-020
     - STORY-021
     - STORY-052
+    - STORY-110
   08_Cross_Cutting/08-E_interfaces_contracts.md#11-benchmark-pipeline-flow-api:
     stories:
     - STORY-029
@@ -6322,6 +6338,7 @@ clauses:
     stories:
     - STORY-016
     - STORY-105
+    - STORY-110
   08_Cross_Cutting/08-E_interfaces_contracts.md#13-inference-activity-store:
     stories:
     - STORY-015
@@ -6376,6 +6393,9 @@ clauses:
     stories:
     - STORY-003
     - STORY-040
+  08_Cross_Cutting/08-E_interfaces_contracts.md#7-persistence-stores:
+    stories:
+    - STORY-110
   08_Cross_Cutting/08-E_interfaces_contracts.md#71-runsstore:
     stories:
     - STORY-009
@@ -7393,6 +7413,9 @@ clauses:
   16_Engineering_Standards/01_PROJECT_STRUCTURE.md#7-the-composition-root:
     stories:
     - STORY-077
+  16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#12-anti-patterns:
+    stories:
+    - STORY-110
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#2-the-concurrency-model-at-a-glance:
     stories:
     - STORY-040
@@ -7408,6 +7431,7 @@ clauses:
     - STORY-041
     - STORY-042
     - STORY-105
+    - STORY-110
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#5-the-cancellationtoken:
     stories:
     - STORY-006
