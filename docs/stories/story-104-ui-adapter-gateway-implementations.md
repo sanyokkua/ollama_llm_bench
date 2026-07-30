@@ -108,15 +108,15 @@ the adapters layer's public surface:
 
 ### STORY-104-AC-2
 
-Each Common-Dialogs gateway is satisfied by the sibling gateway whose method set contains it, with no
-adapter class written specifically for it:
+Each Common-Dialogs gateway is satisfied by the sibling gateway(s) whose method set contains it, with
+no adapter class written specifically for it:
 
-| Common-Dialogs gateway  | Satisfied structurally by |
-| ----------------------- | ------------------------- |
-| `RunSummaryGateway`     | `NewBenchmarkGateway`     |
-| `RenameRunGateway`      | `ResumeGateway`           |
-| `ResumeSummaryGateway`  | `ResumeGateway`           |
-| `RetrySelectionGateway` | `ResumeGateway`           |
+| Common-Dialogs gateway  | Satisfied structurally by          |
+| ----------------------- | ---------------------------------- |
+| `RunSummaryGateway`     | `NewBenchmarkGateway`              |
+| `RenameRunGateway`      | `ResumeGateway`, `ProgressGateway` |
+| `ResumeSummaryGateway`  | `ResumeGateway`                    |
+| `RetrySelectionGateway` | `ResumeGateway`                    |
 
 ## Test plan
 

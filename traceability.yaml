@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-30T09:24:31Z'
+generated_at: '2026-07-30T13:03:18Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5564,7 +5564,7 @@ stories:
         - src/ollama_llm_bench/adapters/ui_gateways/tests/test_new_benchmark_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-107:
     title: Implement the concrete Progress gateway over the run controls, run reads, and the manual probe
-    status: ready
+    status: done
     spec_clauses:
     - 04_Progress_Widget/implementation_structure.md#8-dependency-protocols
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
