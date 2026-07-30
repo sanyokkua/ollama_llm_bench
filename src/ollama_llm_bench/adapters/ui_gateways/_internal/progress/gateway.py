@@ -11,14 +11,17 @@ planning note in this story's plan file for why:
 - ``load_past_log`` reads the run's saved log file directly via ``pathlib`` (no
   ``RunLogReader`` Protocol exists anywhere in the codebase).
 - ``manual_provider_probe`` and ``run_log_write_failed`` each delegate to a tiny,
-  adapter-local collaborator Protocol declared below (``ManualProviderProbeCommand``,
-  ``RunLogWriteStatus``) rather than a named backend service, because no backend
-  component resolves "which provider" or tracks "the last run-log write outcome"
-  yet -- that production wiring is explicitly out of this story's scope.
+  adapter-local collaborator Protocol declared in ``adapters.ui_gateways.protocols``
+  (``ManualProviderProbeCommand``, ``RunLogWriteStatus``) rather than a named backend
+  service, because no backend component resolves "which provider" or tracks "the
+  last run-log write outcome" yet -- that production wiring is explicitly out of
+  this story's scope.
 """
 
-from typing import Protocol
-
+from ollama_llm_bench.adapters.ui_gateways.protocols import (
+    ManualProviderProbeCommand,
+    RunLogWriteStatus,
+)
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi
 from ollama_llm_bench.backend.concurrency import (
     CancellationToken,
@@ -34,43 +37,9 @@ from ollama_llm_bench.backend.persistence.runs import RunsStore
 from ollama_llm_bench.backend.settings import SettingsService
 
 __all__: list[str] = [
-    "ManualProviderProbeCommand",
     "ProgressGatewayCollaborators",
-    "RunLogWriteStatus",
     "_ProgressGateway",
 ]
-
-
-class ManualProviderProbeCommand(Protocol):
-    """Adapter-local collaborator backing the stability panel's manual retry-probe action.
-
-    Scoped to exactly what ``ProgressGateway.manual_provider_probe()`` needs: one
-    no-argument probe operation, submitted to a ``TaskRunner`` worker by the
-    gateway. Which provider is probed, and how the outcome reaches the
-    ``_model_stability_changed`` bus event, is this collaborator's own concern --
-    deferred to whichever future story wires a real implementation (this story
-    scopes only the gateway's dispatch onto a worker thread, not that wiring).
-    """
-
-    def probe(self) -> None:
-        """Perform one provider health probe. Blocking; runs on a ``TaskRunner`` worker."""
-        ...
-
-
-class RunLogWriteStatus(Protocol):
-    """Adapter-local collaborator answering "did the run-log file writer's most
-    recent write attempt fail" (EC-LOG-1).
-
-    No backend Protocol tracks this today -- ``RunLogWriter.write_event()``
-    returns a ``WriteOutcome`` per call but nothing persists the last one.
-    Whatever future component drives ``RunLogWriter.write_event()`` from bus
-    events (out of this story's scope) is the natural owner of this state; this
-    Protocol is the gateway's read-only query surface onto it.
-    """
-
-    def write_failed(self) -> bool:
-        """Whether the most recent write attempt failed. fast-synchronous."""
-        ...
 
 
 class ProgressGatewayCollaborators:

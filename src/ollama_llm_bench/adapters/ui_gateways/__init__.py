@@ -9,8 +9,10 @@ remaining four land in later stories.
 
 from ollama_llm_bench.adapters.ui_gateways.api import (
     MainWindowGateway,
+    ManualProviderProbeCommand,
     NewBenchmarkGateway,
     ProgressGateway,
+    RunLogWriteStatus,
     make_main_window_gateway,
     make_new_benchmark_gateway,
     make_progress_gateway,
@@ -18,8 +20,10 @@ from ollama_llm_bench.adapters.ui_gateways.api import (
 
 __all__: list[str] = [
     "MainWindowGateway",
+    "ManualProviderProbeCommand",
     "NewBenchmarkGateway",
     "ProgressGateway",
+    "RunLogWriteStatus",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
     "make_progress_gateway",

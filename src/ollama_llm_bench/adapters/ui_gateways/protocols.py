@@ -1,8 +1,13 @@
-"""``MainWindowGateway``/``NewBenchmarkGateway`` -- **deliberate duplicates** of
-``ui/main_window/protocols.py`` and ``ui/new_benchmark/protocols.py`` respectively.
+"""``MainWindowGateway``/``NewBenchmarkGateway``/``ProgressGateway`` -- **deliberate
+duplicates** of ``ui/main_window/protocols.py``, ``ui/new_benchmark/protocols.py``, and
+``ui/progress/protocols.py`` respectively. Also declares ``ManualProviderProbeCommand``
+and ``RunLogWriteStatus``, the two adapter-local collaborator Protocols the concrete
+``ProgressGateway`` implementation depends on (see ``_internal/progress/gateway.py``'s
+docstring for why each is adapter-local/single-consumer rather than a named backend
+service).
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
-§7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``).
+§7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``), §7b.4 (``ProgressGateway``).
 
 Each owning UI module's ``protocols.py`` stays the source of truth for its gateway's
 shape: the widget owns it, but ``adapters/*`` may not import ``ui/*``
@@ -36,7 +41,45 @@ from ollama_llm_bench.backend.domain import (
     SettingKey,
 )
 
-__all__: list[str] = ["MainWindowGateway", "NewBenchmarkGateway", "ProgressGateway"]
+__all__: list[str] = [
+    "MainWindowGateway",
+    "ManualProviderProbeCommand",
+    "NewBenchmarkGateway",
+    "ProgressGateway",
+    "RunLogWriteStatus",
+]
+
+
+class ManualProviderProbeCommand(Protocol):
+    """Adapter-local collaborator backing the stability panel's manual retry-probe action.
+
+    Scoped to exactly what ``ProgressGateway.manual_provider_probe()`` needs: one
+    no-argument probe operation, submitted to a ``TaskRunner`` worker by the
+    gateway. Which provider is probed, and how the outcome reaches the
+    ``_model_stability_changed`` bus event, is this collaborator's own concern --
+    deferred to whichever future story wires a real implementation (this story
+    scopes only the gateway's dispatch onto a worker thread, not that wiring).
+    """
+
+    def probe(self) -> None:
+        """Perform one provider health probe. Blocking; runs on a ``TaskRunner`` worker."""
+        ...
+
+
+class RunLogWriteStatus(Protocol):
+    """Adapter-local collaborator answering "did the run-log file writer's most
+    recent write attempt fail" (EC-LOG-1).
+
+    No backend Protocol tracks this today -- ``RunLogWriter.write_event()``
+    returns a ``WriteOutcome`` per call but nothing persists the last one.
+    Whatever future component drives ``RunLogWriter.write_event()`` from bus
+    events (out of this story's scope) is the natural owner of this state; this
+    Protocol is the gateway's read-only query surface onto it.
+    """
+
+    def write_failed(self) -> bool:
+        """Whether the most recent write attempt failed. fast-synchronous."""
+        ...
 
 
 class MainWindowGateway(Protocol):

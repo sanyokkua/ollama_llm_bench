@@ -24,15 +24,15 @@ from ollama_llm_bench.adapters.ui_gateways._internal.new_benchmark.gateway impor
     _NewBenchmarkGateway,
 )
 from ollama_llm_bench.adapters.ui_gateways._internal.progress.gateway import (
-    ManualProviderProbeCommand,
     ProgressGatewayCollaborators,
-    RunLogWriteStatus,
     _ProgressGateway,
 )
 from ollama_llm_bench.adapters.ui_gateways.protocols import (
     MainWindowGateway,
+    ManualProviderProbeCommand,
     NewBenchmarkGateway,
     ProgressGateway,
+    RunLogWriteStatus,
 )
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi
 from ollama_llm_bench.backend.concurrency import RunDispatcher, TaskRunner
@@ -46,8 +46,10 @@ from ollama_llm_bench.backend.settings import SettingsService
 
 __all__: list[str] = [
     "MainWindowGateway",
+    "ManualProviderProbeCommand",
     "NewBenchmarkGateway",
     "ProgressGateway",
+    "RunLogWriteStatus",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
     "make_progress_gateway",

@@ -20,7 +20,7 @@ from typing import Final
 import pytest
 
 from ollama_llm_bench.adapters.ui_gateways import ProgressGateway, make_progress_gateway
-from ollama_llm_bench.adapters.ui_gateways._internal.progress.gateway import (
+from ollama_llm_bench.adapters.ui_gateways.protocols import (
     ManualProviderProbeCommand,
     RunLogWriteStatus,
 )
