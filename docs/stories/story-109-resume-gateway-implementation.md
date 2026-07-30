@@ -1,7 +1,7 @@
 ---
 id: STORY-109
 title: Implement the concrete Resume gateway over the run, result, and task stores and the resume command
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b3-resumegateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -168,8 +168,48 @@ then the factory returns a gateway and no method was invoked on any collaborator
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-109.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+- [x] Every acceptance criterion has a passing test that names STORY-109.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test for
+  STORY-109 (repo-wide `trace-check` still reports the pre-existing, unrelated EC-M-1..8
+  gaps tracked by Phase 11 stories 076-081 — see traceability.yaml diff for this change,
+  which touches only STORY-109's own AC rows).
+- [x] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
   `modules:` names it.
+
+## Notes
+
+A spec-conformance review of this story's first implementation pass found one real defect:
+`detect_drift` sourced its `live_providers` catalog from `ProviderRegistry.list_enabled()`
+(the enabled subset only) rather than `ProvidersStore.list_providers()` (every configured
+provider). The provider-drift check in `backend/run_drift/_internal/provider_check.py`
+distinguishes `PROVIDER_REMOVED` (no live entry at all) from `PROVIDER_NOW_DISABLED` (a live
+entry exists but `enabled is False`) purely by reading that flag on each live entry — passing
+only the enabled subset made a disabled-but-still-configured provider indistinguishable from a
+removed one, and the `PROVIDER_NOW_DISABLED` warning the spec's own §10.2 walks through by name
+was structurally unreachable. Fixed by adding `ProvidersStore` as an eleventh gateway
+collaborator (`_ResumeGateway.detect_drift` now reads the full catalog from it;
+`ProviderRegistry` is still used for `get_client(...)` on each reachable provider), with a new
+regression test (`test_detect_drift_includes_disabled_providers_in_the_live_catalog`) asserting
+a disabled provider's `ProviderConfig` reaches the detector's `live_providers` input unchanged.
+
+Two smaller items the same review raised are recorded here rather than resolved, since both
+are decisions for whoever picks up STORY-077 (the widget-wiring story), not this gateway story:
+
+- **`detect_drift` is genuinely blocking (readiness re-probe fan-out plus one `list_models()`
+  network call per enabled, reachable provider), but the one existing caller today**
+  (`ui/common_dialogs/api.py`'s `make_resume_summary_dialog`) **invokes it inline from a widget
+  factory reachable from a button click** — i.e. on the GUI thread. Nothing breaks today
+  because no real gateway is wired into that factory yet, but once STORY-077 wires this
+  gateway in, that call site will freeze the UI for the probe's duration unless it is first
+  marshalled onto the dispatcher/a worker thread. STORY-077 (or a dedicated follow-up) must
+  address this before wiring lands.
+- **Sort-column/direction persistence deliberately bypasses `SettingsService`** (see this
+  story's own Design decision 3) using two raw `AppSettingsStore` keys not present in
+  `backend/settings/_internal/registry.py`'s registry or the settings import/export catalog.
+  This was an intentional, precedented choice (mirroring `MainWindowGateway`'s own window-shell
+  keys) made because no registered key exists and adding one is out of this story's
+  `backend/settings/` scope — but it means these two keys will not round-trip through a
+  settings export/import today. A future story should either register them in
+  `backend/settings/` or extend the import/export catalog to include raw, unregistered
+  `AppSettingsStore` keys.

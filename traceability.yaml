@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-30T14:20:18Z'
+generated_at: '2026-07-30T16:33:33Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5647,7 +5647,7 @@ stories:
         - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-109:
     title: Implement the concrete Resume gateway over the run, result, and task stores and the resume command
-    status: ready
+    status: done
     spec_clauses:
     - 03_Resume_Benchmark_Widget/implementation_structure.md#7-dependency-protocols
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
@@ -5662,15 +5662,48 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-109-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[active_run_id_idle]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[active_run_id_running]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[create_results]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[create_run]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[create_tasks]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[delete_run]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[detect_drift]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[get_run]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[get_sort_setting_stored]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[get_sort_setting_unset]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[is_run_active]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[list_results]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[list_runs]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[list_tasks]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[refresh_readiness]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[rename_run]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[reset_results]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[reset_results_for_retry]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[resumable_results]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[resume_run]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[serialize_table]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[set_sort_setting]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[update_result]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_each_method_performs_its_backend_interaction[update_run_status]
       STORY-109-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_detect_drift_includes_disabled_providers_in_the_live_catalog
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_detect_drift_recovers_from_a_per_provider_list_models_failure
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_detect_drift_reports_warnings_and_never_raises
       STORY-109-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_serialize_table_accepts_the_shared_token_vocabulary[details_csv]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_serialize_table_accepts_the_shared_token_vocabulary[details_markdown]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_serialize_table_accepts_the_shared_token_vocabulary[summary_csv]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_serialize_table_accepts_the_shared_token_vocabulary[summary_markdown]
       STORY-109-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_retry_reset_preserves_a_judge_only_failures_response
       STORY-109-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-110:
     title: Implement the concrete Settings gateway with an atomic Save, an atomic Reset, and import/export
     status: draft

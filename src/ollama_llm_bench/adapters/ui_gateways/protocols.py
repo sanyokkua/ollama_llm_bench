@@ -1,6 +1,7 @@
-"""``MainWindowGateway``/``NewBenchmarkGateway``/``ProgressGateway``/``ResultGateway`` --
-**deliberate duplicates** of ``ui/main_window/protocols.py``, ``ui/new_benchmark/protocols.py``,
-``ui/progress/protocols.py``, and ``ui/results/protocols.py`` respectively. Also declares
+"""``MainWindowGateway``/``NewBenchmarkGateway``/``ProgressGateway``/``ResultGateway``/
+``ResumeGateway`` -- **deliberate duplicates** of ``ui/main_window/protocols.py``,
+``ui/new_benchmark/protocols.py``, ``ui/progress/protocols.py``, ``ui/results/protocols.py``,
+and ``ui/resume_benchmark/protocols.py`` respectively. Also declares
 ``ManualProviderProbeCommand`` and ``RunLogWriteStatus``, the two adapter-local collaborator
 Protocols the concrete ``ProgressGateway`` implementation depends on (see
 ``_internal/progress/gateway.py``'s docstring for why each is adapter-local/single-consumer
@@ -13,8 +14,8 @@ Definition of done -- see ``ui/results/protocols.py``'s own docstring for the fu
 rationale, mirrored here for the same reason as every other duplicate in this module).
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
-§7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``), §7b.4 (``ProgressGateway``),
-§7b.5 (``ResultGateway``).
+§7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``), §7b.3 (``ResumeGateway``),
+§7b.4 (``ProgressGateway``), §7b.5 (``ResultGateway``).
 
 ``ResultGateway.chart_data``'s return type is ``ChartData | HeatmapData`` here, matching
 ``ui/results/protocols.py``'s own copy (corrected by the STORY-108 spec-conformance fix
@@ -62,11 +63,14 @@ from ollama_llm_bench.backend.domain import (
     ModelName,
     ProviderConfig,
     ProviderId,
+    ResultId,
+    ResultPatch,
     RunId,
     RunStartRequest,
     RunStatusPatch,
     SettingKey,
 )
+from ollama_llm_bench.backend.run_drift import DriftWarning
 
 __all__: list[str] = [
     "JudgeAnalysisGenerationOutcome",
@@ -76,6 +80,7 @@ __all__: list[str] = [
     "NewBenchmarkGateway",
     "ProgressGateway",
     "ResultGateway",
+    "ResumeGateway",
     "RunLogWriteStatus",
 ]
 
@@ -394,4 +399,115 @@ class ResultGateway(Protocol):
 
     def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
         """Produce the Summary / Details CSV or Markdown payload."""
+        ...
+
+
+class ResumeGateway(Protocol):
+    """Adapter gateway for the Resume Benchmark widget (D-R-06).
+
+    Mirror of ``ui.resume_benchmark.protocols.ResumeGateway`` -- see this module's
+    docstring for why the declaration is duplicated. Also structurally satisfied
+    by whatever concrete class implements ``ui.common_dialogs.protocols``'
+    ``RenameRunGateway``/``ResumeSummaryGateway``/``RetrySelectionGateway``.
+    """
+
+    def list_runs(self) -> tuple[BenchmarkRun, ...]:
+        """Return every run header, newest first, for the run table."""
+        ...
+
+    def get_run(self, run_id: RunId) -> BenchmarkRun:
+        """Load one fully-assembled run (for Clone / detail reads)."""
+        ...
+
+    def create_run(self, run: BenchmarkRun) -> RunId:
+        """Create a run header + snapshots (the Clone-as-new-retry-run use case)."""
+        ...
+
+    def update_run_status(self, run_id: RunId, patch: RunStatusPatch) -> None:
+        """Apply a run-header status/counter patch."""
+        ...
+
+    def rename_run(self, run_id: RunId, name: str | None) -> None:
+        """Set or clear a run's user-facing name."""
+        ...
+
+    def delete_run(self, run_id: RunId) -> None:
+        """Delete a run and its dependent rows."""
+        ...
+
+    def list_results(self, run_id: RunId) -> tuple[BenchmarkResult, ...]:
+        """Return a run's results (for counts / Clone)."""
+        ...
+
+    def resumable_results(self, run_id: RunId) -> tuple[BenchmarkResult, ...]:
+        """Return the results eligible to (re-)run on resume."""
+        ...
+
+    def reset_results(self, result_ids: tuple[ResultId, ...]) -> int:
+        """Full whole-task reset of the named results to PENDING; return the count reset."""
+        ...
+
+    def reset_results_for_retry(self, result_ids: tuple[ResultId, ...]) -> int:
+        """Stage-preserving retry reset (DD-66); return the count reset."""
+        ...
+
+    def create_results(self, results: tuple[BenchmarkResult, ...]) -> None:
+        """Insert initial result rows (Clone-as-new-retry-run)."""
+        ...
+
+    def update_result(self, result_id: ResultId, patch: ResultPatch) -> None:
+        """Apply a partial update to one result row."""
+        ...
+
+    def list_tasks(self, run_id: RunId) -> tuple[BenchmarkTask, ...]:
+        """Return a run's frozen tasks (Clone)."""
+        ...
+
+    def create_tasks(self, run_id: RunId, tasks: tuple[BenchmarkTask, ...]) -> None:
+        """Insert a run's frozen task snapshot (Clone-as-new-retry-run)."""
+        ...
+
+    def refresh_readiness(self) -> AppReadinessSnapshot:
+        """Refresh the readiness snapshot before the Run Drift Detector runs."""
+        ...
+
+    def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
+        """Run the Run Drift Detector fresh against the current environment.
+
+        Blocking -- refreshes readiness (fans per-provider handshakes out onto
+        the worker pool and joins them, then runs the single embedding probe)
+        before comparing the run's frozen snapshot; must not be invoked
+        directly on the GUI thread. Never raises; every environment-availability
+        problem is reported as a returned ``DriftWarning``, never an exception
+        (11_RUN_DRIFT_DETECTOR.md).
+        """
+        ...
+
+    def get_sort_setting(self) -> tuple[str, bool]:
+        """Read the persisted sort column and descending flag."""
+        ...
+
+    def set_sort_setting(self, column: str, descending: bool) -> None:  # noqa: FBT001  # mirrors 08-E §7b.3 verbatim
+        """Persist the sort column and direction."""
+        ...
+
+    def resume_run(self, run_id: RunId) -> None:
+        """Resume an INCOMPLETE run from where crash recovery left it."""
+        ...
+
+    def is_run_active(self) -> bool:
+        """Whether a run is currently executing (for the per-row ``is_executing`` flag)."""
+        ...
+
+    def active_run_id(self) -> RunId | None:
+        """The id of the currently executing run, or ``None`` when idle."""
+        ...
+
+    def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
+        """Produce the Summary / Details CSV or Markdown payload.
+
+        ``table`` is ``"summary"``/``"details"``, ``fmt`` is ``"csv"``/``"markdown"``
+        -- the same token vocabulary as ``ResultGateway.serialize_table`` so both
+        gateways can share one ``TableSerializer`` collaborator.
+        """
         ...

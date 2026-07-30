@@ -90,10 +90,13 @@ class ResumeGateway(Protocol):
     def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
         """Run the Run Drift Detector fresh against the current environment.
 
-        Fast-synchronous (refreshes readiness, then a pure comparison over the
-        run's frozen snapshot) -- callable from the GUI thread. Never raises;
-        every environment-availability problem is reported as a returned
-        ``DriftWarning``, never an exception (11_RUN_DRIFT_DETECTOR.md).
+        Blocking: refreshes readiness -- which fans per-provider reachability
+        handshakes out onto the worker pool and joins them, then runs the
+        single embedding probe (`ReadinessService.probe_all`'s own contract) --
+        before running the detector's pure comparison over the run's frozen
+        snapshot. Must **not** be invoked directly on the GUI thread. Never
+        raises; every environment-availability problem is reported as a
+        returned ``DriftWarning``, never an exception (11_RUN_DRIFT_DETECTOR.md).
         """
         ...
 

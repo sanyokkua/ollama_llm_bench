@@ -94,7 +94,13 @@ class ResumeSummaryGateway(Protocol):
         ...
 
     def detect_drift(self, run_id: RunId) -> tuple[DriftWarning, ...]:
-        """Run the Run Drift Detector fresh; never raises (see ResumeGateway)."""
+        """Run the Run Drift Detector fresh against the current environment.
+
+        Blocking -- refreshes readiness (fans per-provider handshakes out onto
+        the worker pool and joins them, then runs the single embedding probe)
+        before comparing the run's frozen snapshot; must not be invoked
+        directly on the GUI thread. Never raises (see ``ResumeGateway``).
+        """
         ...
 
     def reset_results(self, result_ids: tuple[ResultId, ...]) -> int:

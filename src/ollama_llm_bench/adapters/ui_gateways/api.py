@@ -4,12 +4,17 @@ Constructs the concrete ``MainWindowGateway`` over ``AppSettingsStore``,
 ``SettingsService``, ``ReadinessService``, ``BenchmarkFlowApi``, and ``RunDispatcher``,
 the concrete ``NewBenchmarkGateway`` over ``AppSettingsStore``, ``SettingsService``,
 ``ProviderRegistry``, ``ReadinessService``, ``BenchmarkFlowApi``, and
-``NotificationService``, and the concrete ``ProgressGateway`` over ``BenchmarkFlowApi``,
+``NotificationService``, the concrete ``ProgressGateway`` over ``BenchmarkFlowApi``,
 ``RunsStore``, ``ResultsStore``, ``AppSettingsStore``, ``SettingsService``,
 ``PlatformDetector``, a ``TaskRunner``, a ``Clock``, and the two adapter-local
-manual-probe/run-log-write-status collaborators -- the adapters that let the Main
-Window shell, the New Benchmark widget, and the Progress widget reach the backend
-without ever holding a backend Store or Service Protocol themselves (D-R-06).
+manual-probe/run-log-write-status collaborators, and the concrete ``ResumeGateway``
+over ``RunsStore``, ``ResultsStore``, ``TasksStore``, ``AppSettingsStore``,
+``ReadinessService``, ``ProvidersStore``, ``ProviderRegistry``, ``RunDriftDetector``,
+``BenchmarkFlowApi``, ``TableSerializer``, and a ``Clock`` -- the adapters that let the
+Main Window shell,
+the New Benchmark widget, the Progress widget, and the Resume Benchmark widget reach
+the backend without ever holding a backend Store or Service Protocol themselves
+(D-R-06).
 """
 
 import icontract
@@ -31,6 +36,10 @@ from ollama_llm_bench.adapters.ui_gateways._internal.result.gateway import (
     ResultGatewayCollaborators,
     _ResultGateway,
 )
+from ollama_llm_bench.adapters.ui_gateways._internal.resume.gateway import (
+    ResumeGatewayCollaborators,
+    _ResumeGateway,
+)
 from ollama_llm_bench.adapters.ui_gateways.protocols import (
     JudgeAnalysisGenerationOutcome,
     JudgeAnalysisGenerationResult,
@@ -39,6 +48,7 @@ from ollama_llm_bench.adapters.ui_gateways.protocols import (
     NewBenchmarkGateway,
     ProgressGateway,
     ResultGateway,
+    ResumeGateway,
     RunLogWriteStatus,
 )
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi
@@ -47,12 +57,14 @@ from ollama_llm_bench.backend.concurrency import RunDispatcher, TaskRunner
 from ollama_llm_bench.backend.csv_export import TableSerializer
 from ollama_llm_bench.backend.infra.protocols import Clock, PlatformDetector
 from ollama_llm_bench.backend.persistence.app_settings import AppSettingsStore
+from ollama_llm_bench.backend.persistence.providers import ProvidersStore
 from ollama_llm_bench.backend.persistence.results import ResultsStore
 from ollama_llm_bench.backend.persistence.runs import RunsStore
 from ollama_llm_bench.backend.persistence.tasks import TasksStore
 from ollama_llm_bench.backend.provider_registry import ProviderRegistry
 from ollama_llm_bench.backend.readiness import ReadinessService
 from ollama_llm_bench.backend.run_analysis import RunAnalysisService
+from ollama_llm_bench.backend.run_drift import RunDriftDetector
 from ollama_llm_bench.backend.settings import SettingsService
 from ollama_llm_bench.backend.stores.inference_activity import InferenceActivityStore
 
@@ -64,11 +76,13 @@ __all__: list[str] = [
     "NewBenchmarkGateway",
     "ProgressGateway",
     "ResultGateway",
+    "ResumeGateway",
     "RunLogWriteStatus",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
     "make_progress_gateway",
     "make_result_gateway",
+    "make_resume_gateway",
 ]
 
 
@@ -432,6 +446,124 @@ def make_result_gateway(  # noqa: PLR0913  # twelve distinct required collaborat
             chart=chart,
             serializer=serializer,
             task_runner=task_runner,
+            clock=clock,
+        )
+    )
+
+
+@icontract.require(
+    lambda runs_store: runs_store is not None,
+    "runs_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda results_store: results_store is not None,
+    "results_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda tasks_store: tasks_store is not None,
+    "tasks_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda app_settings: app_settings is not None,
+    "app_settings is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda readiness: readiness is not None,
+    "readiness is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda providers_store: providers_store is not None,
+    "providers_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda provider_registry: provider_registry is not None,
+    "provider_registry is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda detector: detector is not None,
+    "detector is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda flow: flow is not None, "flow is a required collaborator wired by compose.py"
+)
+@icontract.require(
+    lambda serializer: serializer is not None,
+    "serializer is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda clock: clock is not None, "clock is a required collaborator wired by compose.py"
+)
+@icontract.ensure(
+    lambda result: result is not None,
+    "make_resume_gateway must always return a usable gateway — a violation "
+    "here means this factory's own wiring is broken, not that a caller passed bad input",
+)
+def make_resume_gateway(  # noqa: PLR0913  # eleven distinct required collaborators per
+    # the approved D-R-06 gateway shape (STORY-109)
+    *,
+    runs_store: RunsStore,
+    results_store: ResultsStore,
+    tasks_store: TasksStore,
+    app_settings: AppSettingsStore,
+    readiness: ReadinessService,
+    providers_store: ProvidersStore,
+    provider_registry: ProviderRegistry,
+    detector: RunDriftDetector,
+    flow: BenchmarkFlowApi,
+    serializer: TableSerializer,
+    clock: Clock,
+) -> ResumeGateway:
+    """Construct the Resume Benchmark widget's adapter gateway.
+
+    Construction is side-effect free: it performs no backend read, no probe, and
+    no network call (STORY-109-AC-5).
+
+    Args:
+        runs_store: The run-header store backing the run table, Clone, rename,
+            delete, and status-patch operations.
+        results_store: The per-task result-row store backing the results
+            read, the resumable-results read, the whole-task/retry resets,
+            Clone's result-row insert, and the Summary/Details export
+            aggregation.
+        tasks_store: The frozen per-run task-metadata store backing the tasks
+            read, Clone's task-row insert, and the Details export's
+            ``tasks_by_id`` lookup.
+        app_settings: The settings store the sort-column/descending-flag read
+            and write go through directly -- no registry entry exists for
+            either raw key, so this bypasses ``SettingsService``.
+        readiness: The readiness service ``detect_drift`` re-probes before
+            comparing the run's frozen snapshot.
+        providers_store: Resolves ``detect_drift``'s full live-provider
+            catalog (enabled and disabled alike) -- the provider-drift check
+            itself distinguishes a removed provider from a merely-disabled
+            one by that flag, so an enabled-only subset would make the
+            disabled case unreachable.
+        provider_registry: Resolves each reachable provider's client for
+            ``detect_drift``'s model-availability check.
+        detector: The Run Drift Detector ``detect_drift`` delegates the pure
+            comparison to.
+        flow: The benchmark flow API backing the resume command and the
+            run-active/active-run-id queries.
+        serializer: The table-serialization service backing
+            ``serialize_table``.
+        clock: Supplies the export timestamp.
+
+    Returns:
+        A ``ResumeGateway`` ready to be handed to ``make_resume_benchmark_widget``
+        (STORY-077).
+    """
+    return _ResumeGateway(
+        collaborators=ResumeGatewayCollaborators(
+            runs_store=runs_store,
+            results_store=results_store,
+            tasks_store=tasks_store,
+            app_settings=app_settings,
+            readiness=readiness,
+            providers_store=providers_store,
+            provider_registry=provider_registry,
+            detector=detector,
+            flow=flow,
+            serializer=serializer,
             clock=clock,
         )
     )
