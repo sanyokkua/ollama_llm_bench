@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-30T13:03:18Z'
+generated_at: '2026-07-30T14:20:18Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5606,7 +5606,7 @@ stories:
         - src/ollama_llm_bench/adapters/ui_gateways/tests/test_progress_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-108:
     title: Implement the concrete Result gateway over the run reads, charts, exports, and run analysis
-    status: ready
+    status: done
     spec_clauses:
     - 05_Result_Widget/implementation_structure.md#9-dependency-protocols
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
@@ -5621,15 +5621,30 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-108-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[chart_data]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[get_run]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[get_setting_stored]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[get_setting_unset]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[list_results]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[list_runs]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[list_tasks]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[persist_run_analysis]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[serialize_table]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[serialize_table_details]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_each_method_performs_its_backend_interaction[set_setting]
       STORY-108-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_regenerate_dispatches_to_a_worker_and_calls_back_on_the_gui_thread
       STORY-108-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_regenerate_refuses_when_the_gate_is_held
       STORY-108-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_result_carries_the_provider_display_name_not_the_id
       STORY-108-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_result_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-109:
     title: Implement the concrete Resume gateway over the run, result, and task stores and the resume command
     status: ready

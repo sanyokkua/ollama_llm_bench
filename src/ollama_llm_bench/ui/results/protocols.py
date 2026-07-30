@@ -38,6 +38,7 @@ from ollama_llm_bench.backend.domain import (
     BenchmarkTask,
     ChartData,
     ChartKind,
+    HeatmapData,
     ModelName,
     ProviderId,
     RunId,
@@ -139,7 +140,7 @@ class ResultGateway(Protocol):
         """
         ...
 
-    def chart_data(self, run_id: RunId, chart_kind: ChartKind) -> ChartData:
+    def chart_data(self, run_id: RunId, chart_kind: ChartKind) -> ChartData | HeatmapData:
         """Compute one chart's prepared ``ChartData`` / ``HeatmapData``."""
         ...
 

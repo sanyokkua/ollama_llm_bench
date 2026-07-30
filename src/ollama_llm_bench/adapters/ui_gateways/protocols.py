@@ -1,13 +1,29 @@
-"""``MainWindowGateway``/``NewBenchmarkGateway``/``ProgressGateway`` -- **deliberate
-duplicates** of ``ui/main_window/protocols.py``, ``ui/new_benchmark/protocols.py``, and
-``ui/progress/protocols.py`` respectively. Also declares ``ManualProviderProbeCommand``
-and ``RunLogWriteStatus``, the two adapter-local collaborator Protocols the concrete
-``ProgressGateway`` implementation depends on (see ``_internal/progress/gateway.py``'s
-docstring for why each is adapter-local/single-consumer rather than a named backend
-service).
+"""``MainWindowGateway``/``NewBenchmarkGateway``/``ProgressGateway``/``ResultGateway`` --
+**deliberate duplicates** of ``ui/main_window/protocols.py``, ``ui/new_benchmark/protocols.py``,
+``ui/progress/protocols.py``, and ``ui/results/protocols.py`` respectively. Also declares
+``ManualProviderProbeCommand`` and ``RunLogWriteStatus``, the two adapter-local collaborator
+Protocols the concrete ``ProgressGateway`` implementation depends on (see
+``_internal/progress/gateway.py``'s docstring for why each is adapter-local/single-consumer
+rather than a named backend service), and ``JudgeAnalysisGenerationOutcome`` /
+``JudgeAnalysisGenerationResult``, the locally-declared mirrors of
+``backend.run_analysis.RunAnalysisOutcome`` / ``RunAnalysisResult`` that
+``ResultGateway.regenerate_run_analysis`` returns through its ``on_complete`` callback
+(``ui/results/`` may not import ``backend.run_analysis`` directly, per STORY-061's
+Definition of done -- see ``ui/results/protocols.py``'s own docstring for the full
+rationale, mirrored here for the same reason as every other duplicate in this module).
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
-§7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``), §7b.4 (``ProgressGateway``).
+§7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``), §7b.4 (``ProgressGateway``),
+§7b.5 (``ResultGateway``).
+
+``ResultGateway.chart_data``'s return type is ``ChartData | HeatmapData`` here, matching
+``ui/results/protocols.py``'s own copy (corrected by the STORY-108 spec-conformance fix
+pass): ``ChartAggregator.compute`` (this gateway's actual collaborator) returns
+``ChartData | HeatmapData`` for the ``HEATMAP_TASK_BY_MODEL`` chart kind, and the Charts
+tab controller's own cache is already typed ``dict[ChartKind, ChartData | HeatmapData]``
+(see ``ui/results/_internal/charts_tab/controller.py``). Both copies now declare the same
+wider type, so ``_ResultGateway`` structurally satisfies both Protocols under
+``mypy --strict``.
 
 Each owning UI module's ``protocols.py`` stays the source of truth for its gateway's
 shape: the widget owns it, but ``adapters/*`` may not import ``ui/*``
@@ -29,23 +45,37 @@ record that; ADR-0014 itself is accepted and so may no longer be edited in place
 (``14_Process_and_Traceability/04_ADR_FORMAT.md`` §8).
 """
 
+from collections.abc import Callable
+from enum import StrEnum
 from typing import Protocol
+
+import msgspec
 
 from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
     BenchmarkResult,
     BenchmarkRun,
+    BenchmarkTask,
+    ChartData,
+    ChartKind,
+    HeatmapData,
+    ModelName,
     ProviderConfig,
+    ProviderId,
     RunId,
     RunStartRequest,
+    RunStatusPatch,
     SettingKey,
 )
 
 __all__: list[str] = [
+    "JudgeAnalysisGenerationOutcome",
+    "JudgeAnalysisGenerationResult",
     "MainWindowGateway",
     "ManualProviderProbeCommand",
     "NewBenchmarkGateway",
     "ProgressGateway",
+    "ResultGateway",
     "RunLogWriteStatus",
 ]
 
@@ -270,4 +300,98 @@ class ProgressGateway(Protocol):
 
     def run_log_write_failed(self) -> bool:
         """Whether the run-log file writer's most recent write attempt failed."""
+        ...
+
+
+class JudgeAnalysisGenerationOutcome(StrEnum):
+    """Locally-declared mirror of ``backend.run_analysis.RunAnalysisOutcome``.
+
+    See this module's docstring for why the mirror exists.
+    """
+
+    GENERATED = "generated"
+    SKIPPED = "skipped"
+    FAILED = "failed"
+
+
+class JudgeAnalysisGenerationResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Locally-declared mirror of ``backend.run_analysis.RunAnalysisResult``.
+
+    ``provider_name`` is the analysis provider's display **name** snapshot,
+    populated by the concrete gateway (which alone holds ``ProviderRegistry``
+    access) when ``outcome`` is ``GENERATED`` -- never the internal
+    ``provider_id``. See this module's docstring for why the mirror exists.
+    """
+
+    outcome: JudgeAnalysisGenerationOutcome
+    run_analysis_markdown: str | None = None
+    error_message: str | None = None
+    is_regeneration: bool = False
+    provider_name: str | None = None
+
+
+class ResultGateway(Protocol):
+    """Adapter gateway for the Result widget (D-R-06).
+
+    Mirror of ``ui.results.protocols.ResultGateway`` -- see this module's
+    docstring for why the declaration is duplicated, including the deliberate
+    ``chart_data`` return-type widening.
+    """
+
+    def list_runs(self) -> tuple[BenchmarkRun, ...]:
+        """Return the run headers for the run-selector dropdown."""
+        ...
+
+    def get_run(self, run_id: RunId) -> BenchmarkRun:
+        """Read one run header (for the active-run analysis and metadata)."""
+        ...
+
+    def persist_run_analysis(self, run_id: RunId, patch: RunStatusPatch) -> None:
+        """Persist the consolidated ``run_analysis`` via a run-header patch."""
+        ...
+
+    def list_results(self, run_id: RunId) -> tuple[BenchmarkResult, ...]:
+        """Read a run's results for the Summary / Details / Charts / Analysis caches."""
+        ...
+
+    def list_tasks(self, run_id: RunId) -> tuple[BenchmarkTask, ...]:
+        """Read per-task metadata (question, golden answer, required terms)."""
+        ...
+
+    def get_setting(self, key: SettingKey) -> str | None:
+        """Read ``ui.last_result_tab`` / ``ui.export_save_directly`` /
+        ``ui.score_display_format``, or ``None``."""
+        ...
+
+    def set_setting(self, key: SettingKey, value: str) -> None:
+        """Persist ``ui.last_result_tab`` / ``ui.export_save_directly``."""
+        ...
+
+    def regenerate_run_analysis(
+        self,
+        run_id: RunId,
+        provider_id: ProviderId,
+        model_name: ModelName,
+        *,
+        on_complete: Callable[[JudgeAnalysisGenerationResult], None],
+    ) -> bool:
+        """Attempt to acquire ``JUDGE_ANALYSIS`` and dispatch run-analysis generation.
+
+        fast-synchronous: performs a fast pre-check and, when the gate is
+        free, submits ``RunAnalysisService.generate(run_id, provider_id,
+        model_name)`` to a worker thread, returning ``True`` immediately.
+        ``on_complete`` is invoked on the GUI thread with the terminal
+        ``JudgeAnalysisGenerationResult`` once the call settles. Returns
+        ``False``, without dispatching and without ever calling
+        ``on_complete``, when the pre-check finds the gate already held by
+        another activity.
+        """
+        ...
+
+    def chart_data(self, run_id: RunId, chart_kind: ChartKind) -> ChartData | HeatmapData:
+        """Compute one chart's prepared ``ChartData`` / ``HeatmapData``."""
+        ...
+
+    def serialize_table(self, run_id: RunId, table: str, fmt: str) -> str:
+        """Produce the Summary / Details CSV or Markdown payload."""
         ...

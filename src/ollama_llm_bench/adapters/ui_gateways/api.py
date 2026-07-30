@@ -27,32 +27,48 @@ from ollama_llm_bench.adapters.ui_gateways._internal.progress.gateway import (
     ProgressGatewayCollaborators,
     _ProgressGateway,
 )
+from ollama_llm_bench.adapters.ui_gateways._internal.result.gateway import (
+    ResultGatewayCollaborators,
+    _ResultGateway,
+)
 from ollama_llm_bench.adapters.ui_gateways.protocols import (
+    JudgeAnalysisGenerationOutcome,
+    JudgeAnalysisGenerationResult,
     MainWindowGateway,
     ManualProviderProbeCommand,
     NewBenchmarkGateway,
     ProgressGateway,
+    ResultGateway,
     RunLogWriteStatus,
 )
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi
+from ollama_llm_bench.backend.charts import ChartAggregator
 from ollama_llm_bench.backend.concurrency import RunDispatcher, TaskRunner
+from ollama_llm_bench.backend.csv_export import TableSerializer
 from ollama_llm_bench.backend.infra.protocols import Clock, PlatformDetector
 from ollama_llm_bench.backend.persistence.app_settings import AppSettingsStore
 from ollama_llm_bench.backend.persistence.results import ResultsStore
 from ollama_llm_bench.backend.persistence.runs import RunsStore
+from ollama_llm_bench.backend.persistence.tasks import TasksStore
 from ollama_llm_bench.backend.provider_registry import ProviderRegistry
 from ollama_llm_bench.backend.readiness import ReadinessService
+from ollama_llm_bench.backend.run_analysis import RunAnalysisService
 from ollama_llm_bench.backend.settings import SettingsService
+from ollama_llm_bench.backend.stores.inference_activity import InferenceActivityStore
 
 __all__: list[str] = [
+    "JudgeAnalysisGenerationOutcome",
+    "JudgeAnalysisGenerationResult",
     "MainWindowGateway",
     "ManualProviderProbeCommand",
     "NewBenchmarkGateway",
     "ProgressGateway",
+    "ResultGateway",
     "RunLogWriteStatus",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
     "make_progress_gateway",
+    "make_result_gateway",
 ]
 
 
@@ -293,5 +309,129 @@ def make_progress_gateway(  # noqa: PLR0913  # ten distinct required collaborato
             clock=clock,
             probe_command=probe_command,
             write_status=write_status,
+        )
+    )
+
+
+@icontract.require(
+    lambda runs_store: runs_store is not None,
+    "runs_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda results_store: results_store is not None,
+    "results_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda tasks_store: tasks_store is not None,
+    "tasks_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda app_settings: app_settings is not None,
+    "app_settings is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda settings: settings is not None,
+    "settings is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda run_analysis: run_analysis is not None,
+    "run_analysis is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda gate: gate is not None, "gate is a required collaborator wired by compose.py"
+)
+@icontract.require(
+    lambda provider_registry: provider_registry is not None,
+    "provider_registry is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda chart: chart is not None, "chart is a required collaborator wired by compose.py"
+)
+@icontract.require(
+    lambda serializer: serializer is not None,
+    "serializer is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda task_runner: task_runner is not None,
+    "task_runner is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda clock: clock is not None, "clock is a required collaborator wired by compose.py"
+)
+@icontract.ensure(
+    lambda result: result is not None,
+    "make_result_gateway must always return a usable gateway — a violation "
+    "here means this factory's own wiring is broken, not that a caller passed bad input",
+)
+def make_result_gateway(  # noqa: PLR0913  # twelve distinct required collaborators per the
+    # approved D-R-06 gateway shape (STORY-108)
+    *,
+    runs_store: RunsStore,
+    results_store: ResultsStore,
+    tasks_store: TasksStore,
+    app_settings: AppSettingsStore,
+    settings: SettingsService,
+    run_analysis: RunAnalysisService,
+    gate: InferenceActivityStore,
+    provider_registry: ProviderRegistry,
+    chart: ChartAggregator,
+    serializer: TableSerializer,
+    task_runner: TaskRunner[object],
+    clock: Clock,
+) -> ResultGateway:
+    """Construct the Result widget's adapter gateway.
+
+    Construction is side-effect free: it performs no backend read, no probe, and
+    no network call (STORY-108-AC-5).
+
+    Args:
+        runs_store: The run-header store backing the run-selector list, the
+            single-run header read, the ``run_analysis`` persistence write,
+            and the run metadata ``chart_data``/``serialize_table`` load.
+        results_store: The per-task result-row store backing the results
+            read, and the Summary/Details export aggregation.
+        tasks_store: The frozen per-run task-metadata store backing the tasks
+            read, and the Details export's ``tasks_by_id`` lookup.
+        app_settings: The user-saved settings store the nullable
+            ``ui.last_result_tab``/``ui.export_save_directly``/
+            ``ui.score_display_format``/``eval.min_sample_size`` reads go
+            through.
+        settings: The settings service writes go through, so the
+            settings-changed event fires on every write.
+        run_analysis: The service ``regenerate_run_analysis`` dispatches to a
+            worker thread; never invoked with ``inside_pipeline=True`` (that
+            keyword is reserved for the benchmark pipeline's own call site).
+        gate: The application-wide single-inference gate;
+            ``regenerate_run_analysis`` performs a fast busy pre-check
+            against it before dispatching.
+        provider_registry: Resolves the analysis provider's current display
+            name once ``regenerate_run_analysis`` completes with a
+            ``GENERATED`` outcome.
+        chart: The chart-aggregation service backing ``chart_data``.
+        serializer: The table-serialization service backing
+            ``serialize_table``.
+        task_runner: The scheduling port ``regenerate_run_analysis``'s
+            worker call is submitted to, off the graphical thread.
+        clock: Supplies a fresh ``CancellationToken`` for the worker call and
+            the export timestamp.
+
+    Returns:
+        A ``ResultGateway`` ready to be handed to ``make_result_widget``
+        (STORY-077).
+    """
+    return _ResultGateway(
+        collaborators=ResultGatewayCollaborators(
+            runs_store=runs_store,
+            results_store=results_store,
+            tasks_store=tasks_store,
+            app_settings=app_settings,
+            settings=settings,
+            run_analysis=run_analysis,
+            gate=gate,
+            provider_registry=provider_registry,
+            chart=chart,
+            serializer=serializer,
+            task_runner=task_runner,
+            clock=clock,
         )
     )

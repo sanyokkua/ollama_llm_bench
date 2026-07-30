@@ -1,7 +1,7 @@
 ---
 id: STORY-108
 title: Implement the concrete Result gateway over the run reads, charts, exports, and run analysis
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -153,8 +153,41 @@ then the factory returns a gateway and no method was invoked on any collaborator
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-108.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+- [x] Every acceptance criterion has a passing test that names STORY-108.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test for
+  STORY-108 (repo-wide `trace-check` still reports the pre-existing, unrelated EC-M-1..8
+  gaps tracked by Phase 11 stories 076-081 — see traceability.yaml diff for this change,
+  which touches only STORY-108's own AC rows).
+- [x] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
   `modules:` names it.
+
+## Notes
+
+A spec-conformance review of this story's first implementation pass found five real defects
+(a `serialize_table` dispatch-value mismatch against the one real caller, `chart_data` running
+synchronously on the calling/GUI thread instead of a `TaskRunner` worker, a stale
+`ui/results/protocols.py` return-type annotation that made `_ResultGateway` fail to
+structurally satisfy that Protocol under `mypy --strict`, bare `ValueError` instead of the
+error taxonomy for the two dispatch-validation raises, and an unguarded `int()` parse of a
+user-editable setting) — all five were fixed in a follow-up pass. Two items surfaced during
+that review are deliberately **not** resolved here and are recorded for a future story:
+
+- **Export filter/sort-state mirroring is not implemented.**
+  `10_Domain_and_Data/05_EXPORT_FORMATS.md` §3.3's view-mirroring rule says an export should reflect whatever
+  filter, column, and sort state the user currently has applied to the on-screen Summary/
+  Details table — those live on the tab controllers (`ui/results/_internal/summary_tab/`,
+  `_internal/details_tab/`), not the gateway. But `08-E_interfaces_contracts.md` §7b.5's
+  `serialize_table(run_id, table, fmt)` signature has no parameter through which that state
+  could reach this gateway. Today's export therefore always serialises the full, unfiltered
+  row set, not what the widget currently shows on screen. Closing this gap needs a product/
+  architecture decision (does the signature grow a filter/sort parameter? does the tab
+  controller pre-filter the rows and hand them to a different, richer serialization entry
+  point?) that is out of this story's scope — a future story should pick it up explicitly.
+- **App-version resolution is a second source of truth.** `_ResultGateway`'s export-header
+  `app_version` field is resolved via `importlib.metadata.version("ollama-llm-bench")` inside
+  this module, independent of the `app_version: str` value already threaded through
+  `make_main_window` elsewhere in the composition root. The two reads could theoretically
+  disagree (for example, under an unusual packaging/install configuration). A follow-up could
+  inject the same already-resolved value as a constructor collaborator instead of having this
+  gateway re-resolve it independently — not implemented here, out of scope for this fix pass.
