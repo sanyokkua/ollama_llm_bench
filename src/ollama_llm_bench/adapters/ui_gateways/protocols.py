@@ -28,13 +28,15 @@ from typing import Protocol
 
 from ollama_llm_bench.backend.domain import (
     AppReadinessSnapshot,
+    BenchmarkResult,
+    BenchmarkRun,
     ProviderConfig,
     RunId,
     RunStartRequest,
     SettingKey,
 )
 
-__all__: list[str] = ["MainWindowGateway", "NewBenchmarkGateway"]
+__all__: list[str] = ["MainWindowGateway", "NewBenchmarkGateway", "ProgressGateway"]
 
 
 class MainWindowGateway(Protocol):
@@ -153,4 +155,76 @@ class NewBenchmarkGateway(Protocol):
         ``message`` is passed through unchanged -- UI/display surfaces do not apply
         redaction (``08-E`` §22, STORY-106-AC-3).
         """
+        ...
+
+
+class ProgressGateway(Protocol):
+    """Adapter gateway for the Progress widget (D-R-06).
+
+    Mirror of ``ui.progress.protocols.ProgressGateway`` -- see this module's
+    docstring for why the declaration is duplicated. See that module's own
+    docstring for the full rationale behind the three methods
+    (``list_runs``, ``is_run_active``, ``run_log_write_failed``) that extend
+    beyond ``08-E`` §7b.4's eleven verbatim methods.
+    """
+
+    def pause_run(self) -> None:
+        """Request a cooperative pause of the active run."""
+        ...
+
+    def resume_run(self) -> None:
+        """Resume execution after a pause."""
+        ...
+
+    def stop_run(self, reason: str | None = None) -> None:
+        """Request a cooperative stop of the active run."""
+        ...
+
+    def run_metadata(self, run_id: RunId) -> BenchmarkRun:
+        """Read the active run's metadata from the run registry."""
+        ...
+
+    def rename_run(self, run_id: RunId, name: str | None) -> None:
+        """Set or clear the active run's user-facing name (the inline pencil)."""
+        ...
+
+    def run_header(self, run_id: RunId) -> BenchmarkRun:
+        """Read a run header -- elapsed time and the terminal run summary."""
+        ...
+
+    def task_counters(self, run_id: RunId) -> tuple[BenchmarkResult, ...]:
+        """Read per-task result rows for the run-progress counters / current task."""
+        ...
+
+    def load_past_log(self, run_id: RunId) -> str:
+        """Load the saved run-log of a past run for replay."""
+        ...
+
+    def get_setting(self, key: SettingKey) -> str | None:
+        """Read ``ui.run_log_verbosity`` / ``ui.auto_scroll_run_log``, or ``None``."""
+        ...
+
+    def set_setting(self, key: SettingKey, value: str) -> None:
+        """Persist ``ui.run_log_verbosity`` / ``ui.auto_scroll_run_log``."""
+        ...
+
+    def manual_provider_probe(self) -> None:
+        """Trigger a manual provider probe (the stability "retry probe" action)."""
+        ...
+
+    def list_runs(self) -> tuple[BenchmarkRun, ...]:
+        """Return every run header.
+
+        Structurally satisfies
+        ``ui.common_dialogs.protocols.RenameRunGateway.list_runs`` for the
+        header rename-pencil's name-uniqueness check.
+        """
+        ...
+
+    def is_run_active(self) -> bool:
+        """Whether a run is currently executing (non-terminal)."""
+        ...
+
+    def run_log_write_failed(self) -> bool:
+        """Whether the run-log file writer's most recent write attempt failed."""
         ...
