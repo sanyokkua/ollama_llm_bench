@@ -2,11 +2,14 @@
 
 Constructs the concrete ``MainWindowGateway`` over ``AppSettingsStore``,
 ``SettingsService``, ``ReadinessService``, ``BenchmarkFlowApi``, and ``RunDispatcher``,
-and the concrete ``NewBenchmarkGateway`` over ``AppSettingsStore``, ``SettingsService``,
+the concrete ``NewBenchmarkGateway`` over ``AppSettingsStore``, ``SettingsService``,
 ``ProviderRegistry``, ``ReadinessService``, ``BenchmarkFlowApi``, and
-``NotificationService`` -- the adapters that let the Main Window shell and the New
-Benchmark widget reach the backend without ever holding a backend Store or Service
-Protocol themselves (D-R-06).
+``NotificationService``, and the concrete ``ProgressGateway`` over ``BenchmarkFlowApi``,
+``RunsStore``, ``ResultsStore``, ``AppSettingsStore``, ``SettingsService``,
+``PlatformDetector``, a ``TaskRunner``, a ``Clock``, and the two adapter-local
+manual-probe/run-log-write-status collaborators -- the adapters that let the Main
+Window shell, the New Benchmark widget, and the Progress widget reach the backend
+without ever holding a backend Store or Service Protocol themselves (D-R-06).
 """
 
 import icontract
@@ -20,13 +23,23 @@ from ollama_llm_bench.adapters.ui_gateways._internal.new_benchmark.gateway impor
     NewBenchmarkGatewayCollaborators,
     _NewBenchmarkGateway,
 )
+from ollama_llm_bench.adapters.ui_gateways._internal.progress.gateway import (
+    ManualProviderProbeCommand,
+    ProgressGatewayCollaborators,
+    RunLogWriteStatus,
+    _ProgressGateway,
+)
 from ollama_llm_bench.adapters.ui_gateways.protocols import (
     MainWindowGateway,
     NewBenchmarkGateway,
+    ProgressGateway,
 )
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi
-from ollama_llm_bench.backend.concurrency import RunDispatcher
+from ollama_llm_bench.backend.concurrency import RunDispatcher, TaskRunner
+from ollama_llm_bench.backend.infra.protocols import Clock, PlatformDetector
 from ollama_llm_bench.backend.persistence.app_settings import AppSettingsStore
+from ollama_llm_bench.backend.persistence.results import ResultsStore
+from ollama_llm_bench.backend.persistence.runs import RunsStore
 from ollama_llm_bench.backend.provider_registry import ProviderRegistry
 from ollama_llm_bench.backend.readiness import ReadinessService
 from ollama_llm_bench.backend.settings import SettingsService
@@ -34,8 +47,10 @@ from ollama_llm_bench.backend.settings import SettingsService
 __all__: list[str] = [
     "MainWindowGateway",
     "NewBenchmarkGateway",
+    "ProgressGateway",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
+    "make_progress_gateway",
 ]
 
 
@@ -174,5 +189,107 @@ def make_new_benchmark_gateway(  # noqa: PLR0913  # six distinct required collab
             readiness=readiness,
             flow=flow,
             notification=notification,
+        )
+    )
+
+
+@icontract.require(
+    lambda flow: flow is not None, "flow is a required collaborator wired by compose.py"
+)
+@icontract.require(
+    lambda runs_store: runs_store is not None,
+    "runs_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda results_store: results_store is not None,
+    "results_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda app_settings: app_settings is not None,
+    "app_settings is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda settings: settings is not None,
+    "settings is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda platform_detector: platform_detector is not None,
+    "platform_detector is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda task_runner: task_runner is not None,
+    "task_runner is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda clock: clock is not None, "clock is a required collaborator wired by compose.py"
+)
+@icontract.require(
+    lambda probe_command: probe_command is not None,
+    "probe_command is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda write_status: write_status is not None,
+    "write_status is a required collaborator wired by compose.py",
+)
+@icontract.ensure(
+    lambda result: result is not None,
+    "make_progress_gateway must always return a usable gateway — a violation "
+    "here means this factory's own wiring is broken, not that a caller passed bad input",
+)
+def make_progress_gateway(  # noqa: PLR0913  # ten distinct required collaborators per the
+    # approved D-R-06 gateway shape (STORY-107)
+    *,
+    flow: BenchmarkFlowApi,
+    runs_store: RunsStore,
+    results_store: ResultsStore,
+    app_settings: AppSettingsStore,
+    settings: SettingsService,
+    platform_detector: PlatformDetector,
+    task_runner: TaskRunner[object],
+    clock: Clock,
+    probe_command: ManualProviderProbeCommand,
+    write_status: RunLogWriteStatus,
+) -> ProgressGateway:
+    """Construct the Progress widget's adapter gateway.
+
+    Construction is side-effect free: it performs no backend read, no probe, and
+    no network call (STORY-107-AC-4).
+
+    Args:
+        flow: The benchmark flow API backing pause/resume/stop and the
+            run-active query.
+        runs_store: The run-header store backing run-metadata/rename/header
+            reads and the run list.
+        results_store: The per-task result-row store backing the counters read.
+        app_settings: The user-saved settings store the nullable
+            ``ui.run_log_verbosity``/``ui.auto_scroll_run_log`` reads go through.
+        settings: The settings service writes go through, so the
+            settings-changed event fires on every write.
+        platform_detector: Resolves the application-data root the run-log
+            directory is read from for past-run replay.
+        task_runner: The scheduling port the manual provider probe is
+            submitted to, off the graphical thread.
+        clock: Supplies a fresh ``CancellationToken`` for each manual probe.
+        probe_command: The collaborator that performs one provider health
+            probe when submitted.
+        write_status: The collaborator answering whether the run-log file
+            writer's most recent write attempt failed.
+
+    Returns:
+        A ``ProgressGateway`` ready to be handed to ``make_progress_widget``
+        (STORY-077).
+    """
+    return _ProgressGateway(
+        collaborators=ProgressGatewayCollaborators(
+            flow=flow,
+            runs_store=runs_store,
+            results_store=results_store,
+            app_settings=app_settings,
+            settings=settings,
+            platform_detector=platform_detector,
+            task_runner=task_runner,
+            clock=clock,
+            probe_command=probe_command,
+            write_status=write_status,
         )
     )
