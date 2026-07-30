@@ -1,7 +1,7 @@
 ---
 id: STORY-107
 title: Implement the concrete Progress gateway over the run controls, run reads, and the manual probe
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b4-progressgateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
