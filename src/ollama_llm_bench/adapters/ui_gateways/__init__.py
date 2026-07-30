@@ -2,21 +2,25 @@
 
 Houses one sub-feature package per widget under ``_internal/``, exposing one
 ``make_*_gateway`` factory per widget so no UI module ever holds a backend Store or
-Service Protocol directly (D-R-06). Two of the seven gateways are implemented so far --
-Main Window (STORY-105) and New Benchmark (STORY-106); the remaining five land in later
-stories.
+Service Protocol directly (D-R-06). Three of the seven gateways are implemented so far --
+Main Window (STORY-105), New Benchmark (STORY-106), and Progress (STORY-107); the
+remaining four land in later stories.
 """
 
 from ollama_llm_bench.adapters.ui_gateways.api import (
     MainWindowGateway,
     NewBenchmarkGateway,
+    ProgressGateway,
     make_main_window_gateway,
     make_new_benchmark_gateway,
+    make_progress_gateway,
 )
 
 __all__: list[str] = [
     "MainWindowGateway",
     "NewBenchmarkGateway",
+    "ProgressGateway",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
+    "make_progress_gateway",
 ]
