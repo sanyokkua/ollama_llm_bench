@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-31T20:03:20Z'
+generated_at: '2026-07-31T20:33:29Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -912,6 +912,7 @@ stories:
         - tests/architecture/test_settings_module.py::test_at_least_one_source_file_discovered
         - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[__init__.py]
         - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/__init__.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/atomic_writer_impl.py]
         - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/registry.py]
         - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/resolver.py]
         - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[_internal/run_snapshot_builder_impl.py]
@@ -928,6 +929,7 @@ stories:
         - tests/architecture/test_settings_module.py::test_settings_module_defines_no_async_function[tests/test_settings_service.py]
         - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[__init__.py]
         - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/__init__.py]
+        - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/atomic_writer_impl.py]
         - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/registry.py]
         - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/resolver.py]
         - tests/architecture/test_settings_module.py::test_settings_module_imports_no_qt_or_asyncio[_internal/run_snapshot_builder_impl.py]
@@ -4469,7 +4471,7 @@ stories:
         - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
         - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
         - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
-        - tests/integration/test_settings_reset.py::test_settings_wipe_has_no_real_delete_all_method_yet
+        - tests/integration/test_settings_reset.py::test_settings_wipe_now_has_a_real_delete_all_method
       STORY-067-AC-6:
         tests:
         - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
@@ -10071,7 +10073,7 @@ edge_cases:
     - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
     - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
     - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
-    - tests/integration/test_settings_reset.py::test_settings_wipe_has_no_real_delete_all_method_yet
+    - tests/integration/test_settings_reset.py::test_settings_wipe_now_has_a_real_delete_all_method
     - tests/integration/test_settings_save.py::test_atomic_save_writes_both_and_emits_events
   EC-SET-3:
     stories:
@@ -10089,7 +10091,7 @@ edge_cases:
     - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
     - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
     - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
-    - tests/integration/test_settings_reset.py::test_settings_wipe_has_no_real_delete_all_method_yet
+    - tests/integration/test_settings_reset.py::test_settings_wipe_now_has_a_real_delete_all_method
     - tests/integration/test_settings_save.py::test_atomic_save_writes_both_and_emits_events
   EC-SET-4:
     stories:
@@ -10107,7 +10109,7 @@ edge_cases:
     - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
     - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
     - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
-    - tests/integration/test_settings_reset.py::test_settings_wipe_has_no_real_delete_all_method_yet
+    - tests/integration/test_settings_reset.py::test_settings_wipe_now_has_a_real_delete_all_method
     - tests/integration/test_settings_save.py::test_atomic_save_writes_both_and_emits_events
   EC-TASK-1:
     stories:
