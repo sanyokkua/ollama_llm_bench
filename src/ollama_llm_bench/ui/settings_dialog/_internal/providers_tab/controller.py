@@ -11,6 +11,7 @@ sibling sub-packages.
 """
 
 from collections.abc import Callable
+import functools
 import os
 
 import msgspec
@@ -22,7 +23,11 @@ import structlog
 from ollama_llm_bench.adapters.notification_service import NotificationService
 from ollama_llm_bench.adapters.qt_table_models import make_providers_table_model
 from ollama_llm_bench.adapters.qt_table_models.models import ProviderTableRow
-from ollama_llm_bench.backend.domain import ProviderConfig
+from ollama_llm_bench.backend.domain import (
+    InferenceTestResult,
+    ProviderConfig,
+    ProviderTestStatus,
+)
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.settings_dialog._internal.providers_tab.view import ProvidersTabWidget
 from ollama_llm_bench.ui.settings_dialog._internal.view_model_select import (
@@ -166,13 +171,43 @@ class ProvidersTabController:
             )
 
     def on_test_clicked(self, view_row: int) -> None:
-        """Run the row-level Test connection probe against the working copy (AC-6)."""
+        """Run the row-level Test connection probe against the working copy (AC-6).
+
+        Paints the row's health dot ``TESTING`` immediately; the real outcome
+        is applied only when the gateway's ``on_complete`` callback fires
+        (ADR-0015, STORY-110-AC-9).
+        """
         config = self._configs[view_row]
         logger.debug("providers_tab_test_connection_clicked", provider_id=config.provider_id)
-        result = self._gateway.test_provider(config.provider_id, "")
+        previous_status = config.last_probe_status
+        self._replace_config(
+            msgspec.structs.replace(config, last_probe_status=ProviderTestStatus.TESTING)
+        )
+        self._gateway.test_provider(
+            config.provider_id,
+            "",
+            on_complete=functools.partial(self._on_test_completed, view_row, previous_status),
+        )
+
+    def _on_test_completed(
+        self,
+        view_row: int,
+        previous_status: ProviderTestStatus,
+        result: InferenceTestResult,
+    ) -> None:
+        """Apply a deferred ``test_provider`` outcome, tolerating a row that
+        moved or disappeared before the callback fired. A ``GATE_BUSY``
+        outcome reverts the row to ``previous_status`` -- the probe never
+        ran, so the optimistic ``TESTING`` paint must not stick."""
+        if view_row >= len(self._configs):
+            return
+        config = self._configs[view_row]
+        if config.provider_id != result.provider_id:
+            return
         new_status = inference_test_outcome_to_provider_status(result.outcome)
         if new_status is None:
             self._notifications.show_warning(_GATE_BUSY_MESSAGE)
+            self._replace_config(msgspec.structs.replace(config, last_probe_status=previous_status))
             return
         self._replace_config(msgspec.structs.replace(config, last_probe_status=new_status))
 

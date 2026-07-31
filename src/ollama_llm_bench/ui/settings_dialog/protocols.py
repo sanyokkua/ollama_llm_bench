@@ -31,6 +31,7 @@ could not; this UI module cannot enforce the concrete adapter's transaction
 itself, but the Protocol's shape is what makes it possible.
 """
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Protocol
 
 from ollama_llm_bench.backend.domain import (
@@ -55,7 +56,19 @@ if TYPE_CHECKING:
         SettingsImportResult,
     )
 
-__all__: list[str] = ["SettingsGateway"]
+__all__: list[str] = ["DiscoverModelsCallable", "SettingsGateway"]
+
+
+class DiscoverModelsCallable(Protocol):
+    """Structural shape of ``SettingsGateway.discover_models`` (ADR-0015),
+    used to type the bound-callable field
+    ``EmbeddingSectionCollaborators.discover_models`` -- a plain
+    ``Callable[...]`` alias cannot express a keyword-only parameter.
+    """
+
+    def __call__(
+        self, provider_id: ProviderId, *, on_complete: Callable[[tuple[ModelName, ...]], None]
+    ) -> None: ...
 
 
 class SettingsGateway(Protocol):
@@ -78,7 +91,9 @@ class SettingsGateway(Protocol):
     def replace_providers(self, configs: tuple[ProviderConfig, ...]) -> None:
         """Replace the entire provider catalog atomically (Save / Import / Reset).
 
-        blocking.
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015; ``08-E`` §7 states every persistence store, including
+        ``ProvidersStore``, is fast-synchronous (a quick SQLite write under WAL).
         """
         ...
 
@@ -100,7 +115,9 @@ class SettingsGateway(Protocol):
     def upsert_settings(self, values: dict[SettingKey, str]) -> None:
         """Write several settings atomically (the settings half of Save / Reset).
 
-        blocking.
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015; ``08-E`` §7 states every persistence store is
+        fast-synchronous.
         """
         ...
 
@@ -123,35 +140,66 @@ class SettingsGateway(Protocol):
     def upsert_model_capability(self, record: ModelCapabilityRecord) -> None:
         """Persist a user-overridden capability record.
 
-        blocking.
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015; ``08-E`` §7 states every persistence store is
+        fast-synchronous.
         """
         ...
 
-    def test_provider(self, provider_id: ProviderId, model_name: ModelName) -> InferenceTestResult:
-        """Run the per-row Test-connection inference probe for a provider/model.
+    def test_provider(
+        self,
+        provider_id: ProviderId,
+        model_name: ModelName,
+        *,
+        on_complete: Callable[[InferenceTestResult], None],
+    ) -> None:
+        """Run the per-row/reachability/inference test probe.
 
-        blocking; acquires the ``PROVIDER_TEST`` single-inference gate.
+        fast-synchronous: returns before the probe completes. Deviates from
+        ``08-E`` §7b.6's verbatim ``-> InferenceTestResult`` signature per
+        ADR-0015 -- ``LLMClient.probe_health``/``test_inference`` are
+        *blocking* (``08-E`` §10), so this method must never return
+        synchronously on the calling (GUI) thread. Submitted to a
+        ``TaskRunner`` worker thread; ``on_complete`` is invoked on the GUI
+        thread once the call settles, and acquires/releases the
+        ``PROVIDER_TEST`` single-inference gate for the call's full duration.
         """
         ...
 
-    def discover_models(self, provider_id: ProviderId) -> tuple[ModelName, ...]:
+    def discover_models(
+        self, provider_id: ProviderId, *, on_complete: Callable[[tuple[ModelName, ...]], None]
+    ) -> None:
         """Discover a provider's models for the embedding-section picker.
 
-        blocking.
+        fast-synchronous: returns before discovery completes. Deviates from
+        ``08-E`` §7b.6's verbatim ``-> tuple[ModelName, ...]`` signature per
+        ADR-0015 -- ``LLMClient.list_models`` is *blocking*. ``on_complete``
+        is invoked on the GUI thread once discovery settles.
         """
         ...
 
-    def probe_all(self) -> AppReadinessSnapshot:
+    def probe_all(self) -> None:
         """Run the auto-check on open; emits readiness-changed.
 
-        blocking.
+        fast-synchronous: returns before the batch completes. Deviates from
+        ``08-E`` §7b.6's verbatim ``-> AppReadinessSnapshot`` signature per
+        ADR-0015 -- the batch is *blocking* (``08-E`` §12) and orchestrated
+        on the pipeline-dispatcher thread. No callback: ``ReadinessService``
+        emits ``_app_readiness_changed`` itself; this dialog already
+        subscribes to it.
         """
         ...
 
-    def probe_embedding(self) -> AppReadinessSnapshot:
+    def probe_embedding(self) -> None:
         """Run the Test-Embedding probe behind the embedding section.
 
-        blocking; acquires the ``PROVIDER_TEST`` single-inference gate.
+        fast-synchronous: returns before the probe completes. Deviates from
+        ``08-E`` §7b.6's verbatim ``-> AppReadinessSnapshot`` signature per
+        ADR-0015. Acquires the ``PROVIDER_TEST`` gate for the call's full
+        duration. No callback parameter: the concrete adapter publishes
+        ``_app_readiness_changed`` itself once the probe settles (see
+        STORY-110's plan for why -- ``ReadinessService`` has no method for
+        this billable ``embed()`` capability check).
         """
         ...
 
@@ -165,12 +213,12 @@ class SettingsGateway(Protocol):
     def build_settings_import_preview(self, file_path: str) -> "SettingsImportPreview":
         """Parse and fully validate a settings YAML file into a preview.
 
-        blocking (file I/O + parse); routed by the concrete Phase 11 adapter to
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015; the concrete adapter (STORY-110) delegates directly to
         ``backend.import_export.ImportExportService.build_settings_import_preview``
-        on a ``TaskRunner`` worker thread -- this Protocol method's own call site
-        may be invoked directly from the controller exactly like the existing
-        ``test_provider``/``probe_all`` methods; the threading marshalling is the
-        concrete adapter's responsibility (D-R-06), not this UI module's.
+        on the calling thread, matching AC-2's "delegates ... and returns its
+        value unchanged" shape (no worker dispatch for this small, one-shot
+        file read+parse).
 
         Args:
             file_path: The absolute path chosen via ``NativePickers.open_file``.
@@ -187,7 +235,8 @@ class SettingsGateway(Protocol):
     def apply_settings_import(self, preview: "SettingsImportPreview") -> "SettingsImportResult":
         """Write a confirmed settings-import preview's resolved values.
 
-        blocking; merges -- only ``preview.resolved_values`` keys are written.
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015; merges -- only ``preview.resolved_values`` keys are written.
 
         Args:
             preview: A preview previously returned by
@@ -204,7 +253,8 @@ class SettingsGateway(Protocol):
     def build_provider_import_preview(self, file_path: str) -> "ProviderImportPreview":
         """Parse and fully validate a provider-configuration YAML file into a preview.
 
-        blocking (file I/O + parse).
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015 (see ``build_settings_import_preview``'s docstring).
 
         Args:
             file_path: The absolute path chosen via ``NativePickers.open_file``.
@@ -223,7 +273,8 @@ class SettingsGateway(Protocol):
     def apply_provider_import(self, preview: "ProviderImportPreview") -> "ProviderImportResult":
         """Replace the provider registry wholesale with a confirmed preview.
 
-        blocking; this is a **replace**, not a merge.
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015; this is a **replace**, not a merge.
 
         Args:
             preview: A preview previously returned by
@@ -240,7 +291,8 @@ class SettingsGateway(Protocol):
     def export_settings(self) -> bytes:
         """Serialize every user-saved setting to the canonical settings YAML.
 
-        blocking. The disk write itself is owned by ``FileSystemActions``/
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015. The disk write itself is owned by ``FileSystemActions``/
         ``NativePickers`` at the dialog level -- this call returns the payload only.
 
         Returns:
@@ -254,7 +306,8 @@ class SettingsGateway(Protocol):
     def export_providers(self) -> bytes:
         """Serialize the provider catalog and embedding selection to YAML.
 
-        blocking. ``provider_id`` never appears in the payload (DD-33).
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015. ``provider_id`` never appears in the payload (DD-33).
 
         Returns:
             The UTF-8-encoded YAML document.
@@ -270,7 +323,9 @@ class SettingsGateway(Protocol):
         """Commit the working provider catalog and settings values in one
         atomic transaction (``description.md`` §6; STORY-067-AC-3).
 
-        blocking. All-or-nothing: the concrete Phase 11 adapter wraps both the
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015; a single SQLite transaction under WAL returns quickly. All-
+        or-nothing: the concrete Phase 11 adapter wraps both the
         ``ProvidersStore.replace_providers`` write and the
         ``AppSettingsStore.upsert_settings`` write in one real database
         transaction. On failure, neither store is modified -- this is a
@@ -294,7 +349,8 @@ class SettingsGateway(Protocol):
         """Wipe and re-seed the whole configuration in one atomic transaction
         (``sub_dialogs/reset_confirmation.md`` §4, §6, §7; STORY-067-AC-5).
 
-        blocking. All-or-nothing: the concrete Phase 11 adapter deletes every
+        fast-synchronous -- corrected from a stale ``blocking`` marker per
+        ADR-0015. All-or-nothing: the concrete Phase 11 adapter deletes every
         ``providers`` and ``app_settings`` row, then re-seeds
         ``bundled_providers`` and re-seeds **every** ``app_settings`` key to
         its in-code default -- not only the General tab's own registry keys.

@@ -20,16 +20,13 @@ from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.adapters.notification_service import NotificationService
 from ollama_llm_bench.backend.domain import (
-    AppReadinessSnapshot,
-    ModelName,
     ProviderConfig,
-    ProviderId,
     ProviderTestStatus,
     ProviderType,
     SettingKey,
 )
 from ollama_llm_bench.backend.events import EventBus
-from ollama_llm_bench.ui.settings_dialog.protocols import SettingsGateway
+from ollama_llm_bench.ui.settings_dialog.protocols import DiscoverModelsCallable, SettingsGateway
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
 __all__: list[str] = [
@@ -211,18 +208,24 @@ class EmbeddingSectionCollaborators(msgspec.Struct, frozen=True, kw_only=True, g
             provider dropdown and the first-start embedding bootstrap search.
         discover_models: Discovers one provider's model list, for the model
             dropdown and the first-start embedding bootstrap search.
+            fast-synchronous: returns before discovery completes; delivers
+            via ``on_complete`` (ADR-0015, STORY-110).
         get_setting: Reads a persisted setting value -- used to read
             ``embedding.selected_provider_name`` / ``embedding.selected_model_name``
             at construction time (§1.4, §3.4).
         probe_embedding: Runs the user-initiated Test Embedding probe (§3.4).
+            fast-synchronous: returns before the probe completes; the outcome
+            arrives later via the existing ``_app_readiness_changed``
+            subscription owned by a level above this widget (ADR-0015,
+            STORY-110) -- no callback and no return value here.
         event_bus: Rebuilds the provider dropdown on registry reload and gates
             the Test Embedding button on ``_inference_activity_changed`` (§13).
     """
 
     provider_configs_source: Callable[[], tuple[ProviderConfig, ...]]
-    discover_models: Callable[[ProviderId], tuple[ModelName, ...]]
+    discover_models: DiscoverModelsCallable
     get_setting: Callable[[SettingKey], str | None]
-    probe_embedding: Callable[[], AppReadinessSnapshot]
+    probe_embedding: Callable[[], None]
     event_bus: EventBus
 
 

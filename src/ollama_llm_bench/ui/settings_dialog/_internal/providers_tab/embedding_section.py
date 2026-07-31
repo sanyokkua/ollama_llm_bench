@@ -24,6 +24,7 @@ were previously undelivered although both were in this story's declared scope).
 """
 
 from collections.abc import Callable
+import functools
 from typing import Protocol, cast
 
 from PySide6.QtCore import QSignalBlocker, SignalInstance
@@ -45,11 +46,10 @@ from ollama_llm_bench.ui.settings_dialog._internal.sub_dialogs.provider_edit_sel
     gate_button_state,
 )
 from ollama_llm_bench.ui.settings_dialog._internal.view_model_select import (
-    embedding_diagnostic_text,
     find_provider_id_by_name,
-    resolve_embedding_bootstrap_pair,
 )
 from ollama_llm_bench.ui.settings_dialog.models import EmbeddingSectionCollaborators
+from ollama_llm_bench.ui.settings_dialog.protocols import DiscoverModelsCallable
 from ollama_llm_bench.ui.shared.model_dropdown import make_model_dropdown
 from ollama_llm_bench.ui.shared.provider_dropdown import make_provider_dropdown
 
@@ -100,10 +100,14 @@ class _DiscoverModelsFetcher:
     contract (08-E §7b.6, §1: "a method whose contract names no category does
     not raise ... it returns a value or a status instead"), so this shim never
     needs an error path of its own; ``on_error`` is accepted only to satisfy
-    ``ModelFetcher``'s shape.
+    ``ModelFetcher``'s shape. ``discover_models`` itself returns ``None``
+    immediately and delivers via ``on_complete`` (ADR-0015, STORY-110) --
+    this shim's own ``on_success`` becomes that ``on_complete`` callback,
+    closed over ``provider_id`` so ``ModelFetcher``'s two-argument shape is
+    preserved for ``model_dropdown``.
     """
 
-    def __init__(self, discover_models: Callable[[ProviderId], tuple[ModelName, ...]]) -> None:
+    def __init__(self, discover_models: DiscoverModelsCallable) -> None:
         self._discover_models = discover_models
 
     def fetch_models(
@@ -113,7 +117,7 @@ class _DiscoverModelsFetcher:
         on_success: Callable[[ProviderId, tuple[ModelName, ...]], None],
         on_error: Callable[[ProviderId, Exception], None],  # noqa: ARG002  # Protocol shape only -- discover_models never raises for an expected failure
     ) -> None:
-        on_success(provider_id, self._discover_models(provider_id))
+        self._discover_models(provider_id, on_complete=functools.partial(on_success, provider_id))
 
 
 class EmbeddingSectionWidget(QWidget):
@@ -126,6 +130,7 @@ class EmbeddingSectionWidget(QWidget):
         self.setObjectName("settings_dialog.embedding_section")
         self._show_all = False
         self._probe_embedding = collaborators.probe_embedding
+        self._discover_models = collaborators.discover_models
         self._gate_activity = InferenceActivity.IDLE
         self._build_ui(collaborators=collaborators)
         self._initialize_selection(collaborators=collaborators)
@@ -194,19 +199,49 @@ class EmbeddingSectionWidget(QWidget):
             )
             return
         enabled_providers = tuple(p for p in providers if p.enabled)
-        bootstrap_pair = resolve_embedding_bootstrap_pair(
-            enabled_providers=enabled_providers, models_by_provider=collaborators.discover_models
-        )
-        if bootstrap_pair is None:
+        self._bootstrap_search_next(enabled_providers, 0)
+
+    def _bootstrap_search_next(
+        self, enabled_providers: tuple[ProviderConfig, ...], index: int
+    ) -> None:
+        """Walk ``enabled_providers`` one at a time for the first-start
+        embedding bootstrap search (§14).
+
+        ``discover_models`` is fast-synchronous and delivers via
+        ``on_complete`` (ADR-0015, STORY-110) -- it no longer returns a
+        value the former ``resolve_embedding_bootstrap_pair`` pure function
+        could walk over synchronously, so this method chains one provider's
+        discovery into the next's via callbacks instead, preserving the same
+        "first embedding-likely model, in provider order" search semantics.
+        """
+        if index >= len(enabled_providers):
             logger.debug("embedding_section_bootstrap_found_no_embedding_model")
             return
-        bootstrap_provider_id, bootstrap_model_name = bootstrap_pair
-        self._select_provider_and_populate_models(bootstrap_provider_id)
-        self._select_model_if_present(bootstrap_model_name)
+        provider = enabled_providers[index]
+        self._discover_models(
+            provider.provider_id,
+            on_complete=functools.partial(
+                self._on_bootstrap_models_discovered, enabled_providers, index
+            ),
+        )
+
+    def _on_bootstrap_models_discovered(
+        self,
+        enabled_providers: tuple[ProviderConfig, ...],
+        index: int,
+        models: tuple[ModelName, ...],
+    ) -> None:
+        provider = enabled_providers[index]
+        embedding_model = next((model for model in models if is_embedding_model(model)), None)
+        if embedding_model is None:
+            self._bootstrap_search_next(enabled_providers, index + 1)
+            return
+        self._select_provider_and_populate_models(provider.provider_id)
+        self._select_model_if_present(embedding_model)
         logger.debug(
             "embedding_section_bootstrap_selected",
-            provider_id=bootstrap_provider_id,
-            model_name=bootstrap_model_name,
+            provider_id=provider.provider_id,
+            model_name=embedding_model,
         )
 
     def _select_provider_and_populate_models(self, provider_id: str) -> None:
@@ -248,10 +283,14 @@ class EmbeddingSectionWidget(QWidget):
 
     def _on_test_embedding_clicked(self) -> None:
         logger.debug("embedding_section_test_embedding_clicked")
-        snapshot = self._probe_embedding()
-        self.set_diagnostic(
-            embedding_diagnostic_text(embedding_reachable=snapshot.embedding_reachable)
-        )
+        self.set_diagnostic("Testing…")
+        self._probe_embedding()
+        # The real outcome arrives via the existing _app_readiness_changed
+        # subscription (SettingsController._on_readiness_changed ->
+        # ProvidersTabController.apply_embedding_diagnostic -> set_diagnostic),
+        # not from this call's return value (ADR-0015, STORY-110) -- probe_embedding
+        # returns None immediately and the concrete gateway publishes the event
+        # itself once the billable capability check settles.
 
     def set_diagnostic(self, text: str) -> None:
         """Render the last Test Embedding result, redacted for display."""

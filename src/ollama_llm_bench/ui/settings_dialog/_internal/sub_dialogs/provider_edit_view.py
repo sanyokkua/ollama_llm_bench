@@ -1,12 +1,17 @@
 """``ProviderEditDialog`` -- the modal surface for creating or editing one
 provider (``sub_dialogs/provider_edit.md``).
 
-Both Test actions call ``SettingsGateway.test_provider(provider_id, model_name)``
+Both Test actions call ``SettingsGateway.test_provider(provider_id, model_name, on_complete=...)``
 against the in-memory working copy: an empty ``model_name`` runs the row-level
 Test-reachability probe (mirroring ``ProvidersTabController.on_test_clicked``);
 a non-empty ``model_name`` runs the end-to-end Test-inference call (§8.1, §8.2).
 This single Gateway method is the only probe entry point ``SettingsGateway``
-declares (08-E §7b.6) -- there is no separate reachability-only method.
+declares (08-E §7b.6) -- there is no separate reachability-only method. Per
+ADR-0015 (STORY-110), the call returns immediately and the outcome is applied
+from the ``on_complete`` callback instead of a same-line return value, so the
+graphical thread never blocks on the network call; ``_on_run_inference_clicked``'s
+completion handler also emits ``_provider_inference_test_completed`` once per
+call (``08-J`` §5.6), never on the reachability-only path.
 
 The live in-flight progress sub-states of §8.2 (the two-line
 ``_inference_progress``-driven "testing waiting"/"testing receiving" indicator)
@@ -14,6 +19,7 @@ are not implemented this story -- out of this story's ``acceptance_criteria``;
 only the outcome the call settles with is rendered inline.
 """
 
+import functools
 import os
 from typing import override
 import uuid
@@ -33,10 +39,17 @@ from PySide6.QtWidgets import (
 )
 import structlog
 
-from ollama_llm_bench.backend.domain import InferenceActivity, ProviderConfig, ProviderType
+from ollama_llm_bench.backend.domain import (
+    InferenceActivity,
+    InferenceTestResult,
+    ProviderConfig,
+    ProviderType,
+)
 from ollama_llm_bench.backend.events import (
     SIGNAL_INFERENCE_ACTIVITY_CHANGED,
+    SIGNAL_PROVIDER_INFERENCE_TEST_COMPLETED,
     InferenceActivityChangedEvent,
+    InferenceTestCompletedEvent,
 )
 from ollama_llm_bench.ui.settings_dialog._internal.sub_dialogs.provider_edit_select import (
     DUPLICATE_NAME_MESSAGE,
@@ -87,6 +100,7 @@ class ProviderEditDialog(QDialog):
         super().__init__(parent)
         self.setObjectName("settings_dialog.provider_edit")
         self._gateway = collaborators.gateway
+        self._event_bus = collaborators.event_bus
         self._is_new = config is None
         self._working = config if config is not None else _blank_draft()
         self._existing_names = existing_names
@@ -303,7 +317,11 @@ class ProviderEditDialog(QDialog):
         logger.debug(
             "provider_edit_test_reachability_clicked", provider_id=self._working.provider_id
         )
-        result = self._gateway.test_provider(self._working.provider_id, "")
+        self._gateway.test_provider(
+            self._working.provider_id, "", on_complete=self._on_reachability_test_completed
+        )
+
+    def _on_reachability_test_completed(self, result: InferenceTestResult) -> None:
         self._result_label.setText(f"Test reachability — {result.outcome.value}")
 
     def _on_run_inference_clicked(self) -> None:
@@ -317,8 +335,17 @@ class ProviderEditDialog(QDialog):
             provider_id=self._working.provider_id,
             model_name=model_name,
         )
-        result = self._gateway.test_provider(self._working.provider_id, model_name)
+        self._gateway.test_provider(
+            self._working.provider_id,
+            model_name,
+            on_complete=functools.partial(self._on_inference_test_completed, model_name),
+        )
+
+    def _on_inference_test_completed(self, model_name: str, result: InferenceTestResult) -> None:
         self._result_label.setText(f"Test inference — {result.outcome.value} — {model_name}")
+        self._event_bus.emit(
+            SIGNAL_PROVIDER_INFERENCE_TEST_COMPLETED, InferenceTestCompletedEvent(result=result)
+        )
 
     def _on_save_clicked(self) -> None:
         trimmed_name = self._name_edit.text().strip()

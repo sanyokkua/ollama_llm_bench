@@ -1,5 +1,5 @@
 """``FakeSettingsGateway`` -- an in-memory test double for ``ui/settings_dialog/``'s
-``SettingsGateway`` swap point (STORY-066, extended by STORY-067).
+``SettingsGateway`` swap point (STORY-066, extended by STORY-067, STORY-110).
 
 No real I/O; the provider catalog, settings, and probe results are held in plain
 Python containers and are externally settable by a test. Mirrors the
@@ -16,8 +16,20 @@ state is completely unchanged on a scripted failure. ``replace_providers`` and
 ``upsert_settings`` are kept as separately callable methods -- Import still
 calls ``upsert_settings`` via ``apply_settings_import`` -- but Save/Reset now
 call only the two new atomic methods.
+
+**STORY-110 / ADR-0015.** ``test_provider``/``discover_models`` now accept a
+keyword-only ``on_complete`` callback and return ``None``; this fake invokes
+``on_complete`` synchronously, in the same call, rather than deferring it --
+the simplest faithful fake behaviour for a test double with no real worker
+thread, and it keeps every pre-existing colocated test (which asserts the
+outcome immediately after the click) passing unchanged. ``probe_all``/
+``probe_embedding`` now return ``None`` and no longer carry a readiness
+snapshot on their own return value; a test drives the readiness update the
+same way it always has, by emitting ``_app_readiness_changed`` on the fake
+``EventBus`` directly.
 """
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from ollama_llm_bench.backend.domain import (
@@ -228,29 +240,34 @@ class FakeSettingsGateway:
     def upsert_model_capability(self, record: ModelCapabilityRecord) -> None:  # noqa: ARG002  # canned fake: unused by design
         return None
 
-    def test_provider(self, provider_id: ProviderId, model_name: ModelName) -> InferenceTestResult:
+    def test_provider(
+        self,
+        provider_id: ProviderId,
+        model_name: ModelName,
+        *,
+        on_complete: Callable[[InferenceTestResult], None],
+    ) -> None:
         self.recorded_test_provider_calls.append((provider_id, model_name))
-        if self._test_provider_result is not None:
-            return self._test_provider_result
-        return InferenceTestResult(
+        result = self._test_provider_result or InferenceTestResult(
             outcome=InferenceTestOutcome.SUCCESS,
             provider_id=provider_id,
             model_name=model_name or "unknown",
             latency_ms=10,
             tested_at=0,
         )
+        on_complete(result)
 
-    def discover_models(self, provider_id: ProviderId) -> tuple[ModelName, ...]:
+    def discover_models(
+        self, provider_id: ProviderId, *, on_complete: Callable[[tuple[ModelName, ...]], None]
+    ) -> None:
         self.recorded_discover_models_calls.append(provider_id)
-        return self._discovered_models.get(provider_id, ())
+        on_complete(self._discovered_models.get(provider_id, ()))
 
-    def probe_all(self) -> AppReadinessSnapshot:
+    def probe_all(self) -> None:
         self.recorded_probe_all_calls += 1
-        return self._readiness
 
-    def probe_embedding(self) -> AppReadinessSnapshot:
+    def probe_embedding(self) -> None:
         self.recorded_probe_embedding_calls += 1
-        return self._readiness
 
     def readiness_snapshot(self) -> AppReadinessSnapshot:
         return self._readiness

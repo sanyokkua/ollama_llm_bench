@@ -175,7 +175,13 @@ class SettingsController:
 
     def load(self) -> None:
         """Enter the Opening state: load both tabs and request the
-        auto-check-on-open readiness refresh (§14; STORY-066-AC-7)."""
+        auto-check-on-open readiness refresh (§14; STORY-066-AC-7).
+
+        ``probe_all()`` returns ``None`` immediately (ADR-0015, STORY-110);
+        the real readiness result arrives separately via the
+        ``_app_readiness_changed`` subscription this class already wires in
+        ``bind_view``.
+        """
         self.providers_controller.reload()
         self._general_tab_controller.reload()
         self._gateway.probe_all()

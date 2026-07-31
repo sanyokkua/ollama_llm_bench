@@ -88,9 +88,13 @@ def test_test_embedding_button_gated_on_inference_activity(qtbot: QtBot) -> None
     assert button.isEnabled() is True
 
 
-def test_test_embedding_click_probes_and_renders_diagnostic(qtbot: QtBot) -> None:
-    """Clicking Test Embedding calls ``SettingsGateway.probe_embedding`` and
-    renders the resulting ``embedding_reachable`` flag into the diagnostic label."""
+def test_test_embedding_click_probes_and_shows_transient_testing_state(qtbot: QtBot) -> None:
+    """Clicking Test Embedding calls ``SettingsGateway.probe_embedding`` and shows
+    a transient in-flight diagnostic immediately; the real outcome is delivered
+    later by a level above this widget calling ``set_diagnostic`` from the
+    ``_app_readiness_changed`` subscription (ADR-0015, STORY-110) -- exercised
+    directly here since that subscription lives in ``SettingsController``, one
+    layer above this widget-only test."""
     # Arrange
     gateway = FakeSettingsGateway()
     gateway.set_readiness(
@@ -104,8 +108,12 @@ def test_test_embedding_click_probes_and_renders_diagnostic(qtbot: QtBot) -> Non
     qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
         _test_embedding_button(widget), Qt.MouseButton.LeftButton
     )
-    # Assert
+    # Assert: probe was requested and returned immediately, showing the transient state
     assert gateway.recorded_probe_embedding_calls == 1
+    assert _diagnostic_label(widget).text() == "Testing…"
+    # Act: the level above delivers the real outcome via set_diagnostic
+    widget.set_diagnostic("✓ embedding reachable")
+    # Assert
     assert _diagnostic_label(widget).text() == "✓ embedding reachable"
 
 
