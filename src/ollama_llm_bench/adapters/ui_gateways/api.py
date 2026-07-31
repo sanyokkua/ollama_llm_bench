@@ -67,7 +67,6 @@ from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi
 from ollama_llm_bench.backend.charts import ChartAggregator
 from ollama_llm_bench.backend.concurrency import RunDispatcher, TaskRunner
 from ollama_llm_bench.backend.csv_export import TableSerializer
-from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.backend.import_export import ImportExportService
 from ollama_llm_bench.backend.infra.protocols import Clock, PlatformDetector
 from ollama_llm_bench.backend.persistence.app_settings import AppSettingsStore
@@ -626,10 +625,6 @@ def make_resume_gateway(  # noqa: PLR0913  # eleven distinct required collaborat
     lambda gate: gate is not None, "gate is a required collaborator wired by compose.py"
 )
 @icontract.require(
-    lambda event_bus: event_bus is not None,
-    "event_bus is a required collaborator wired by compose.py",
-)
-@icontract.require(
     lambda task_runner: task_runner is not None,
     "task_runner is a required collaborator wired by compose.py",
 )
@@ -645,7 +640,7 @@ def make_resume_gateway(  # noqa: PLR0913  # eleven distinct required collaborat
     "make_settings_gateway must always return a usable gateway — a violation "
     "here means this factory's own wiring is broken, not that a caller passed bad input",
 )
-def make_settings_gateway(  # noqa: PLR0913  # thirteen distinct required collaborators per
+def make_settings_gateway(  # noqa: PLR0913  # twelve distinct required collaborators per
     # the approved D-R-06 gateway shape (STORY-110)
     *,
     providers_store: ProvidersStore,
@@ -657,7 +652,6 @@ def make_settings_gateway(  # noqa: PLR0913  # thirteen distinct required collab
     readiness: ReadinessService,
     import_export: ImportExportService,
     gate: InferenceActivityStore,
-    event_bus: EventBus,
     task_runner: TaskRunner[object],
     dispatcher: RunDispatcher,
     clock: Clock,
@@ -684,13 +678,16 @@ def make_settings_gateway(  # noqa: PLR0913  # thirteen distinct required collab
         provider_registry: Resolves the live ``LLMClient`` for
             ``test_provider``/``discover_models``/the embedding capability
             probe.
-        readiness: Backs the on-open readiness snapshot read and the
-            dispatcher-thread ``probe_all`` batch.
+        readiness: Backs the on-open readiness snapshot read, the
+            dispatcher-thread ``probe_all`` batch, and (via
+            ``record_embedding_capability_result``) the billable
+            ``probe_embedding`` capability check's readiness update
+            (STORY-110 spec-conformance fix: this gateway no longer holds
+            an ``EventBus`` of its own -- ``ReadinessService`` is the sole
+            emitter of ``_app_readiness_changed``, per ``08-J`` §5.7).
         import_export: Backs the six import/export pass-throughs.
         gate: The application-wide single-inference gate; acquired for the
             full duration of ``test_provider`` and ``probe_embedding``.
-        event_bus: Publishes ``_app_readiness_changed`` once
-            ``probe_embedding``'s billable capability check settles.
         task_runner: The scheduling port ``test_provider``/
             ``discover_models``/``probe_embedding`` submit their worker calls
             to, off the graphical thread.
@@ -714,7 +711,6 @@ def make_settings_gateway(  # noqa: PLR0913  # thirteen distinct required collab
             readiness=readiness,
             import_export=import_export,
             gate=gate,
-            event_bus=event_bus,
             task_runner=task_runner,
             dispatcher=dispatcher,
             clock=clock,

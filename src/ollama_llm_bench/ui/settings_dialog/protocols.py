@@ -56,7 +56,7 @@ if TYPE_CHECKING:
         SettingsImportResult,
     )
 
-__all__: list[str] = ["DiscoverModelsCallable", "SettingsGateway"]
+__all__: list[str] = ["DiscoverModelsCallable", "ProbeEmbeddingCallable", "SettingsGateway"]
 
 
 class DiscoverModelsCallable(Protocol):
@@ -69,6 +69,16 @@ class DiscoverModelsCallable(Protocol):
     def __call__(
         self, provider_id: ProviderId, *, on_complete: Callable[[tuple[ModelName, ...]], None]
     ) -> None: ...
+
+
+class ProbeEmbeddingCallable(Protocol):
+    """Structural shape of ``SettingsGateway.probe_embedding`` (ADR-0016),
+    used to type the bound-callable field
+    ``EmbeddingSectionCollaborators.probe_embedding`` -- a plain
+    ``Callable[...]`` alias cannot express a keyword-only parameter.
+    """
+
+    def __call__(self, *, on_complete: Callable[[bool], None]) -> None: ...
 
 
 class SettingsGateway(Protocol):
@@ -190,16 +200,28 @@ class SettingsGateway(Protocol):
         """
         ...
 
-    def probe_embedding(self) -> None:
+    def probe_embedding(self, *, on_complete: Callable[[bool], None]) -> None:
         """Run the Test-Embedding probe behind the embedding section.
 
         fast-synchronous: returns before the probe completes. Deviates from
         ``08-E`` §7b.6's verbatim ``-> AppReadinessSnapshot`` signature per
-        ADR-0015. Acquires the ``PROVIDER_TEST`` gate for the call's full
-        duration. No callback parameter: the concrete adapter publishes
-        ``_app_readiness_changed`` itself once the probe settles (see
-        STORY-110's plan for why -- ``ReadinessService`` has no method for
-        this billable ``embed()`` capability check).
+        ADR-0015, and carries a keyword-only ``on_complete`` callback per
+        ADR-0016 (a spec-conformance correction of ADR-0015's original "no
+        callback needed" claim for this one method). Acquires the
+        ``PROVIDER_TEST`` gate for the call's full duration. Reports its
+        outcome two ways: the concrete adapter reports it to
+        ``ReadinessService.record_embedding_capability_result()`` -- which
+        updates the held snapshot and emits ``_app_readiness_changed`` itself
+        only on a real change (``ReadinessService`` stays the sole emitter of
+        that event, ``08-J`` §5.7); this dialog already subscribes to it --
+        and it ALSO always invokes ``on_complete`` with the check's definite
+        boolean outcome exactly once, on the calling (graphical) thread, so
+        the one-shot click that triggered this call gets a terminal repaint
+        even when the billable check reproduces an already-known value (no
+        event fires) or the ``PROVIDER_TEST`` gate was busy (a fact
+        ``on_complete`` reports for this widget's own feedback, but that
+        ``ReadinessService`` is never told, since gate contention is not a
+        capability fact and must not move the cached readiness state).
         """
         ...
 

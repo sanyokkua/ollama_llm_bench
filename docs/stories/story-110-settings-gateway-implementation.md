@@ -1,7 +1,7 @@
 ---
 id: STORY-110
 title: Implement the concrete Settings gateway with an atomic Save, an atomic Reset, and import/export
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
@@ -10,6 +10,9 @@ spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#12-readiness-service
   - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+  - 08_Cross_Cutting/08-J_event_bus_catalog.md#57-global-and-app-readiness
+  - 11_Services_and_Algorithms/09_READINESS_PROBE.md#65-aggregation-into-the-overall-verdict
+  - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#66a-embedding-capability-validation-d-r-11-miss-11
   - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4a-the-dispatcher-thread-dd-38
   - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#12-anti-patterns
   - 06_Settings_Dialog/implementation_structure.md#7-dependency-protocols
@@ -23,6 +26,7 @@ modules:
   - adapters/ui_gateways/
   - backend/persistence/providers/
   - backend/persistence/app_settings/
+  - backend/readiness/
 acceptance_criteria:
   - STORY-110-AC-1
   - STORY-110-AC-2
@@ -33,11 +37,14 @@ acceptance_criteria:
   - STORY-110-AC-7
   - STORY-110-AC-8
   - STORY-110-AC-9
+  - STORY-110-AC-10
+  - STORY-110-AC-11
 edge_cases: []
 depends_on: []
 adrs:
   - ADR-0014
   - ADR-0015
+  - ADR-0016
 owner: coder
 estimate: L
 ---
@@ -151,10 +158,21 @@ health dot shows that a test is running, and the outcome paints itself when the 
   value. `probe_all` is submitted to the **pipeline-dispatcher thread** (a fan-out batch that joins on
   the pool must not itself run on the pool — `04_CONCURRENCY_STANDARD.md` §4a, the same reasoning as
   `MainWindowGateway.reprobe()` in STORY-105); the three leaf calls are submitted to a `TaskRunner`
-  worker. `probe_all` and `probe_embedding` need no callback: `ReadinessService` emits
-  `_app_readiness_changed` itself and the dialog already subscribes to it. `test_provider` and
-  `discover_models` deliver through an `on_complete` callback invoked on the graphical thread — no new
-  bus channel, because `08-J` §6 rule 2 keeps single-widget data off the bus and because
+  worker. `probe_all` needs no callback: `ReadinessService` emits `_app_readiness_changed` itself
+  through its own batch-then-aggregate path and the dialog already subscribes to it. `probe_embedding`
+  reports its outcome through `ReadinessService` the same way — handing its billable `embed("probe")`
+  outcome to `ReadinessService.record_embedding_capability_result(reachable=…)` (added to
+  `backend/readiness/` by this story's first spec-conformance fix pass), which updates the held
+  snapshot and emits the event itself only on a real change, keeping `ReadinessService` the sole
+  emitter named by `08-J` §5.7; the gateway holds no `EventBus` of its own. **Second
+  spec-conformance fix pass correction (ADR-0016):** `probe_embedding` ALSO gains its own
+  keyword-only `on_complete` callback, delivered alongside (never instead of) the
+  `ReadinessService` call, because a one-shot user click needs a guaranteed completion signal even
+  on the common case where the check reproduces an already-known value and `ReadinessService`'s
+  own emit-only-on-change rule produces no event — see AC-11 and ADR-0016 for why this corrects
+  ADR-0015's original "`probe_embedding` needs no callback" claim without reopening it. `test_provider`
+  and `discover_models` deliver through an `on_complete` callback invoked on the graphical thread — no
+  new bus channel, because `08-J` §6 rule 2 keeps single-widget data off the bus and because
   `_provider_inference_test_completed` must keep its catalogued emitter (the controller that ran the
   test). Follow `ResultGateway.regenerate_run_analysis` (STORY-108) for the callback relay, including
   its tolerance of a callback that settles after its widget is gone.
@@ -260,12 +278,12 @@ probe ran.
 Each network-bound method returns `None` to its caller before its backend call has completed, and runs
 that call in the stated execution context — never on the calling thread:
 
-| Gateway method                                | Backend call submitted                       | Execution context it runs on |
-| --------------------------------------------- | -------------------------------------------- | ---------------------------- |
-| `test_provider(provider_id, model_name, ...)` | the provider registry's inference-test probe | a `TaskRunner` worker thread |
-| `discover_models(provider_id, ...)`           | the provider registry's model discovery      | a `TaskRunner` worker thread |
-| `probe_all()`                                 | the readiness service's full probe batch     | the dispatcher thread        |
-| `probe_embedding()`                           | the readiness service's embedding probe      | a `TaskRunner` worker thread |
+| Gateway method                                | Backend call submitted                                                                                                                       | Execution context it runs on |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `test_provider(provider_id, model_name, ...)` | the provider registry's inference-test probe                                                                                                 | a `TaskRunner` worker thread |
+| `discover_models(provider_id, ...)`           | the provider registry's model discovery                                                                                                      | a `TaskRunner` worker thread |
+| `probe_all()`                                 | the readiness service's full probe batch                                                                                                     | the dispatcher thread        |
+| `probe_embedding()`                           | the billable `embed("probe")` capability check (`06_EMBEDDING_SERVICE.md` §6.6a) — not the readiness service's own free handshake-only check | a `TaskRunner` worker thread |
 
 ### STORY-110-AC-8
 
@@ -287,6 +305,51 @@ completion callback runs:
 | Providers-tab row `Test connection` | the row's health dot reads `TESTING`      | the row's health dot reads the outcome     |
 | Provider Edit `Test reachability`   | the inline result strip is unchanged      | the strip reads the outcome                |
 | Provider Edit `Run inference test`  | the inline result strip is unchanged      | the strip reads the outcome and the model  |
+
+### STORY-110-AC-10
+
+Given a collaborator call inside `test_provider`'s, `discover_models`'s, or `probe_embedding`'s worker
+body raises (`ProviderRegistry.get_client` raising `ConfigurationError` for an ordinary
+misconfiguration, or `LLMClient.list_models` raising a `ProviderError`-marked `AppError` when the
+listing call itself fails), when the worker runs, then the failure is caught and translated into a
+failure-shaped result delivered exactly once, instead of silently discarding the delivery the way an
+uncaught exception on a `Future` done-callback does:
+
+| Method            | Failure-shaped result delivered                                                                                                   |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `test_provider`   | `on_complete` receives an `InferenceTestResult(outcome=PROVIDER_ERROR, …)`, redacted                                              |
+| `discover_models` | `on_complete` receives an empty `tuple[ModelName, ...]`                                                                           |
+| `probe_embedding` | `ReadinessService.record_embedding_capability_result(reachable=False)` is called once, and its own `on_complete` receives `False` |
+
+`probe_embedding`'s single-inference gate being busy (`try_acquire` returning `None`) is a
+**different** case from a genuine collaborator failure (spec-conformance fix, ADR-0016): gate
+contention is not a capability fact, so on that path `ReadinessService` is never called at all — the
+cached snapshot's `embedding_reachable`/`overall` fields, and therefore the app-wide `GRADED`
+run-start gate that reads them (`08-J` §5.7), are left exactly as they were, mirroring
+`ReadinessService._probe_all_once`'s own gate-refusal branch, which likewise returns the existing
+cached snapshot rather than recording a fact it never observed. `on_complete` still receives `False`
+on this path (see AC-11) so the click that triggered it gets a definite terminal repaint — a
+widget-local signal that is allowed to diverge from the untouched readiness state, because the two
+serve different purposes: "did this specific click resolve" versus "is the app's cached embedding
+capability fact still valid". On a genuine collaborator failure (the gate was acquired but the check
+itself raised), `ReadinessService.record_embedding_capability_result(reachable=…)` still updates the
+held snapshot's `embedding_reachable` field and recomputes `overall` through the same aggregation fold
+`probe_all` uses, then emits `_app_readiness_changed` through the same conditional-on-change path
+`probe_all` uses — so a later `snapshot()`/`readiness_snapshot()` read (e.g. the New Benchmark
+widget's `GRADED` gate) reflects the billable check's outcome, not just the free handshake `probe_all`
+runs on its own.
+
+### STORY-110-AC-11
+
+Given `probe_embedding(on_complete=...)` is called (ADR-0016), when its worker settles — on a
+successful check, a caught collaborator failure, or a gate-busy refusal — then `on_complete` is
+invoked exactly once, on the calling (graphical) thread, with the check's definite boolean outcome,
+independently of whether `ReadinessService.record_embedding_capability_result` also emits
+`_app_readiness_changed` for that same call; and the embedding-section widget repaints its diagnostic
+label directly from that callback's delivered value, so the label never sticks on "Testing…"
+indefinitely — including the common case where the billable check reproduces an already-known
+`embedding_reachable` value and `ReadinessService`'s own emit-only-on-change rule produces no event at
+all.
 
 ## Test plan
 
@@ -317,6 +380,20 @@ completion callback runs:
   `src/ollama_llm_bench/ui/settings_dialog/tests/test_test_actions_are_deferred.py`,
   `test_each_test_action_applies_its_outcome_only_from_the_callback`. Uses a fake gateway that
   captures the `on_complete` callback without invoking it, so the test drives completion itself.
+- STORY-110-AC-10 — unit, table-driven (one row per method plus the `probe_embedding` gate-busy
+  case, which now asserts `record_embedding_capability_result` is NOT called), colocated
+  `src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py`,
+  `test_each_network_bound_method_translates_a_worker_failure_into_a_delivered_result`; plus two
+  unit tests over `ReadinessService.record_embedding_capability_result` directly, colocated
+  `src/ollama_llm_bench/backend/readiness/tests/test_record_embedding_capability_result.py`,
+  `test_record_embedding_capability_result_updates_the_cached_snapshot` and
+  `test_record_embedding_capability_result_emits_only_on_a_real_change`.
+- STORY-110-AC-11 — unit, table-driven (one row per `probe_embedding` outcome: success,
+  gate-busy), colocated `src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py`,
+  `test_probe_embedding_delivers_on_complete_exactly_once_on_the_calling_thread`; plus widget
+  (`pytest-qt`), colocated `src/ollama_llm_bench/ui/settings_dialog/tests/test_embedding_section.py`,
+  `test_test_embedding_click_shows_testing_state_until_callback_fires` and
+  `test_test_embedding_click_repaints_even_when_the_check_reproduces_a_known_value`.
 
 ## Definition of done
 
@@ -326,7 +403,8 @@ completion callback runs:
   the `adapters/ui_gateways/protocols.py` copies of `SettingsGateway`, which must stay identical.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
 - [ ] The four signatures ADR-0015 changes are mirrored in both Protocol copies, and each changed
-  docstring cites ADR-0015 as the reason it diverges from `08-E` §7b.6.
+  docstring cites ADR-0015 as the reason it diverges from `08-E` §7b.6; `probe_embedding`'s
+  docstring additionally cites ADR-0016 for its `on_complete` parameter.
 - [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
   `modules:` names it.
 
@@ -339,9 +417,68 @@ completion callback runs:
   `replace_all_settings_in_open_transaction`) plus a new `SettingsAtomicWriter` swap point in
   `backend/settings/`. This is why `modules:` lists `backend/persistence/providers/` and
   `backend/persistence/app_settings/` in addition to the three modules the estimate implied —
-  still five modules total, within the `L` ceiling.
+  five modules at planning time (see the module-count correction note below for the sixth,
+  `backend/readiness/`, added during the spec-conformance fix pass).
 - `ui/settings_dialog/_internal/providers_tab/embedding_section.py` is not named in this
   story's "In scope" list, but its two call sites (`_DiscoverModelsFetcher.fetch_models` and
   `_on_test_embedding_clicked`) call `discover_models`/`probe_embedding` directly and break
   under ADR-0015's signature change; this story's implementation therefore also touches that
   file as an unavoidable, in-scope consequence of the protocol change.
+- **Module count correction (spec-conformance fix, 2026-08-01).** The estimate paragraph above
+  says "still five modules total" — that became six once `backend/readiness/` was added. A
+  spec-conformance review of the first implementation pass found that `probe_embedding` was
+  publishing `_app_readiness_changed` directly from the gateway via its own `EventBus` reference,
+  rather than through `ReadinessService`, so a genuinely broken embedding endpoint the billable
+  `embed("probe")` check caught never updated `ReadinessService`'s own held snapshot — a later
+  `readiness_snapshot()`/`snapshot()` read (the New Benchmark widget's `GRADED`-mode gate,
+  `08-J` §5.7) stayed stale, and the gateway publishing a domain event directly contradicted
+  `08-J` §5.7's rule that `ReadinessService` is the sole emitter. The only correct fix was
+  extending `ReadinessService` itself with `record_embedding_capability_result(reachable=…)`
+  (STORY-110-AC-10) — not something foreseeable at planning time, since the original plan
+  assumed `ReadinessService` had "no method for this billable check" and treated the gateway
+  publishing the event as the deliberate workaround. `modules:` now names `backend/readiness/`
+  as a sixth module; the `L` estimate's five-module guideline is a target, not a hard ceiling
+  each story must fit after a review-driven fix, and no other module was newly touched.
+- **`probe_embedding` builds its `EmbeddingService` at call time, not at composition.** Every
+  other backend service this gateway wraps is constructed once in `compose.py` and injected.
+  `EmbeddingService` cannot follow that pattern here: per `06_EMBEDDING_SERVICE.md` §9, one
+  instance is bound to a single fixed `(provider_id, model_name)` pair for its whole lifetime,
+  but the Settings dialog's embedding-model selection can change at any time the dialog is open
+  (the user can switch the provider/model dropdowns and click Test Embedding again against the
+  new pair). `compose.py` has no way to know that pair in advance, so
+  `_SettingsGateway._run_embedding_capability_check_impl` calls
+  `backend.embedding.make_embedding_service(...)` directly, once per `probe_embedding()` call,
+  over whatever pair is currently persisted in `AppSettingsStore`. This is a deliberate,
+  narrowly-scoped exception to the "construct once at compose time" convention, not an oversight
+  — recorded here per the project owner's decision that this one item belongs in the story's
+  Notes rather than a full ADR. (Whether that persisted pair is actually honored by the
+  underlying `embed()` call today is a separate, unresolved question — see the "Second
+  spec-conformance fix pass" bullet below, item (3).)
+- **Second spec-conformance fix pass (2026-08-01).** A second independent review found three more
+  defects. (1) `probe_embedding`'s gate-busy branch was incorrectly calling
+  `ReadinessService.record_embedding_capability_result(reachable=False)` — gate contention is not a
+  capability fact, and doing so could spuriously downgrade the app-wide `GRADED` gate over mere
+  contention; fixed by leaving `ReadinessService` untouched on that path (AC-10). (2) The embedding
+  diagnostic label could stick on "Testing…" forever, because
+  `ReadinessService.record_embedding_capability_result` only emits `_app_readiness_changed` on a real
+  change and the embedding-section widget had no other way to learn a click-triggered check settled;
+  fixed by giving `probe_embedding()` a keyword-only `on_complete` callback (ADR-0016, AC-11),
+  delivered alongside the unchanged `ReadinessService` state update. (3) An investigation into whether
+  the billable `embed("probe")` call genuinely targets the user's selected `(provider, model)` pair
+  confirmed a real, deeper, **unfixed** gap: `LLMClient.embed(text)` takes no model parameter (`08-E`
+  §10, verbatim), and the only mechanism that could bind a specific embedding model to a client —
+  `OpenAICompatibleClientSettings.embedding_model`/`GeminiClientSettings.embedding_model`, set once by
+  a `ClientBuilder` at `ProviderRegistry` build time — has no live wiring anywhere in the codebase yet
+  (`compose.py` is still an empty Phase-11 stub; no `ClientBuilder` call site sets a non-default
+  `embedding_model`). This gap is identical for the real benchmark pipeline's own embedding wiring
+  (`backend/benchmark_pipeline/_internal/lifecycle.py`'s `_embedding_service`) and for the readiness
+  handshake (`backend/readiness/_internal/embedding_probe.py`, which never calls `embed()` at all and
+  so never exercises this either) — it is not specific to this gateway, and fixing it would mean
+  extending `backend/provider_registry`'s `ClientBuilder`/`ProviderRegistry` contract and
+  `compose.py`'s wiring, neither of which this story's `modules:` list names; `adapters/ui_gateways/`
+  is also forbidden by `import-linter` from importing a concrete provider adapter to work around it
+  directly. Left unfixed and documented in
+  `_SettingsGateway._run_embedding_capability_check_impl`'s docstring; a follow-up story is needed to
+  give `ProviderRegistry`/`ClientBuilder` a way to target a specific embedding model per call (or per
+  provider) and wire it from the live `embedding.selected_model_name` setting, consumed by both this
+  gateway's probe and the pipeline's real embedding-service construction.

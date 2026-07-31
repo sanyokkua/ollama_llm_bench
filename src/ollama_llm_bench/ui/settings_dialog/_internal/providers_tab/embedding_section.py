@@ -46,6 +46,7 @@ from ollama_llm_bench.ui.settings_dialog._internal.sub_dialogs.provider_edit_sel
     gate_button_state,
 )
 from ollama_llm_bench.ui.settings_dialog._internal.view_model_select import (
+    embedding_diagnostic_text,
     find_provider_id_by_name,
 )
 from ollama_llm_bench.ui.settings_dialog.models import EmbeddingSectionCollaborators
@@ -284,13 +285,26 @@ class EmbeddingSectionWidget(QWidget):
     def _on_test_embedding_clicked(self) -> None:
         logger.debug("embedding_section_test_embedding_clicked")
         self.set_diagnostic("Testing…")
-        self._probe_embedding()
-        # The real outcome arrives via the existing _app_readiness_changed
-        # subscription (SettingsController._on_readiness_changed ->
-        # ProvidersTabController.apply_embedding_diagnostic -> set_diagnostic),
-        # not from this call's return value (ADR-0015, STORY-110) -- probe_embedding
-        # returns None immediately and the concrete gateway publishes the event
-        # itself once the billable capability check settles.
+        self._probe_embedding(on_complete=self._on_test_embedding_result)
+        # probe_embedding() returns None immediately (ADR-0015). Its
+        # definite outcome always arrives via this call's own on_complete
+        # callback (ADR-0016, STORY-110-AC-11) -- see
+        # `_on_test_embedding_result` -- independently of whether
+        # ReadinessService.record_embedding_capability_result() also emits
+        # `_app_readiness_changed` for the same call (it only does so when
+        # the check actually changed the cached snapshot). The
+        # `_app_readiness_changed` subscription one level above this widget
+        # (SettingsController._on_readiness_changed ->
+        # ProvidersTabController.apply_embedding_diagnostic -> set_diagnostic)
+        # stays wired unchanged for the *other* trigger -- the automatic
+        # on-open `probe_all()` handshake -- and both paths safely repaint
+        # the same label.
+
+    def _on_test_embedding_result(self, reachable: bool) -> None:  # noqa: FBT001  # matches ProbeEmbeddingCallable's on_complete(bool) callback shape
+        """Repaint the diagnostic directly from ``probe_embedding``'s own
+        ``on_complete`` callback (ADR-0016, STORY-110-AC-11), guaranteeing a
+        terminal repaint for this click even when nothing changed."""
+        self.set_diagnostic(embedding_diagnostic_text(embedding_reachable=reachable))
 
     def set_diagnostic(self, text: str) -> None:
         """Render the last Test Embedding result, redacted for display."""

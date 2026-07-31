@@ -8,12 +8,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QPushButton
 from pytestqt.qtbot import QtBot
 
-from ollama_llm_bench.backend.domain import (
-    AppReadinessSnapshot,
-    InferenceActivity,
-    InferenceActivityState,
-    ReadinessState,
-)
+from ollama_llm_bench.backend.domain import InferenceActivity, InferenceActivityState
 from ollama_llm_bench.backend.events import (
     SIGNAL_INFERENCE_ACTIVITY_CHANGED,
     InferenceActivityChangedEvent,
@@ -88,20 +83,19 @@ def test_test_embedding_button_gated_on_inference_activity(qtbot: QtBot) -> None
     assert button.isEnabled() is True
 
 
-def test_test_embedding_click_probes_and_shows_transient_testing_state(qtbot: QtBot) -> None:
-    """Clicking Test Embedding calls ``SettingsGateway.probe_embedding`` and shows
-    a transient in-flight diagnostic immediately; the real outcome is delivered
-    later by a level above this widget calling ``set_diagnostic`` from the
-    ``_app_readiness_changed`` subscription (ADR-0015, STORY-110) -- exercised
-    directly here since that subscription lives in ``SettingsController``, one
-    layer above this widget-only test."""
+def test_test_embedding_click_shows_testing_state_until_callback_fires(qtbot: QtBot) -> None:
+    """Proves: STORY-110-AC-11
+
+    Clicking Test Embedding calls ``SettingsGateway.probe_embedding`` and shows a
+    transient in-flight diagnostic immediately; no outcome is applied until the
+    gateway's own ``on_complete`` callback fires (ADR-0016), at which point the
+    widget repaints its diagnostic label directly from the callback's delivered
+    value -- independent of the separate ``_app_readiness_changed`` subscription
+    one layer above this widget (exercised by
+    ``test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic``).
+    """
     # Arrange
-    gateway = FakeSettingsGateway()
-    gateway.set_readiness(
-        AppReadinessSnapshot(
-            overall=ReadinessState.READY, per_provider=(), embedding_reachable=True
-        )
-    )
+    gateway = FakeSettingsGateway(defer_callbacks=True)
     widget = _make_widget(gateway=gateway)
     qtbot.addWidget(widget)
     # Act
@@ -111,10 +105,35 @@ def test_test_embedding_click_probes_and_shows_transient_testing_state(qtbot: Qt
     # Assert: probe was requested and returned immediately, showing the transient state
     assert gateway.recorded_probe_embedding_calls == 1
     assert _diagnostic_label(widget).text() == "Testing…"
-    # Act: the level above delivers the real outcome via set_diagnostic
-    widget.set_diagnostic("✓ embedding reachable")
+    # Act: the gateway's worker settles and delivers its own on_complete callback
+    gateway.fire_probe_embedding_callback(reachable=True)
     # Assert
     assert _diagnostic_label(widget).text() == "✓ embedding reachable"
+
+
+def test_test_embedding_click_repaints_even_when_the_check_reproduces_a_known_value(
+    qtbot: QtBot,
+) -> None:
+    """Proves: STORY-110-AC-11
+
+    A billable check that reproduces an already-known ``embedding_reachable``
+    value (the common case -- the automatic on-open handshake already found it
+    reachable, so ``ReadinessService`` emits no event for this call) still
+    repaints the diagnostic label, because the widget repaints from
+    ``probe_embedding``'s own ``on_complete`` callback rather than solely from
+    ``_app_readiness_changed`` (ADR-0016) -- without it the label would stick on
+    "Testing…" forever for this common case."""
+    # Arrange
+    gateway = FakeSettingsGateway(defer_callbacks=True)
+    widget = _make_widget(gateway=gateway)
+    qtbot.addWidget(widget)
+    qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
+        _test_embedding_button(widget), Qt.MouseButton.LeftButton
+    )
+    # Act: the callback delivers a value with no corresponding readiness event
+    gateway.fire_probe_embedding_callback(reachable=False)
+    # Assert
+    assert _diagnostic_label(widget).text() == "✗ embedding unreachable"
 
 
 # ---------------------------------------------------------------------------

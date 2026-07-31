@@ -112,6 +112,10 @@ class ReadinessServiceImpl:
     handshake-only embedding probe serially, aggregates, and emits
     ``_app_readiness_changed`` only on a real change. Overlapping
     ``probe_all`` calls coalesce onto one shared in-flight batch.
+    ``record_embedding_capability_result()`` lets ``SettingsGateway``'s
+    billable Test-Embedding check (STORY-110) feed its stronger signal into
+    this same cached snapshot/emission path, so a later ``snapshot()`` read
+    (e.g. the New Benchmark widget's ``GRADED``-mode gate) reflects it.
     """
 
     def __init__(self, *, collaborators: ReadinessServiceCollaborators) -> None:
@@ -145,6 +149,20 @@ class ReadinessServiceImpl:
         """Orchestrate one probe batch on the dispatcher thread; coalesce overlaps."""
         future = self._join_or_start_batch()
         return future.result()
+
+    def record_embedding_capability_result(self, *, reachable: bool) -> None:
+        """Record a billable ``embed()`` capability-check outcome (STORY-110).
+
+        fast-synchronous; never raises. Recomputes ``overall`` from the
+        cached snapshot's per-provider health plus ``reachable`` through the
+        same ``aggregate`` fold ``probe_all`` uses, then caches and
+        conditionally emits through the same ``_store_and_maybe_emit`` path
+        -- there is exactly one emission code path in this service.
+        """
+        with self._lock:
+            current = self._cached_snapshot
+        new_snapshot = aggregate(current.per_provider, embedding_ok=reachable)
+        self._store_and_maybe_emit(new_snapshot)
 
     # -- coalescing (§6.6) --------------------------------------------------------
 

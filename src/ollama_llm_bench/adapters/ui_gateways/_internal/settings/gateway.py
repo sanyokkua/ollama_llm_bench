@@ -3,15 +3,15 @@
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
 §7b.6, §4 (the threading contract), §12 (Readiness Service);
 ``docs/v3_specification/16_Engineering_Standards/04_CONCURRENCY_STANDARD.md`` §4a;
-ADR-0015.
+ADR-0015, ADR-0016.
 """
 
 from collections.abc import Callable
 import functools
 from typing import TYPE_CHECKING, Final, cast
 
-import msgspec
 from PySide6.QtCore import QObject, Qt, Signal, Slot
+import structlog
 
 if TYPE_CHECKING:
     from concurrent.futures import Future
@@ -42,12 +42,7 @@ from ollama_llm_bench.backend.domain import (
     SettingKey,
 )
 from ollama_llm_bench.backend.embedding import make_embedding_service
-from ollama_llm_bench.backend.events import (
-    SIGNAL_APP_READINESS_CHANGED,
-    AppReadinessChangedEvent,
-    EventBus,
-    ProviderHealthSummary,
-)
+from ollama_llm_bench.backend.errors import AppError, ConfigurationError, redact
 from ollama_llm_bench.backend.import_export import (
     ImportExportService,
     ImportFinding,
@@ -64,6 +59,8 @@ from ollama_llm_bench.backend.settings import SettingsAtomicWriter, SettingsServ
 from ollama_llm_bench.backend.stores.inference_activity import InferenceActivityStore
 
 __all__: list[str] = ["SettingsGatewayCollaborators", "_SettingsGateway"]
+
+_logger = structlog.get_logger("app.ui_gateways.settings")
 
 # `backend.embedding`'s three required per-run-overridable settings keys
 # (`backend/embedding/_internal/parameters.py::REQUIRED_SETTING_KEYS`) --
@@ -163,7 +160,7 @@ def _to_gateway_provider_preview(
 class SettingsGatewayCollaborators:
     """Dependency bundle for ``_SettingsGateway`` (>4-parameter rule)."""
 
-    def __init__(  # noqa: PLR0913  # this class exists solely to bundle these thirteen
+    def __init__(  # noqa: PLR0913  # this class exists solely to bundle these twelve
         # distinct required collaborators (<=4-parameter rule via a dependency bundle)
         self,
         *,
@@ -176,7 +173,6 @@ class SettingsGatewayCollaborators:
         readiness: ReadinessService,
         import_export: ImportExportService,
         gate: InferenceActivityStore,
-        event_bus: EventBus,
         task_runner: TaskRunner[object],
         dispatcher: RunDispatcher,
         clock: Clock,
@@ -190,7 +186,6 @@ class SettingsGatewayCollaborators:
         self.readiness = readiness
         self.import_export = import_export
         self.gate = gate
-        self.event_bus = event_bus
         self.task_runner = task_runner
         self.dispatcher = dispatcher
         self.clock = clock
@@ -297,7 +292,7 @@ class _SettingsGateway:
             bundled_providers=bundled_providers, all_default_settings=DEFAULTS
         )
 
-    # -- AC-7, AC-8: test_provider / discover_models -------------------------------------
+    # -- AC-7, AC-8, AC-10: test_provider / discover_models -------------------------------
 
     def test_provider(
         self,
@@ -336,12 +331,42 @@ class _SettingsGateway:
                 tested_at=self._c.clock.monotonic_ms(),
             )
         try:
-            client = self._c.provider_registry.get_client(provider_id)
-            if not model_name:
-                return self._probe_health_as_inference_result(client, provider_id)
-            return client.test_inference(model_name)
+            return self._dispatch_test_provider_call(provider_id, model_name)
         finally:
             self._c.gate.release(lease)
+
+    def _dispatch_test_provider_call(
+        self, provider_id: ProviderId, model_name: ModelName
+    ) -> InferenceTestResult:
+        """Resolve the live client and run the probe (STORY-110-AC-10).
+
+        ``ProviderRegistry.get_client`` raises ``ConfigurationError`` for an
+        ordinary misconfiguration (an unknown/disabled provider, or an
+        unresolved secret) -- caught here and translated into a failure
+        result instead of propagating to the submitting ``Future``, where it
+        would silently discard this call's ``on_complete`` delivery
+        (``concurrent.futures`` logs-and-swallows a done-callback's own
+        ``future.result()`` re-raise). ``probe_health``/``test_inference``
+        never raise (``LLMClient``'s own contract).
+        """
+        try:
+            client = self._c.provider_registry.get_client(provider_id)
+        except ConfigurationError as exc:
+            return self._configuration_error_result(provider_id, model_name, exc)
+        if not model_name:
+            return self._probe_health_as_inference_result(client, provider_id)
+        return client.test_inference(model_name)
+
+    def _configuration_error_result(
+        self, provider_id: ProviderId, model_name: ModelName, exc: ConfigurationError
+    ) -> InferenceTestResult:
+        return InferenceTestResult(
+            outcome=InferenceTestOutcome.PROVIDER_ERROR,
+            provider_id=provider_id,
+            model_name=model_name or "unknown",
+            last_error=redact(str(exc)),
+            tested_at=self._c.clock.monotonic_ms(),
+        )
 
     def _probe_health_as_inference_result(
         self, client: LLMClient, provider_id: ProviderId
@@ -380,8 +405,26 @@ class _SettingsGateway:
         future.add_done_callback(functools.partial(self._on_discover_models_done, relay=relay))
 
     def _run_discover_models(self, provider_id: ProviderId) -> tuple[ModelName, ...]:
-        client = self._c.provider_registry.get_client(provider_id)
-        return client.list_models()
+        """Resolve the live client and list its models (STORY-110-AC-10).
+
+        ``get_client`` raises ``ConfigurationError`` for an ordinary
+        misconfiguration; ``list_models`` raises an ``AppError`` descendant
+        marked ``ProviderError`` when the listing call itself fails
+        (``08-E`` §10). Both are ``AppError`` descendants; either is caught
+        here and translated into an empty result instead of propagating to
+        the submitting ``Future``, where it would silently discard this
+        call's ``on_complete`` delivery.
+        """
+        try:
+            client = self._c.provider_registry.get_client(provider_id)
+            return client.list_models()
+        except AppError as exc:
+            _logger.warning(
+                "settings_discover_models_failed",
+                provider_id=provider_id,
+                error=redact(str(exc)),
+            )
+            return ()
 
     def _on_discover_models_done(
         self,
@@ -391,7 +434,7 @@ class _SettingsGateway:
     ) -> None:
         relay.deliver(cast("tuple[ModelName, ...]", future.result()))
 
-    # -- AC-7: probe_all / probe_embedding ------------------------------------------------
+    # -- AC-7, AC-10: probe_all / probe_embedding ------------------------------------------
 
     def probe_all(self) -> None:
         self._c.dispatcher.submit(self._run_probe_all)
@@ -399,11 +442,34 @@ class _SettingsGateway:
     def _run_probe_all(self) -> None:
         self._c.readiness.probe_all()
 
-    def probe_embedding(self) -> None:
+    def probe_embedding(self, *, on_complete: Callable[[bool], None]) -> None:
+        relay: _CompletionRelay[bool] = _CompletionRelay(
+            on_complete, on_delivered=self._pending_relays.discard
+        )
+        self._pending_relays.add(relay)
         token = make_cancellation_token(clock=self._c.clock)
-        self._c.task_runner.submit(self._run_probe_embedding, token=token)
+        future = self._c.task_runner.submit(self._run_probe_embedding, token=token)
+        future.add_done_callback(functools.partial(self._on_probe_embedding_done, relay=relay))
 
-    def _run_probe_embedding(self) -> None:
+    def _on_probe_embedding_done(
+        self, future: "Future[object]", *, relay: "_CompletionRelay[bool]"
+    ) -> None:
+        relay.deliver(cast("bool", future.result()))
+
+    def _run_probe_embedding(self) -> bool:
+        """Run the billable capability check under the gate; return its outcome.
+
+        The returned value always becomes the ``on_complete`` payload
+        (ADR-0016), delivered on the GUI thread by ``probe_embedding``'s
+        relay. ``ReadinessService.record_embedding_capability_result`` is
+        called only when the gate was actually acquired -- gate contention
+        (``try_acquire`` returning ``None``) is a scheduling fact, not a
+        capability fact, so it must never move the cached readiness state
+        (STORY-110-AC-10, spec-conformance fix, ADR-0016). This mirrors
+        ``ReadinessService._probe_all_once``'s own gate-refusal branch, which
+        likewise returns the existing cached snapshot rather than recording a
+        fact it never observed.
+        """
         lease = self._c.gate.try_acquire(
             InferenceActivity.PROVIDER_TEST,
             InferenceActivityContext(
@@ -412,19 +478,48 @@ class _SettingsGateway:
             ),
         )
         if lease is None:
-            # The gate is held elsewhere; the button's own gate-binding already
-            # prevents this click in the ordinary case, so a lost race here is
-            # silently dropped rather than surfaced -- probe_embedding carries no
-            # on_complete/GATE_BUSY channel for this method (ADR-0015).
-            return
+            _logger.debug("settings_probe_embedding_gate_busy")
+            return False
         try:
             reachable = self._run_embedding_capability_check()
         finally:
             self._c.gate.release(lease)
-        self._publish_updated_embedding_readiness(reachable=reachable)
-        return
+        self._c.readiness.record_embedding_capability_result(reachable=reachable)
+        return reachable
 
     def _run_embedding_capability_check(self) -> bool:
+        try:
+            return self._run_embedding_capability_check_impl()
+        except AppError as exc:
+            _logger.warning("settings_probe_embedding_failed", error=redact(str(exc)))
+            return False
+
+    def _run_embedding_capability_check_impl(self) -> bool:
+        """Run the billable ``embed("probe")`` call against the persisted selection.
+
+        **Known, confirmed gap (STORY-110 second spec-conformance review,
+        2026-08-01), not fixed here -- see the story's Notes.** ``model_name``
+        below is used only as part of ``EmbeddingService``'s LRU cache key
+        (``backend/embedding/_internal/service.py``); it is never forwarded
+        to ``client.embed(text)``, whose ``08-E`` §10 signature takes no
+        model parameter at all. The client's actual embedding target is
+        whatever ``OpenAICompatibleClientSettings.embedding_model`` /
+        ``GeminiClientSettings.embedding_model`` it was constructed with by
+        its ``ClientBuilder``, at ``ProviderRegistry`` build time -- entirely
+        independent of this method's ``model_name``. No live wiring anywhere
+        in the codebase currently sets that field to the persisted
+        ``embedding.selected_model_name`` (``compose.py`` is still an empty
+        Phase-11 stub), so today ``client.embed()`` either targets a stale
+        model or raises ``ProviderBadRequestError`` ("no configured embedding
+        model"). This is a cross-cutting gap in ``backend/provider_registry``'s
+        ``ClientBuilder``/``LLMClient`` contract shared by the real pipeline's
+        own embedding wiring (``backend/benchmark_pipeline/_internal/
+        lifecycle.py``'s ``_embedding_service``) -- not something this
+        gateway can fix on its own: ``adapters/ui_gateways/`` cannot import a
+        concrete provider adapter to work around it (import-linter), and
+        ``backend/provider_registry``/``compose.py`` are outside this
+        story's ``modules:``. Needs its own follow-up story.
+        """
         provider_name = self._c.app_settings_store.get_setting(_SELECTED_PROVIDER_NAME_KEY)
         model_name = self._c.app_settings_store.get_setting(_SELECTED_MODEL_NAME_KEY)
         if not provider_name or not model_name:
@@ -446,27 +541,4 @@ class _SettingsGateway:
         return tuple(
             BenchmarkRunSettingEntry(setting_key=key, setting_value=self._c.settings.get_str(key))
             for key in _EMBEDDING_REQUIRED_SETTING_KEYS
-        )
-
-    def _publish_updated_embedding_readiness(self, *, reachable: bool) -> None:
-        current = self._c.readiness.snapshot()
-        updated = msgspec.structs.replace(current, embedding_reachable=reachable)
-        summaries = tuple(
-            ProviderHealthSummary(
-                provider_id=health.provider_id,
-                reachable=health.reachable,
-                discovery_supported=health.discovery_supported,
-                model_count=health.model_count,
-                last_error=health.last_error,
-            )
-            for health in updated.per_provider
-        )
-        self._c.event_bus.emit(
-            SIGNAL_APP_READINESS_CHANGED,
-            AppReadinessChangedEvent(
-                overall=updated.overall,
-                per_provider=summaries,
-                embedding_reachable=updated.embedding_reachable,
-                checked_at=self._c.clock.now_utc(),
-            ),
         )

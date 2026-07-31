@@ -663,8 +663,12 @@ class SettingsGateway(Protocol):
     diverge from ``08-E`` §7b.6's verbatim text per ADR-0015: ``test_provider``
     and ``discover_models`` return ``None`` and gain a keyword-only
     ``on_complete`` callback; ``probe_all`` and ``probe_embedding`` return
-    ``None`` with no callback (their result reaches the caller via the
-    existing ``_app_readiness_changed`` event instead).
+    ``None``. ``probe_all``'s result reaches the caller via the existing
+    ``_app_readiness_changed`` event only. ``probe_embedding`` also gains a
+    keyword-only ``on_complete`` callback per ADR-0016 -- a spec-conformance
+    correction of ADR-0015's original claim that this method needed no
+    callback -- delivered alongside its unchanged
+    ``ReadinessService.record_embedding_capability_result()`` state update.
     """
 
     def list_providers(self) -> tuple[ProviderConfig, ...]: ...
@@ -733,17 +737,24 @@ class SettingsGateway(Protocol):
         """
         ...
 
-    def probe_embedding(self) -> None:
-        """Run the billable Test Embedding capability probe (ADR-0015).
+    def probe_embedding(self, *, on_complete: Callable[[bool], None]) -> None:
+        """Run the billable Test Embedding capability probe (ADR-0015, ADR-0016).
 
         fast-synchronous: returns before the probe completes. Submitted to a
-        ``TaskRunner`` worker thread. No callback parameter -- unlike
-        ``probe_all``, this gateway publishes ``_app_readiness_changed``
-        itself once the probe settles (see this story's plan for why:
-        ``ReadinessService`` has no method for this billable check, and this
-        method must not call ``ReadinessService.probe_all()`` from a worker
-        thread). The Settings dialog's existing subscription repaints the
-        embedding diagnostic with no new UI wiring.
+        ``TaskRunner`` worker thread. Reports its outcome two ways: like
+        ``probe_all``, this method reports its outcome through
+        ``ReadinessService`` -- here via
+        ``ReadinessService.record_embedding_capability_result(reachable=...)``,
+        which updates the held snapshot and emits ``_app_readiness_changed``
+        itself only on a real change (this method must not call
+        ``ReadinessService.probe_all()`` from a worker thread, and this
+        gateway holds no ``EventBus`` of its own). Separately, the keyword-only
+        ``on_complete`` callback (ADR-0016) is always invoked exactly once, on
+        the calling (graphical) thread, with the check's definite boolean
+        outcome -- including when the ``PROVIDER_TEST`` gate was busy, in
+        which case ``record_embedding_capability_result`` is deliberately NOT
+        called (gate contention is not a capability fact) but ``on_complete``
+        still fires so the triggering click gets a terminal repaint.
         """
         ...
 

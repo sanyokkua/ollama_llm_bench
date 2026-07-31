@@ -26,7 +26,11 @@ from ollama_llm_bench.backend.domain import (
     SettingKey,
 )
 from ollama_llm_bench.backend.events import EventBus
-from ollama_llm_bench.ui.settings_dialog.protocols import DiscoverModelsCallable, SettingsGateway
+from ollama_llm_bench.ui.settings_dialog.protocols import (
+    DiscoverModelsCallable,
+    ProbeEmbeddingCallable,
+    SettingsGateway,
+)
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
 __all__: list[str] = [
@@ -214,10 +218,14 @@ class EmbeddingSectionCollaborators(msgspec.Struct, frozen=True, kw_only=True, g
             ``embedding.selected_provider_name`` / ``embedding.selected_model_name``
             at construction time (§1.4, §3.4).
         probe_embedding: Runs the user-initiated Test Embedding probe (§3.4).
-            fast-synchronous: returns before the probe completes; the outcome
-            arrives later via the existing ``_app_readiness_changed``
-            subscription owned by a level above this widget (ADR-0015,
-            STORY-110) -- no callback and no return value here.
+            fast-synchronous: returns before the probe completes. Reports its
+            outcome two ways (ADR-0015, ADR-0016): the app-wide readiness
+            state updates, and reaches this widget's subscription one level
+            up, only when the check's result actually changed the cached
+            snapshot; the widget's own ``on_complete`` keyword-only callback
+            always fires exactly once with the check's definite boolean
+            outcome, so this widget's own click always gets a terminal
+            repaint even when nothing changed or the gate was busy.
         event_bus: Rebuilds the provider dropdown on registry reload and gates
             the Test Embedding button on ``_inference_activity_changed`` (§13).
     """
@@ -225,7 +233,7 @@ class EmbeddingSectionCollaborators(msgspec.Struct, frozen=True, kw_only=True, g
     provider_configs_source: Callable[[], tuple[ProviderConfig, ...]]
     discover_models: DiscoverModelsCallable
     get_setting: Callable[[SettingKey], str | None]
-    probe_embedding: Callable[[], None]
+    probe_embedding: ProbeEmbeddingCallable
     event_bus: EventBus
 
 

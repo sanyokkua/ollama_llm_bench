@@ -177,3 +177,15 @@ class ReadinessService(Protocol):
         blocks on a ``Future``. Never raises.
         """
         ...
+
+    def record_embedding_capability_result(self, *, reachable: bool) -> None:
+        """Record the outcome of a billable Test-Embedding capability check.
+
+        fast-synchronous: updates the held snapshot's ``embedding_reachable``
+        field, recomputes ``overall`` exactly as ``probe_all`` would, and
+        emits ``_app_readiness_changed`` -- but the result comes from
+        ``SettingsGateway.probe_embedding()``'s real ``embed("probe")`` call
+        (``06_EMBEDDING_SERVICE.md`` §6.6a), a stronger signal than the free
+        handshake-only check ``probe_all`` runs on its own. Never raises.
+        """
+        ...

@@ -18,15 +18,27 @@ calls ``upsert_settings`` via ``apply_settings_import`` -- but Save/Reset now
 call only the two new atomic methods.
 
 **STORY-110 / ADR-0015.** ``test_provider``/``discover_models`` now accept a
-keyword-only ``on_complete`` callback and return ``None``; this fake invokes
-``on_complete`` synchronously, in the same call, rather than deferring it --
-the simplest faithful fake behaviour for a test double with no real worker
-thread, and it keeps every pre-existing colocated test (which asserts the
-outcome immediately after the click) passing unchanged. ``probe_all``/
-``probe_embedding`` now return ``None`` and no longer carry a readiness
-snapshot on their own return value; a test drives the readiness update the
-same way it always has, by emitting ``_app_readiness_changed`` on the fake
-``EventBus`` directly.
+keyword-only ``on_complete`` callback and return ``None``. By default (``defer_
+callbacks=False``, the constructor's default) this fake invokes ``on_complete``
+synchronously, in the same call, rather than deferring it -- the simplest
+faithful fake behaviour for a test double with no real worker thread, and it
+keeps every pre-existing colocated test (which asserts the outcome immediately
+after the click) passing unchanged. Passing ``defer_callbacks=True`` instead
+makes both methods *capture* ``on_complete`` without invoking it -- needed to
+prove STORY-110-AC-9's "nothing changes until the callback fires" half, which a
+synchronously-firing fake cannot exercise -- so a test can assert the
+in-flight state, then drive completion itself via
+``fire_test_provider_callback``/``fire_discover_models_callback``.
+``probe_all`` returns ``None`` and no longer carries a readiness snapshot on
+its own return value; a test drives the readiness update the same way it
+always has, by emitting ``_app_readiness_changed`` on the fake ``EventBus``
+directly. ``probe_embedding`` also returns ``None``, but (spec-conformance
+fix, ADR-0016) now takes a keyword-only ``on_complete`` callback of its own,
+mirroring ``test_provider``/``discover_models``'s ``defer_callbacks``
+pattern -- by default this fake invokes ``on_complete`` synchronously with
+the scripted outcome (``set_probe_embedding_result``, default ``True``);
+``defer_callbacks=True`` captures it instead for a test to drive via
+``fire_probe_embedding_callback``.
 """
 
 from collections.abc import Callable
@@ -85,10 +97,12 @@ class FakeSettingsGateway:
             mutates no state.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, defer_callbacks: bool = False) -> None:
+        self._defer_callbacks = defer_callbacks
         self._providers: tuple[ProviderConfig, ...] = ()
         self._settings: dict[SettingKey, str] = {}
         self._readiness: AppReadinessSnapshot = _DEFAULT_READINESS
+        self._probe_embedding_result: bool = True
         self._test_provider_result: InferenceTestResult | None = None
         self._discovered_models: dict[ProviderId, tuple[ModelName, ...]] = {}
         self.recorded_test_provider_calls: list[tuple[str, str]] = []
@@ -109,6 +123,11 @@ class FakeSettingsGateway:
         self._provider_import_result: ProviderImportResult | None = None
         self._export_settings_bytes: bytes = b""
         self._export_providers_bytes: bytes = b""
+        self._pending_test_provider_callback: Callable[[InferenceTestResult], None] | None = None
+        self._pending_discover_models_callback: Callable[[tuple[ModelName, ...]], None] | None = (
+            None
+        )
+        self._pending_probe_embedding_callback: Callable[[bool], None] | None = None
 
     def build_settings_import_preview(self, file_path: str) -> "SettingsImportPreview":  # noqa: ARG002  # canned fake: path unused by design
         if self._settings_import_preview is None:
@@ -248,6 +267,9 @@ class FakeSettingsGateway:
         on_complete: Callable[[InferenceTestResult], None],
     ) -> None:
         self.recorded_test_provider_calls.append((provider_id, model_name))
+        if self._defer_callbacks:
+            self._pending_test_provider_callback = on_complete
+            return
         result = self._test_provider_result or InferenceTestResult(
             outcome=InferenceTestOutcome.SUCCESS,
             provider_id=provider_id,
@@ -261,13 +283,66 @@ class FakeSettingsGateway:
         self, provider_id: ProviderId, *, on_complete: Callable[[tuple[ModelName, ...]], None]
     ) -> None:
         self.recorded_discover_models_calls.append(provider_id)
+        if self._defer_callbacks:
+            self._pending_discover_models_callback = on_complete
+            return
         on_complete(self._discovered_models.get(provider_id, ()))
+
+    def fire_test_provider_callback(self, result: InferenceTestResult | None = None) -> None:
+        """Test helper (``defer_callbacks=True`` only): invoke the captured
+        ``test_provider`` ``on_complete`` with ``result`` (or the scripted
+        canned result via ``set_test_provider_result``, or a default
+        ``SUCCESS`` result built from the most recent call's arguments)."""
+        callback = self._pending_test_provider_callback
+        if callback is None:
+            raise RuntimeError("test_provider was not called before firing its callback")
+        self._pending_test_provider_callback = None
+        provider_id, model_name = self.recorded_test_provider_calls[-1]
+        resolved = (
+            result
+            or self._test_provider_result
+            or InferenceTestResult(
+                outcome=InferenceTestOutcome.SUCCESS,
+                provider_id=provider_id,
+                model_name=model_name or "unknown",
+                latency_ms=10,
+                tested_at=0,
+            )
+        )
+        callback(resolved)
+
+    def fire_discover_models_callback(self, models: tuple[ModelName, ...] | None = None) -> None:
+        """Test helper (``defer_callbacks=True`` only): invoke the captured
+        ``discover_models`` ``on_complete`` with ``models`` (or the scripted
+        canned result via ``set_discovered_models``, or ``()``)."""
+        callback = self._pending_discover_models_callback
+        if callback is None:
+            raise RuntimeError("discover_models was not called before firing its callback")
+        self._pending_discover_models_callback = None
+        provider_id = self.recorded_discover_models_calls[-1]
+        resolved = models if models is not None else self._discovered_models.get(provider_id, ())
+        callback(resolved)
 
     def probe_all(self) -> None:
         self.recorded_probe_all_calls += 1
 
-    def probe_embedding(self) -> None:
+    def probe_embedding(self, *, on_complete: Callable[[bool], None]) -> None:
         self.recorded_probe_embedding_calls += 1
+        if self._defer_callbacks:
+            self._pending_probe_embedding_callback = on_complete
+            return
+        on_complete(self._probe_embedding_result)
+
+    def fire_probe_embedding_callback(self, reachable: bool | None = None) -> None:  # noqa: FBT001  # test helper mirrors the real bool on_complete payload
+        """Test helper (``defer_callbacks=True`` only): invoke the captured
+        ``probe_embedding`` ``on_complete`` with ``reachable`` (or the
+        scripted result via ``set_probe_embedding_result``)."""
+        callback = self._pending_probe_embedding_callback
+        if callback is None:
+            raise RuntimeError("probe_embedding was not called before firing its callback")
+        self._pending_probe_embedding_callback = None
+        resolved = reachable if reachable is not None else self._probe_embedding_result
+        callback(resolved)
 
     def readiness_snapshot(self) -> AppReadinessSnapshot:
         return self._readiness
@@ -279,6 +354,10 @@ class FakeSettingsGateway:
     def set_setting_value(self, key: SettingKey, value: str) -> None:
         """Test helper: seed a setting as if it had been previously persisted."""
         self._settings[key] = value
+
+    def set_probe_embedding_result(self, reachable: bool) -> None:  # noqa: FBT001  # test helper mirrors the real bool on_complete payload
+        """Test helper: force ``probe_embedding``'s ``on_complete`` outcome."""
+        self._probe_embedding_result = reachable
 
     def set_readiness(self, snapshot: AppReadinessSnapshot) -> None:
         """Test helper: force ``probe_all``/``readiness_snapshot``'s return value."""

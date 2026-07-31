@@ -142,6 +142,12 @@ class _FakeReadinessService:
     def probe(self, provider_id: str) -> ProviderHealth:
         raise AssertionError("NewBenchmarkGateway must never call ReadinessService.probe")
 
+    def record_embedding_capability_result(self, *, reachable: bool) -> None:
+        raise AssertionError(
+            "NewBenchmarkGateway must never call "
+            "ReadinessService.record_embedding_capability_result"
+        )
+
 
 class _FakeBenchmarkFlowApi:
     """Records ``start`` calls; every other lifecycle method must never fire."""

@@ -130,6 +130,11 @@ class _FakeReadinessService:
     def probe(self, provider_id: ProviderId) -> ProviderHealth:
         raise AssertionError("MainWindowGateway must never call ReadinessService.probe directly")
 
+    def record_embedding_capability_result(self, *, reachable: bool) -> None:
+        raise AssertionError(
+            "MainWindowGateway must never call ReadinessService.record_embedding_capability_result"
+        )
+
 
 class _FakeBenchmarkFlowApi:
     """Records ``is_running``/``shutdown`` calls; the run-control methods must never fire."""
@@ -442,6 +447,9 @@ class _BlockingReadinessService:
         return _make_snapshot()
 
     def probe(self, provider_id: ProviderId) -> ProviderHealth:
+        raise AssertionError("this test only exercises probe_all via reprobe()")
+
+    def record_embedding_capability_result(self, *, reachable: bool) -> None:
         raise AssertionError("this test only exercises probe_all via reprobe()")
 
 

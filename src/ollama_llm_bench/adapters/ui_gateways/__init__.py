@@ -19,12 +19,14 @@ from ollama_llm_bench.adapters.ui_gateways.api import (
     ResultGateway,
     ResumeGateway,
     RunLogWriteStatus,
+    SettingsGateway,
     TaskEditorGateway,
     make_main_window_gateway,
     make_new_benchmark_gateway,
     make_progress_gateway,
     make_result_gateway,
     make_resume_gateway,
+    make_settings_gateway,
     make_task_editor_gateway,
 )
 
@@ -39,11 +41,13 @@ __all__: list[str] = [
     "ResultGateway",
     "ResumeGateway",
     "RunLogWriteStatus",
+    "SettingsGateway",
     "TaskEditorGateway",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
     "make_progress_gateway",
     "make_result_gateway",
     "make_resume_gateway",
+    "make_settings_gateway",
     "make_task_editor_gateway",
 ]

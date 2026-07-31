@@ -224,6 +224,11 @@ class _FakeReadinessService:
     def probe(self, provider_id: ProviderId) -> ProviderHealth:
         raise AssertionError("ResumeGateway must never call ReadinessService.probe")
 
+    def record_embedding_capability_result(self, *, reachable: bool) -> None:
+        raise AssertionError(
+            "ResumeGateway must never call ReadinessService.record_embedding_capability_result"
+        )
+
 
 class _FakeLLMClient:
     """A minimal ``LLMClient`` stand-in exposing only ``list_models``."""
