@@ -63,6 +63,8 @@ from ollama_llm_bench.backend.domain import (
     ChartData,
     ChartKind,
     HeatmapData,
+    InferenceTestResult,
+    ModelCapabilityRecord,
     ModelName,
     ProviderConfig,
     ProviderId,
@@ -82,11 +84,21 @@ __all__: list[str] = [
     "MainWindowGateway",
     "ManualProviderProbeCommand",
     "NewBenchmarkGateway",
+    "PreviewGroup",
     "ProgressGateway",
+    "ProviderImportPreview",
+    "ProviderImportPreviewRow",
+    "ProviderImportResult",
     "ResultGateway",
     "ResumeGateway",
     "RunLogWriteStatus",
+    "SettingsGateway",
+    "SettingsImportPreview",
+    "SettingsImportPreviewRow",
+    "SettingsImportResult",
+    "Severity",
     "TaskEditorGateway",
+    "ValidationFinding",
 ]
 
 
@@ -541,6 +553,213 @@ class ResumeGateway(Protocol):
         gateways can share one ``TableSerializer`` collaborator.
         """
         ...
+
+
+class Severity(StrEnum):
+    """Locally-declared mirror of ``ui.settings_dialog.models.Severity`` /
+    ``backend.import_export.models.ImportFindingSeverity`` -- see this
+    module's docstring for why the declaration is duplicated."""
+
+    HARD_ERROR = "hard_error"
+    SOFT_WARNING = "soft_warning"
+    SOFT_INFO = "soft_info"
+
+
+class ValidationFinding(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Locally-declared mirror of ``ui.settings_dialog.models.ValidationFinding``.
+
+    ``target`` mirrors ``backend.import_export.models.ImportFinding.item_key``,
+    coerced to ``""`` for a file-level finding (``item_key is None``) since
+    the UI-declared shape this mirrors has no optional ``target``.
+    """
+
+    severity: Severity
+    target: str
+    message: str
+
+
+class PreviewGroup(StrEnum):
+    """Locally-declared mirror of ``ui.settings_dialog.models.PreviewGroup`` /
+    ``backend.import_export.models.ImportPreviewGroup``."""
+
+    ADDED = "added"
+    CHANGED = "changed"
+    UNCHANGED = "unchanged"
+    SKIPPED = "skipped"
+
+
+class SettingsImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Locally-declared mirror of
+    ``ui.settings_dialog.models.SettingsImportPreviewRow``."""
+
+    setting_key: SettingKey
+    current_value: str | None
+    imported_value: str | None
+    group: PreviewGroup
+
+
+class SettingsImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Locally-declared mirror of ``ui.settings_dialog.models.SettingsImportPreview``.
+
+    ``backend_preview`` is a deliberate extension beyond the UI-declared
+    shape: it carries the original ``backend.import_export.models
+    .SettingsImportPreview`` this preview was translated from, so
+    ``apply_settings_import`` can round-trip the *same* object the
+    Settings dialog's controller passes straight back (unread by any other
+    field) without ``adapters/ui_gateways/`` needing to reconstruct a
+    backend preview from display-only fields.
+    """
+
+    rows: tuple[SettingsImportPreviewRow, ...]
+    findings: tuple[ValidationFinding, ...]
+    resolved_values: dict[SettingKey, str]
+    backend_preview: object
+
+
+class SettingsImportResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Locally-declared mirror of ``ui.settings_dialog.models.SettingsImportResult``."""
+
+    applied_count: int
+    skipped_count: int
+
+
+class ProviderImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Locally-declared mirror of
+    ``ui.settings_dialog.models.ProviderImportPreviewRow``."""
+
+    name: str
+    group: PreviewGroup
+
+
+class ProviderImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Locally-declared mirror of ``ui.settings_dialog.models.ProviderImportPreview``.
+
+    ``backend_preview`` -- see ``SettingsImportPreview``'s docstring; same
+    round-trip rationale, here carrying the original
+    ``backend.import_export.models.ProviderImportPreview`` (whose entries
+    carry the ``ProviderConfigDraft`` values ``apply_provider_import``
+    actually needs -- display-only ``rows`` never carry a draft).
+    """
+
+    rows: tuple[ProviderImportPreviewRow, ...]
+    embedding_provider_name: str | None
+    embedding_model_name: str | None
+    findings: tuple[ValidationFinding, ...]
+    backend_preview: object
+
+
+class ProviderImportResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """Locally-declared mirror of ``ui.settings_dialog.models.ProviderImportResult``."""
+
+    applied_count: int
+    skipped_count: int
+
+
+class SettingsGateway(Protocol):
+    """Adapter gateway for the Settings Dialog (D-R-06).
+
+    Mirror of ``ui.settings_dialog.protocols.SettingsGateway`` -- see this
+    module's docstring for why the declaration is duplicated. Four methods
+    diverge from ``08-E`` §7b.6's verbatim text per ADR-0015: ``test_provider``
+    and ``discover_models`` return ``None`` and gain a keyword-only
+    ``on_complete`` callback; ``probe_all`` and ``probe_embedding`` return
+    ``None`` with no callback (their result reaches the caller via the
+    existing ``_app_readiness_changed`` event instead).
+    """
+
+    def list_providers(self) -> tuple[ProviderConfig, ...]: ...
+    def get_provider_by_name(self, name: str) -> ProviderConfig | None: ...
+    def replace_providers(self, configs: tuple[ProviderConfig, ...]) -> None: ...
+    def get_setting(self, key: SettingKey) -> str | None: ...
+    def list_settings(self) -> dict[SettingKey, str]: ...
+    def upsert_settings(self, values: dict[SettingKey, str]) -> None: ...
+    def get_resolved_str(self, key: SettingKey) -> str: ...
+
+    def list_model_capabilities(
+        self, provider_id: ProviderId, model_name: ModelName
+    ) -> tuple[ModelCapabilityRecord, ...]: ...
+
+    def upsert_model_capability(self, record: ModelCapabilityRecord) -> None: ...
+
+    def test_provider(
+        self,
+        provider_id: ProviderId,
+        model_name: ModelName,
+        *,
+        on_complete: Callable[[InferenceTestResult], None],
+    ) -> None:
+        """Run the per-row/reachability/inference test probe (ADR-0015).
+
+        fast-synchronous: returns before the probe completes. Submitted to a
+        ``TaskRunner`` worker thread; ``on_complete`` is invoked on the GUI
+        thread with the result once the call settles. Acquires the
+        ``PROVIDER_TEST`` single-inference gate for the call's full duration
+        and releases it in ``finally``; yields
+        ``InferenceTestResult(outcome=GATE_BUSY, ...)`` via ``on_complete``
+        without issuing a call when the gate is held elsewhere. An empty
+        ``model_name`` runs the reachability-only probe (``probe_health``);
+        a non-empty ``model_name`` runs the end-to-end inference probe
+        (``test_inference``) -- the existing single-entry-point convention
+        this gateway must preserve unchanged (see
+        ``ui/settings_dialog/_internal/sub_dialogs/provider_edit_view.py``'s
+        module docstring).
+        """
+        ...
+
+    def discover_models(
+        self,
+        provider_id: ProviderId,
+        *,
+        on_complete: Callable[[tuple[ModelName, ...]], None],
+    ) -> None:
+        """Discover a provider's models for the embedding-section picker (ADR-0015).
+
+        fast-synchronous: returns before discovery completes. Submitted to a
+        ``TaskRunner`` worker thread; ``on_complete`` is invoked on the GUI
+        thread with the result once the call settles.
+        """
+        ...
+
+    def probe_all(self) -> None:
+        """Run the auto-check on open (ADR-0015).
+
+        fast-synchronous: returns before the batch completes. Submitted to
+        the pipeline-dispatcher thread (never a ``TaskRunner`` worker -- this
+        is a fan-out-and-join batch, and a pool worker must never
+        submit-and-wait on the pool, ``04_CONCURRENCY_STANDARD.md`` §4a).
+        No callback: ``ReadinessService`` emits ``_app_readiness_changed``
+        itself once the batch completes; the Settings dialog already
+        subscribes to it.
+        """
+        ...
+
+    def probe_embedding(self) -> None:
+        """Run the billable Test Embedding capability probe (ADR-0015).
+
+        fast-synchronous: returns before the probe completes. Submitted to a
+        ``TaskRunner`` worker thread. No callback parameter -- unlike
+        ``probe_all``, this gateway publishes ``_app_readiness_changed``
+        itself once the probe settles (see this story's plan for why:
+        ``ReadinessService`` has no method for this billable check, and this
+        method must not call ``ReadinessService.probe_all()`` from a worker
+        thread). The Settings dialog's existing subscription repaints the
+        embedding diagnostic with no new UI wiring.
+        """
+        ...
+
+    def readiness_snapshot(self) -> AppReadinessSnapshot: ...
+    def build_settings_import_preview(self, file_path: str) -> SettingsImportPreview: ...
+    def apply_settings_import(self, preview: SettingsImportPreview) -> SettingsImportResult: ...
+    def build_provider_import_preview(self, file_path: str) -> ProviderImportPreview: ...
+    def apply_provider_import(self, preview: ProviderImportPreview) -> ProviderImportResult: ...
+    def export_settings(self) -> bytes: ...
+    def export_providers(self) -> bytes: ...
+
+    def save_all(
+        self, *, providers: tuple[ProviderConfig, ...], settings_values: dict[SettingKey, str]
+    ) -> None: ...
+
+    def reset_to_defaults(self, *, bundled_providers: tuple[ProviderConfig, ...]) -> None: ...
 
 
 class TaskEditorGateway(Protocol):

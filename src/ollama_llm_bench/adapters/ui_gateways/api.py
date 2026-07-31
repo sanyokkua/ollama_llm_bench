@@ -41,6 +41,10 @@ from ollama_llm_bench.adapters.ui_gateways._internal.resume.gateway import (
     ResumeGatewayCollaborators,
     _ResumeGateway,
 )
+from ollama_llm_bench.adapters.ui_gateways._internal.settings.gateway import (
+    SettingsGatewayCollaborators,
+    _SettingsGateway,
+)
 from ollama_llm_bench.adapters.ui_gateways._internal.task_editor.gateway import (
     TaskEditorGatewayCollaborators,
     _TaskEditorGateway,
@@ -56,14 +60,18 @@ from ollama_llm_bench.adapters.ui_gateways.protocols import (
     ResultGateway,
     ResumeGateway,
     RunLogWriteStatus,
+    SettingsGateway,
     TaskEditorGateway,
 )
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi
 from ollama_llm_bench.backend.charts import ChartAggregator
 from ollama_llm_bench.backend.concurrency import RunDispatcher, TaskRunner
 from ollama_llm_bench.backend.csv_export import TableSerializer
+from ollama_llm_bench.backend.events import EventBus
+from ollama_llm_bench.backend.import_export import ImportExportService
 from ollama_llm_bench.backend.infra.protocols import Clock, PlatformDetector
 from ollama_llm_bench.backend.persistence.app_settings import AppSettingsStore
+from ollama_llm_bench.backend.persistence.model_capabilities import ModelCapabilitiesStore
 from ollama_llm_bench.backend.persistence.providers import ProvidersStore
 from ollama_llm_bench.backend.persistence.results import ResultsStore
 from ollama_llm_bench.backend.persistence.runs import RunsStore
@@ -72,7 +80,7 @@ from ollama_llm_bench.backend.provider_registry import ProviderRegistry
 from ollama_llm_bench.backend.readiness import ReadinessService
 from ollama_llm_bench.backend.run_analysis import RunAnalysisService
 from ollama_llm_bench.backend.run_drift import RunDriftDetector
-from ollama_llm_bench.backend.settings import SettingsService
+from ollama_llm_bench.backend.settings import SettingsAtomicWriter, SettingsService
 from ollama_llm_bench.backend.stores import RunRegistryStore, WorkspaceStore
 from ollama_llm_bench.backend.stores.inference_activity import InferenceActivityStore
 
@@ -87,12 +95,14 @@ __all__: list[str] = [
     "ResultGateway",
     "ResumeGateway",
     "RunLogWriteStatus",
+    "SettingsGateway",
     "TaskEditorGateway",
     "make_main_window_gateway",
     "make_new_benchmark_gateway",
     "make_progress_gateway",
     "make_result_gateway",
     "make_resume_gateway",
+    "make_settings_gateway",
     "make_task_editor_gateway",
 ]
 
@@ -575,6 +585,138 @@ def make_resume_gateway(  # noqa: PLR0913  # eleven distinct required collaborat
             detector=detector,
             flow=flow,
             serializer=serializer,
+            clock=clock,
+        )
+    )
+
+
+@icontract.require(
+    lambda providers_store: providers_store is not None,
+    "providers_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda app_settings_store: app_settings_store is not None,
+    "app_settings_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda model_capabilities_store: model_capabilities_store is not None,
+    "model_capabilities_store is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda settings: settings is not None,
+    "settings is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda atomic_writer: atomic_writer is not None,
+    "atomic_writer is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda provider_registry: provider_registry is not None,
+    "provider_registry is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda readiness: readiness is not None,
+    "readiness is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda import_export: import_export is not None,
+    "import_export is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda gate: gate is not None, "gate is a required collaborator wired by compose.py"
+)
+@icontract.require(
+    lambda event_bus: event_bus is not None,
+    "event_bus is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda task_runner: task_runner is not None,
+    "task_runner is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda dispatcher: dispatcher is not None,
+    "dispatcher is a required collaborator wired by compose.py",
+)
+@icontract.require(
+    lambda clock: clock is not None, "clock is a required collaborator wired by compose.py"
+)
+@icontract.ensure(
+    lambda result: result is not None,
+    "make_settings_gateway must always return a usable gateway — a violation "
+    "here means this factory's own wiring is broken, not that a caller passed bad input",
+)
+def make_settings_gateway(  # noqa: PLR0913  # thirteen distinct required collaborators per
+    # the approved D-R-06 gateway shape (STORY-110)
+    *,
+    providers_store: ProvidersStore,
+    app_settings_store: AppSettingsStore,
+    model_capabilities_store: ModelCapabilitiesStore,
+    settings: SettingsService,
+    atomic_writer: SettingsAtomicWriter,
+    provider_registry: ProviderRegistry,
+    readiness: ReadinessService,
+    import_export: ImportExportService,
+    gate: InferenceActivityStore,
+    event_bus: EventBus,
+    task_runner: TaskRunner[object],
+    dispatcher: RunDispatcher,
+    clock: Clock,
+) -> SettingsGateway:
+    """Construct the Settings Dialog's adapter gateway.
+
+    Construction is side-effect free: no backend read, no probe, no network
+    call (STORY-110-AC-6) -- ``probe_all`` runs only when the dialog opens
+    and calls it, never as a side effect of this factory.
+
+    Args:
+        providers_store: The provider catalog store backing the Providers
+            tab's list/lookup/replace surface and ``save_all``/
+            ``reset_to_defaults``'s provider-catalog half.
+        app_settings_store: The user-saved settings store backing the
+            single/full read, the atomic multi-write, and the embedding
+            selection reads.
+        model_capabilities_store: The capability cache backing the model-
+            capability read and the user-override write.
+        settings: The settings service backing the resolved effective read.
+        atomic_writer: Composes a ``providers_store`` write and an
+            ``app_settings_store`` write into one real database transaction
+            for ``save_all``/``reset_to_defaults``.
+        provider_registry: Resolves the live ``LLMClient`` for
+            ``test_provider``/``discover_models``/the embedding capability
+            probe.
+        readiness: Backs the on-open readiness snapshot read and the
+            dispatcher-thread ``probe_all`` batch.
+        import_export: Backs the six import/export pass-throughs.
+        gate: The application-wide single-inference gate; acquired for the
+            full duration of ``test_provider`` and ``probe_embedding``.
+        event_bus: Publishes ``_app_readiness_changed`` once
+            ``probe_embedding``'s billable capability check settles.
+        task_runner: The scheduling port ``test_provider``/
+            ``discover_models``/``probe_embedding`` submit their worker calls
+            to, off the graphical thread.
+        dispatcher: The single, persistent pipeline-dispatcher thread
+            ``probe_all`` is submitted to -- never the ``TaskRunner`` pool.
+        clock: Supplies a fresh ``CancellationToken`` for each worker call
+            and the gate's acquisition timestamp.
+
+    Returns:
+        A ``SettingsGateway`` ready to be handed to ``make_settings_dialog``
+        (wired by STORY-077).
+    """
+    return _SettingsGateway(
+        collaborators=SettingsGatewayCollaborators(
+            providers_store=providers_store,
+            app_settings_store=app_settings_store,
+            model_capabilities_store=model_capabilities_store,
+            settings=settings,
+            atomic_writer=atomic_writer,
+            provider_registry=provider_registry,
+            readiness=readiness,
+            import_export=import_export,
+            gate=gate,
+            event_bus=event_bus,
+            task_runner=task_runner,
+            dispatcher=dispatcher,
             clock=clock,
         )
     )
