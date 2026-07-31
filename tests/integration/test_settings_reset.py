@@ -4,9 +4,10 @@ Exercises the real ``SqliteProvidersStore.replace_providers`` transaction that
 backs the provider-catalog half of Reset -- both the successful wipe-and-
 reseed and the rollback-on-failure path -- against a real ``tmp_path``-backed
 SQLite database, independent of whether the cross-store
-``SettingsGateway.reset_to_defaults`` exists yet (it does not; see
-``test_settings_wipe_has_no_real_delete_all_method_yet`` below and the
-story's Notes).
+``SettingsGateway.reset_to_defaults`` exists yet. STORY-110 later adds that
+concrete cross-store transaction (``backend.settings.SettingsAtomicWriter``);
+see ``test_settings_wipe_now_has_a_real_delete_all_method`` below and the
+story's Notes.
 """
 
 import inspect
@@ -132,36 +133,28 @@ def test_reset_replace_providers_rolls_back_on_constraint_violation(tmp_path: Pa
     assert providers_store.list_providers() == prior
 
 
-def test_settings_wipe_has_no_real_delete_all_method_yet() -> None:
+def test_settings_wipe_now_has_a_real_delete_all_method() -> None:
     """Proves: STORY-067-AC-5
 
-    Documents, rather than fabricates, real-store coverage for the
-    settings-wipe half of Reset. ``AppSettingsStore``
-    (``backend/persistence/app_settings/protocols.py``) exposes only
-    ``get_setting``/``upsert_settings`` (a merge-style write),
-    ``list_settings``, and ``get_schema_version`` -- there is no "delete
-    every row" method to integration-test against a real SQLite-backed store
-    yet. Building a real-store test for the settings half here would either
-    call a method that does not exist, or silently pass while asserting
-    nothing about wiping opaque keys (``ui.window_geometry``,
-    ``benchmark.last_mode``, etc.) -- exactly the false-confidence gap the
-    second spec-conformance review flagged.
-
-    ``SettingsGateway.reset_to_defaults``'s own docstring
-    (``ui/settings_dialog/protocols.py``) commits the concrete Phase 11
-    adapter to wiping every ``app_settings`` row and re-seeding the full
-    in-code defaults table in one atomic transaction alongside the
-    provider-catalog wipe proven above by
-    ``test_reset_replace_providers_wipes_and_reseeds_atomically``. That
-    commitment is proven today only at the level this module can prove it: a
-    scripted-failure unit test against ``FakeSettingsGateway`` --
-    ``ui/settings_dialog/tests/test_fake_gateway.py::
-    test_reset_to_defaults_failure_leaves_recorded_state_completely_unchanged``
-    -- which asserts a failed ``reset_to_defaults`` call mutates neither the
-    provider catalog nor the settings map. This test instead asserts the real
-    ``AppSettingsStore`` Protocol's current public surface has no delete-all
-    method, so this documented gap is caught the day one is added and this
-    test (and its story Notes) should be revisited.
+    Supersedes this test's former name and body
+    (``test_settings_wipe_has_no_real_delete_all_method_yet``), which
+    documented a real gap in ``AppSettingsStore``'s public surface rather than
+    fabricating coverage for it. STORY-110 closes that gap: ``AppSettingsStore``
+    now also exposes ``replace_all_settings_in_open_transaction`` (delete every
+    ``app_settings`` row, then insert every key in the caller's mapping,
+    against an already-open transaction) and
+    ``upsert_settings_in_open_transaction`` (the same transaction-participating
+    shape for the merge-style write), added purely additively alongside the
+    four pre-existing methods so ``backend.settings.SettingsAtomicWriter`` can
+    compose a real cross-store transaction for
+    ``SettingsGateway.save_all``/``reset_to_defaults`` (see
+    ``backend/persistence/app_settings/protocols.py`` and this story's Notes).
+    The full atomic reset-to-defaults behaviour against a real SQLite-backed
+    store (proving every key, including opaque UI-state keys, is re-seeded to
+    its in-code default) is STORY-110-AC-4's own designated proof point,
+    exercised via a real ``tmp_path``-backed database and
+    ``SettingsAtomicWriter`` -- this test only documents the real method
+    surface the two new methods now expose.
     """
     public_methods = {
         name
@@ -171,6 +164,8 @@ def test_settings_wipe_has_no_real_delete_all_method_yet() -> None:
     assert public_methods == {
         "get_setting",
         "upsert_settings",
+        "upsert_settings_in_open_transaction",
+        "replace_all_settings_in_open_transaction",
         "list_settings",
         "get_schema_version",
     }
