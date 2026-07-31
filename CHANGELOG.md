@@ -491,6 +491,27 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   or the registry itself — purely a visibility change to support the New Benchmark panel's
   Advanced Options section (STORY-055). Per `08-C` §2 and `08-E` §8a.
 
+- Settings dialog gateway (`adapters/ui_gateways/`: concrete `SettingsGateway` implementation
+  with `make_settings_gateway(...)` factory, completing the seven UI adapter gateways. The
+  gateway provides the atomic `save_all(providers, settings_values)` and
+  `reset_to_defaults(bundled_providers)` transactions (cross-store atomicity via
+  `SettingsAtomicWriter`), the provider-catalog and settings CRUD surfaces, the connection
+  test/model-discovery network-bound methods returning immediately with `on_complete`
+  callbacks (ADR-0015), the billable embedding capability check with callback and
+  `ReadinessService` integration (ADR-0016), the readiness `probe_all` dispatcher submission,
+  and the import/export pass-throughs. The constructor is side-effect free (no network call,
+  no probe on construction). Per `08-E` §7b.6, ADR-0014, ADR-0015, and STORY-110.
+
+- Readiness service embedding capability recording (`backend/readiness/`: the
+  `ReadinessService.record_embedding_capability_result(reachable: bool)` method for the
+  Settings dialog's billable Test Embedding feature. Updates the held snapshot's
+  `embedding_reachable` field, recomputes the app-wide `overall` readiness state using the
+  same aggregation fold `probe_all()` applies, and emits `_app_readiness_changed` only when
+  the cached snapshot actually differs (emit-on-change semantics). Works alongside a
+  parallel `on_complete` callback on `SettingsGateway.probe_embedding()` to ensure the
+  click-triggered check always reaches a terminal UI state (ADR-0016). Per `08-E` §12 and
+  STORY-110 spec-conformance fix pass.
+
 - Progress widget shell, run controls, and stability sub-controllers (`ui/progress/`): the
   factory `make_progress_widget(*, bus, gateway, log_formatter) -> QWidget`, the `ProgressGateway`
   Protocol (08-E §7b.4 base surface plus two locally-added extensions: `list_runs()` for the

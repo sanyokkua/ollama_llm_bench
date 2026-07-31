@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-31T20:33:29Z'
+generated_at: '2026-07-31T23:22:56Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5708,7 +5708,7 @@ stories:
         - src/ollama_llm_bench/adapters/ui_gateways/tests/test_resume_gateway.py::test_constructing_the_gateway_touches_no_collaborator
   STORY-110:
     title: Implement the concrete Settings gateway with an atomic Save, an atomic Reset, and import/export
-    status: ready
+    status: done
     spec_clauses:
     - 06_Settings_Dialog/description.md#33-per-row-actions
     - 06_Settings_Dialog/description.md#6-save-flow-atomic
@@ -5722,34 +5722,84 @@ stories:
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7-persistence-stores
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
+    - 08_Cross_Cutting/08-J_event_bus_catalog.md#57-global-and-app-readiness
+    - 11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#66a-embedding-capability-validation-d-r-11-miss-11
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#65-aggregation-into-the-overall-verdict
     - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#12-anti-patterns
     - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4a-the-dispatcher-thread-dd-38
     modules:
     - adapters/ui_gateways/
     - backend/persistence/app_settings/
     - backend/persistence/providers/
+    - backend/readiness/
     - backend/settings/
     - ui/settings_dialog/
     edge_cases: []
     acceptance_criteria:
       STORY-110-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[get_provider_by_name]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[get_resolved_str]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[get_setting]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[get_setting_unset]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[list_model_capabilities]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[list_providers]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[list_settings]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[readiness_snapshot]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[replace_providers]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[upsert_model_capability]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_fast_synchronous_method_performs_its_backend_interaction[upsert_settings]
+      STORY-110-AC-10:
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_network_bound_method_translates_a_worker_failure_into_a_delivered_result[discover_models]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_network_bound_method_translates_a_worker_failure_into_a_delivered_result[probe_embedding_gate_busy]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_network_bound_method_translates_a_worker_failure_into_a_delivered_result[probe_embedding_worker_exception]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_network_bound_method_translates_a_worker_failure_into_a_delivered_result[test_provider]
+        - src/ollama_llm_bench/backend/readiness/tests/test_record_embedding_capability_result.py::test_record_embedding_capability_result_emits_only_on_a_real_change
+        - src/ollama_llm_bench/backend/readiness/tests/test_record_embedding_capability_result.py::test_record_embedding_capability_result_updates_the_cached_snapshot
+      STORY-110-AC-11:
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_probe_embedding_delivers_on_complete_exactly_once_on_the_calling_thread[gate_busy]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_probe_embedding_delivers_on_complete_exactly_once_on_the_calling_thread[success]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_embedding_section.py::test_test_embedding_click_repaints_even_when_the_check_reproduces_a_known_value
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_embedding_section.py::test_test_embedding_click_shows_testing_state_until_callback_fires
       STORY-110-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_import_export_method_delegates_to_the_service[apply_provider_import]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_import_export_method_delegates_to_the_service[apply_settings_import]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_import_export_method_delegates_to_the_service[build_provider_import_preview]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_import_export_method_delegates_to_the_service[build_settings_import_preview]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_import_export_method_delegates_to_the_service[export_providers]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_import_export_method_delegates_to_the_service[export_settings]
       STORY-110-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_settings_gateway_atomicity.py::test_save_all_rolls_back_both_stores_when_the_settings_write_fails
       STORY-110-AC-4:
-        tests: []
+        tests:
+        - tests/integration/test_settings_gateway_atomicity.py::test_reset_to_defaults_reseeds_every_registry_key_and_the_bundled_providers
       STORY-110-AC-5:
-        tests: []
+        tests:
+        - tests/architecture/test_settings_defaults_public.py::test_defaults_import_site_never_reaches_into_internal
+        - tests/architecture/test_settings_defaults_public.py::test_defaults_table_source_file_is_discoverable
+        - tests/architecture/test_settings_defaults_public.py::test_settings_defaults_table_is_on_the_public_surface
       STORY-110-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_constructing_the_gateway_touches_no_collaborator
       STORY-110-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_network_bound_method_returns_before_its_call_runs_off_thread[discover_models]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_network_bound_method_returns_before_its_call_runs_off_thread[probe_all]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_network_bound_method_returns_before_its_call_runs_off_thread[probe_embedding]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_network_bound_method_returns_before_its_call_runs_off_thread[test_provider]
       STORY-110-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_callback_bearing_method_delivers_its_result_once_on_the_calling_thread[discover_models]
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_each_callback_bearing_method_delivers_its_result_once_on_the_calling_thread[test_provider]
       STORY-110-AC-9:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_test_actions_are_deferred.py::test_each_test_action_applies_its_outcome_only_from_the_callback[provider_edit_run_inference_test]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_test_actions_are_deferred.py::test_each_test_action_applies_its_outcome_only_from_the_callback[provider_edit_test_reachability]
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_test_actions_are_deferred.py::test_each_test_action_applies_its_outcome_only_from_the_callback[providers_tab_row_test_connection]
   STORY-111:
     title: Implement the concrete Task Editor gateway over the settings, workspace, and run-registry reads
     status: done
@@ -6548,6 +6598,9 @@ clauses:
   08_Cross_Cutting/08-J_event_bus_catalog.md#56-settings-and-providers-changed:
     stories:
     - STORY-052
+  08_Cross_Cutting/08-J_event_bus_catalog.md#57-global-and-app-readiness:
+    stories:
+    - STORY-110
   08_Cross_Cutting/08-J_event_bus_catalog.md#7-event-to-payload-index:
     stories:
     - STORY-003
@@ -6979,6 +7032,9 @@ clauses:
   11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#65-embedding-cache:
     stories:
     - STORY-027
+  11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#66a-embedding-capability-validation-d-r-11-miss-11:
+    stories:
+    - STORY-110
   11_Services_and_Algorithms/06_EMBEDDING_SERVICE.md#7-configuration:
     stories:
     - STORY-027
@@ -7081,6 +7137,7 @@ clauses:
   11_Services_and_Algorithms/09_READINESS_PROBE.md#65-aggregation-into-the-overall-verdict:
     stories:
     - STORY-016
+    - STORY-110
   11_Services_and_Algorithms/09_READINESS_PROBE.md#66-coalescing-overlapping-probe-requests:
     stories:
     - STORY-016
@@ -10468,6 +10525,7 @@ modules:
     - STORY-016
     - STORY-081
     - STORY-086
+    - STORY-110
   backend/retry/:
     stories:
     - STORY-007
