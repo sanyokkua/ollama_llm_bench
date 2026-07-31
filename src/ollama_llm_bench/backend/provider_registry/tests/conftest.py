@@ -157,6 +157,12 @@ class FakeProvidersStore:
         """Unused by these tests."""
         raise NotImplementedError("replace_providers is not exercised by provider_registry tests")
 
+    def replace_providers_in_open_transaction(self, configs: tuple[ProviderConfig, ...]) -> None:
+        """Unused by these tests."""
+        raise NotImplementedError(
+            "replace_providers_in_open_transaction is not exercised by provider_registry tests"
+        )
+
 
 class FakeLLMClient:
     """A controllable ``LLMClient`` double. Never touches the network.

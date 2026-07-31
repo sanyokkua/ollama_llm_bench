@@ -68,6 +68,12 @@ class _FakeAppSettingsStore:
     def upsert_settings(self, values: dict[SettingKey, str]) -> None:
         raise AssertionError("MainWindowGateway must never write through AppSettingsStore")
 
+    def upsert_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        raise AssertionError("MainWindowGateway must never write through AppSettingsStore")
+
+    def replace_all_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        raise AssertionError("MainWindowGateway must never write through AppSettingsStore")
+
     def list_settings(self) -> dict[SettingKey, str]:
         raise AssertionError("MainWindowGateway must never call AppSettingsStore.list_settings")
 

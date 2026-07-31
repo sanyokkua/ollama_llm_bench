@@ -83,6 +83,10 @@ class FakeProvidersStore:
         self.replace_calls.append(configs)
         self._providers = {p.name: p for p in configs}
 
+    def replace_providers_in_open_transaction(self, configs: tuple[ProviderConfig, ...]) -> None:
+        """Test double: same effect as ``replace_providers``, no transaction semantics."""
+        self.replace_providers(configs)
+
 
 class FakeAppSettingsStore:
     """A minimal in-memory ``AppSettingsStore`` double (mirrors
@@ -100,6 +104,14 @@ class FakeAppSettingsStore:
         """Record the call and write every value into the in-memory layer."""
         self.upsert_calls.append(dict(values))
         self._values.update(values)
+
+    def upsert_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        """Test double: same effect as ``upsert_settings``, no transaction semantics."""
+        self.upsert_settings(values)
+
+    def replace_all_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        """Test double: wipe and re-seed the in-memory layer with ``values``."""
+        self._values = dict(values)
 
     def list_settings(self) -> dict[SettingKey, str]:
         """Return every stored key/value pair."""

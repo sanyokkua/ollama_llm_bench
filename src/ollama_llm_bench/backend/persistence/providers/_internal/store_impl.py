@@ -173,6 +173,28 @@ class SqliteProvidersStore:
                 message = f"failed to delete provider {provider_id}"
                 raise PersistenceError(message=message) from exc
 
+    def replace_providers_in_open_transaction(self, configs: tuple[ProviderConfig, ...]) -> None:
+        """Replace the entire provider catalog against an already-open transaction.
+
+        Must be called only while the caller already holds this store's shared
+        write lock and has an open transaction (``BEGIN IMMEDIATE`` already
+        issued) on the shared write connection. Used exclusively by
+        ``backend.settings``'s ``SettingsAtomicWriter`` to compose a
+        ``providers`` write and an ``app_settings`` write into one real
+        transaction (``06_Settings_Dialog/description.md`` §6, §9). Ordinary
+        callers use ``replace_providers`` instead, which wraps this same logic
+        in its own transaction.
+
+        Raises:
+            sqlite3.Error: The underlying write failed. Not wrapped into
+                ``PersistenceError`` here -- the caller owns the transaction
+                boundary and its own single rollback-and-wrap site.
+        """
+        self._write_conn.execute("DELETE FROM providers")
+        for config in configs:
+            self._insert_provider_row_from_config(config)
+            self._insert_provider_models(config.provider_id, config.default_models)
+
     def replace_providers(self, configs: tuple[ProviderConfig, ...]) -> None:
         """Replace the entire provider catalog atomically.
 
@@ -183,10 +205,7 @@ class SqliteProvidersStore:
         with self._lock:
             self._write_conn.execute("BEGIN IMMEDIATE")
             try:
-                self._write_conn.execute("DELETE FROM providers")
-                for config in configs:
-                    self._insert_provider_row_from_config(config)
-                    self._insert_provider_models(config.provider_id, config.default_models)
+                self.replace_providers_in_open_transaction(configs)
                 self._write_conn.commit()
             except sqlite3.Error as exc:
                 self._write_conn.rollback()

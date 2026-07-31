@@ -189,6 +189,17 @@ class _FakeAppSettingsStore:
     def upsert_settings(self, values: dict[SettingKey, str]) -> None:
         self.upsert_settings_calls.append(values)
 
+    def upsert_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        raise AssertionError(
+            "ResumeGateway must never call AppSettingsStore.upsert_settings_in_open_transaction"
+        )
+
+    def replace_all_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        raise AssertionError(
+            "ResumeGateway must never call "
+            "AppSettingsStore.replace_all_settings_in_open_transaction"
+        )
+
     def list_settings(self) -> dict[SettingKey, str]:
         raise AssertionError("ResumeGateway must never call AppSettingsStore.list_settings")
 
@@ -256,6 +267,11 @@ class _FakeProvidersStore:
 
     def replace_providers(self, configs: tuple[ProviderConfig, ...]) -> None:
         raise AssertionError("ResumeGateway must never call ProvidersStore.replace_providers")
+
+    def replace_providers_in_open_transaction(self, configs: tuple[ProviderConfig, ...]) -> None:
+        raise AssertionError(
+            "ResumeGateway must never call ProvidersStore.replace_providers_in_open_transaction"
+        )
 
 
 class _FakeProviderRegistry:

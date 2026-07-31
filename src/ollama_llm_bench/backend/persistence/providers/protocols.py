@@ -83,3 +83,16 @@ class ProvidersStore(Protocol):
                 the underlying write failed.
         """
         ...
+
+    def replace_providers_in_open_transaction(self, configs: tuple[ProviderConfig, ...]) -> None:
+        """Replace the entire provider catalog against an already-open transaction.
+
+        Must be called only by a caller that already holds the write lock
+        and has an open transaction on the shared write connection --
+        used exclusively by ``backend.settings``'s ``SettingsAtomicWriter``.
+        Ordinary callers use ``replace_providers`` instead.
+
+        Raises:
+            PersistenceError: The underlying write failed.
+        """
+        ...

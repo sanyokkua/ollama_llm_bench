@@ -41,6 +41,14 @@ class FakeAppSettingsStore:
         self.upsert_calls.append(dict(values))
         self._values.update(values)
 
+    def upsert_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        """Test double: same effect as ``upsert_settings``, no transaction semantics."""
+        self.upsert_settings(values)
+
+    def replace_all_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        """Test double: wipe and re-seed the in-memory layer with ``values``."""
+        self._values = dict(values)
+
     def list_settings(self) -> dict[SettingKey, str]:
         """Return every stored key/value pair."""
         return dict(self._values)

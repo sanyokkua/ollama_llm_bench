@@ -36,6 +36,32 @@ class AppSettingsStore(Protocol):
         """
         ...
 
+    def upsert_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        """Insert or update settings rows against an already-open transaction.
+
+        Must be called only by a caller that already holds the write lock
+        and has an open transaction on the shared write connection --
+        used exclusively by ``backend.settings``'s ``SettingsAtomicWriter``.
+        Ordinary callers use ``upsert_settings`` instead.
+
+        Raises:
+            PersistenceError: The underlying write failed.
+        """
+        ...
+
+    def replace_all_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        """Delete every settings row and insert every key in ``values``,
+        against an already-open transaction.
+
+        Must be called only by a caller that already holds the write lock
+        and has an open transaction on the shared write connection --
+        used exclusively by ``SettingsAtomicWriter.reset_to_defaults``.
+
+        Raises:
+            PersistenceError: The underlying write failed.
+        """
+        ...
+
     def list_settings(self) -> dict[SettingKey, str]:
         """Return every user-saved setting.
 

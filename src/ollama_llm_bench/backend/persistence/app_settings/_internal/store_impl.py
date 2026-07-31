@@ -56,30 +56,64 @@ class SqliteAppSettingsStore:
             conn.close()
         return None if row is None else str(row[0])
 
+    def upsert_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        """Insert or update settings rows against an already-open transaction.
+
+        Must be called only while the caller already holds this store's shared
+        write lock and has an open transaction on the shared write connection.
+        Used exclusively by ``backend.settings``'s ``SettingsAtomicWriter``.
+        Ordinary callers use ``upsert_settings`` instead.
+
+        Raises:
+            sqlite3.Error: The underlying write failed; not wrapped here.
+        """
+        updated_at = self._clock.now_utc()
+        for key, value in values.items():
+            self._write_conn.execute(
+                "INSERT INTO app_settings (setting_key, setting_value, updated_at) "
+                "VALUES (?, ?, ?) "
+                "ON CONFLICT(setting_key) DO UPDATE SET "
+                "setting_value = excluded.setting_value, "
+                "updated_at = excluded.updated_at",
+                (key, value, updated_at),
+            )
+
     def upsert_settings(self, values: dict[SettingKey, str]) -> None:
         """Insert or update settings rows atomically.
 
         Raises:
             PersistenceError: The underlying write failed.
         """
-        updated_at = self._clock.now_utc()
         with self._lock:
             self._write_conn.execute("BEGIN IMMEDIATE")
             try:
-                for key, value in values.items():
-                    self._write_conn.execute(
-                        "INSERT INTO app_settings (setting_key, setting_value, updated_at) "
-                        "VALUES (?, ?, ?) "
-                        "ON CONFLICT(setting_key) DO UPDATE SET "
-                        "setting_value = excluded.setting_value, "
-                        "updated_at = excluded.updated_at",
-                        (key, value, updated_at),
-                    )
+                self.upsert_settings_in_open_transaction(values)
                 self._write_conn.commit()
             except sqlite3.Error as exc:
                 self._write_conn.rollback()
                 message = "failed to upsert app_settings rows"
                 raise PersistenceError(message=message) from exc
+
+    def replace_all_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        """Delete every settings row and insert every key in ``values``.
+
+        Against an already-open transaction, same caller-obligations as
+        ``upsert_settings_in_open_transaction``. Used exclusively by
+        ``SettingsAtomicWriter.reset_to_defaults`` -- ``values`` there is the
+        full ``backend.settings.DEFAULTS`` table, so every key (including
+        opaque UI-state keys the Settings dialog never reads) is re-seeded, not
+        merged.
+
+        Raises:
+            sqlite3.Error: The underlying write failed; not wrapped here.
+        """
+        updated_at = self._clock.now_utc()
+        self._write_conn.execute("DELETE FROM app_settings")
+        for key, value in values.items():
+            self._write_conn.execute(
+                "INSERT INTO app_settings (setting_key, setting_value, updated_at) VALUES (?, ?, ?)",
+                (key, value, updated_at),
+            )
 
     def list_settings(self) -> dict[SettingKey, str]:
         """Return every user-saved setting.

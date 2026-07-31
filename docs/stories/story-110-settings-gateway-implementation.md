@@ -21,6 +21,8 @@ modules:
   - ui/settings_dialog/
   - backend/settings/
   - adapters/ui_gateways/
+  - backend/persistence/providers/
+  - backend/persistence/app_settings/
 acceptance_criteria:
   - STORY-110-AC-1
   - STORY-110-AC-2
@@ -327,3 +329,19 @@ completion callback runs:
   docstring cites ADR-0015 as the reason it diverges from `08-E` §7b.6.
 - [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
   `modules:` names it.
+
+## Notes
+
+- `save_all`/`reset_to_defaults` need real cross-store atomicity spanning `ProvidersStore` and
+  `AppSettingsStore`. Rather than spinning off a prerequisite story, this story adds one small,
+  purely additive "write inside an already-open transaction" method to each store
+  (`replace_providers_in_open_transaction`, `upsert_settings_in_open_transaction`,
+  `replace_all_settings_in_open_transaction`) plus a new `SettingsAtomicWriter` swap point in
+  `backend/settings/`. This is why `modules:` lists `backend/persistence/providers/` and
+  `backend/persistence/app_settings/` in addition to the three modules the estimate implied —
+  still five modules total, within the `L` ceiling.
+- `ui/settings_dialog/_internal/providers_tab/embedding_section.py` is not named in this
+  story's "In scope" list, but its two call sites (`_DiscoverModelsFetcher.fetch_models` and
+  `_on_test_embedding_clicked`) call `discover_models`/`probe_embedding` directly and break
+  under ADR-0015's signature change; this story's implementation therefore also touches that
+  file as an unavoidable, in-scope consequence of the protocol change.

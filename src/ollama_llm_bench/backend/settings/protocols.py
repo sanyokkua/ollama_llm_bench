@@ -8,11 +8,12 @@ Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contra
 
 from typing import Protocol
 
-from ollama_llm_bench.backend.domain import BenchmarkRun, SettingKey
+from ollama_llm_bench.backend.domain import BenchmarkRun, ProviderConfig, SettingKey
 from ollama_llm_bench.backend.settings.models import RunSettingsSnapshot
 
 __all__: list[str] = [
     "RunSnapshotBuilder",
+    "SettingsAtomicWriter",
     "SettingsService",
 ]
 
@@ -155,5 +156,46 @@ class RunSnapshotBuilder(Protocol):
 
         Raises:
             PersistenceError: The underlying user-saved-layer read failed.
+        """
+        ...
+
+
+class SettingsAtomicWriter(Protocol):
+    """Composes a ProvidersStore write and an AppSettingsStore write into one
+    real database transaction.
+
+    Exists because ``save_all``/``reset_to_defaults`` on the Settings dialog
+    each span two independent per-aggregate stores
+    (``06_Settings_Dialog/description.md`` §6, §9); calling each store's
+    ordinary method in sequence would run two separate transactions, which
+    cannot express "neither store changes if either write fails."
+    """
+
+    def save_all(
+        self, *, providers: tuple[ProviderConfig, ...], settings_values: dict[SettingKey, str]
+    ) -> None:
+        """Replace the provider catalog and upsert the given settings, atomically.
+
+        fast-synchronous (a single SQLite transaction under WAL).
+
+        Raises:
+            PersistenceError: Either half's write failed; on failure
+                neither the provider catalog nor the settings rows changed.
+        """
+        ...
+
+    def reset_to_defaults(
+        self,
+        *,
+        bundled_providers: tuple[ProviderConfig, ...],
+        all_default_settings: dict[SettingKey, str],
+    ) -> None:
+        """Wipe and re-seed the provider catalog and every settings key, atomically.
+
+        fast-synchronous.
+
+        Raises:
+            PersistenceError: Either half's write failed; on failure
+                neither table changed.
         """
         ...

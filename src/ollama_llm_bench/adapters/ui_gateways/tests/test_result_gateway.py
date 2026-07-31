@@ -176,6 +176,17 @@ class _FakeAppSettingsStore:
     def upsert_settings(self, values: dict[SettingKey, str]) -> None:
         raise AssertionError("ResultGateway must never call AppSettingsStore.upsert_settings")
 
+    def upsert_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        raise AssertionError(
+            "ResultGateway must never call AppSettingsStore.upsert_settings_in_open_transaction"
+        )
+
+    def replace_all_settings_in_open_transaction(self, values: dict[SettingKey, str]) -> None:
+        raise AssertionError(
+            "ResultGateway must never call "
+            "AppSettingsStore.replace_all_settings_in_open_transaction"
+        )
+
     def list_settings(self) -> dict[SettingKey, str]:
         raise AssertionError("ResultGateway must never call AppSettingsStore.list_settings")
 

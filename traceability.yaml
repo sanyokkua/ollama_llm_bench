@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-30T20:20:42Z'
+generated_at: '2026-07-31T20:03:20Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5724,6 +5724,8 @@ stories:
     - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#4a-the-dispatcher-thread-dd-38
     modules:
     - adapters/ui_gateways/
+    - backend/persistence/app_settings/
+    - backend/persistence/providers/
     - backend/settings/
     - ui/settings_dialog/
     edge_cases: []
@@ -10418,6 +10420,7 @@ modules:
     - STORY-008
     - STORY-078
     - STORY-093
+    - STORY-110
   backend/persistence/model_capabilities/:
     stories:
     - STORY-013
@@ -10425,6 +10428,7 @@ modules:
     stories:
     - STORY-012
     - STORY-078
+    - STORY-110
   backend/persistence/results/:
     stories:
     - STORY-011
