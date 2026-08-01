@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-01T07:51:35Z'
+generated_at: '2026-08-01T08:54:05Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5478,7 +5478,7 @@ stories:
         - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-14]
   STORY-104:
     title: Give every UI adapter gateway exactly one production implementation
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#23-the-application-context
@@ -5491,9 +5491,21 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-104-AC-1:
-        tests: []
+        tests:
+        - tests/architecture/test_gateway_implementations_exist.py::test_every_ui_gateway_protocol_has_one_production_implementation[MainWindowGateway]
+        - tests/architecture/test_gateway_implementations_exist.py::test_every_ui_gateway_protocol_has_one_production_implementation[NewBenchmarkGateway]
+        - tests/architecture/test_gateway_implementations_exist.py::test_every_ui_gateway_protocol_has_one_production_implementation[ProgressGateway]
+        - tests/architecture/test_gateway_implementations_exist.py::test_every_ui_gateway_protocol_has_one_production_implementation[ResultGateway]
+        - tests/architecture/test_gateway_implementations_exist.py::test_every_ui_gateway_protocol_has_one_production_implementation[ResumeGateway]
+        - tests/architecture/test_gateway_implementations_exist.py::test_every_ui_gateway_protocol_has_one_production_implementation[SettingsGateway]
+        - tests/architecture/test_gateway_implementations_exist.py::test_every_ui_gateway_protocol_has_one_production_implementation[TaskEditorGateway]
       STORY-104-AC-2:
-        tests: []
+        tests:
+        - tests/unit/test_common_dialog_gateway_structural_satisfaction.py::test_common_dialog_gateways_are_satisfied_by_their_sibling_gateway[rename_run_via_progress]
+        - tests/unit/test_common_dialog_gateway_structural_satisfaction.py::test_common_dialog_gateways_are_satisfied_by_their_sibling_gateway[rename_run_via_resume]
+        - tests/unit/test_common_dialog_gateway_structural_satisfaction.py::test_common_dialog_gateways_are_satisfied_by_their_sibling_gateway[resume_summary_via_resume]
+        - tests/unit/test_common_dialog_gateway_structural_satisfaction.py::test_common_dialog_gateways_are_satisfied_by_their_sibling_gateway[retry_selection_via_resume]
+        - tests/unit/test_common_dialog_gateway_structural_satisfaction.py::test_common_dialog_gateways_are_satisfied_by_their_sibling_gateway[run_summary_via_new_benchmark]
   STORY-105:
     title: Implement the concrete Main Window gateway over settings, readiness, and the run flow
     status: done

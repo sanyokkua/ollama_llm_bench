@@ -1,7 +1,7 @@
 ---
 id: STORY-104
 title: Give every UI adapter gateway exactly one production implementation
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#23-the-application-context
@@ -160,11 +160,11 @@ adapter — so it is outside this criterion's case space.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-104.
-- [ ] The seven child stories (STORY-105 … STORY-111) are `done`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
+- [x] Every acceptance criterion has a passing test that names STORY-104.
+- [x] The seven child stories (STORY-105 … STORY-111) are `done`.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
   `modules:` names it.
 
 ## Notes
