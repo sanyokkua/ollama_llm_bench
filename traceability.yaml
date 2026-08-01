@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-01T08:54:05Z'
+generated_at: '2026-08-01T09:28:15Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5862,6 +5862,33 @@ stories:
       STORY-112-AC-4:
         tests:
         - src/ollama_llm_bench/ui/task_editor/tests/test_controller_watch_rebaseline.py::test_saving_through_the_editor_does_not_raise_a_conflict
+  STORY-113:
+    title: Declare each gateway-boundary DTO once in the adapters layer and import it from the widget modules
+    status: ready
+    spec_clauses:
+    - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#1-scope-and-conventions
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b5-resultgateway
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway
+    - 16_Engineering_Standards/01_PROJECT_STRUCTURE.md#5-the-module-public-surface
+    - 16_Engineering_Standards/01_PROJECT_STRUCTURE.md#8-import-boundaries
+    modules:
+    - adapters/ui_gateways/
+    - ui/results/
+    - ui/settings_dialog/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-113-AC-1:
+        tests: []
+      STORY-113-AC-2:
+        tests: []
+      STORY-113-AC-3:
+        tests: []
+      STORY-113-AC-4:
+        tests: []
+      STORY-113-AC-5:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -6280,6 +6307,7 @@ clauses:
     - STORY-109
     - STORY-110
     - STORY-111
+    - STORY-113
   08_Cross_Cutting/08-B_benchmark_state_machine.md#10-terminal-status-resolution:
     stories:
     - STORY-029
@@ -6387,6 +6415,9 @@ clauses:
   08_Cross_Cutting/08-D_color_palette_and_typography.md#9-spacing-tokens:
     stories:
     - STORY-049
+  08_Cross_Cutting/08-E_interfaces_contracts.md#1-scope-and-conventions:
+    stories:
+    - STORY-113
   08_Cross_Cutting/08-E_interfaces_contracts.md#10-llm-client:
     stories:
     - STORY-017
@@ -6491,6 +6522,7 @@ clauses:
     - STORY-109
     - STORY-110
     - STORY-111
+    - STORY-113
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b1-mainwindowgateway:
     stories:
     - STORY-053
@@ -6523,11 +6555,13 @@ clauses:
     - STORY-065
     - STORY-072
     - STORY-108
+    - STORY-113
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b6-settingsgateway:
     stories:
     - STORY-066
     - STORY-067
     - STORY-110
+    - STORY-113
   08_Cross_Cutting/08-E_interfaces_contracts.md#7b7-taskeditorgateway:
     stories:
     - STORY-068
@@ -7483,9 +7517,15 @@ clauses:
   ? 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-013--secret-leakage-through-one-of-the-two-redaction-surfaces-being-bypassed
   : stories:
     - STORY-093
+  16_Engineering_Standards/01_PROJECT_STRUCTURE.md#5-the-module-public-surface:
+    stories:
+    - STORY-113
   16_Engineering_Standards/01_PROJECT_STRUCTURE.md#7-the-composition-root:
     stories:
     - STORY-077
+  16_Engineering_Standards/01_PROJECT_STRUCTURE.md#8-import-boundaries:
+    stories:
+    - STORY-113
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#12-anti-patterns:
     stories:
     - STORY-110
@@ -10398,6 +10438,7 @@ modules:
     - STORY-109
     - STORY-110
     - STORY-111
+    - STORY-113
   adapters/workspace_controller/:
     stories:
     - STORY-045
@@ -10627,6 +10668,7 @@ modules:
     - STORY-089
     - STORY-099
     - STORY-108
+    - STORY-113
   ui/resume_benchmark/:
     stories:
     - STORY-056
@@ -10644,6 +10686,7 @@ modules:
     - STORY-083
     - STORY-099
     - STORY-110
+    - STORY-113
   ui/shared/:
     stories:
     - STORY-051
