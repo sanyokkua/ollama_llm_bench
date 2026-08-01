@@ -4,10 +4,19 @@ extended by STORY-067).
 Source of truth: ``docs/v3_specification/06_Settings_Dialog/implementation_structure.md``
 §4 (Providers tab row shape and dialog chrome -- STORY-066); ``description.md`` §15
 (validation severities/findings) and ``10_Domain_and_Data/06_IMPORT_FORMATS.md`` §8
-(import-preview grouping -- STORY-067). The import-preview DTOs are declared *locally*
-here, shaped after ``backend.import_export.models``'s real DTOs without importing that
-package directly -- ``ui/*`` may not import ``backend/import_export`` (see the
-STORY-067 plan's "Resolved design gap" section and the story's own Notes).
+(import-preview grouping -- STORY-067).
+
+``Severity``/``ValidationFinding``/``PreviewGroup``/``SettingsImportPreviewRow``/
+``SettingsImportPreview``/``SettingsImportResult``/``ProviderImportPreviewRow``/
+``ProviderImportPreview``/``ProviderImportResult`` are imported from
+``ollama_llm_bench.adapters.ui_gateways`` (ADR-0017, STORY-113) -- the single canonical
+declaration of these nine names, shaped after ``backend.import_export.models``'s real
+DTOs without importing that package directly (``ui/*`` may not import
+``backend/import_export`` -- see the STORY-067 plan's "Resolved design gap" section and
+the story's own Notes). Importing from ``adapters/ui_gateways`` instead of re-declaring
+locally is what makes the concrete ``SettingsGateway`` genuinely assignable to this
+module's own ``SettingsGateway`` Protocol under ``mypy --strict`` (a two-copy nominal-type
+declaration is not, per ADR-0017's Context and problem statement).
 """
 
 from collections.abc import Callable
@@ -19,6 +28,17 @@ from ollama_llm_bench.adapters.clipboard import Clipboard
 from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.native_pickers import NativePickers
 from ollama_llm_bench.adapters.notification_service import NotificationService
+from ollama_llm_bench.adapters.ui_gateways import (
+    PreviewGroup,
+    ProviderImportPreview,
+    ProviderImportPreviewRow,
+    ProviderImportResult,
+    SettingsImportPreview,
+    SettingsImportPreviewRow,
+    SettingsImportResult,
+    Severity,
+    ValidationFinding,
+)
 from ollama_llm_bench.backend.domain import (
     ProviderConfig,
     ProviderTestStatus,
@@ -53,88 +73,12 @@ __all__: list[str] = [
 ]
 
 
-class Severity(StrEnum):
-    """The three-severity model shared by validation findings and import previews
-    (``description.md`` §15; ``10_Domain_and_Data/06_IMPORT_FORMATS.md`` §2)."""
-
-    HARD_ERROR = "hard_error"
-    SOFT_WARNING = "soft_warning"
-    SOFT_INFO = "soft_info"
-
-
-class ValidationFinding(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """One cross-tab validation result (``description.md`` §15)."""
-
-    severity: Severity
-    target: str
-    message: str
-
-
 class GeneralFieldState(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     """The working state of one General-tab control."""
 
     setting_key: SettingKey
     value: str
     has_error: bool
-
-
-class PreviewGroup(StrEnum):
-    """The Import-preview grouping (``10_Domain_and_Data/06_IMPORT_FORMATS.md`` §8)."""
-
-    ADDED = "added"
-    CHANGED = "changed"
-    UNCHANGED = "unchanged"
-    SKIPPED = "skipped"
-
-
-class SettingsImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """One setting key's proposed import outcome."""
-
-    setting_key: SettingKey
-    current_value: str | None
-    imported_value: str | None
-    group: PreviewGroup
-
-
-class SettingsImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """The full settings-import preview, locally shaped to mirror
-    ``backend.import_export.models.SettingsImportPreview`` without importing it
-    (``ui/*`` may not import ``backend/import_export`` -- see the story's Notes)."""
-
-    rows: tuple[SettingsImportPreviewRow, ...]
-    findings: tuple[ValidationFinding, ...]
-    resolved_values: dict[SettingKey, str]
-
-
-class SettingsImportResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """The applied/skipped counts after a confirmed settings import."""
-
-    applied_count: int
-    skipped_count: int
-
-
-class ProviderImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """One provider entry's proposed import outcome."""
-
-    name: str
-    group: PreviewGroup
-
-
-class ProviderImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """The full provider-config-import preview, locally shaped to mirror
-    ``backend.import_export.models.ProviderImportPreview`` (see the story's Notes)."""
-
-    rows: tuple[ProviderImportPreviewRow, ...]
-    embedding_provider_name: str | None
-    embedding_model_name: str | None
-    findings: tuple[ValidationFinding, ...]
-
-
-class ProviderImportResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """The applied/skipped counts after a confirmed provider-config import."""
-
-    applied_count: int
-    skipped_count: int
 
 
 class SettingsTab(StrEnum):

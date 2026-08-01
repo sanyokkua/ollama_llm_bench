@@ -6,19 +6,27 @@
 Also declares ``ManualProviderProbeCommand`` and ``RunLogWriteStatus``, the two
 adapter-local collaborator Protocols the concrete ``ProgressGateway`` implementation
 depends on (see ``_internal/progress/gateway.py``'s docstring for why each is
-adapter-local/single-consumer rather than a named backend service), ``ActiveRunTaskPaths``,
-the adapter-local collaborator Protocol the concrete ``TaskEditorGateway`` implementation
-depends on for the in-use-task-file marker (see below for why it is adapter-local), and
-``JudgeAnalysisGenerationOutcome`` / ``JudgeAnalysisGenerationResult``, the locally-declared
-mirrors of ``backend.run_analysis.RunAnalysisOutcome`` / ``RunAnalysisResult`` that
-``ResultGateway.regenerate_run_analysis`` returns through its ``on_complete`` callback
-(``ui/results/`` may not import ``backend.run_analysis`` directly, per STORY-061's
-Definition of done -- see ``ui/results/protocols.py``'s own docstring for the full
-rationale, mirrored here for the same reason as every other duplicate in this module).
+adapter-local/single-consumer rather than a named backend service), and
+``ActiveRunTaskPaths``, the adapter-local collaborator Protocol the concrete
+``TaskEditorGateway`` implementation depends on for the in-use-task-file marker (see
+below for why it is adapter-local).
+
+This module is also the **single canonical declaration point** (ADR-0017) for every
+record type a gateway Protocol's signature mentions: ``JudgeAnalysisGenerationOutcome``
+and ``JudgeAnalysisGenerationResult`` (``ResultGateway``'s run-analysis callback
+payload), and ``Severity``, ``ValidationFinding``, ``PreviewGroup``,
+``SettingsImportPreviewRow``, ``SettingsImportPreview``, ``SettingsImportResult``,
+``ProviderImportPreviewRow``, ``ProviderImportPreview`` and ``ProviderImportResult``
+(``SettingsGateway``'s import/export preview family). ``ui/results/protocols.py`` and
+``ui/settings_dialog/models.py`` import these eleven names from here rather than
+re-declaring them, so each is one nominal type, not two (STORY-113). This is the only
+legal import direction: ``adapters/*`` may never import ``ui/*``, while ``ui/*`` may
+import ``adapters/*`` freely (``16_Engineering_Standards/01_PROJECT_STRUCTURE.md`` §8).
 
 Source of truth: ``docs/v3_specification/08_Cross_Cutting/08-E_interfaces_contracts.md``
 §7b.1 (``MainWindowGateway``), §7b.2 (``NewBenchmarkGateway``), §7b.3 (``ResumeGateway``),
-§7b.4 (``ProgressGateway``), §7b.5 (``ResultGateway``), §7b.7 (``TaskEditorGateway``).
+§7b.4 (``ProgressGateway``), §7b.5 (``ResultGateway``), §7b.6 (``SettingsGateway``),
+§7b.7 (``TaskEditorGateway``).
 
 ``ResultGateway.chart_data``'s return type is ``ChartData | HeatmapData`` here, matching
 ``ui/results/protocols.py``'s own copy (corrected by the STORY-108 spec-conformance fix
@@ -30,23 +38,32 @@ wider type, so ``_ResultGateway`` structurally satisfies both Protocols under
 ``mypy --strict``.
 
 Each owning UI module's ``protocols.py`` stays the source of truth for its gateway's
-shape: the widget owns it, but ``adapters/*`` may not import ``ui/*``
+*shape*: the widget owns the Protocol, but ``adapters/*`` may not import ``ui/*``
 (``import-linter``), so this module's ``api.py`` cannot annotate a `make_*_gateway`
-factory's return type with the UI module's copy. These copies exist only so ``api.py``
-has something to annotate. Each concrete gateway class satisfies both its own copy here
-and the UI module's copy structurally, with no import in either direction. Any change to
-one side of a pair must be mirrored in the other.
+factory's return type with the UI module's own Protocol copy. These Protocol copies
+exist only so ``api.py`` has something to annotate. Each concrete gateway class
+satisfies both its own Protocol copy here and the UI module's Protocol copy
+structurally, with no import in either direction. Any change to one side of a Protocol
+pair must be mirrored in the other -- ``tests/architecture/test_result_gateway_protocol_mirrors.py``
+guards this for ``ResultGateway.chart_data``. This mirroring applies to the seven
+**Protocols only**; ADR-0017 covers the eleven **DTOs** above, which no longer mirror.
 
-This duplication resolves a contradiction inside ADR-0014 rather than applying it: the
-ADR's decision item 2 requires each factory to return "the corresponding **UI-declared**
-gateway Protocol type", while item 3 requires that ``adapters/ui_gateways/`` "declares no
-gateway Protocol of its own" and never imports the UI module. Those two cannot both hold
--- annotating with the UI-declared type *is* importing the UI module. Item 3's layering
-rule is the one with teeth (it is now enforced by the "Adapters never import the UI
-layer" ``import-linter`` contract), so item 2 is satisfied structurally instead of
-nominally, at the cost of item 3's "no Protocol of its own". A corrective ADR should
-record that; ADR-0014 itself is accepted and so may no longer be edited in place
-(``14_Process_and_Traceability/04_ADR_FORMAT.md`` §8).
+This duplication of the seven Protocols resolves a contradiction inside ADR-0014 rather
+than applying it: the ADR's decision item 2 requires each factory to return "the
+corresponding **UI-declared** gateway Protocol type", while item 3 requires that
+``adapters/ui_gateways/`` "declares no gateway Protocol of its own" and never imports
+the UI module. Those two cannot both hold -- annotating with the UI-declared type *is*
+importing the UI module. Item 3's layering rule is the one with teeth (it is now
+enforced by the "Adapters never import the UI layer" ``import-linter`` contract), so
+item 2 is satisfied structurally instead of nominally, at the cost of item 3's "no
+Protocol of its own". ADR-0017 records this correction to item 3 -- and additionally
+fixes the DTO half of the seam, which structural Protocol mirroring could not: two
+field-identical ``msgspec.Struct``/``StrEnum`` declarations are two distinct *nominal*
+types, so a callback typed against one copy made the whole gateway unassignable to the
+Protocol mentioning the other, for exactly the ``ResultGateway`` and ``SettingsGateway``
+pairs. ADR-0014 itself is accepted and so may no longer be edited in place
+(``14_Process_and_Traceability/04_ADR_FORMAT.md`` §8); ADR-0017 is a related, not a
+superseding, decision.
 """
 
 from collections.abc import Callable
@@ -556,9 +573,11 @@ class ResumeGateway(Protocol):
 
 
 class Severity(StrEnum):
-    """Locally-declared mirror of ``ui.settings_dialog.models.Severity`` /
-    ``backend.import_export.models.ImportFindingSeverity`` -- see this
-    module's docstring for why the declaration is duplicated."""
+    """The canonical gateway-boundary declaration (ADR-0017) of the three-severity
+    model shared by validation findings and import previews, re-exported and used
+    unchanged by ``ui.settings_dialog.models``. Shaped after
+    ``backend.import_export.models.ImportFindingSeverity`` without importing it
+    (``ui/settings_dialog/`` may not import ``backend.import_export`` directly)."""
 
     HARD_ERROR = "hard_error"
     SOFT_WARNING = "soft_warning"
@@ -566,11 +585,13 @@ class Severity(StrEnum):
 
 
 class ValidationFinding(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Locally-declared mirror of ``ui.settings_dialog.models.ValidationFinding``.
+    """The canonical gateway-boundary declaration (ADR-0017) of one cross-tab
+    validation result, re-exported and used unchanged by
+    ``ui.settings_dialog.models``.
 
     ``target`` mirrors ``backend.import_export.models.ImportFinding.item_key``,
     coerced to ``""`` for a file-level finding (``item_key is None``) since
-    the UI-declared shape this mirrors has no optional ``target``.
+    this gateway-boundary shape has no optional ``target``.
     """
 
     severity: Severity
@@ -579,8 +600,10 @@ class ValidationFinding(msgspec.Struct, frozen=True, kw_only=True, gc=False):
 
 
 class PreviewGroup(StrEnum):
-    """Locally-declared mirror of ``ui.settings_dialog.models.PreviewGroup`` /
-    ``backend.import_export.models.ImportPreviewGroup``."""
+    """The canonical gateway-boundary declaration (ADR-0017) of the Import-preview
+    grouping, re-exported and used unchanged by ``ui.settings_dialog.models``.
+    Shaped after ``backend.import_export.models.ImportPreviewGroup`` without
+    importing it."""
 
     ADDED = "added"
     CHANGED = "changed"
@@ -589,8 +612,9 @@ class PreviewGroup(StrEnum):
 
 
 class SettingsImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Locally-declared mirror of
-    ``ui.settings_dialog.models.SettingsImportPreviewRow``."""
+    """The canonical gateway-boundary declaration (ADR-0017) of one setting key's
+    proposed import outcome, re-exported and used unchanged by
+    ``ui.settings_dialog.models``."""
 
     setting_key: SettingKey
     current_value: str | None
@@ -599,15 +623,20 @@ class SettingsImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=Fal
 
 
 class SettingsImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Locally-declared mirror of ``ui.settings_dialog.models.SettingsImportPreview``.
+    """The canonical gateway-boundary declaration (ADR-0017) of the full
+    settings-import preview, re-exported and used unchanged by
+    ``ui.settings_dialog.models``.
 
-    ``backend_preview`` is a deliberate extension beyond the UI-declared
-    shape: it carries the original ``backend.import_export.models
+    ``backend_preview`` is a deliberate extension beyond the Settings dialog's
+    display-only fields: it carries the original ``backend.import_export.models
     .SettingsImportPreview`` this preview was translated from, so
     ``apply_settings_import`` can round-trip the *same* object the
     Settings dialog's controller passes straight back (unread by any other
-    field) without ``adapters/ui_gateways/`` needing to reconstruct a
-    backend preview from display-only fields.
+    field, and never rendered/logged/compared by the dialog) without
+    ``adapters/ui_gateways/`` needing to reconstruct a backend preview from
+    display-only fields. Required, keyword-only, no default: the concrete
+    ``SettingsGateway`` casts and uses it in ``apply_settings_import``, so a
+    default would trade a construction-time error for a run-time one.
     """
 
     rows: tuple[SettingsImportPreviewRow, ...]
@@ -617,28 +646,34 @@ class SettingsImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False)
 
 
 class SettingsImportResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Locally-declared mirror of ``ui.settings_dialog.models.SettingsImportResult``."""
+    """The canonical gateway-boundary declaration (ADR-0017) of the applied/skipped
+    counts after a confirmed settings import, re-exported and used unchanged by
+    ``ui.settings_dialog.models``."""
 
     applied_count: int
     skipped_count: int
 
 
 class ProviderImportPreviewRow(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Locally-declared mirror of
-    ``ui.settings_dialog.models.ProviderImportPreviewRow``."""
+    """The canonical gateway-boundary declaration (ADR-0017) of one provider
+    entry's proposed import outcome, re-exported and used unchanged by
+    ``ui.settings_dialog.models``."""
 
     name: str
     group: PreviewGroup
 
 
 class ProviderImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Locally-declared mirror of ``ui.settings_dialog.models.ProviderImportPreview``.
+    """The canonical gateway-boundary declaration (ADR-0017) of the full
+    provider-config-import preview, re-exported and used unchanged by
+    ``ui.settings_dialog.models``.
 
     ``backend_preview`` -- see ``SettingsImportPreview``'s docstring; same
     round-trip rationale, here carrying the original
     ``backend.import_export.models.ProviderImportPreview`` (whose entries
     carry the ``ProviderConfigDraft`` values ``apply_provider_import``
-    actually needs -- display-only ``rows`` never carry a draft).
+    actually needs -- display-only ``rows`` never carry a draft). Required,
+    keyword-only, no default -- see ``SettingsImportPreview``'s docstring.
     """
 
     rows: tuple[ProviderImportPreviewRow, ...]
@@ -649,7 +684,9 @@ class ProviderImportPreview(msgspec.Struct, frozen=True, kw_only=True, gc=False)
 
 
 class ProviderImportResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Locally-declared mirror of ``ui.settings_dialog.models.ProviderImportResult``."""
+    """The canonical gateway-boundary declaration (ADR-0017) of the applied/skipped
+    counts after a confirmed provider-config import, re-exported and used unchanged
+    by ``ui.settings_dialog.models``."""
 
     applied_count: int
     skipped_count: int

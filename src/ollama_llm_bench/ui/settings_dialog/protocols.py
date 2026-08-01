@@ -45,11 +45,11 @@ from ollama_llm_bench.backend.domain import (
 )
 
 if TYPE_CHECKING:
-    # Deferred to break the models.py <-> protocols.py cycle: models.py needs
-    # SettingsGateway as a real runtime type (a msgspec.Struct field
-    # annotation), so protocols.py cannot import models.py eagerly. These four
-    # names are used only as quoted (forward-reference) annotations below.
-    from ollama_llm_bench.ui.settings_dialog.models import (
+    # These four names are used only as quoted (forward-reference) annotations
+    # below -- deferred to avoid a needless runtime import of the whole
+    # adapters.ui_gateways package root (which transitively imports all seven
+    # concrete gateway implementations) into this Protocol-only module.
+    from ollama_llm_bench.adapters.ui_gateways import (
         ProviderImportPreview,
         ProviderImportResult,
         SettingsImportPreview,

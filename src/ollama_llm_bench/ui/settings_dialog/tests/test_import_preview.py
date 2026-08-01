@@ -24,16 +24,20 @@ from ollama_llm_bench.ui.settings_dialog.models import (
 
 
 def test_has_hard_error_true_only_when_a_hard_error_finding_exists() -> None:
-    clean = SettingsImportPreview(rows=(), findings=(), resolved_values={})
+    clean = SettingsImportPreview(
+        rows=(), findings=(), resolved_values={}, backend_preview=object()
+    )
     with_soft = SettingsImportPreview(
         rows=(),
         findings=(ValidationFinding(severity=Severity.SOFT_INFO, target="x", message="ignored"),),
         resolved_values={},
+        backend_preview=object(),
     )
     with_hard = SettingsImportPreview(
         rows=(),
         findings=(ValidationFinding(severity=Severity.HARD_ERROR, target="x", message="bad"),),
         resolved_values={},
+        backend_preview=object(),
     )
 
     assert has_hard_error(clean) is False
@@ -59,6 +63,7 @@ def test_unknown_key_row_is_skipped_group_and_apply_still_enabled(qtbot: QtBot) 
             ),
         ),
         resolved_values={"benchmark.retry_count": "5"},
+        backend_preview=object(),
     )
 
     dialog = make_settings_import_preview_dialog(preview=preview)
@@ -72,6 +77,7 @@ def test_apply_disabled_when_a_hard_error_is_present(qtbot: QtBot) -> None:
         rows=(),
         findings=(ValidationFinding(severity=Severity.HARD_ERROR, target="x", message="bad"),),
         resolved_values={},
+        backend_preview=object(),
     )
 
     dialog = make_settings_import_preview_dialog(preview=preview)
@@ -81,7 +87,9 @@ def test_apply_disabled_when_a_hard_error_is_present(qtbot: QtBot) -> None:
 
 
 def test_apply_click_sets_confirmed_true(qtbot: QtBot) -> None:
-    preview = SettingsImportPreview(rows=(), findings=(), resolved_values={})
+    preview = SettingsImportPreview(
+        rows=(), findings=(), resolved_values={}, backend_preview=object()
+    )
     dialog = make_settings_import_preview_dialog(preview=preview)
     qtbot.addWidget(dialog)
 

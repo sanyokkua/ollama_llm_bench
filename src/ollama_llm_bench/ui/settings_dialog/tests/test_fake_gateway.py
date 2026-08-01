@@ -33,7 +33,9 @@ def test_replace_providers_and_upsert_settings_calls_are_recorded(
 
 def test_scripted_settings_import_preview_and_apply_round_trip() -> None:
     gateway = FakeSettingsGateway()
-    preview = SettingsImportPreview(rows=(), findings=(), resolved_values={"ui.theme": "dark"})
+    preview = SettingsImportPreview(
+        rows=(), findings=(), resolved_values={"ui.theme": "dark"}, backend_preview=object()
+    )
     result = SettingsImportResult(applied_count=1, skipped_count=0)
     gateway.set_settings_import_preview(preview)
     gateway.set_settings_import_result(result)

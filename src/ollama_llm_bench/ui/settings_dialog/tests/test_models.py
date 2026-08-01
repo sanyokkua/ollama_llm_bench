@@ -55,6 +55,7 @@ def test_settings_import_preview_groups_rows_by_preview_group() -> None:
             ),
         ),
         resolved_values={"benchmark.retry_count": "5"},
+        backend_preview=object(),
     )
     assert preview.rows[0].group is PreviewGroup.CHANGED
     assert preview.resolved_values["benchmark.retry_count"] == "5"
@@ -67,6 +68,7 @@ def test_provider_import_preview_and_results_construct() -> None:
         embedding_provider_name="OpenAI",
         embedding_model_name="text-embedding-3-small",
         findings=(),
+        backend_preview=object(),
     )
     result = ProviderImportResult(applied_count=1, skipped_count=0)
     assert preview.rows[0].name == "OpenAI"

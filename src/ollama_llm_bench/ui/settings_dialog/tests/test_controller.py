@@ -606,6 +606,7 @@ def test_import_applies_known_keys_and_skips_unknown_keys_on_confirm(
             ),
         ),
         resolved_values={"benchmark.retry_count": "5"},
+        backend_preview=object(),
     )
     gateway.set_settings_import_preview(preview)
     gateway.set_settings_import_result(SettingsImportResult(applied_count=1, skipped_count=1))
@@ -743,7 +744,11 @@ def test_import_button_routes_exported_provider_config_file_back_through_provide
     assert providers_path.read_text(encoding="utf-8") == provider_export_bytes.decode("utf-8")
 
     provider_preview = ProviderImportPreview(
-        rows=(), embedding_provider_name=None, embedding_model_name=None, findings=()
+        rows=(),
+        embedding_provider_name=None,
+        embedding_model_name=None,
+        findings=(),
+        backend_preview=object(),
     )
     gateway.set_provider_import_preview(provider_preview)
     gateway.set_provider_import_result(ProviderImportResult(applied_count=1, skipped_count=0))

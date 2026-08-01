@@ -16,22 +16,28 @@ mirrors the same precedent already used for ``NewBenchmarkGateway.notify_error``
 (STORY-055) and the ``ResumeGateway.serialize_table`` gap (STORY-056) -- see STORY-065's
 Notes section.
 
-``JudgeAnalysisGenerationOutcome``/``JudgeAnalysisGenerationResult`` are a **locally-declared
-mirror** of ``backend.run_analysis.RunAnalysisOutcome``/``RunAnalysisResult`` (STORY-065):
-``ui/results/`` may not import ``backend.run_analysis`` directly -- an architecture test
-enforces STORY-061's Definition of done ("no file in ``ui/results/`` imports ... the
-RunAnalysisService ... directly -- every one is wrapped behind ``ResultGateway``"). The
-concrete adapter (a later, compose.py-owned story) translates the real backend result into
-this shape at the Gateway boundary, matching the existing ``ExportFilenameHelper`` pattern
-of a Protocol with no backend-owned counterpart type crossing this module's boundary.
+``JudgeAnalysisGenerationOutcome``/``JudgeAnalysisGenerationResult`` are imported from
+``ollama_llm_bench.adapters.ui_gateways`` (ADR-0017, STORY-113) -- the single canonical
+declaration of this mirror of ``backend.run_analysis.RunAnalysisOutcome``/
+``RunAnalysisResult`` (STORY-065). ``ui/results/`` may not import ``backend.run_analysis``
+directly -- an architecture test enforces STORY-061's Definition of done ("no file in
+``ui/results/`` imports ... the RunAnalysisService ... directly -- every one is wrapped
+behind ``ResultGateway``") -- and importing from ``adapters/ui_gateways`` instead of
+re-declaring locally is what makes the concrete ``ResultGateway`` genuinely assignable to
+this module's own Protocol under ``mypy --strict`` (a two-copy nominal-type declaration is
+not, per ADR-0017's Context and problem statement). The concrete adapter translates the
+real backend result into this shape at the Gateway boundary, matching the existing
+``ExportFilenameHelper`` pattern of a Protocol with no backend-owned counterpart type
+crossing this module's boundary.
 """
 
 from collections.abc import Callable
-from enum import StrEnum
 from typing import Protocol
 
-import msgspec
-
+from ollama_llm_bench.adapters.ui_gateways import (
+    JudgeAnalysisGenerationOutcome,
+    JudgeAnalysisGenerationResult,
+)
 from ollama_llm_bench.backend.domain import (
     BenchmarkResult,
     BenchmarkRun,
@@ -52,38 +58,6 @@ __all__: list[str] = [
     "JudgeAnalysisGenerationResult",
     "ResultGateway",
 ]
-
-
-class JudgeAnalysisGenerationOutcome(StrEnum):
-    """Locally-declared mirror of ``backend.run_analysis.RunAnalysisOutcome`` (STORY-065)."""
-
-    GENERATED = "generated"
-    SKIPPED = "skipped"
-    FAILED = "failed"
-
-
-class JudgeAnalysisGenerationResult(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Locally-declared mirror of ``backend.run_analysis.RunAnalysisResult`` (STORY-065).
-
-    ``run_analysis_markdown`` is non-empty only when ``outcome`` is ``GENERATED``;
-    ``error_message`` is set only when ``outcome`` is ``FAILED``.
-
-    ``provider_name`` (STORY-065 spec-conformance fix) is the analysis provider's
-    display **name** snapshot -- populated by the concrete adapter (which alone has
-    ``ProviderRegistry`` access) when ``outcome`` is ``GENERATED``, never the
-    internal ``provider_id``. ``run_analysis_tab.md`` §5 requires the metadata line
-    to render the snapshot ``judge_provider_name`` and states the internal
-    ``provider_id`` "is never displayed"; carrying the resolved name on this result
-    is what lets ``JudgeAnalysisTabController`` build its metadata line without
-    ever holding a ``ProviderRegistry`` reference itself (D-R-06 -- the tab
-    controller depends only on ``ResultGateway``/``EventBus``/``Clipboard``).
-    """
-
-    outcome: JudgeAnalysisGenerationOutcome
-    run_analysis_markdown: str | None = None
-    error_message: str | None = None
-    is_regeneration: bool = False
-    provider_name: str | None = None
 
 
 class ResultGateway(Protocol):
