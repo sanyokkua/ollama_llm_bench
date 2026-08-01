@@ -67,6 +67,12 @@ class ConformingClient:
     def supports_thinking(self) -> bool:
         return False
 
+    def supports_embedding(self) -> bool:
+        return False
+
+    def supports_discovery(self) -> bool:
+        return False
+
     def close(self) -> None:
         return None
 

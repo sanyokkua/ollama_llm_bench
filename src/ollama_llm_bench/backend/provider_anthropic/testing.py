@@ -134,6 +134,14 @@ class FakeAnthropicClient:
         """Always ``False`` — mirrors the real client's conservative default."""
         return False
 
+    def supports_embedding(self) -> bool:
+        """Always ``False`` — mirrors the real client's unconditional answer (§6.9)."""
+        return False
+
+    def supports_discovery(self) -> bool:
+        """Always ``False`` — mirrors the real client's unconditional answer (§6.9.1)."""
+        return False
+
     def close(self) -> None:
         """Record a close call; never raises."""
         self.close_calls += 1

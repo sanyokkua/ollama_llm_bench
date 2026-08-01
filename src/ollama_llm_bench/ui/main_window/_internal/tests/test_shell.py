@@ -6,13 +6,13 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import cast
 
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QHBoxLayout, QStackedWidget, QWidget
 import structlog
 
 from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.notification_service.testing import FakeNotificationService
 from ollama_llm_bench.backend.domain import ReadinessState
-from ollama_llm_bench.ui.main_window import make_main_window
+from ollama_llm_bench.ui.main_window import make_main_window, make_status_bar
 from ollama_llm_bench.ui.main_window._internal.menu_bar import MenuBarWidget
 from ollama_llm_bench.ui.main_window._internal.shell import MainWindowShell
 from ollama_llm_bench.ui.main_window._internal.status_bar import StatusBarWidget
@@ -79,11 +79,21 @@ def test_benchmark_layout_reflows_on_run_lifecycle(
     status_bar = StatusBarWidget(
         theme_manager=theme_manager, platform_kind=platform_kind, app_version=_APP_VERSION
     )
+    # Stand in for compose.py's real Benchmark-workspace composite (a QTabWidget hosting New
+    # Benchmark + Resume, objectName "benchmark_left_panel") mounted inside the container the
+    # real WorkspaceController owns and switches pages on (STORY-077).
+    left_panel = QWidget()
+    left_panel.setObjectName("benchmark_left_panel")
+    benchmark_page = QWidget()
+    page_layout = QHBoxLayout(benchmark_page)
+    page_layout.addWidget(left_panel)
+    page_layout.addWidget(QWidget(), 1)
+    container = QStackedWidget()
+    container.addWidget(benchmark_page)
     shell = MainWindowShell(
         menu_bar=menu_bar,
         status_bar=status_bar,
-        benchmark_workspace_factory=QWidget,
-        task_editor_workspace_factory=QWidget,
+        workspace_region=container,
         app_version=_APP_VERSION,
     )
     qtbot.addWidget(shell)  # type: ignore[attr-defined]  # qtbot fixture is untyped upstream
@@ -92,7 +102,7 @@ def test_benchmark_layout_reflows_on_run_lifecycle(
     # only via the runtime `type` argument, not `type[T]`), so mypy cannot infer it as
     # `QWidget | None` here; cast to the real contract (see
     # adapters/workspace_controller/_internal/controller.py for the same pattern).
-    left_slot = cast("QWidget | None", shell.findChild(QWidget, "benchmark_left_slot_placeholder"))
+    left_slot = cast("QWidget | None", shell.findChild(QWidget, "benchmark_left_panel"))
     assert left_slot is not None
 
     # Act / Assert — idle: the left slot starts visible
@@ -130,6 +140,9 @@ def test_main_window_constructs_and_shows_with_no_error_logs(  # noqa: PLR0913  
     captured.
     """
     # Arrange / Act
+    status_bar = make_status_bar(
+        theme_manager=theme_manager, platform_kind=platform_kind, app_version=_APP_VERSION
+    )
     with _isolated_structlog_defaults(), structlog.testing.capture_logs() as captured_logs:
         window = make_main_window(
             event_bus=event_bus,
@@ -137,11 +150,9 @@ def test_main_window_constructs_and_shows_with_no_error_logs(  # noqa: PLR0913  
             workspace=workspace,
             notifications=notifications,
             file_system_actions=file_system_actions,
-            benchmark_workspace_factory=QWidget,
-            task_editor_workspace_factory=QWidget,
+            container=QStackedWidget(),
+            status_bar=status_bar,
             app_version=_APP_VERSION,
-            theme_manager=theme_manager,
-            platform_kind=platform_kind,
         )
         qtbot.addWidget(window)  # type: ignore[attr-defined]  # qtbot fixture is untyped upstream
         window.show()

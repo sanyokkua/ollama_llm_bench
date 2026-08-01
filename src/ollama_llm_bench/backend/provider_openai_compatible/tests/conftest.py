@@ -33,6 +33,7 @@ request in the next.
 from collections.abc import Callable, Generator
 from ssl import SSLContext
 
+import httpx
 import pytest
 from pytest_httpserver import HTTPServer
 
@@ -206,11 +207,20 @@ def gate(fake_clock: FakeClock, fake_event_bus: FakeEventBus) -> FakeInferenceAc
 
 
 @pytest.fixture
+def http_client() -> Generator[httpx.Client]:
+    """A real ``httpx.Client``, mirroring the one shared instance ``compose.py``
+    constructs in production (STORY-077, Gap 1)."""
+    with httpx.Client() as client:
+        yield client
+
+
+@pytest.fixture
 def make_client(
     httpserver: HTTPServer,
     fake_clock: FakeClock,
     fake_event_bus: FakeEventBus,
     gate: FakeInferenceActivityStore,
+    http_client: httpx.Client,
 ) -> Callable[..., OpenAICompatibleClient]:
     """Build a real ``OpenAICompatibleClient`` wired against ``httpserver``.
 
@@ -230,7 +240,10 @@ def make_client(
             base_url=base_url or httpserver.url_for("/")
         )
         collaborators = OpenAICompatibleClientCollaborators(
-            clock=fake_clock, event_bus=fake_event_bus, inference_activity_store=gate
+            clock=fake_clock,
+            event_bus=fake_event_bus,
+            inference_activity_store=gate,
+            http_client=http_client,
         )
         return OpenAICompatibleClient(
             config=effective_config,

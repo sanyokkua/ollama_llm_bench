@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-01T10:54:54Z'
+generated_at: '2026-08-01T15:54:31Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -1282,6 +1282,7 @@ stories:
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_azure_mode.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_cancellation.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_client_impl.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_deadline.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_embed.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_defines_no_async_function[tests/test_exception_translation.py]
@@ -1304,6 +1305,7 @@ stories:
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_azure_mode.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_cancellation.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_client_impl.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_deadline.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_embed.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_qt_or_asyncio[tests/test_exception_translation.py]
@@ -1326,6 +1328,7 @@ stories:
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_azure_mode.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_cancellation.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_client_impl.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_deadline.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_embed.py]
         - tests/architecture/test_provider_openai_compatible_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_exception_translation.py]
@@ -1447,6 +1450,7 @@ stories:
         - tests/architecture/test_provider_anthropic_module.py::test_module_defines_no_async_function[tests/conftest.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_defines_no_async_function[tests/test_cancellation.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_defines_no_async_function[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_anthropic_module.py::test_module_defines_no_async_function[tests/test_client_impl.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_defines_no_async_function[tests/test_exception_translation.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_defines_no_async_function[tests/test_inference_test.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_defines_no_async_function[tests/test_probe_and_embed.py]
@@ -1467,6 +1471,7 @@ stories:
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_qt_or_asyncio[tests/conftest.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_qt_or_asyncio[tests/test_cancellation.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_qt_or_asyncio[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_qt_or_asyncio[tests/test_client_impl.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_qt_or_asyncio[tests/test_exception_translation.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_qt_or_asyncio[tests/test_inference_test.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_qt_or_asyncio[tests/test_probe_and_embed.py]
@@ -1487,6 +1492,7 @@ stories:
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_sibling_provider_adapter[tests/conftest.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_cancellation.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_client_impl.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_exception_translation.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_inference_test.py]
         - tests/architecture/test_provider_anthropic_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_probe_and_embed.py]
@@ -1586,6 +1592,7 @@ stories:
         - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/conftest.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_cancellation.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_client_impl.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_delta_tokens.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_embed.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_defines_no_async_function[tests/test_exception_translation.py]
@@ -1606,6 +1613,7 @@ stories:
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/conftest.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_cancellation.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_client_impl.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_delta_tokens.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_embed.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_qt_or_asyncio[tests/test_exception_translation.py]
@@ -1626,6 +1634,7 @@ stories:
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/conftest.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_cancellation.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_chat_stream.py]
+        - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_client_impl.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_delta_tokens.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_embed.py]
         - tests/architecture/test_provider_gemini_module.py::test_module_imports_no_sibling_provider_adapter[tests/test_exception_translation.py]
@@ -4860,39 +4869,71 @@ stories:
         tests: []
   STORY-077:
     title: Build the composition root, the AppHandle, and the export-filename bridge
-    status: draft
+    status: done
     spec_clauses:
     - 01_Main_Window/description.md#31-settings-action
     - 01_Main_Window/description.md#32-about-action
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#16-the-theme-module-contract
     - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#69-per-provider-type-behaviour-matrix
+    - 11_Services_and_Algorithms/09_READINESS_PROBE.md#63-the-embedding-model-probe
     - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#2-the-single-execution-runner-guarantee
     - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#7-the-composition-root
     - 16_Engineering_Standards/01_PROJECT_STRUCTURE.md#7-the-composition-root
     modules:
-    - backend/csv_export/
+    - backend/provider_anthropic/
+    - backend/provider_gemini/
+    - backend/provider_openai_compatible/
+    - backend/provider_registry/
     - ui/main_window/
-    - ui/results/
-    - ui/resume_benchmark/
-    - ui/theme/
     edge_cases: []
     acceptance_criteria:
       STORY-077-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_compose_build_app.py::test_app_handle_shutdown_closes_http_client_and_write_connection
+        - tests/integration/test_compose_build_app.py::test_build_app_returns_frozen_app_handle_with_window_and_shutdown
+      STORY-077-AC-10:
+        tests:
+        - src/ollama_llm_bench/backend/provider_anthropic/tests/test_client_impl.py::test_supports_embedding_and_supports_discovery
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_client_impl.py::test_supports_embedding_and_supports_discovery
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_client_impl.py::test_supports_embedding_and_supports_discovery
+      STORY-077-AC-11:
+        tests:
+        - tests/unit/test_active_run_task_paths_stub.py::test_stub_always_returns_empty_tuple
+      STORY-077-AC-12:
+        tests:
+        - tests/unit/test_run_validator_stub.py::test_stub_always_returns_no_validation_entries
       STORY-077-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_compose_build_app.py::test_build_app_is_synchronous_and_makes_no_network_call
       STORY-077-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_compose_build_app.py::test_build_app_constructs_single_runner_writer_and_http_client
       STORY-077-AC-4:
-        tests: []
+        tests:
+        - tests/unit/test_export_filename_bridge.py::test_bridge_falls_back_to_local_sanitiser_for_unmapped_kinds[chart]
+        - tests/unit/test_export_filename_bridge.py::test_bridge_falls_back_to_local_sanitiser_for_unmapped_kinds[chart_bar]
+        - tests/unit/test_export_filename_bridge.py::test_bridge_falls_back_to_local_sanitiser_for_unmapped_kinds[run_analysis]
+        - tests/unit/test_export_filename_bridge.py::test_bridge_falls_back_to_run_id_when_run_name_is_none
+        - tests/unit/test_export_filename_bridge.py::test_bridge_maps_ui_kind_to_export_kind[details]
+        - tests/unit/test_export_filename_bridge.py::test_bridge_maps_ui_kind_to_export_kind[summary]
       STORY-077-AC-5:
-        tests: []
+        tests:
+        - tests/architecture/test_compose_line_budget.py::test_compose_py_within_50_to_200_lines
       STORY-077-AC-6:
-        tests: []
+        tests:
+        - tests/integration/test_compose_build_app.py::test_show_schedules_single_deferred_readiness_tick
       STORY-077-AC-7:
-        tests: []
+        tests:
+        - tests/integration/test_compose_build_app.py::test_build_app_applies_persisted_theme_before_window_shown
       STORY-077-AC-8:
-        tests: []
+        tests:
+        - tests/integration/test_compose_build_app.py::test_build_app_injects_settings_and_about_callbacks
+      STORY-077-AC-9:
+        tests:
+        - src/ollama_llm_bench/backend/provider_anthropic/tests/test_client_impl.py::test_probe_reachable_uses_injected_http_client_not_a_new_one
+        - src/ollama_llm_bench/backend/provider_gemini/tests/test_client_impl.py::test_probe_reachable_uses_injected_http_client_not_a_new_one
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_client_impl.py::test_probe_reachable_uses_injected_http_client_not_a_new_one
   STORY-078:
     title: Run the launch glue — app-data directory, schema check, seeding, and the abort modals
     status: ready
@@ -7034,6 +7075,7 @@ clauses:
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#69-per-provider-type-behaviour-matrix:
     stories:
     - STORY-019
+    - STORY-077
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#691-per-provider-type-discovery-support-matrix:
     stories:
     - STORY-018
@@ -7198,6 +7240,7 @@ clauses:
   11_Services_and_Algorithms/09_READINESS_PROBE.md#63-the-embedding-model-probe:
     stories:
     - STORY-016
+    - STORY-077
   11_Services_and_Algorithms/09_READINESS_PROBE.md#64-probe_all--probing-every-provider-concurrently:
     stories:
     - STORY-016
@@ -10494,7 +10537,6 @@ modules:
   backend/csv_export/:
     stories:
     - STORY-032
-    - STORY-077
   backend/domain/:
     stories:
     - STORY-001
@@ -10582,18 +10624,22 @@ modules:
   backend/provider_anthropic/:
     stories:
     - STORY-019
+    - STORY-077
   backend/provider_gemini/:
     stories:
     - STORY-020
+    - STORY-077
     - STORY-088
   backend/provider_openai_compatible/:
     stories:
     - STORY-018
+    - STORY-077
     - STORY-086
   backend/provider_registry/:
     stories:
     - STORY-017
     - STORY-021
+    - STORY-077
   backend/readiness/:
     stories:
     - STORY-016
@@ -10684,7 +10730,6 @@ modules:
     - STORY-063
     - STORY-064
     - STORY-065
-    - STORY-077
     - STORY-085
     - STORY-089
     - STORY-099
@@ -10696,7 +10741,6 @@ modules:
     - STORY-057
     - STORY-072
     - STORY-074
-    - STORY-077
     - STORY-088
     - STORY-098
     - STORY-109
@@ -10733,7 +10777,6 @@ modules:
     stories:
     - STORY-049
     - STORY-050
-    - STORY-077
     - STORY-083
     - STORY-087
     - STORY-090

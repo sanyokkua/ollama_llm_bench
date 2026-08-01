@@ -9,6 +9,8 @@ DTO can. This bundle only ever exists in memory, constructed once by
 is never serialized.
 """
 
+import httpx
+
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.backend.infra import Clock
 from ollama_llm_bench.backend.stores.inference_activity import InferenceActivityStore
@@ -24,7 +26,12 @@ class OpenAICompatibleClientCollaborators:
     """
 
     def __init__(
-        self, *, clock: Clock, event_bus: EventBus, inference_activity_store: InferenceActivityStore
+        self,
+        *,
+        clock: Clock,
+        event_bus: EventBus,
+        inference_activity_store: InferenceActivityStore,
+        http_client: httpx.Client,
     ) -> None:
         """Construct the collaborator bundle.
 
@@ -34,7 +41,11 @@ class OpenAICompatibleClientCollaborators:
                 shared progress-emitter helper a later story wires in.
             inference_activity_store: The application-wide single-inference
                 gate, acquired for the duration of ``test_inference``.
+            http_client: The one synchronous HTTP client ``compose.py``
+                constructs at composition time (STORY-077, Gap 1), reused for
+                the reachability probe instead of a per-call client.
         """
         self.clock = clock
         self.event_bus = event_bus
         self.inference_activity_store = inference_activity_store
+        self.http_client = http_client

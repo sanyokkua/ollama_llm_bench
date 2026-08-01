@@ -81,7 +81,7 @@ class LLMClient(Protocol):
     The canonical declaration every concrete provider adapter satisfies
     structurally. ``list_models``, ``probe_health``, ``test_inference``,
     ``chat``, ``chat_stream``, and ``embed`` are *blocking* — invoked only on a
-    ``TaskRunner`` worker thread. The three ``supports_*`` methods and
+    ``TaskRunner`` worker thread. The five ``supports_*`` methods and
     ``close`` are fast-synchronous capability/lifecycle calls, callable from
     any context.
     """
@@ -186,6 +186,20 @@ class LLMClient(Protocol):
 
     def supports_thinking(self) -> bool:
         """Whether the model emits a reasoning/thinking block."""
+        ...
+
+    def supports_embedding(self) -> bool:
+        """Whether this client exposes an embedding surface (DD-48 handshake).
+
+        fast-synchronous capability lookup; callable from any context.
+        """
+        ...
+
+    def supports_discovery(self) -> bool:
+        """Whether this client's ``probe_health`` performs model discovery.
+
+        fast-synchronous capability lookup; callable from any context.
+        """
         ...
 
     def close(self) -> None:

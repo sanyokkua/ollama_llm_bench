@@ -153,7 +153,7 @@ def _make_client(*, base_url: str, clock: FakeClock) -> AnthropicClient:
     event_bus = FakeEventBus()
     gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
     collaborators = AnthropicClientCollaborators(
-        clock=clock, event_bus=event_bus, inference_activity_store=gate
+        clock=clock, event_bus=event_bus, inference_activity_store=gate, http_client=httpx.Client()
     )
     config = make_provider_config(base_url=base_url)
     settings = AnthropicClientSettings()

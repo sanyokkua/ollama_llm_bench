@@ -11,16 +11,24 @@ themed custom-painted widget in this codebase (``ui.shared.make_health_dot``,
 ``ui.shared.make_badge_label``) requires an explicit ``theme_manager: ThemeManager`` +
 ``platform_kind: PlatformKind`` pair with no global/singleton accessor -- the spec's
 literal ``make_main_window(...)`` signature has neither parameter, a genuine spec silence.
-Per this narrow, justified, additive decision, ``make_main_window`` gains two extra
-required keyword-only parameters, ``theme_manager`` and ``platform_kind``; ``compose.py``
-(a later Phase-11 story) passes the same ``ThemeManager`` instance it constructs once at
-startup.
+
+**``make_status_bar`` (STORY-077 Fix 2) -- a second public factory, added deliberately.**
+``compose.py`` must hand the *same* ``StatusBarWidget``/``QStatusBar`` instance to both
+``adapters.notification_service.make_notification_service`` and this module's shell, and
+must do so *before* ``make_main_window`` is called (``make_main_window`` requires an
+already-constructed ``NotificationService``, which itself requires the status bar) --  so
+the status bar cannot be built inside ``make_main_window`` any more. ``make_status_bar``
+exposes the one construction step ``compose.py`` needs, without reaching into this
+module's private ``_internal/`` package (forbidden by import-linter). ``make_main_window``
+now takes the pre-built ``status_bar`` as a required parameter instead of the
+``theme_manager``/``platform_kind`` pair (needed only to build the status bar, which no
+longer happens here).
 """
 
 from collections.abc import Callable
 
 import icontract
-from PySide6.QtWidgets import QMainWindow, QWidget
+from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
 from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.notification_service import NotificationService
@@ -38,15 +46,42 @@ from ollama_llm_bench.ui.main_window._internal.status_bar import StatusBarWidget
 from ollama_llm_bench.ui.main_window.protocols import MainWindowGateway
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeManager
 
-__all__: list[str] = ["make_main_window"]
+__all__: list[str] = ["make_main_window", "make_status_bar"]
+
+
+@icontract.require(lambda app_version: len(app_version) > 0, "app_version must be non-empty")
+def make_status_bar(
+    *, theme_manager: ThemeManager, platform_kind: PlatformKind, app_version: str
+) -> StatusBarWidget:
+    """Construct the Main Window's one status bar (health dot, toast region, version, §4).
+
+    Built *before* ``make_main_window`` so ``compose.py`` can hand this same instance to
+    both ``make_main_window`` and ``adapters.notification_service.make_notification_service``
+    -- the application has exactly one status-bar object (STORY-077 Fix 2).
+
+    Args:
+        theme_manager: The live theme switcher the health dot re-reads its colour role
+            from on every theme change.
+        platform_kind: The host platform classification the health dot resolves alongside
+            ``theme_manager``.
+        app_version: The version string shown in the trailing version label.
+
+    Returns:
+        A real ``QStatusBar`` subclass, not yet mounted on any window.
+    """
+    return StatusBarWidget(
+        theme_manager=theme_manager, platform_kind=platform_kind, app_version=app_version
+    )
 
 
 @icontract.require(lambda app_version: len(app_version) > 0, "app_version must be non-empty")
 @icontract.require(
-    lambda benchmark_workspace_factory, task_editor_workspace_factory: (
-        benchmark_workspace_factory is not None and task_editor_workspace_factory is not None
-    ),
-    "both workspace factories are required collaborators wired by compose.py",
+    lambda container: container is not None,
+    "container is the WorkspaceController-owned QStackedWidget wired by compose.py",
+)
+@icontract.require(
+    lambda status_bar: status_bar is not None,
+    "status_bar is the pre-built StatusBarWidget wired by compose.py (STORY-077 Fix 2)",
 )
 @icontract.ensure(lambda result: isinstance(result, QMainWindow))
 def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators per the
@@ -58,47 +93,56 @@ def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators pe
     workspace: WorkspaceController,
     notifications: NotificationService,
     file_system_actions: FileSystemActions,
-    benchmark_workspace_factory: Callable[[], QWidget],
-    task_editor_workspace_factory: Callable[[], QWidget],
+    container: QStackedWidget,
+    status_bar: StatusBarWidget,
     app_version: str,
-    theme_manager: ThemeManager,
-    platform_kind: PlatformKind,
+    settings_requested: Callable[[], None] | None = None,
+    about_requested: Callable[[], None] | None = None,
 ) -> QMainWindow:
     """Construct the application shell.
 
-    Builds the menu bar, the swappable workspace region, and the status bar, wires the
-    ``MainWindowController`` to the Event Bus, restores the persisted window geometry
-    before the window is shown, and returns the top-level ``QMainWindow``.
+    Builds the menu bar, hosts the given workspace region and the pre-built status bar,
+    wires the ``MainWindowController`` to the Event Bus, restores the persisted window
+    geometry before the window is shown, and returns the top-level ``QMainWindow``.
 
     Args:
         event_bus: The bus the controller subscribes the ten shell events on.
         gateway: The adapter gateway exposing the shell's settings/readiness/run-activity
             query and command surface (D-R-06).
-        workspace: Reads and switches the active workspace.
-        notifications: Surfaces toasts for the blocked-health-dot-click case.
+        workspace: Reads and switches the active workspace; the *same* ``container`` this
+            factory receives is the ``QStackedWidget`` this ``WorkspaceController`` was
+            constructed with and switches pages on (STORY-077) -- there is exactly one
+            container and exactly one set of workspace-page widget instances.
+        notifications: Surfaces toasts for the blocked-health-dot-click case; built by
+            ``compose.py`` over the *same* ``status_bar`` instance this factory receives
+            (STORY-077 Fix 2) -- the application has exactly one status-bar object.
         file_system_actions: Retained for the "open in file manager" affordance a later
             story exposes from this shell.
-        benchmark_workspace_factory: Builds the Benchmark workspace widget.
-        task_editor_workspace_factory: Builds the Task Editor workspace widget.
-        app_version: The application version string shown in the menu bar, the status
-            bar, and the default window title.
-        theme_manager: The live theme switcher the status-bar health dot re-reads its
-            colour role from on every theme change (see the module docstring).
-        platform_kind: The host platform classification the health dot resolves
-            alongside ``theme_manager``.
+        container: The ``QStackedWidget`` the real ``WorkspaceController`` owns and
+            switches pages on; this shell only hosts it, it never builds or switches a
+            workspace page itself.
+        status_bar: The pre-built status bar (``make_status_bar``) this shell mounts via
+            ``QMainWindow.setStatusBar`` -- built by the caller, before this factory is
+            called, so the same instance can also be handed to
+            ``adapters.notification_service.make_notification_service``.
+        app_version: The application version string shown in the menu bar and the
+            default window title.
+        settings_requested: Optional callback invoked when the Settings menu-bar action
+            is activated (STORY-077); forwarded unchanged to
+            ``MainWindowController``, which already declares and defaults this
+            parameter.
+        about_requested: Optional callback invoked when the About menu-bar action is
+            activated (STORY-077); forwarded unchanged to ``MainWindowController``,
+            which already declares and defaults this parameter.
 
     Returns:
         The fully wired top-level ``QMainWindow``, ready to be shown.
     """
     menu_bar = MenuBarWidget(app_version=app_version)
-    status_bar = StatusBarWidget(
-        theme_manager=theme_manager, platform_kind=platform_kind, app_version=app_version
-    )
     shell = MainWindowShell(
         menu_bar=menu_bar,
         status_bar=status_bar,
-        benchmark_workspace_factory=benchmark_workspace_factory,
-        task_editor_workspace_factory=task_editor_workspace_factory,
+        workspace_region=container,
         app_version=app_version,
     )
     geometry_writer = DebouncedGeometryWriter(gateway=gateway)
@@ -123,6 +167,8 @@ def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators pe
         shell=shell,
         close_handler=close_handler,
         app_version=app_version,
+        settings_requested=settings_requested,
+        about_requested=about_requested,
     )
     controller.bind()
     restore_geometry(shell, gateway)

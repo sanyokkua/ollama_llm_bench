@@ -40,6 +40,7 @@ from collections.abc import Iterator
 import json
 from ssl import SSLContext
 
+import httpx
 import pytest
 from pytest_httpserver import HTTPServer
 
@@ -180,7 +181,7 @@ def _make_real_client(httpserver: HTTPServer) -> OpenAICompatibleClient:
     gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
     config = make_provider_config(base_url=httpserver.url_for("/"))
     collaborators = OpenAICompatibleClientCollaborators(
-        clock=clock, event_bus=event_bus, inference_activity_store=gate
+        clock=clock, event_bus=event_bus, inference_activity_store=gate, http_client=httpx.Client()
     )
     settings = OpenAICompatibleClientSettings(embedding_model="embed-model")
     return OpenAICompatibleClient(
@@ -242,7 +243,7 @@ def _make_anthropic_real_client(httpserver: HTTPServer) -> AnthropicClient:
     gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
     config = make_anthropic_provider_config(base_url=httpserver.url_for("/"))
     collaborators = AnthropicClientCollaborators(
-        clock=clock, event_bus=event_bus, inference_activity_store=gate
+        clock=clock, event_bus=event_bus, inference_activity_store=gate, http_client=httpx.Client()
     )
     return AnthropicClient(
         config=config,
@@ -310,7 +311,7 @@ def _make_gemini_real_client(httpserver: HTTPServer) -> GeminiClient:
     gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
     config = make_gemini_provider_config(base_url=httpserver.url_for("/"))
     collaborators = GeminiClientCollaborators(
-        clock=clock, event_bus=event_bus, inference_activity_store=gate
+        clock=clock, event_bus=event_bus, inference_activity_store=gate, http_client=httpx.Client()
     )
     settings = GeminiClientSettings(embedding_model="embed-model")
     return GeminiClient(

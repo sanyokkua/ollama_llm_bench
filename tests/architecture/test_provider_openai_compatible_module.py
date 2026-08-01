@@ -159,7 +159,7 @@ def _make_client(*, base_url: str, clock: FakeClock) -> OpenAICompatibleClient:
     event_bus = FakeEventBus()
     gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
     collaborators = OpenAICompatibleClientCollaborators(
-        clock=clock, event_bus=event_bus, inference_activity_store=gate
+        clock=clock, event_bus=event_bus, inference_activity_store=gate, http_client=httpx.Client()
     )
     config = make_provider_config(base_url=base_url)
     settings = OpenAICompatibleClientSettings(embedding_model="embed-model")

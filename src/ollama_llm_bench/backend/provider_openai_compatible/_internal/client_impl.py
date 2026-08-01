@@ -88,6 +88,7 @@ class OpenAICompatibleClient:
         self._clock = collaborators.clock
         self._event_bus = collaborators.event_bus
         self._inference_activity_store = collaborators.inference_activity_store
+        self._http_client = collaborators.http_client
         self._settings = settings
         self._sdk_client = build_sdk_client(
             config, resolved_api_key, connect_timeout_ms=settings.connect_timeout_ms
@@ -196,8 +197,7 @@ class OpenAICompatibleClient:
         base_url = str(self._sdk_client.base_url)
         timeout = httpx.Timeout(self._settings.probe_timeout_ms / 1000)
         try:
-            with httpx.Client(timeout=timeout) as http_client:
-                http_client.get(base_url)
+            self._http_client.get(base_url, timeout=timeout)
         except httpx.HTTPError:
             return False
         return True
@@ -313,6 +313,25 @@ class OpenAICompatibleClient:
         client reports the conservative default.
         """
         return False
+
+    def supports_embedding(self) -> bool:
+        """Whether this client exposes an embedding surface (DD-48 handshake).
+
+        Unconditionally ``True`` (§6.9's "Embedding capability" row): every
+        ``OPENAI_COMPATIBLE`` endpoint exposes an embeddings endpoint, whether
+        or not this particular instance is currently configured with an
+        embedding model (``embed()`` itself still requires
+        ``OpenAICompatibleClientSettings.embedding_model``).
+        """
+        return True
+
+    def supports_discovery(self) -> bool:
+        """Whether this client's ``probe_health`` performs model discovery.
+
+        Unconditionally ``True`` (§6.9.1): ``GET /v1/models`` is always
+        attempted against the configured base URL.
+        """
+        return True
 
     def close(self) -> None:
         """Release this client's underlying transport resources (best-effort)."""

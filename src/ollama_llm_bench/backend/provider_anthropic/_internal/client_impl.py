@@ -86,6 +86,7 @@ class AnthropicClient:
         self._clock = collaborators.clock
         self._event_bus = collaborators.event_bus
         self._inference_activity_store = collaborators.inference_activity_store
+        self._http_client = collaborators.http_client
         self._settings = settings
         self._sdk_client = build_sdk_client(
             config, resolved_api_key, connect_timeout_ms=settings.connect_timeout_ms
@@ -187,8 +188,7 @@ class AnthropicClient:
         base_url = str(self._sdk_client.base_url)
         timeout = httpx.Timeout(self._settings.probe_timeout_ms / 1000)
         try:
-            with httpx.Client(timeout=timeout) as http_client:
-                http_client.get(base_url)
+            self._http_client.get(base_url, timeout=timeout)
         except httpx.HTTPError:
             return False
         return True
@@ -285,6 +285,23 @@ class AnthropicClient:
         client reports the conservative default. A single response actually
         containing a ``thinking`` block still surfaces it in
         ``ChatResponse.text`` (§6.9) regardless of this capability flag.
+        """
+        return False
+
+    def supports_embedding(self) -> bool:
+        """Whether this client exposes an embedding surface (DD-48 handshake).
+
+        Unconditionally ``False`` (§6.9's "Embedding capability" row):
+        Anthropic exposes no embeddings endpoint at all; ``embed()`` always
+        raises.
+        """
+        return False
+
+    def supports_discovery(self) -> bool:
+        """Whether this client's ``probe_health`` performs model discovery.
+
+        Unconditionally ``False`` (§6.9.1): Anthropic exposes no models-list
+        endpoint; the catalog is provider-configured (``default_models``).
         """
         return False
 

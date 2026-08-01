@@ -1,6 +1,6 @@
-"""``StatusBarWidget`` -- the persistent status bar (STORY-053).
+"""``StatusBarWidget`` -- the persistent status bar (STORY-053, STORY-077 Fix 2).
 
-Source of truth: ``docs/v3_specification/01_Main_Window/description.md`` §4. Hosts
+Source of truth: ``docs/v3_specification/01_Main_Window/description.md`` §2, §4. Hosts
 ``ui.shared.make_health_dot`` for the left health region, a centre toast label, and a
 trailing version label. A passive view: ``apply_view_model(view_model)`` is its only
 state-changing entry point; it never imports a Gateway, an ``EventBus``, or a backend
@@ -11,12 +11,22 @@ health dot must repaint live on theme change, including the CHECKING-state pulse
 so this widget takes an explicit ``theme_manager``/``platform_kind`` pair rather than a
 global/singleton accessor, matching every other themed custom-painted primitive in this
 codebase.
+
+**Subclasses the real ``QStatusBar`` (STORY-077 Fix 2), not a plain ``QWidget``.** The
+application must have exactly one status-bar object (§2): this same instance is handed to
+both ``MainWindowShell.setStatusBar`` and
+``adapters.notification_service.make_notification_service`` by ``compose.py``, so
+``NotificationService``'s native ``QStatusBar.showMessage`` toasts render in the one bar
+that also holds the health dot and the version label, instead of a second, disconnected
+``QStatusBar``. The three regions are mounted as a single **permanent** widget
+(``addPermanentWidget``) so they stay visible even while a native temporary message is
+showing -- ``QStatusBar`` hides only its non-permanent widgets during a temporary message.
 """
 
 from typing import Final, override
 
 from PySide6.QtCore import QEvent, QObject, Signal as QtSignal
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QStatusBar, QWidget
 
 from ollama_llm_bench.backend.domain import ReadinessState
 from ollama_llm_bench.ui.main_window.models import MainWindowViewModel
@@ -46,8 +56,8 @@ def _map_readiness_to_health_display(state: ReadinessState) -> HealthDisplayStat
     return _HEALTH_DISPLAY_STATE_BY_READINESS[state]
 
 
-class StatusBarWidget(QWidget):
-    """The Main Window's status bar: health dot, toast region, version (§4)."""
+class StatusBarWidget(QStatusBar):
+    """The Main Window's one status bar: health dot, toast region, version (§2, §4)."""
 
     health_dot_clicked = QtSignal()
 
@@ -64,11 +74,17 @@ class StatusBarWidget(QWidget):
             app_version: The version string shown in the trailing version label.
         """
         super().__init__()
-        self.setObjectName("status_bar")
-        self.setFixedHeight(_STATUS_BAR_HEIGHT)
+        # Attribute init MUST precede every native `QStatusBar` call below (STORY-077
+        # Fix 2 regression): unlike a plain `QWidget`, `QStatusBar.setSizeGripEnabled`
+        # touches an internal child `QSizeGrip` and can synchronously redeliver a stale
+        # queued event to this object's overridden `eventFilter` before construction
+        # finishes -- `eventFilter` must find `self._health_dot` already set.
         self._theme_manager = theme_manager
         self._platform_kind = platform_kind
         self._health_dot: QWidget | None = None
+        self.setObjectName("status_bar")
+        self.setFixedHeight(_STATUS_BAR_HEIGHT)
+        self.setSizeGripEnabled(False)
         self._health_container = QWidget()
         self._health_container.setObjectName("health_region")
         self._health_layout = QHBoxLayout(self._health_container)
@@ -78,11 +94,14 @@ class StatusBarWidget(QWidget):
         self._version_label = QLabel(f"v{app_version}")
         self._version_label.setObjectName("status_bar_version_label")
 
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self._health_container)
-        layout.addWidget(self._toast_label, 1)
-        layout.addWidget(self._version_label)
+        regions = QWidget()
+        regions.setObjectName("status_bar_regions")
+        regions_layout = QHBoxLayout(regions)
+        regions_layout.setContentsMargins(0, 0, 0, 0)
+        regions_layout.addWidget(self._health_container)
+        regions_layout.addWidget(self._toast_label, 1)
+        regions_layout.addWidget(self._version_label)
+        self.addPermanentWidget(regions, 1)
 
     def apply_view_model(self, view_model: MainWindowViewModel) -> None:
         """Reflect ``view_model`` in the health dot and the toast label.

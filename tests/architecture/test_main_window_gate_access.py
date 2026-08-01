@@ -75,10 +75,13 @@ def test_controller_and_close_handler_hold_no_backend_protocol_directly() -> Non
     assert offenders == {}
 
 
-def test_main_window_public_surface_is_exactly_make_main_window() -> None:
+def test_main_window_public_surface_is_exactly_make_main_window_and_make_status_bar() -> None:
     """Proves: STORY-053 Definition of Done
 
-    The public surface of ``ui/main_window/`` is exactly one symbol, ``make_main_window``.
+    The public surface of ``ui/main_window/`` is exactly two symbols, ``make_main_window``
+    and ``make_status_bar`` (STORY-077 Fix 2 -- the status bar must be built before
+    ``make_main_window`` so ``compose.py`` can share one instance with
+    ``adapters.notification_service``).
     """
     # Assert
-    assert main_window.__all__ == ["make_main_window"]
+    assert main_window.__all__ == ["make_main_window", "make_status_bar"]

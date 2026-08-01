@@ -220,6 +220,14 @@ class FakeLLMClient:
         """Fixed capability answer; unused by these tests' assertions."""
         return False
 
+    def supports_embedding(self) -> bool:
+        """Fixed capability answer; unused by these tests' assertions."""
+        return False
+
+    def supports_discovery(self) -> bool:
+        """Fixed capability answer; unused by these tests' assertions."""
+        return False
+
     def close(self) -> None:
         """Record that this client was closed."""
         self.close_calls += 1

@@ -149,7 +149,7 @@ def _make_client(*, base_url: str, clock: FakeClock) -> GeminiClient:
     event_bus = FakeEventBus()
     gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
     collaborators = GeminiClientCollaborators(
-        clock=clock, event_bus=event_bus, inference_activity_store=gate
+        clock=clock, event_bus=event_bus, inference_activity_store=gate, http_client=httpx.Client()
     )
     config = make_provider_config(base_url=base_url)
     settings = GeminiClientSettings()
@@ -235,7 +235,7 @@ def test_embed_never_lets_a_raw_sdk_exception_escape(httpserver: HTTPServer) -> 
     event_bus = FakeEventBus()
     gate = FakeInferenceActivityStore(clock=clock, event_bus=event_bus)
     collaborators = GeminiClientCollaborators(
-        clock=clock, event_bus=event_bus, inference_activity_store=gate
+        clock=clock, event_bus=event_bus, inference_activity_store=gate, http_client=httpx.Client()
     )
     config = make_provider_config(base_url=httpserver.url_for("/"))
     client = GeminiClient(

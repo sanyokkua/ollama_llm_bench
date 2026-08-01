@@ -299,6 +299,14 @@ class FakeLLMClient:
         """Fixed capability answer; unused by this module's assertions."""
         return False
 
+    def supports_embedding(self) -> bool:
+        """Fixed capability answer; unused by this module's assertions."""
+        return False
+
+    def supports_discovery(self) -> bool:
+        """Fixed capability answer; unused by this module's assertions."""
+        return False
+
     def close(self) -> None:
         """Unused by this module's tests."""
 

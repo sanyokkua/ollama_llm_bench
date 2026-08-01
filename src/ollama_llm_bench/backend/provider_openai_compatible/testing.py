@@ -134,6 +134,14 @@ class FakeOpenAICompatibleClient:
         """Always ``False`` — mirrors the real client's conservative default."""
         return False
 
+    def supports_embedding(self) -> bool:
+        """Always ``True`` — mirrors the real client's unconditional answer (§6.9)."""
+        return True
+
+    def supports_discovery(self) -> bool:
+        """Always ``True`` — mirrors the real client's unconditional answer (§6.9.1)."""
+        return True
+
     def close(self) -> None:
         """Record a close call; never raises."""
         self.close_calls += 1

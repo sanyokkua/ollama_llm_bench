@@ -83,6 +83,7 @@ class GeminiClient:
         self._clock = collaborators.clock
         self._event_bus = collaborators.event_bus
         self._inference_activity_store = collaborators.inference_activity_store
+        self._http_client = collaborators.http_client
         self._settings = settings
         self._sdk_client = build_sdk_client(
             config, resolved_api_key, connect_timeout_ms=settings.connect_timeout_ms
@@ -226,8 +227,7 @@ class GeminiClient:
         base_url = self._config.base_url or "https://generativelanguage.googleapis.com"
         timeout = httpx.Timeout(self._settings.probe_timeout_ms / 1000)
         try:
-            with httpx.Client(timeout=timeout) as http_client:
-                http_client.get(base_url)
+            self._http_client.get(base_url, timeout=timeout)
         except httpx.HTTPError:
             return False
         return True
@@ -326,6 +326,27 @@ class GeminiClient:
         ``ChatResponse.text`` (§6.9) regardless of this capability flag.
         """
         return False
+
+    def supports_embedding(self) -> bool:
+        """Whether this client exposes an embedding surface (DD-48 handshake).
+
+        Unconditionally ``True`` (§6.9's "Embedding capability" row): Gemini
+        exposes an embeddings endpoint, whether or not this particular
+        instance is currently configured with an embedding model (``embed()``
+        itself still requires ``GeminiClientSettings.embedding_model``).
+        """
+        return True
+
+    def supports_discovery(self) -> bool:
+        """Whether this client's ``probe_health`` performs model discovery.
+
+        Mirrors ``probe_health``'s own SDK-build guard (§6.9.1): ``True``
+        only when the installed ``google-genai`` build exposes
+        ``models.list()``. A capability check needs a static answer, so this
+        checks the same ``hasattr`` condition rather than depending on any
+        specific probe outcome.
+        """
+        return hasattr(self._sdk_client.models, "list")
 
     def close(self) -> None:
         """Release this client's underlying transport resources (best-effort)."""

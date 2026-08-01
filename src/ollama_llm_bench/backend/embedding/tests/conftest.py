@@ -101,6 +101,14 @@ class FakeLLMClient:
         """Not exercised by embedding-service tests."""
         raise NotImplementedError
 
+    def supports_embedding(self) -> bool:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
+    def supports_discovery(self) -> bool:
+        """Not exercised by embedding-service tests."""
+        raise NotImplementedError
+
     def close(self) -> None:
         """Not exercised by embedding-service tests."""
         raise NotImplementedError

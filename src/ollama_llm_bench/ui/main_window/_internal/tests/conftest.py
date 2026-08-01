@@ -12,7 +12,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import cast
 
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QStackedWidget
 import pytest
 from pytest_mock import MockerFixture
 
@@ -235,8 +235,7 @@ def make_harness(  # noqa: PLR0913  # a pytest fixture composing eight independe
         shell = MainWindowShell(
             menu_bar=menu_bar,
             status_bar=status_bar,
-            benchmark_workspace_factory=QWidget,
-            task_editor_workspace_factory=QWidget,
+            workspace_region=QStackedWidget(),
             app_version=_APP_VERSION,
         )
         qtbot.addWidget(shell)  # type: ignore[attr-defined]  # qtbot fixture is untyped upstream
