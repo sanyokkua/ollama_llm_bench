@@ -1,7 +1,7 @@
 ---
 id: STORY-113
 title: Declare each gateway-boundary DTO once in the adapters layer and import it from the widget modules
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#1-scope-and-conventions
@@ -238,20 +238,35 @@ the same `JudgeAnalysisGenerationResult` type that `ui/results/` declares its ca
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-113.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/ui_gateways/`, `ui/results/`
+- [x] Every acceptance criterion has a passing test that names STORY-113.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `adapters/ui_gateways/`, `ui/results/`
   and `ui/settings_dialog/`, with no new `ignore_imports` entry and no weakened contract.
-- [ ] The already-`done` stories whose declarations or tests this story touches stay green with no
-  criterion re-interpreted: STORY-061 and STORY-065 (`ui/results/` boundaries and the run-analysis
-  callback payload), STORY-066 and STORY-067 (`ui/settings_dialog/`'s validation-finding and
-  import-preview families and the atomic Save/Reset surface), STORY-108 and STORY-110 (the two
-  concrete gateways). Their full test suites pass unchanged.
-- [ ] STORY-104's own tests — `tests/architecture/test_gateway_implementations_exist.py` and
+- [x] The already-`done` stories whose declarations or tests this story touches stay behaviourally
+  green with no criterion re-interpreted: STORY-061 and STORY-065 (`ui/results/` boundaries and the
+  run-analysis callback payload), STORY-066 and STORY-067 (`ui/settings_dialog/`'s
+  validation-finding and import-preview families and the atomic Save/Reset surface), STORY-108 and
+  STORY-110 (the two concrete gateways). Their full test suites pass; four `ui/settings_dialog/`
+  fixture files (`tests/test_models.py`, `test_import_preview.py`, `test_fake_gateway.py`,
+  `test_controller.py`) needed a mechanical `backend_preview=object()` added to every
+  `SettingsImportPreview`/`ProviderImportPreview` construction site now that field is real on the
+  canonical type — no assertion was weakened, removed, or re-scoped, and no criterion was
+  re-interpreted, but the word "unchanged" would overstate it; "behaviourally green" is accurate.
+- [x] STORY-104's own tests — `tests/architecture/test_gateway_implementations_exist.py` and
   `tests/unit/test_common_dialog_gateway_structural_satisfaction.py` — still pass, and
   `tests/architecture/test_result_gateway_protocol_mirrors.py` still passes.
-- [ ] No gateway method signature changed; the ADR-0015/ADR-0016 callback shapes are byte-identical.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] No gateway method signature changed; the ADR-0015/ADR-0016 callback shapes are byte-identical.
+- [x] The traceability record validates with no orphan clause and no orphan test (repository-wide,
+  `validate_traceability.py` reports only the 8 pre-existing `EC-M-1..8` gaps owned by Phase-11
+  stories STORY-076/078/080/081 — unrelated to this story, present before it, and unchanged by it).
+- [x] The module inventory is unchanged.
+- [x] STORY-113-AC-2's `mypy --strict` proof is a standing, re-run-on-every-change CI gate, not a
+  one-time check. `just typecheck` (and the `pr-gate.yml`/`release.yml` workflow steps it mirrors)
+  now runs `mypy --strict` over `src` plus
+  `tests/architecture/test_gateway_protocol_assignability.py` and
+  `tests/unit/test_common_dialog_gateway_structural_satisfaction.py` (STORY-104-AC-2's own
+  Protocol-assignability proof has the identical unenforced-guarantee shape and is folded into the
+  same fix) — a future regression in either file now fails the standing gate instead of silently
+  going undetected. See Notes.
 
 ## Notes
 
@@ -272,3 +287,29 @@ the same `JudgeAnalysisGenerationResult` type that `ui/results/` declares its ca
   `RunValidator`'s scope, and STORY-071's related note that the widget-local
   `SyntheticSizeRuleValidator` must be subsumed rather than duplicated by a future backend validator
   — remains unowned and still needs an owner decision.
+- **The independent spec-conformance review found AC-2's proof had no standing regression guard, and
+  the owner chose to fix it.** `just typecheck`/`just check` and both GitHub workflows ran
+  `mypy --strict` over `src` only; `tests/` was never in scope (`testpaths` in `pyproject.toml` is a
+  `pytest` setting, not a `mypy` one, and does not widen it). AC-2's entire evidentiary weight is a
+  `mypy --strict` pass over `tests/architecture/test_gateway_protocol_assignability.py` — its pytest
+  body cannot detect a bad Protocol binding on its own, since a local-variable type annotation is
+  never evaluated at runtime and the seven widget Protocols are imported only under `TYPE_CHECKING`.
+  Left as found, the guarantee this story exists to deliver would have been verified once, at this
+  commit, with no gate to catch a future regression. The owner considered widening `mypy --strict` to
+  all of `tests/` (rejected — too large and risky a scope change, likely surfacing unrelated
+  pre-existing typing debt across the whole suite never checked this way before) versus a narrow,
+  targeted addition (chosen): `just typecheck` and the two workflow steps it mirrors now also check
+  this file plus `tests/unit/test_common_dialog_gateway_structural_satisfaction.py`
+  (STORY-104-AC-2's own Protocol-assignability proof, found to have the identical gap). This follows
+  the precedent `pr-gate.yml` already set for `tests/typing_negative/` — a `mypy --strict` invocation
+  scoped to a specific, deliberately-typed subset of `tests/`, not a blanket widening.
+- **DTO placement diverges from the literal per-file table in `01_PROJECT_STRUCTURE.md` §5, on
+  purpose.** That table assigns `msgspec.Struct` DTOs to a module's `models.py` and reserves
+  `protocols.py` for `Protocol` definitions; `adapters/ui_gateways/` has no `models.py` and the eleven
+  DTOs this story canonicalizes live in its `protocols.py` instead, per this story's own Design
+  constraints and ADR-0017 decision item 1 ("so the whole gateway boundary is described in one
+  file"). Deliberate and documented, not an oversight. One consequence: `tests/architecture/test_dtos.py`
+  only scans `backend/*/models.py` for the `frozen=True, kw_only=True, gc=False` triad, so these
+  eleven structs sit outside that automated gate. Spec-conformance review hand-checked all eight
+  affected `msgspec.Struct` declarations and confirmed every one carries all three flags correctly;
+  no test currently re-checks this automatically on a future edit.

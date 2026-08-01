@@ -43,7 +43,10 @@ jobs:
           enable-cache: true
       - run: uv python install 3.13.3
       - run: uv sync --frozen --all-extras --dev
-      - run: uv run mypy --strict src
+      - run: |
+          uv run mypy --strict src \
+            tests/architecture/test_gateway_protocol_assignability.py \
+            tests/unit/test_common_dialog_gateway_structural_satisfaction.py
       - name: Negative typing tests must fail mypy
         run: |
           set +e

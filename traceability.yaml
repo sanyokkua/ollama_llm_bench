@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-01T09:52:56Z'
+generated_at: '2026-08-01T10:45:30Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5864,7 +5864,7 @@ stories:
         - src/ollama_llm_bench/ui/task_editor/tests/test_controller_watch_rebaseline.py::test_saving_through_the_editor_does_not_raise_a_conflict
   STORY-113:
     title: Declare each gateway-boundary DTO once in the adapters layer and import it from the widget modules
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#1-scope-and-conventions

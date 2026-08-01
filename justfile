@@ -21,8 +21,14 @@ format-check:
     uv run yamllint .github
     find . -name '*.sql' -not -path './docs/v3_specification/*' -not -path './.venv/*' | xargs -r uv run sqlfluff lint --dialect sqlite
 
+# the two gateway-protocol-assignability proof files carry no runtime check of their own
+# claim (a wrong Protocol binding is only caught by mypy) so they ride the standing
+# strict-mypy gate alongside src/, not left to a one-time, commit-time-only verification
+# (STORY-113)
 typecheck:
-    uv run mypy --strict src
+    uv run mypy --strict src \
+        tests/architecture/test_gateway_protocol_assignability.py \
+        tests/unit/test_common_dialog_gateway_structural_satisfaction.py
 
 import-check:
     uv run lint-imports

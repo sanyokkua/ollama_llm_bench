@@ -26,7 +26,10 @@ jobs:
       - run: uv run ruff check src tests scripts
       - run: uv run ruff format --check src tests scripts
       - run: uv run lint-imports
-      - run: uv run mypy --strict src
+      - run: |
+          uv run mypy --strict src \
+            tests/architecture/test_gateway_protocol_assignability.py \
+            tests/unit/test_common_dialog_gateway_structural_satisfaction.py
       - run: uv run pytest -q
 
   audit:
