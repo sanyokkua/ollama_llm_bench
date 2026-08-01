@@ -529,6 +529,63 @@ def test_each_import_export_method_delegates_to_the_service(
     run_case(mocker)
 
 
+# -- STORY-113-AC-3 / STORY-113-AC-4 ------------------------------------------------------
+
+
+def test_apply_settings_import_round_trips_the_original_backend_preview(
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-113-AC-3
+
+    Given a settings-import preview obtained from the concrete Settings gateway's
+    ``build_settings_import_preview``, when that preview object is passed back
+    unchanged to ``apply_settings_import``, then the underlying import/export service
+    receives the identical backend preview object that produced it -- checked with
+    ``is``, not ``==``, because the point of the criterion is that no intermediate
+    reconstruction happens, and a freshly-built-but-equal backend preview would pass an
+    equality check while still failing this one.
+    """
+    backend_preview = _make_backend_settings_preview()
+    backend_result = BackendSettingsResult(applied_count=1, skipped_count=0)
+    import_export = mocker.Mock(spec=ImportExportService)
+    import_export.build_settings_import_preview.return_value = backend_preview
+    import_export.apply_settings_import.return_value = backend_result
+    gateway = _make_gateway(mocker, import_export=import_export)
+
+    preview = gateway.build_settings_import_preview("/settings-import/settings.yaml")
+    gateway.apply_settings_import(preview)
+
+    call_args = import_export.apply_settings_import.call_args
+    assert call_args is not None
+    assert call_args.args[0] is backend_preview
+
+
+def test_apply_provider_import_round_trips_the_original_backend_preview(
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-113-AC-4
+
+    Given a provider-import preview obtained from the concrete Settings gateway's
+    ``build_provider_import_preview``, when that preview object is passed back
+    unchanged to ``apply_provider_import``, then the underlying import/export service
+    receives the identical backend preview object that produced it -- checked with
+    ``is``, not ``==``, for the same reason as STORY-113-AC-3.
+    """
+    backend_preview = _make_backend_provider_preview()
+    backend_result = BackendProviderResult(applied_count=1, skipped_count=0)
+    import_export = mocker.Mock(spec=ImportExportService)
+    import_export.build_provider_import_preview.return_value = backend_preview
+    import_export.apply_provider_import.return_value = backend_result
+    gateway = _make_gateway(mocker, import_export=import_export)
+
+    preview = gateway.build_provider_import_preview("/providers-import/providers.yaml")
+    gateway.apply_provider_import(preview)
+
+    call_args = import_export.apply_provider_import.call_args
+    assert call_args is not None
+    assert call_args.args[0] is backend_preview
+
+
 # -- STORY-110-AC-6 -----------------------------------------------------------------------
 
 

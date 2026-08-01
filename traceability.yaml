@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-01T09:38:03Z'
+generated_at: '2026-08-01T09:52:56Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5880,15 +5880,36 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-113-AC-1:
-        tests: []
+        tests:
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[JudgeAnalysisGenerationOutcome]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[JudgeAnalysisGenerationResult]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[PreviewGroup]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[ProviderImportPreviewRow]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[ProviderImportPreview]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[ProviderImportResult]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[SettingsImportPreviewRow]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[SettingsImportPreview]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[SettingsImportResult]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[Severity]
+        - tests/architecture/test_gateway_boundary_dto_single_declaration.py::test_gateway_boundary_dto_is_declared_once[ValidationFinding]
       STORY-113-AC-2:
-        tests: []
+        tests:
+        - tests/architecture/test_gateway_protocol_assignability.py::test_main_window_gateway_is_assignable_to_its_widget_declared_protocol
+        - tests/architecture/test_gateway_protocol_assignability.py::test_new_benchmark_gateway_is_assignable_to_its_widget_declared_protocol
+        - tests/architecture/test_gateway_protocol_assignability.py::test_progress_gateway_is_assignable_to_its_widget_declared_protocol
+        - tests/architecture/test_gateway_protocol_assignability.py::test_result_gateway_is_assignable_to_its_widget_declared_protocol
+        - tests/architecture/test_gateway_protocol_assignability.py::test_resume_gateway_is_assignable_to_its_widget_declared_protocol
+        - tests/architecture/test_gateway_protocol_assignability.py::test_settings_gateway_is_assignable_to_its_widget_declared_protocol
+        - tests/architecture/test_gateway_protocol_assignability.py::test_task_editor_gateway_is_assignable_to_its_widget_declared_protocol
       STORY-113-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_apply_settings_import_round_trips_the_original_backend_preview
       STORY-113-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/ui_gateways/tests/test_settings_gateway.py::test_apply_provider_import_round_trips_the_original_backend_preview
       STORY-113-AC-5:
-        tests: []
+        tests:
+        - tests/architecture/test_result_gateway_delivers_ui_declared_analysis_type.py::test_regenerate_run_analysis_delivers_the_ui_declared_result_type
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
