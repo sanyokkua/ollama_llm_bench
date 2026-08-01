@@ -163,7 +163,10 @@ adapter — so it is outside this criterion's case space.
 - [x] Every acceptance criterion has a passing test that names STORY-104.
 - [x] The seven child stories (STORY-105 … STORY-111) are `done`.
 - [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The traceability record validates with no orphan clause and no orphan test for STORY-104
+  (repo-wide `trace-check` still reports the pre-existing, unrelated `EC-M-1`..`EC-M-8` gaps
+  tracked by Phase-11 stories 076/078/080/081 — see traceability.yaml, which touches only
+  STORY-104's own AC rows).
 - [x] The module inventory lists `adapters/ui_gateways/` (ADR-0014) and this story's
   `modules:` names it.
 
@@ -176,13 +179,20 @@ adapter — so it is outside this criterion's case space.
   record that the widget-local `SyntheticSizeRuleValidator` must be subsumed by — not duplicated
   alongside — that future backend validator. No story owns it. It needs a scope decision from the
   owner before it can be written.
-- **Unowned follow-up: a corrective ADR for ADR-0014's decision item 3.** ADR-0014 says
-  `adapters/ui_gateways/` "declares no gateway Protocol of its own", while its decision item 2 says
-  each factory returns "the corresponding **UI-declared** gateway Protocol type". Those two cannot
-  both hold: annotating with the user-interface module's type *is* importing that module, which the
-  "adapters never import the UI layer" `import-linter` contract (added by STORY-105) forbids. The
-  child stories resolved it in favour of the layering rule and shipped mirrored declarations in
-  `adapters/ui_gateways/protocols.py`, each documented as a deliberate duplicate that must be kept
-  in step with its user-interface counterpart. ADR-0014 is accepted and so may no longer be edited
-  in place (`04_ADR_FORMAT.md` §8), so recording this needs a new ADR that no story owns. This story
-  only has to test against the structure as shipped — see Design constraints.
+- **RESOLVED — corrective ADR for ADR-0014's decision item 3.** ADR-0014 said
+  `adapters/ui_gateways/` "declares no gateway Protocol of its own", while its decision item 2 said
+  each factory returns "the corresponding **UI-declared** gateway Protocol type". Those two could
+  not both hold: annotating with the user-interface module's type *is* importing that module, which
+  the "adapters never import the UI layer" `import-linter` contract (added by STORY-105) forbids.
+  STORY-105 … STORY-111 resolved it in favour of the layering rule and shipped mirrored Protocol
+  declarations in `adapters/ui_gateways/protocols.py` — safe, since Protocols are structural. But
+  the *DTOs* those Protocols mention in their signatures were mirrored the same way, and DTOs are
+  nominal (`msgspec.Struct`/`StrEnum`), so two field-identical declarations were two incompatible
+  types: this story's own AC-1 test, checking Protocol satisfaction by method name only, could not
+  see that `ResultGateway` and `SettingsGateway` did not actually satisfy their widget-declared
+  Protocol under `mypy --strict`. **ADR-0017** (accepted 2026-08-01) records the fix —
+  `adapters/ui_gateways/` becomes the single canonical declaration point for the eleven affected
+  DTOs, and the UI modules import them instead of re-declaring — and **STORY-113** (done
+  2026-08-01) implements it, adding the stronger `mypy --strict`-based assignability proof AC-1's
+  method-name check could not provide. That proof is now a standing CI gate
+  (`just typecheck`/`pr-gate.yml`/`release.yml`), not a one-time check.
