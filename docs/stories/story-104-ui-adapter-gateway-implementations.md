@@ -1,7 +1,7 @@
 ---
 id: STORY-104
 title: Give every UI adapter gateway exactly one production implementation
-status: draft
+status: ready
 spec_clauses:
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#7b-ui-adapter-gateways-d-r-06
   - 08_Cross_Cutting/08-E_interfaces_contracts.md#23-the-application-context
@@ -45,13 +45,13 @@ per-gateway child stories that write the implementations.
 
 - The application-wide conformance guarantee that each of the seven gateway Protocols named in
   `08-E_interfaces_contracts.md` §7b has exactly one production implementation reachable from the
-  adapters layer's public surface, and that a production implementation exists for the four
-  Common-Dialogs gateways too.
+  adapters layer's public surface.
 - Coordinating the seven per-gateway child stories: STORY-105 (Main Window), STORY-106 (New
   Benchmark), STORY-107 (Progress), STORY-108 (Result), STORY-109 (Resume), STORY-110 (Settings),
   STORY-111 (Task Editor).
-- Proving that the four Common-Dialogs gateways are satisfied structurally by the sibling gateways
-  their method sets are subsets of, with no extra adapter class written for any of them.
+- Proving that the four Common-Dialogs gateways are satisfied structurally by those same seven
+  classes — by the sibling gateways their method sets are subsets of — so no eighth adapter class is
+  written for any of them.
 
 ## Out of scope
 
@@ -64,6 +64,8 @@ per-gateway child stories that write the implementations.
   a gateway, and no story owns it yet; see this story's Design constraints.
 - Wiring the gateways into `build_app` and the widget factories — owned by STORY-077, which depends
   on this story.
+- Recording the deviation from ADR-0014's decision item 3 that the child stories shipped (see Notes)
+  — that needs its own corrective ADR, which no story owns.
 
 ## Spec inputs
 
@@ -87,6 +89,23 @@ per-gateway child stories that write the implementations.
 
 - **Where the code lands.** The implementation lands in `adapters/ui_gateways/`. ADR-0014 is
   accepted and its inventory row now exists, so `modules:` names that path directly.
+- **AC-1 resolves the user-interface copy of each Protocol, never the adapter's own copy.**
+  `adapters/ui_gateways/protocols.py` declares its own mirror of six of the seven gateways plus
+  `SettingsGateway`, because `import-linter` forbids `adapters/*` from importing `ui/*` and the
+  `make_*_gateway` factories still need a return type to annotate. Resolving those mirrors would
+  make the architecture test self-satisfying — the adapter checked against its own declaration. The
+  Protocol object each parametrised row resolves is therefore the one in the `Declared in` column of
+  AC-1's table, which is the widget module's copy and the source of truth for the gateway's shape.
+- **The production classes are private; they are reached through the module's factories.** Per the
+  module public-surface rule, `adapters/ui_gateways/api.py` exports only the seven `make_*_gateway`
+  functions — the seven concrete classes are `_`-prefixed under `_internal/<widget>/gateway.py` and
+  are not exported. "Reachable through the adapters layer's public surface" therefore means reached
+  by calling the factory, not by importing a class name.
+- **`SettingsGateway`'s current shape is the amended one.** ADR-0015 and ADR-0016 changed
+  `test_provider`, `discover_models`, `probe_all` and `probe_embedding` to return `None` and deliver
+  their results through a callback or through `ReadinessService`'s existing readiness-changed event.
+  The expected method set for that row comes from `ui/settings_dialog/protocols.py` as it stands
+  today, not from `08-E` §7b.6's verbatim pre-amendment text.
 
 ## Acceptance criteria
 
@@ -118,18 +137,26 @@ no adapter class written specifically for it:
 | `ResumeSummaryGateway`  | `ResumeGateway`                    |
 | `RetrySelectionGateway` | `ResumeGateway`                    |
 
+These four are the complete set of gateway Protocols `ui/common_dialogs/protocols.py` declares. The
+fifth Protocol in that file, `RunAnalysisDispatcher`, is not a gateway — it is a dialog's dispatch
+surface onto its own parent tab controller, satisfied by
+`ui.results._internal.run_analysis_tab.controller.JudgeAnalysisTabController` and never by an
+adapter — so it is outside this criterion's case space.
+
 ## Test plan
 
 - STORY-104-AC-1 — architecture, table-driven (one `@pytest.mark.parametrize` row per gateway
   Protocol), `tests/architecture/test_gateway_implementations_exist.py`,
   `test_every_ui_gateway_protocol_has_one_production_implementation`. Each row resolves the
-  Protocol, asserts a non-`testing.py` class in the adapters layer satisfies it, and asserts that
-  exactly one such class does. Passes only once STORY-105 … STORY-111 are `done`.
+  user-interface module's Protocol (never `adapters/ui_gateways/protocols.py`'s mirror), asserts a
+  non-`testing.py` class in the adapters layer satisfies it, and asserts that exactly one such class
+  does. Passes only once STORY-105 … STORY-111 are `done`.
 - STORY-104-AC-2 — unit, table-driven (one row per Common-Dialogs gateway),
   `tests/unit/test_common_dialog_gateway_structural_satisfaction.py`,
-  `test_common_dialog_gateways_are_satisfied_by_their_sibling_gateway`. Each row assigns the sibling
-  gateway instance to a variable annotated with the Common-Dialogs Protocol and calls every method
-  the Protocol declares.
+  `test_common_dialog_gateways_are_satisfied_by_their_sibling_gateway`. Each row builds the sibling
+  gateway through its `adapters/ui_gateways` factory with fake backend collaborators, assigns it to
+  a variable annotated with the Common-Dialogs Protocol, and calls every method the Protocol
+  declares.
 
 ## Definition of done
 
@@ -149,3 +176,13 @@ no adapter class written specifically for it:
   record that the widget-local `SyntheticSizeRuleValidator` must be subsumed by — not duplicated
   alongside — that future backend validator. No story owns it. It needs a scope decision from the
   owner before it can be written.
+- **Unowned follow-up: a corrective ADR for ADR-0014's decision item 3.** ADR-0014 says
+  `adapters/ui_gateways/` "declares no gateway Protocol of its own", while its decision item 2 says
+  each factory returns "the corresponding **UI-declared** gateway Protocol type". Those two cannot
+  both hold: annotating with the user-interface module's type *is* importing that module, which the
+  "adapters never import the UI layer" `import-linter` contract (added by STORY-105) forbids. The
+  child stories resolved it in favour of the layering rule and shipped mirrored declarations in
+  `adapters/ui_gateways/protocols.py`, each documented as a deliberate duplicate that must be kept
+  in step with its user-interface counterpart. ADR-0014 is accepted and so may no longer be edited
+  in place (`04_ADR_FORMAT.md` §8), so recording this needs a new ADR that no story owns. This story
+  only has to test against the structure as shipped — see Design constraints.

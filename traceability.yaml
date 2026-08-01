@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-07-31T23:22:56Z'
+generated_at: '2026-08-01T07:51:35Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5478,7 +5478,7 @@ stories:
         - tests/architecture/test_circuit_breaker_spec_reflects_dd71.py::test_circuit_breaker_spec_reflects_dd71[CB-14]
   STORY-104:
     title: Give every UI adapter gateway exactly one production implementation
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-A_architecture_principles.md#6-the-adapter-layer
     - 08_Cross_Cutting/08-E_interfaces_contracts.md#23-the-application-context
