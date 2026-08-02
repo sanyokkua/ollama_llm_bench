@@ -84,3 +84,19 @@ def test_submit_propagates_worker_exception_via_future(qtbot: QtBot) -> None:
         assert str(exc) == "distinct worker failure"
     else:
         raise AssertionError("expected _DistinctWorkerError to propagate from future.result()")
+
+
+def test_qt_task_runner_is_importable_from_the_package_root() -> None:
+    """Proves: STORY-080 (foundation for AC-6)
+
+    `QtTaskRunner` is re-exported from `adapters.qt_runnables`'s public surface
+    (not only its `.api`), so `compose.py` can import it via the package root
+    per the module public-surface convention, and it exposes `shutdown()` for
+    the composition root's ordered-shutdown pool drain.
+    """
+    from ollama_llm_bench.adapters.qt_runnables import (  # noqa: PLC0415  # proving root import
+        QtTaskRunner,
+    )
+
+    runner: QtTaskRunner[object] = QtTaskRunner()
+    assert hasattr(runner, "shutdown")

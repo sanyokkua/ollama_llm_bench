@@ -11,7 +11,7 @@ from PySide6.QtCore import QCoreApplication
 from ollama_llm_bench.adapters.qt_runnables._internal.task_runner import QtTaskRunner
 from ollama_llm_bench.backend.concurrency import TaskRunner
 
-__all__: list[str] = ["make_qt_task_runner"]
+__all__: list[str] = ["QtTaskRunner", "make_qt_task_runner"]
 
 
 @icontract.require(
