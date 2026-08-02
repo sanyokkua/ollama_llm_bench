@@ -61,6 +61,7 @@ _FRIENDLY_LOG_LEVELS: Final[dict[str, int]] = {
 
 _FATAL_DIALOG_TITLE: Final[str] = "Unexpected Error"
 _FATAL_DIALOG_MESSAGE: Final[str] = "An unexpected error occurred and the application must close."
+_SHUTDOWN_TIMEOUT_MS: Final[int] = 5000
 
 # The set of exception types the crash policy treats as CRITICAL: `ProgrammerError`
 # (this codebase's own must-crash root) and icontract's `ViolationError` (raised when
@@ -220,7 +221,7 @@ def _handle_ui_thread_exception(
     def _quit() -> None:
         handle = collaborators.handle_holder.handle
         if handle is not None:
-            handle.shutdown()
+            handle.shutdown(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
         instance = QApplication.instance()
         if instance is not None:
             instance.exit(1)
@@ -311,7 +312,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     Implements ``08-M_app_lifecycle.md`` §2 steps 1-2 directly (argument parsing,
     platform detection), configures logging (step 3) before any worker or dialog
     can exist, then defers the remaining ordered launch steps to
-    :func:`ollama_llm_bench.compose.build_app` per ADR-0010.
+    :func:`ollama_llm_bench.compose.build_app` per ADR-0010. After the Qt event
+    loop returns, runs the ordered shutdown (`05_CONCURRENCY_GUARANTEES.md` §8
+    steps 1-5, via `AppHandle.shutdown()`) before exiting with the loop's own
+    exit code (step 6) -- STORY-080.
 
     Args:
         argv: The argument vector to parse (excluding the program name), or
@@ -331,7 +335,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     handle = build_app(app=app, loop=QEventLoop())
     handle_holder.set_handle(handle)
     handle.window.show()
-    sys.exit(app.exec())
+    exit_code = app.exec()
+    handle.shutdown(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

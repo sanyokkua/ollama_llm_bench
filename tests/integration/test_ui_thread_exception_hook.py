@@ -24,6 +24,7 @@ from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.__main__ import (
+    _SHUTDOWN_TIMEOUT_MS,
     _AppHandleHolder,
     _CrashDialogCollaborators,
     _handle_ui_thread_exception,
@@ -39,7 +40,7 @@ from ollama_llm_bench.backend.persistence.app_settings import (
 )
 from ollama_llm_bench.backend.persistence.providers import seed_builtin_providers
 from ollama_llm_bench.backend.platform import create_app_data_dir, make_platform_detector
-from ollama_llm_bench.compose import build_app
+from ollama_llm_bench.compose import AppHandle, build_app
 from ollama_llm_bench.ui.common_dialogs import make_error_dialog as _real_make_error_dialog
 from ollama_llm_bench.ui.common_dialogs.models import ErrorDialogPattern, ErrorDialogPayload
 
@@ -177,6 +178,64 @@ def test_ui_thread_uncaught_exception_logs_shows_modal_closes_db_and_exits(
     assert handle.http_client.is_closed
     with pytest.raises(sqlite3.ProgrammingError):
         handle.write_conn.execute("SELECT 1")
+
+
+def test_quit_callback_shuts_down_handle_with_configured_timeout(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    """Proves: STORY-080-AC-6
+
+    Given an uncaught user-interface-thread exception, when the fatal dialog's Quit
+    button callback runs, then it shuts the composed `AppHandle` down by calling
+    `AppHandle.shutdown(timeout_ms=...)` with the application's configured shutdown
+    timeout budget -- the same budget `main()`'s own post-`app.exec()` ordered-shutdown
+    call site uses -- not the old no-argument `handle.shutdown()` call.
+    """
+    # Arrange
+    app_log_file = tmp_path / "logs" / "app" / "app.log"
+    configure_logging(app_log_file=app_log_file)
+    mock_handle = mocker.Mock(spec=AppHandle)
+    handle_holder = _AppHandleHolder()
+    handle_holder.set_handle(mock_handle)
+    clipboard = mocker.Mock(spec=Clipboard)
+    event_bus = mocker.Mock(spec=EventBus)
+    collaborators = _CrashDialogCollaborators(
+        clipboard=clipboard, event_bus=event_bus, handle_holder=handle_holder
+    )
+    captured_payloads: list[ErrorDialogPayload] = []
+    stub_dialog = mocker.Mock(spec=["exec"])
+
+    def _capture_payload(
+        *, payload: ErrorDialogPayload, clipboard: Clipboard, event_bus: EventBus
+    ) -> object:
+        captured_payloads.append(payload)
+        return stub_dialog
+
+    mocker.patch("ollama_llm_bench.__main__.make_error_dialog", side_effect=_capture_payload)
+    # `_quit()` also calls `QApplication.instance().exit(1)` -- with no real nested
+    # event loop running here (`stub_dialog.exec` is a `Mock`, not a real blocking
+    # call), calling `.exit()` on the real, session-scoped `qapp` would permanently
+    # set Qt's internal "quit now" flag: every later `QDialog.exec()`/`QEventLoop.exec()`
+    # for the rest of the test session (e.g. the real-`AppHandle` test above, which
+    # relies on its own nested `dialog.exec()` staying alive long enough for its
+    # `QTimer.singleShot` Quit-button click to fire) would then return immediately
+    # instead of running. Making `QApplication.instance()` return `None` here keeps
+    # this test inside `_quit()`'s own existing `if instance is not None` guard and
+    # never touches the real, shared `qapp` at all.
+    mocker.patch("ollama_llm_bench.__main__.QApplication.instance", return_value=None)
+    try:
+        raise ValueError("synthetic ui-thread boom")
+    except ValueError as exc:
+        exc_type, exc_value, exc_tb = type(exc), exc, exc.__traceback__
+
+    # Act
+    _handle_ui_thread_exception(exc_type, exc_value, exc_tb, collaborators=collaborators)
+    assert captured_payloads[0].quit_callback is not None
+    captured_payloads[0].quit_callback()
+
+    # Assert -- the quit callback shut the handle down with the configured timeout
+    # budget as a keyword argument, not the old no-argument call.
+    mock_handle.shutdown.assert_called_once_with(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
 
 
 @pytest.mark.parametrize(
