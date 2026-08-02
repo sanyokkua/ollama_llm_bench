@@ -12,6 +12,8 @@ spec_clauses:
   - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-1
   - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-2
   - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-3
+  - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#5-file-lock-policy
+  - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#6-multi-instance-handling
 modules:
   - backend/infra/
   - backend/persistence/app_settings/
@@ -22,6 +24,7 @@ acceptance_criteria:
   - STORY-078-AC-3
   - STORY-078-AC-4
   - STORY-078-AC-5
+  - STORY-078-AC-6
 edge_cases:
   - EC-M-1
   - EC-M-2
@@ -55,6 +58,11 @@ incompatible database is a hard startup error.
 - The hardened app-data-directory creation, which supersedes the plain parent-directory `mkdir`
   STORY-077 performs purely to let the database open succeed. This story covers the whole subtree
   and adds the permission-failure abort modal.
+- Acquiring the single-instance advisory lock immediately after the app-data directory exists and
+  before the database is opened, and the fourth abort-with-modal path: a lock already held by a
+  live process shows an "already running" modal naming the data folder and exits without opening
+  the database or mutating the data directory (STORY-079 owns the helper; this story is its first
+  caller, per ADR-0010's assignment of every abort-modal render to the composition root).
 - The three abort-with-modal paths: an app-data permission failure, a schema-version mismatch, and a
   present-but-unreadable/corrupt database each show an explanatory modal and exit without altering
   the database.
@@ -75,8 +83,8 @@ incompatible database is a hard startup error.
   "immediately after opening, before any statement runs"), and the existing `open_write_connection`
   helper already performs both atomically. This story runs its schema check *on the connection
   STORY-077 opened*; it never opens a connection and never calls `apply_pragmas` itself.
-- Acquiring the single-instance advisory lock (which runs between the app-data step and the DB open) —
-  the lock helper is owned by STORY-079; this story calls it.
+- The lock **helper itself** — already delivered by STORY-079 (`backend/infra/`'s
+  `acquire_instance_lock`); this story does not modify it.
 - The crash-recovery result sweep and the quit sequence — owned by STORY-080.
 - The schema DDL, the version-check primitive, and the seed rows themselves — already
   delivered by STORY-008 and STORY-012; this story orchestrates and surfaces them at launch.
@@ -97,6 +105,10 @@ incompatible database is a hard startup error.
 - `08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system` — the
   per-OS `<app-data>` location; the directory and its subtree are created on first launch, recursively
   and idempotently, and a permission failure aborts with a modal naming the path.
+- `12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#5-file-lock-policy` and
+  `#6-multi-instance-handling` — the single-instance lock is acquired once, held for the process
+  lifetime; a live-owned lock refuses a second instance without opening the database or mutating
+  the data directory.
 - `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#8-schema-versioning--additive-structural-steps-no-data-migration-dd-53` —
   the expected-version comparison and the no-migration rule; a higher or cross-major stored version is
   a hard startup error.
@@ -176,6 +188,14 @@ when that statement executes,
 then every `03_PERSISTENCE_SCHEMA.md` §2 write-connection pragma is already in effect on that
 connection.
 
+### STORY-078-AC-6
+
+Given the single-instance advisory lock on the application data directory is already held by a
+live process,
+when launch attempts to acquire the lock,
+then launch aborts with an "already running" modal naming the application data folder, no
+database is opened, no file in the data directory is mutated, and the process exits.
+
 ## Test plan
 
 - STORY-078-AC-1 — integration, `tests/integration/test_launch_app_data_dir.py`,
@@ -188,6 +208,8 @@ connection.
   `tests/integration/test_launch_seeding.py`, `test_seeding_is_idempotent_per_target_table`.
 - STORY-078-AC-5 — integration, `tests/integration/test_launch_schema_check.py`,
   `test_write_connection_applies_pragmas_before_first_statement`.
+- STORY-078-AC-6 — integration, `tests/integration/test_launch_instance_lock.py`,
+  `test_second_instance_finds_lock_held_shows_modal_and_exits_without_opening_db`.
 
 ## Definition of done
 
