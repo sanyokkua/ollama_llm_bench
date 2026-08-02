@@ -1,7 +1,7 @@
 ---
 id: STORY-076
 title: Install the process entry point and the two top-level exception hooks
-status: in-progress
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
   - 08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy
@@ -176,8 +176,8 @@ things a future reader needs to know without re-deriving them.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-076.
-- [ ] EC-M-8 has a passing test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-076.
+- [x] EC-M-8 has a passing test.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.

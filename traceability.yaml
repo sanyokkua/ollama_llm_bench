@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-02T13:14:37Z'
+generated_at: '2026-08-02T13:59:01Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4853,7 +4853,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_warmup.py::test_hard_stop_at_warmup_halts_run_and_reports_no_breaker_outcome
   STORY-076:
     title: Install the process entry point and the two top-level exception hooks
-    status: in-progress
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
     - 08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy
@@ -5005,9 +5005,10 @@ stories:
         tests:
         - src/ollama_llm_bench/backend/infra/tests/test_instance_lock.py::test_stale_lock_from_dead_pid_is_reclaimed
   STORY-080:
-    title: Wire the quit sequence, WAL checkpoint on close, and crash-recovery handling
-    status: draft
+    title: Complete the ordered shutdown, the WAL checkpoint on close, and the crash-recovery sweep call sites
+    status: ready
     spec_clauses:
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
     - 08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence
     - 08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy
     - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-4
@@ -5016,8 +5017,10 @@ stories:
     - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#9-crash-recovery-sweep
     - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#8-shutdown-ordering-guarantees
     modules:
+    - adapters/qt_runnables/
+    - backend/benchmark_pipeline/
+    - backend/infra/
     - backend/persistence/results/
-    - backend/settings/
     - ui/main_window/
     edge_cases:
     - EC-M-4
@@ -5033,6 +5036,12 @@ stories:
       STORY-080-AC-4:
         tests: []
       STORY-080-AC-5:
+        tests: []
+      STORY-080-AC-6:
+        tests: []
+      STORY-080-AC-7:
+        tests: []
+      STORY-080-AC-8:
         tests: []
   STORY-081:
     title: Add the headless end-to-end smoke tier for launch, idle, and clean shutdown
@@ -5970,6 +5979,32 @@ stories:
       STORY-113-AC-5:
         tests:
         - tests/architecture/test_result_gateway_delivers_ui_declared_analysis_type.py::test_regenerate_run_analysis_delivers_the_ui_declared_result_type
+  STORY-114:
+    title: Wire the Task Editor into the quit sequence and give its persisted settings their writers
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence
+    - 09_Task_Editor/description.md#37-leave-confirmation-and-quit-confirmation
+    - 09_Task_Editor/description.md#6-persistence
+    - 09_Task_Editor/description.md#EC-TE-11
+    modules:
+    - ui/main_window/
+    - ui/task_editor/
+    edge_cases:
+    - EC-TE-11
+    acceptance_criteria:
+      STORY-114-AC-1:
+        tests: []
+      STORY-114-AC-2:
+        tests: []
+      STORY-114-AC-3:
+        tests: []
+      STORY-114-AC-4:
+        tests: []
+      STORY-114-AC-5:
+        tests: []
+      STORY-114-AC-6:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -6763,6 +6798,7 @@ clauses:
     - STORY-076
     - STORY-077
     - STORY-078
+    - STORY-080
     - STORY-081
   08_Cross_Cutting/08-M_app_lifecycle.md#3-the-schema-check-and-the-no-migration-rule:
     stories:
@@ -6780,6 +6816,7 @@ clauses:
   08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence:
     stories:
     - STORY-080
+    - STORY-114
   08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy:
     stories:
     - STORY-076
@@ -6866,15 +6903,22 @@ clauses:
   09_Task_Editor/description.md#37-leave-confirmation-and-quit-confirmation:
     stories:
     - STORY-069
+    - STORY-114
   09_Task_Editor/description.md#38-new-file-seed-scaffold:
     stories:
     - STORY-069
   09_Task_Editor/description.md#4-validation-rules:
     stories:
     - STORY-069
+  09_Task_Editor/description.md#6-persistence:
+    stories:
+    - STORY-114
   09_Task_Editor/description.md#7-event-bus-integration:
     stories:
     - STORY-068
+  09_Task_Editor/description.md#EC-TE-11:
+    stories:
+    - STORY-114
   09_Task_Editor/implementation_structure.md#4-view-model-struct:
     stories:
     - STORY-069
@@ -10427,6 +10471,10 @@ edge_cases:
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
+  EC-TE-11:
+    stories:
+    - STORY-114
+    tests: []
   EC-WS-1:
     stories:
     - STORY-061
@@ -10540,6 +10588,7 @@ modules:
   adapters/qt_runnables/:
     stories:
     - STORY-041
+    - STORY-080
   adapters/qt_table_models/:
     stories:
     - STORY-046
@@ -10570,6 +10619,7 @@ modules:
     - STORY-042
     - STORY-074
     - STORY-075
+    - STORY-080
     - STORY-082
     - STORY-085
     - STORY-086
@@ -10624,6 +10674,7 @@ modules:
     - STORY-076
     - STORY-078
     - STORY-079
+    - STORY-080
     - STORY-094
   backend/log_file_writer/:
     stories:
@@ -10713,7 +10764,6 @@ modules:
     stories:
     - STORY-014
     - STORY-023
-    - STORY-080
     - STORY-110
   backend/stores/:
     stories:
@@ -10758,6 +10808,7 @@ modules:
     - STORY-097
     - STORY-104
     - STORY-105
+    - STORY-114
   ui/new_benchmark/:
     stories:
     - STORY-054
@@ -10827,6 +10878,7 @@ modules:
     - STORY-099
     - STORY-111
     - STORY-112
+    - STORY-114
   ui/theme/:
     stories:
     - STORY-049
