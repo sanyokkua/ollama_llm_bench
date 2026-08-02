@@ -12,6 +12,8 @@ Source of truth: `docs/v3_specification/08_Cross_Cutting/08-M_app_lifecycle.md` 
 from collections.abc import Generator
 import json
 from pathlib import Path
+import sys
+import threading
 import time
 from typing import TYPE_CHECKING, cast
 
@@ -62,6 +64,19 @@ def _disconnect_os_color_scheme_signal(qapp: QApplication) -> Generator[None]:
     yield
     qapp.styleHints().colorSchemeChanged.disconnect()
     qapp.styleHints().unsetColorScheme()
+
+
+@pytest.fixture(autouse=True)
+def _restore_global_exception_hooks() -> Generator[None]:
+    """See the identical fixture in `test_worker_thread_exception_hook.py`:
+    `_install_exception_hooks` mutates the process-global `sys.excepthook` and
+    `threading.excepthook`; restore both after the test so this test's closures
+    (holding test-local mocks/fixtures) never linger for a later, unrelated test."""
+    original_sys_hook = sys.excepthook
+    original_threading_hook = threading.excepthook
+    yield
+    sys.excepthook = original_sys_hook
+    threading.excepthook = original_threading_hook
 
 
 @pytest.fixture
