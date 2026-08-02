@@ -13,7 +13,9 @@ import functools
 import importlib.metadata
 import re
 import sqlite3
+import sys
 import threading
+from typing import NoReturn
 
 import httpx
 import msgspec
@@ -27,7 +29,7 @@ from PySide6.QtWidgets import (  # fmt: skip
     QWidget,
 )
 
-from ollama_llm_bench.adapters.clipboard import make_clipboard
+from ollama_llm_bench.adapters.clipboard import Clipboard, make_clipboard
 from ollama_llm_bench.adapters.file_system_actions import (  # fmt: skip
     make_file_change_watcher,
     make_file_system_actions,
@@ -71,18 +73,34 @@ from ollama_llm_bench.backend.domain import (  # fmt: skip
     RunStartRequest,
 )
 from ollama_llm_bench.backend.embedding import make_embedding_service
-from ollama_llm_bench.backend.errors import ConfigurationError, EmbeddingUnavailableError
+from ollama_llm_bench.backend.errors import (  # fmt: skip
+    ConfigurationError,
+    ContractViolationError,
+    EmbeddingUnavailableError,
+    PersistenceError,
+)
+from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.backend.import_export import make_import_export_service
-from ollama_llm_bench.backend.infra import make_system_clock
+from ollama_llm_bench.backend.infra import (  # fmt: skip
+    InstanceLockHandle,
+    InstanceLockOutcome,
+    acquire_instance_lock,
+    make_system_clock,
+)
 from ollama_llm_bench.backend.log_formatting import make_log_formatter
 from ollama_llm_bench.backend.persistence.app_settings import (  # fmt: skip
     DB_FILENAME,
     create_app_settings_store,
+    ensure_schema,
     open_read_connection,
     open_write_connection,
 )
 from ollama_llm_bench.backend.persistence.model_capabilities import create_model_capabilities_store
-from ollama_llm_bench.backend.persistence.providers import ProvidersStore, create_providers_store
+from ollama_llm_bench.backend.persistence.providers import (  # fmt: skip
+    ProvidersStore,
+    create_providers_store,
+    seed_builtin_providers,
+)
 from ollama_llm_bench.backend.persistence.results import create_results_store
 from ollama_llm_bench.backend.persistence.runs import create_runs_store
 from ollama_llm_bench.backend.persistence.tasks import create_tasks_store
@@ -119,7 +137,13 @@ from ollama_llm_bench.backend.stores import make_run_registry_store, make_worksp
 from ollama_llm_bench.backend.stores.inference_activity import make_inference_activity_store
 from ollama_llm_bench.backend.task_files import make_task_file_loader, make_task_file_validator
 from ollama_llm_bench.backend.yaml_formatter import make_yaml_formatter
-from ollama_llm_bench.ui.common_dialogs import AboutDialogCollaborators, make_about_dialog
+from ollama_llm_bench.ui.common_dialogs import (  # fmt: skip
+    AboutDialogCollaborators,
+    ErrorDialogPattern,
+    ErrorDialogPayload,
+    make_about_dialog,
+    make_error_dialog,
+)
 from ollama_llm_bench.ui.main_window import make_main_window, make_status_bar
 from ollama_llm_bench.ui.new_benchmark import NewBenchmarkCollaborators, make_new_benchmark_widget
 from ollama_llm_bench.ui.new_benchmark.models import ValidationEntry
@@ -151,6 +175,7 @@ class AppHandle(msgspec.Struct, frozen=True, kw_only=True, gc=False):
     task_runner: TaskRunner[object]
     run_dispatcher: RunDispatcher
     http_client: httpx.Client
+    instance_lock: InstanceLockHandle
     loop: QEventLoop
 
     def shutdown(self) -> None:
@@ -262,15 +287,104 @@ class _NoModelFetcher:
         on_success(provider_id, ())
 
 
+def _abort_launch(
+    *, title: str, message: str, detail: str, clipboard: Clipboard, bus: EventBus
+) -> NoReturn:
+    """Show a FATAL error dialog naming a launch failure, then exit the process.
+
+    Used by every launch-abort path that fires before the object graph is wired
+    (ADR-0010) -- no ``AppHandle`` exists yet at that point, so there is nothing
+    to shut down beyond the dialog itself.
+
+    Args:
+        title: The dialog's title.
+        message: The plain-language explanation shown above the detail block.
+        detail: The path/file/version detail naming what failed.
+        clipboard: Backs the dialog's Copy Details button.
+        bus: Backs the dialog's Copy Details toast.
+    """
+    payload = ErrorDialogPayload(
+        title=title,
+        message=message,
+        detail=detail,
+        pattern=ErrorDialogPattern.FATAL,
+        quit_callback=lambda: None,
+    )
+    make_error_dialog(payload=payload, clipboard=clipboard, event_bus=bus).exec()
+    sys.exit(1)
+
+
 def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR0915
     """Wire the whole application object graph once, by hand (ADR-0010, ADR-0014)."""
+    clipboard = make_clipboard()
+    bus = make_qt_event_bus_deliverer()
+    clock = make_system_clock()
+
     detector = make_platform_detector()
     profile = detector.detect()
     plat = UiPlatformKind(profile.kind.value)
-    app_data_root = create_app_data_dir(profile.app_data_root)
-    write_conn, lock = open_write_connection(app_data_root / DB_FILENAME)
+
+    try:
+        app_data_root = create_app_data_dir(profile.app_data_root)
+    except ConfigurationError as exc:
+        _abort_launch(
+            title="Cannot Create Application Data Folder",
+            message=(
+                "Ollama LLM Bench could not create its application data folder and cannot start."
+            ),
+            detail=str(exc),
+            clipboard=clipboard,
+            bus=bus,
+        )
+
+    lock_result = acquire_instance_lock(app_data_root=app_data_root, clock=clock)
+    if lock_result.outcome is InstanceLockOutcome.ALREADY_RUNNING:
+        _abort_launch(
+            title="Already Running",
+            message=(
+                "Ollama LLM Bench is already running against this application data "
+                "folder. Only one copy can run against the same folder at a time."
+            ),
+            detail=str(app_data_root),
+            clipboard=clipboard,
+            bus=bus,
+        )
+    instance_lock = lock_result.lock
+    if instance_lock is None:
+        message = "acquire_instance_lock reported ACQUIRED with no release handle"
+        raise ContractViolationError(message=message)
+
+    try:
+        write_conn, lock = open_write_connection(app_data_root / DB_FILENAME)
+    except PersistenceError as exc:
+        instance_lock.release()
+        _abort_launch(
+            title="Database File Unreadable",
+            message=(
+                "The application database file exists but could not be opened. It may be corrupt."
+            ),
+            detail=f"{app_data_root / DB_FILENAME}\n\n{exc}",
+            clipboard=clipboard,
+            bus=bus,
+        )
+
+    try:
+        ensure_schema(write_conn, lock, clock=clock)
+    except PersistenceError as exc:
+        write_conn.close()
+        instance_lock.release()
+        _abort_launch(
+            title="Incompatible Database",
+            message=(
+                "The database schema does not match this application version. Remove "
+                "or relocate the database file so a fresh one can be created."
+            ),
+            detail=f"{app_data_root / DB_FILENAME}\n\n{exc}",
+            clipboard=clipboard,
+            bus=bus,
+        )
+
     read_conn = functools.partial(open_read_connection, app_data_root / DB_FILENAME)
-    clock = make_system_clock()
     runs = create_runs_store(write_conn, lock, read_conn)
     tasks = create_tasks_store(write_conn, lock, read_conn)
     res = create_results_store(write_conn, lock, read_conn)
@@ -278,7 +392,9 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     caps = create_model_capabilities_store(write_conn, lock, read_conn)
     appset = create_app_settings_store(write_conn, lock, read_conn, clock)
 
-    bus = make_qt_event_bus_deliverer()
+    if not provs.list_providers():
+        seed_builtin_providers(write_conn, lock)
+
     settings = make_settings_service(store=appset, event_bus=bus)
     snapshot_builder = make_run_snapshot_builder(store=appset)
     atomic_writer = make_settings_atomic_writer(write_conn=write_conn, lock=lock, providers_store=provs, app_settings_store=appset)  # fmt: skip
@@ -316,7 +432,6 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     task_file_validator = make_task_file_validator()
     yaml_formatter = make_yaml_formatter()
     native_pickers = make_native_pickers()
-    clipboard = make_clipboard()
     fsa = make_file_system_actions()
     file_change_watcher = make_file_change_watcher()
     run_analysis = make_run_analysis_service(runs_store=runs, results_store=res, tasks_store=tasks, provider_registry=registry, inference_activity_store=gate, event_bus=bus, clock=clock)  # fmt: skip
@@ -389,7 +504,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
         make_about_dialog(collaborators=ab_collabs, version=app_version, data_folder_path=str(app_data_root), parent=window).exec()  # fmt: skip
 
     window = make_main_window(event_bus=bus, gateway=main_window_gateway, workspace=workspace_controller, notifications=notifications, file_system_actions=fsa, container=workspace_region, status_bar=status_bar, app_version=app_version, settings_requested=_open_settings, about_requested=_open_about)  # fmt: skip
-    return AppHandle(window=window, write_conn=write_conn, write_lock=lock, task_runner=task_runner, run_dispatcher=dispatcher, http_client=http_client, loop=loop)  # fmt: skip
+    return AppHandle(window=window, write_conn=write_conn, write_lock=lock, task_runner=task_runner, run_dispatcher=dispatcher, http_client=http_client, instance_lock=instance_lock, loop=loop)  # fmt: skip
 
 
 def _resolve_app_version() -> str:

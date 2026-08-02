@@ -178,7 +178,7 @@ def test_build_app_returns_frozen_app_handle_with_window_and_shutdown(
     Given a constructed `QApplication`, when `build_app` is called, then it returns an
     `AppHandle` that is a `msgspec.Struct(frozen=True, kw_only=True, gc=False)` carrying
     the main window and the raw resource handles (write connection/lock, `TaskRunner`,
-    `RunDispatcher`, HTTP client) STORY-080's shutdown sequence needs.
+    `RunDispatcher`, HTTP client, instance lock) STORY-080's shutdown sequence needs.
     """
     # Act
     handle = build_real_app()
@@ -195,6 +195,7 @@ def test_build_app_returns_frozen_app_handle_with_window_and_shutdown(
         "task_runner",
         "run_dispatcher",
         "http_client",
+        "instance_lock",
         "loop",
     }
 

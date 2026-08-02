@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-01T20:26:16Z'
+generated_at: '2026-08-02T08:35:31Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4953,6 +4953,8 @@ stories:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-3
     - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#10-seed-data
     - 10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md#8-schema-versioning--additive-structural-steps-no-data-migration-dd-53
+    - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#5-file-lock-policy
+    - 12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#6-multi-instance-handling
     modules:
     - backend/infra/
     - backend/persistence/app_settings/
@@ -4971,6 +4973,8 @@ stories:
       STORY-078-AC-4:
         tests: []
       STORY-078-AC-5:
+        tests: []
+      STORY-078-AC-6:
         tests: []
   STORY-079:
     title: Add the single-instance advisory lock with stale-owner recovery
@@ -7482,9 +7486,11 @@ clauses:
     - STORY-077
   12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#5-file-lock-policy:
     stories:
+    - STORY-078
     - STORY-079
   12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#6-multi-instance-handling:
     stories:
+    - STORY-078
     - STORY-079
   12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#8-shutdown-ordering-guarantees:
     stories:
