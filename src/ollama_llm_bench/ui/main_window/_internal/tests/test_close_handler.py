@@ -101,31 +101,41 @@ def test_quit_with_running_run_confirms_and_shuts_down(  # noqa: PLR0913  # one
         "buffers_confirm_result",
         "expected_call_order",
         "expected_quit_calls",
+        "expected_save_all_calls",
     ),
     [
-        (False, "save_all", ["confirm_running_benchmark_quit"], 0),
-        (True, "cancel", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 0),
-        (True, "save_all", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 1),
+        (False, "save_all", ["confirm_running_benchmark_quit"], 0, 0),
+        (True, "cancel", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 0, 0),
+        (True, "discard_all", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 1, 0),
+        (True, "save_all", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 1, 1),
     ],
-    ids=["cancel_at_running_prompt", "cancel_at_buffers_prompt", "no_cancel_confirms_quit"],
+    ids=[
+        "cancel_at_running_prompt",
+        "cancel_at_buffers_prompt",
+        "confirm_discard_all_quits_without_saving",
+        "confirm_save_all_saves_then_quits",
+    ],
 )
-def test_quit_with_running_run_and_dirty_buffers_confirms_in_order(  # noqa: PLR0913  # four
+def test_quit_with_running_run_and_dirty_buffers_confirms_in_order(  # noqa: PLR0913  # five
     # parametrize axes plus four independently-overridable fixtures
     running_confirm_result: bool,  # noqa: FBT001  # parametrize tuple element
     buffers_confirm_result: str,
     expected_call_order: list[str],
     expected_quit_calls: int,
+    expected_save_all_calls: int,
     gateway: FakeMainWindowGateway,
     event_bus: FakeEventBus,
     notifications: FakeNotificationService,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Proves: STORY-053-AC-6
+    """Proves: STORY-053-AC-6, STORY-080-AC-1, STORY-080-AC-2 (EC-M-6, EC-M-7)
 
     Given both a non-terminal run and one or more dirty task buffers,
     when the user requests a quit,
     then the running-benchmark confirmation is shown before the unsaved-buffer confirmation,
-    and a cancel at either step aborts the entire quit (EC-WS-2).
+    a cancel at either step aborts the entire quit (EC-WS-2, EC-M-7),
+    and choosing "Save all" invokes the save-all hook exactly once before the quit proceeds,
+    while "Discard all" never invokes it.
     """
     # Arrange
     gateway.set_run_active(True)
@@ -144,11 +154,13 @@ def test_quit_with_running_run_and_dirty_buffers_confirms_in_order(  # noqa: PLR
     )
     monkeypatch.setattr(CloseHandler, "_confirm_unsaved_buffers", _confirm_buffers)
     confirmed_quit_calls: list[None] = []
+    save_all_calls: list[None] = []
     close_handler = CloseHandler(
         gateway=gateway,
         event_bus=event_bus,
         notifications=notifications,
         dirty_buffer_count=lambda: 3,
+        save_all_buffers=lambda: save_all_calls.append(None),
         on_confirmed_quit=lambda: confirmed_quit_calls.append(None),
         shutdown_timeout_ms=80,
     )
@@ -160,3 +172,4 @@ def test_quit_with_running_run_and_dirty_buffers_confirms_in_order(  # noqa: PLR
     # Assert
     assert call_order == expected_call_order
     assert len(confirmed_quit_calls) == expected_quit_calls
+    assert len(save_all_calls) == expected_save_all_calls

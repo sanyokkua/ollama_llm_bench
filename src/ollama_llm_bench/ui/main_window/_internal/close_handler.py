@@ -44,8 +44,9 @@ _UNSAVED_BUFFERS_TITLE = "Unsaved changes"
 class CloseHandler:
     """Runs the running-benchmark and unsaved-buffer quit confirmations in sequence."""
 
-    def __init__(  # noqa: PLR0913  # six distinct required collaborators per the approved
-        # STORY-053 design (docs/stories/story-053-main-window-shell.md); each is an
+    def __init__(  # noqa: PLR0913  # seven distinct required collaborators per the
+        # approved STORY-053/STORY-080 design (docs/stories/story-053-main-window-shell.md,
+        # docs/stories/story-080-quit-sequence-and-crash-recovery.md); each is an
         # independently-faked test seam, not groupable into one struct without losing that
         self,
         *,
@@ -53,6 +54,7 @@ class CloseHandler:
         event_bus: EventBus,
         notifications: NotificationService,
         dirty_buffer_count: Callable[[], int] = lambda: 0,
+        save_all_buffers: Callable[[], None] = lambda: None,
         on_confirmed_quit: Callable[[], None],
         shutdown_timeout_ms: int = _DEFAULT_SHUTDOWN_TIMEOUT_MS,
     ) -> None:
@@ -67,8 +69,12 @@ class CloseHandler:
                 this handler itself raises no notification.
             dirty_buffer_count: Returns the Task Editor's current dirty-buffer count.
                 Defaults to always-zero because the Task Editor does not exist yet
-                (STORY-068 wires the real hook) -- additive, not a signature change a
+                (STORY-114 wires the real hook) -- additive, not a signature change a
                 caller must adapt to.
+            save_all_buffers: Invoked exactly once, before the quit proceeds, when the
+                user chooses "Save all" at the unsaved-buffers prompt. Defaults to a
+                no-op for the same reason ``dirty_buffer_count`` defaults to zero --
+                STORY-114 wires the real per-file save behind this hook.
             on_confirmed_quit: Invoked once every confirmation has resolved toward
                 quitting.
             shutdown_timeout_ms: The bound on the wait for ``_run_stopped`` after a
@@ -78,6 +84,7 @@ class CloseHandler:
         self._event_bus = event_bus
         self._notifications = notifications
         self._dirty_buffer_count = dirty_buffer_count
+        self._save_all_buffers = save_all_buffers
         self._on_confirmed_quit = on_confirmed_quit
         self._shutdown_timeout_ms = shutdown_timeout_ms
         self._quit_settled = False
@@ -133,6 +140,9 @@ class CloseHandler:
             if outcome == "cancel":
                 logger.debug("quit_cancelled_at_unsaved_buffers_prompt")
                 return
+            if outcome == "save_all":
+                logger.debug("quit_saving_all_buffers")
+                self._save_all_buffers()
         logger.debug("quit_confirmed")
         self._on_confirmed_quit()
 
