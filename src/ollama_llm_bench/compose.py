@@ -15,7 +15,7 @@ import re
 import sqlite3
 import sys
 import threading
-from typing import NoReturn, cast
+from typing import NoReturn
 
 import httpx
 import msgspec
@@ -393,7 +393,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     snapshot_builder = make_run_snapshot_builder(store=appset)
     atomic_writer = make_settings_atomic_writer(write_conn=write_conn, lock=lock, providers_store=provs, app_settings_store=appset)  # fmt: skip
     gate = make_inference_activity_store(clock=clock, event_bus=bus)
-    task_runner = cast("QtTaskRunner[object]", make_qt_task_runner())
+    task_runner: QtTaskRunner[object] = make_qt_task_runner()
     dispatcher = make_run_dispatcher()
     http_client = httpx.Client()
 
