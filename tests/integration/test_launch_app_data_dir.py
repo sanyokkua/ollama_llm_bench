@@ -9,6 +9,8 @@ from PySide6.QtWidgets import QApplication
 import pytest
 from pytest_mock import MockerFixture
 
+from ollama_llm_bench.backend.errors import ConfigurationError
+from ollama_llm_bench.backend.platform import make_platform_detector
 from ollama_llm_bench.compose import build_app
 from ollama_llm_bench.ui.common_dialogs import ErrorDialogPattern
 
@@ -26,7 +28,7 @@ def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 def test_app_data_permission_failure_aborts_with_modal_and_exits(
-    isolated_home: Path, qapp: QApplication, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch
+    isolated_home: Path, qapp: QApplication, mocker: MockerFixture
 ) -> None:
     """Proves: STORY-078-AC-1
 
@@ -34,13 +36,18 @@ def test_app_data_permission_failure_aborts_with_modal_and_exits(
     because of a permission failure, when launch reaches the app-data step, then
     launch aborts with a modal naming the path and the process exits (EC-M-1).
     """
-    # Arrange
-    permission_error = PermissionError("Permission denied")
-
-    def _raise_permission_error(self: Path, *args: object, **kwargs: object) -> None:
-        raise permission_error
-
-    monkeypatch.setattr(Path, "mkdir", _raise_permission_error)
+    # Arrange -- patch `create_app_data_dir` at its point of use in `compose.py`
+    # (not a global `Path.mkdir` patch) so this proves the app-data-creation step
+    # specifically aborted, with a `ConfigurationError` message shaped exactly
+    # like the real one `backend/platform/_internal/app_data_dir.py` raises --
+    # it always embeds the failing path.
+    app_data_root = make_platform_detector().detect().app_data_root
+    permission_error = ConfigurationError(
+        message=(
+            f"Cannot create the application data directory at '{app_data_root}': Permission denied."
+        )
+    )
+    mocker.patch("ollama_llm_bench.compose.create_app_data_dir", side_effect=permission_error)
     dialog = mocker.Mock(spec=["exec"])
     make_error_dialog_spy = mocker.patch(
         "ollama_llm_bench.compose.make_error_dialog", return_value=dialog
@@ -53,4 +60,5 @@ def test_app_data_permission_failure_aborts_with_modal_and_exits(
     assert exc_info.value.code == 1
     payload = make_error_dialog_spy.call_args.kwargs["payload"]
     assert payload.pattern is ErrorDialogPattern.FATAL
+    assert str(app_data_root) in (payload.detail or "")
     dialog.exec.assert_called_once()

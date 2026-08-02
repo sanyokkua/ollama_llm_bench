@@ -216,7 +216,7 @@ database is opened, no file in the data directory is mutated, and the process ex
 - [x] Every acceptance criterion has a passing test that names STORY-078.
 - [x] EC-M-1, EC-M-2, and EC-M-3 each have a passing test.
 - [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [x] The traceability record validates with no orphan clause and no orphan test for
+- [ ] The traceability record validates with no orphan clause and no orphan test for
   STORY-078 (repo-wide `trace-check` still reports the pre-existing, unrelated
   `EC-M-4`/`EC-M-5`/`EC-M-6`/`EC-M-7` gaps tracked by Phase-11 stories STORY-080/081,
   not yet implemented — this story's own `EC-M-1`/`EC-M-2`/`EC-M-3` are now fully

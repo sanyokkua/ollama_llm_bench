@@ -25,7 +25,7 @@ _MIN_LINES = 50
 _MAX_LINES = 500
 
 
-def test_compose_py_within_50_to_200_lines() -> None:
+def test_compose_py_within_50_to_500_lines() -> None:
     """Proves: STORY-077-AC-5
 
     Given the current, committed `compose.py`, when its source lines are counted, then

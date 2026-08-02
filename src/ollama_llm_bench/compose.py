@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (  # fmt: skip
     QTabWidget,
     QWidget,
 )
+import structlog
 
 from ollama_llm_bench.adapters.clipboard import Clipboard, make_clipboard
 from ollama_llm_bench.adapters.file_system_actions import (  # fmt: skip
@@ -162,6 +163,8 @@ from ollama_llm_bench.ui.theme import (  # fmt: skip
 )
 
 __all__: list[str] = ["AppHandle", "build_app"]
+
+_LOG = structlog.get_logger("app.compose")
 
 _EXPORT_KIND_MAP: dict[str, ExportKind] = {"Summary": ExportKind.SUMMARY, "Details": ExportKind.DETAILS}  # fmt: skip
 
@@ -308,10 +311,16 @@ def _abort_launch(
         message=message,
         detail=detail,
         pattern=ErrorDialogPattern.FATAL,
-        quit_callback=lambda: None,
+        quit_callback=_quit_nested_event_loop,
     )
     make_error_dialog(payload=payload, clipboard=clipboard, event_bus=bus).exec()
     sys.exit(1)
+
+
+def _quit_nested_event_loop() -> None:
+    """Stop the abort modal's nested Qt event loop so ``.exec()`` returns -- no ``AppHandle`` exists yet at any ``_abort_launch`` call site, so unlike ``__main__.py``'s crash-hook quit callback there is nothing to ``shutdown()`` first."""  # fmt: skip
+    if (instance := QApplication.instance()) is not None:
+        instance.exit(1)
 
 
 def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR0915
@@ -327,10 +336,18 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     try:
         app_data_root = create_app_data_dir(profile.app_data_root)
     except ConfigurationError as exc:
+        _LOG.error("launch_aborted", reason="app_data_permission_denied", detail=str(exc))
         _abort_launch(title="Cannot Create Application Data Folder", message="Ollama LLM Bench could not create its application data folder and cannot start.", detail=str(exc), clipboard=clipboard, bus=bus)  # fmt: skip
 
-    lock_result = acquire_instance_lock(app_data_root=app_data_root, clock=clock)
+    try:
+        lock_result = acquire_instance_lock(app_data_root=app_data_root, clock=clock)
+    except ConfigurationError as exc:
+        _LOG.error("launch_aborted", reason="instance_lock_unavailable", detail=str(exc))
+        _abort_launch(title="Cannot Access Instance Lock", message="Ollama LLM Bench could not acquire its instance lock and cannot start.", detail=str(exc), clipboard=clipboard, bus=bus)  # fmt: skip
     if lock_result.outcome is InstanceLockOutcome.ALREADY_RUNNING:
+        _LOG.error(
+            "launch_aborted", reason="instance_lock_already_running", detail=str(app_data_root)
+        )
         _abort_launch(title="Already Running", message="Ollama LLM Bench is already running against this application data folder. Only one copy can run against the same folder at a time.", detail=str(app_data_root), clipboard=clipboard, bus=bus)  # fmt: skip
     instance_lock = lock_result.lock
     if instance_lock is None:
@@ -341,6 +358,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
         write_conn, lock = open_write_connection(app_data_root / DB_FILENAME)
     except PersistenceError as exc:
         instance_lock.release()
+        _LOG.error("launch_aborted", reason="database_unreadable", detail=str(exc))
         _abort_launch(title="Database File Unreadable", message="The application database file exists but could not be opened. It may be corrupt.", detail=f"{app_data_root / DB_FILENAME}\n\n{exc}", clipboard=clipboard, bus=bus)  # fmt: skip
 
     try:
@@ -348,6 +366,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     except PersistenceError as exc:
         write_conn.close()
         instance_lock.release()
+        _LOG.error("launch_aborted", reason="schema_version_mismatch", detail=str(exc))
         _abort_launch(title="Incompatible Database", message="The database schema does not match this application version. Remove or relocate the database file so a fresh one can be created.", detail=f"{app_data_root / DB_FILENAME}\n\n{exc}", clipboard=clipboard, bus=bus)  # fmt: skip
 
     read_conn = functools.partial(open_read_connection, app_data_root / DB_FILENAME)
