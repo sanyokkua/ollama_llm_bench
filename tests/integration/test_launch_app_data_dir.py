@@ -41,7 +41,7 @@ def test_app_data_permission_failure_aborts_with_modal_and_exits(
         raise permission_error
 
     monkeypatch.setattr(Path, "mkdir", _raise_permission_error)
-    dialog = mocker.Mock()
+    dialog = mocker.Mock(spec=["exec"])
     make_error_dialog_spy = mocker.patch(
         "ollama_llm_bench.compose.make_error_dialog", return_value=dialog
     )
