@@ -295,11 +295,12 @@ that private helper directly), so behaviour matches byte-for-byte between the tw
 
 ### STORY-077-AC-5
 
-`compose.py` is between 50 and 400 source lines (the composition-root budget — widened from the
-original 50–200 by the owner-approved exception recorded under Design constraints), asserted by
-an architecture test that runs against the file's current contents on every suite run — so the
-bound holds for the final `compose.py` after every later Phase-11 story has added to it, not only
-at this story's merge.
+`compose.py` is between 50 and 500 source lines (the composition-root budget — widened from the
+original 50–200 by the owner-approved exception recorded under Design constraints, then widened a
+second time to 50–500 by STORY-078's owner-approved exception recorded in that story's Notes),
+asserted by an architecture test that runs against the file's current contents on every suite run
+— so the bound holds for the final `compose.py` after every later Phase-11 story has added to it,
+not only at this story's merge.
 
 ### STORY-077-AC-6
 

@@ -218,3 +218,21 @@ database is opened, no file in the data directory is mutated, and the process ex
 - [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
 - [ ] The module inventory is unchanged.
+
+## Notes
+
+- **Second widening of the `compose.py` composition-root line budget, owner-approved
+  2026-08-02.** This story's four abort-with-modal paths (app-data-directory creation,
+  the single-instance lock, opening the write connection, the schema check) — each
+  needing its own `try`/`except` and an `_abort_launch(...)` call — pushed `compose.py`
+  from 399 to 514 lines. Condensing all four abort calls to one `# fmt: skip` line each
+  (the same technique STORY-077's own 200→400 widening documented) recovered 34 lines,
+  landing at 480 — still 80 over the 400-line ceiling STORY-077-AC-5 set. Rather than
+  silently widening the ceiling again or extracting the prelude out of `compose.py`
+  (which would contradict ADR-0010's decision that every abort-modal render lives in
+  the composition root, and would need its own ADR), the owner was asked directly and
+  chose to widen `_MAX_LINES` in `tests/architecture/test_compose_line_budget.py` from
+  400 to 500. `STORY-077-AC-5`'s body text and that architecture test's module
+  docstring are both updated to record this second widening and its cause, matching how
+  the first widening was documented. This budget remains a standing invariant against
+  STORY-076/STORY-080/STORY-083, still to come.
