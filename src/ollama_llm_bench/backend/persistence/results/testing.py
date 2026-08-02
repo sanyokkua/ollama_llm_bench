@@ -93,14 +93,43 @@ class FakeResultsStore:
         return self._reset_to_pending(result_ids)
 
     def recover_in_flight_results(self) -> int:
-        """Reset every row in a non-terminal in-flight status back to ``PENDING``, clearing child rows."""
+        """Reset every row in a non-terminal in-flight status back to ``PENDING``, clearing
+        every outcome/in-flight column and child row (mirrors `SqliteResultsStore`'s
+        `_FULL_RESET_SET_CLAUSE`)."""
         changed = 0
         for result_id, row in self._rows.items():
             if row.status not in _IN_FLIGHT_STATUSES:
                 continue
-            # Delete child rows and reset status to PENDING
             self._rows[result_id] = msgspec.structs.replace(
-                row, status=ResultStatus.PENDING, terms=(), attempts=()
+                row,
+                status=ResultStatus.PENDING,
+                verdict=None,
+                started_at=None,
+                finished_at=None,
+                system_prompt_sent=None,
+                user_prompt_sent=None,
+                raw_response=None,
+                sanitized_response=None,
+                has_thinking_block=False,
+                response_char_length=None,
+                total_time_ms=None,
+                ttft_ms=None,
+                prompt_tokens=None,
+                completion_tokens=None,
+                tokens_per_second=None,
+                sanity_check_passed=None,
+                keyword_verdict=None,
+                cosine_similarity=None,
+                cosine_verdict=None,
+                judge_verdict=None,
+                judge_reasoning=None,
+                judge_time_ms=None,
+                judge_completion_tokens=None,
+                resolution_layer=None,
+                error_kind=None,
+                error_message=None,
+                terms=(),
+                attempts=(),
             )
             changed += 1
         return changed

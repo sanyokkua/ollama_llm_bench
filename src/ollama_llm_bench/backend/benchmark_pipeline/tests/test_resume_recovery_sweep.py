@@ -10,7 +10,9 @@ from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import (
     make_task,
 )
 from ollama_llm_bench.backend.domain import (
+    AttemptOutcome,
     BenchmarkResult,
+    BenchmarkResultAttempt,
     BenchmarkResultTerm,
     BenchmarkRun,
     BenchmarkRunSettingEntry,
@@ -51,9 +53,10 @@ def _wait_until_idle(pipeline: BenchmarkFlowApi, timeout_s: float = _WAIT_TIMEOU
 def _make_in_flight_result(
     *, result_id: int, task_id: str, status: ResultStatus
 ) -> BenchmarkResult:
-    """A minimal in-flight `BenchmarkResult` carrying one child term row, so the
-    sweep's child-row-deletion is observable (mirrors
-    `tests/integration/persistence/test_crash_recovery_sweep.py`'s `_make_result`)."""
+    """A minimal in-flight `BenchmarkResult` carrying one child term row and one child
+    attempt row, so the sweep's child-row-deletion is observable for both child
+    collections (mirrors `tests/integration/persistence/test_crash_recovery_sweep.py`'s
+    `_make_result`)."""
     return BenchmarkResult(
         result_id=result_id,
         run_id=_RUN_ID,
@@ -66,6 +69,11 @@ def _make_in_flight_result(
         created_at="2026-01-01T00:00:00+00:00",
         terms=(
             BenchmarkResultTerm(term_kind=ResultTermKind.SEMANTIC, term_order=0, term_text="x"),
+        ),
+        attempts=(
+            BenchmarkResultAttempt(
+                attempt_index=1, timeout_ms=30_000, outcome=AttemptOutcome.TIMEOUT
+            ),
         ),
     )
 
@@ -220,3 +228,4 @@ def test_resume_sweeps_in_flight_rows_before_dispatch(  # noqa: PLR0913  # every
         range(1, len(_IN_FLIGHT_STATUSES) + 1), ResultStatus.PENDING
     )
     assert all(row.terms == () for row in swept_snapshot)
+    assert all(row.attempts == () for row in swept_snapshot)
