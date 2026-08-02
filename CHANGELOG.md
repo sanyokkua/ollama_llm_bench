@@ -669,3 +669,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   call that the pipeline issues directly and that resolves the breaker on every outcome. Per
   `11_Services_and_Algorithms/08_CIRCUIT_BREAKER.md` §6.4, §6.6, §6.9 (STORY-082; superseded in
   part by STORY-101).
+
+- App lifecycle: quitting the application now actually performs the full ordered shutdown
+  instead of silently skipping most of it. Previously, confirming a quit closed the window and
+  the process exited without ever hard-cancelling an in-progress run, draining the worker-thread
+  pool, joining the pipeline dispatcher thread, or releasing the single-instance advisory lock —
+  a second launch against the same application-data folder could spuriously report "already
+  running" until the OS eventually reclaimed the stale lock. Closing the app now runs all six
+  ordered steps in order: hard-cancel, dispatcher-join-then-pool-drain, HTTP-client close,
+  database checkpoint-and-close, instance-lock release, process exit. Choosing "Save all" at the
+  unsaved-changes prompt previously silently discarded every buffer identically to "Discard
+  all" — it now invokes a real save hook (the per-file write itself remains a follow-up story).
+  The active workspace (Benchmark or Task Editor) is now persisted on quit, so the next launch
+  restores it, closing a gap where the setting was read at launch but never written anywhere.
+  Separately, a run interrupted by a crash previously only recovered a result stuck mid-inference
+  on the next launch or resume; the other three in-flight stages (awaiting keyword check, cosine
+  check, or judge check) were left stuck forever, and no orphaned child rows were ever cleaned up.
+  The full crash-recovery sweep now runs at launch and before every resume, matching the schema's
+  documented recovery contract. Per `08_Cross_Cutting/08-M_app_lifecycle.md` §7-8,
+  `12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md` §8,
+  `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §9 (STORY-080).

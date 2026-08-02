@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-02T20:50:08Z'
+generated_at: '2026-08-02T20:57:41Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5010,7 +5010,7 @@ stories:
         - src/ollama_llm_bench/backend/infra/tests/test_instance_lock.py::test_stale_lock_from_dead_pid_is_reclaimed
   STORY-080:
     title: Complete the ordered shutdown, the WAL checkpoint on close, and the crash-recovery sweep call sites
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
     - 08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence
@@ -5048,7 +5048,8 @@ stories:
         tests:
         - tests/integration/test_quit_sequence.py::test_quit_closes_db_with_wal_checkpoint_truncate
       STORY-080-AC-5:
-        tests: []
+        tests:
+        - tests/integration/test_launch_crash_recovery.py::test_incomplete_run_left_for_resume_and_in_flight_rows_reset_to_pending
       STORY-080-AC-6:
         tests:
         - tests/integration/test_quit_sequence.py::test_ordered_shutdown_runs_all_six_steps_in_order
@@ -8496,6 +8497,7 @@ edge_cases:
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_save_all_saves_then_quits]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[cancel_abandons_quit_with_no_shutdown_request]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[confirm_requests_shutdown_then_settles_and_quits]
+    - tests/integration/test_launch_crash_recovery.py::test_incomplete_run_left_for_resume_and_in_flight_rows_reset_to_pending
     - tests/integration/test_quit_sequence.py::test_instance_lock_is_reacquirable_after_clean_quit
     - tests/integration/test_quit_sequence.py::test_ordered_shutdown_runs_all_six_steps_in_order
     - tests/integration/test_quit_sequence.py::test_quit_closes_db_with_wal_checkpoint_truncate
@@ -8516,6 +8518,7 @@ edge_cases:
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_save_all_saves_then_quits]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[cancel_abandons_quit_with_no_shutdown_request]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[confirm_requests_shutdown_then_settles_and_quits]
+    - tests/integration/test_launch_crash_recovery.py::test_incomplete_run_left_for_resume_and_in_flight_rows_reset_to_pending
     - tests/integration/test_quit_sequence.py::test_instance_lock_is_reacquirable_after_clean_quit
     - tests/integration/test_quit_sequence.py::test_ordered_shutdown_runs_all_six_steps_in_order
     - tests/integration/test_quit_sequence.py::test_quit_closes_db_with_wal_checkpoint_truncate
@@ -8532,6 +8535,7 @@ edge_cases:
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_save_all_saves_then_quits]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[cancel_abandons_quit_with_no_shutdown_request]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[confirm_requests_shutdown_then_settles_and_quits]
+    - tests/integration/test_launch_crash_recovery.py::test_incomplete_run_left_for_resume_and_in_flight_rows_reset_to_pending
     - tests/integration/test_quit_sequence.py::test_instance_lock_is_reacquirable_after_clean_quit
     - tests/integration/test_quit_sequence.py::test_ordered_shutdown_runs_all_six_steps_in_order
     - tests/integration/test_quit_sequence.py::test_quit_closes_db_with_wal_checkpoint_truncate

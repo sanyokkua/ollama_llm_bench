@@ -59,9 +59,9 @@ def _shutdown(handle: AppHandle) -> None:
 def test_incomplete_run_left_for_resume_and_in_flight_rows_reset_to_pending(
     isolated_home: Path, qapp: QApplication
 ) -> None:
-    """Proves: STORY-080-AC-5 (EC-M-4)
+    """Proves: STORY-080-AC-5
 
-    Given a database holding a run persisted `INCOMPLETE` whose result rows
+    Covers EC-M-4. Given a database holding a run persisted `INCOMPLETE` whose result rows
     include one row in each of the four non-terminal in-flight statuses, each
     with child term rows, when the application launches, then the run's
     persisted status is still `INCOMPLETE`, every one of those four rows is

@@ -1,7 +1,7 @@
 ---
 id: STORY-080
 title: Complete the ordered shutdown, the WAL checkpoint on close, and the crash-recovery sweep call sites
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence
   - 08_Cross_Cutting/08-M_app_lifecycle.md#8-crash-policy
@@ -289,12 +289,16 @@ and their child term and attempt rows are deleted — before the run is submitte
 
 ## Test plan
 
-- STORY-080-AC-1 — unit (`pytest-qt`, table-driven, one `@pytest.mark.parametrize` row per choice),
-  colocated `src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py`,
-  `test_running_benchmark_confirmation_outcome_per_choice`. Covers EC-M-6.
+- STORY-080-AC-1 — unit (`pytest-qt`, table-driven, one `@pytest.mark.parametrize` row per choice,
+  no dirty buffers involved), colocated
+  `src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py`,
+  `test_running_benchmark_confirmation_outcome_per_ac1_table`. Covers EC-M-6.
 - STORY-080-AC-2 — unit (`pytest-qt`, table-driven, one `@pytest.mark.parametrize` row per path,
   with a fake dirty-buffer count and a recording save-all callable), same file,
-  `test_both_confirmations_outcome_per_path`. Covers EC-M-7.
+  `test_confirmation_paths_produce_documented_outcomes_per_ac2_table` — shares its assertion body
+  (`_assert_quit_confirmation_outcome`) with `test_quit_with_running_run_and_dirty_buffers_confirms_in_order`,
+  the pre-existing STORY-053-AC-6 test this AC's table extends (adding the save-all/discard-all
+  distinction). Covers EC-M-7.
 - STORY-080-AC-3 — integration, `tests/integration/test_quit_sequence.py`,
   `test_quit_persists_ui_state_before_closing_db`.
 - STORY-080-AC-4 — integration, same file, `test_quit_closes_db_with_wal_checkpoint_truncate`.
@@ -310,12 +314,20 @@ and their child term and attempt rows are deleted — before the run is submitte
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-080.
-- [ ] EC-M-4, EC-M-6, and EC-M-7 each have a passing test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] `compose.py` still satisfies STORY-077-AC-5's 50–500-line architecture test.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-080.
+- [x] EC-M-4, EC-M-6, and EC-M-7 each have a passing test.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules — verified
+  repo-wide, not just touched files: `ruff check`/`ruff format --check`/`mypy --strict src/`/
+  `lint-imports` all clean.
+- [x] `compose.py` still satisfies STORY-077-AC-5's line-budget architecture test — the budget
+  was widened a third time, 500→520 lines (owner-approved), since the file was already at
+  499/500 before this story touched it (see Notes); `compose.py` is 508 lines, within the new
+  bound.
+- [x] The traceability record validates with no orphan clause and no orphan test caused by this
+  story. `just trace-check` reports exactly one remaining finding,
+  `EC-M-5 is named by a story but has no proving test` — pre-existing, owned by STORY-081
+  (`status: draft`, not yet implemented), confirmed unrelated to this story's scope.
+- [x] The module inventory is unchanged.
 
 ## Notes
 
