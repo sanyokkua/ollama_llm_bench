@@ -17,6 +17,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Launch-glue sequence (`compose.py`'s `build_app` prelude): on every launch, the application
+  data directory is created (recursively, idempotently), the single-instance advisory lock is
+  acquired, the database write connection is opened, and its schema version is checked, before
+  any other component is wired. A permission failure creating the data folder, a live process
+  already holding the instance lock, an unreadable/corrupt database file, or a schema-version
+  mismatch each abort launch immediately with an explanatory modal naming the failure and exit
+  the process — the database is never mutated on any of these paths, and there is no automatic
+  migration or repair. Once launch reaches a healthy database, an empty provider catalog is
+  seeded with the three bundled default providers; a non-empty catalog and the settings table
+  are left untouched either way, so seeding is safe to run on every launch
+  (`08_Cross_Cutting/08-M_app_lifecycle.md` §2-4, `08-K_platform_specifics.md` §3,
+  `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §8/§10,
+  `12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md` §5-6, STORY-078).
+
 - On-disk task-file change watch (`adapters/file_system_actions`: `make_file_change_watcher`,
   plus the `FileChangeWatcher`/`FileWatchSubscription` Protocols). While a task file is open in
   the Task Editor, the application now notices when that file's contents change on disk — because

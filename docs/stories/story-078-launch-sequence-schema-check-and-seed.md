@@ -1,7 +1,7 @@
 ---
 id: STORY-078
 title: Run the launch glue — app-data directory, schema check, seeding, and the abort modals
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
   - 08_Cross_Cutting/08-M_app_lifecycle.md#3-the-schema-check-and-the-no-migration-rule
@@ -213,11 +213,20 @@ database is opened, no file in the data directory is mutated, and the process ex
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-078.
-- [ ] EC-M-1, EC-M-2, and EC-M-3 each have a passing test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-078.
+- [x] EC-M-1, EC-M-2, and EC-M-3 each have a passing test.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test for
+  STORY-078 (repo-wide `trace-check` still reports the pre-existing, unrelated
+  `EC-M-4`/`EC-M-5`/`EC-M-6`/`EC-M-7` gaps tracked by Phase-11 stories STORY-080/081,
+  not yet implemented — this story's own `EC-M-1`/`EC-M-2`/`EC-M-3` are now fully
+  covered, closing three of the eight gaps that were pre-existing debt before this
+  story started).
+- [x] The module inventory is unchanged.
+- [x] Repo-wide `just check`/`just coverage-layers` **not confirmed green in this
+  session** — see the environment-flake note below; the full pytest suite could not be
+  run to a clean completion on this machine in this session, for reasons unrelated to
+  this story's own code. Revisit those two gates separately once confirmed reproducible.
 
 ## Notes
 
@@ -236,3 +245,27 @@ database is opened, no file in the data directory is mutated, and the process ex
   docstring are both updated to record this second widening and its cause, matching how
   the first widening was documented. This budget remains a standing invariant against
   STORY-076/STORY-080/STORY-083, still to come.
+
+- **Repo-wide `just check`/`just coverage-layers` could not be confirmed green this
+  session — owner-acknowledged 2026-08-02, environment issue, not a code issue.** Six
+  full-suite attempts across this session (three plain `just check`/pytest runs, three
+  `just coverage-layers` runs) never produced a fully clean pass. Two attempts
+  segfaulted (`exit 139`) mid-run in unrelated files; the rest failed 7-31 tests, always
+  `pytestqt.waitUntil` timeouts or Qt-signal-timing races in files this story never
+  touches (`ui/progress/`, `adapters/ui_gateways/`, `adapters/store_qt_bridge/`,
+  `ui/theme/`, `tests/integration/test_resume_admission.py`,
+  `test_qt_event_bus.py`, and similar) — confirmed by `grep` that none of those files
+  reference `compose.py`. The failing subset changed every run, and the failure count
+  tracked the host's `uptime` load average (5.4 -> 31 failures; 2.7 -> 7 failures),
+  which is consistent with genuine machine contention (a concurrent long-running Claude
+  session plus several other applications), not a regression. One retry's pytest
+  process printed its complete pass/fail summary and then hung indefinitely at process
+  exit before returning control — the same symptom the very first (2-hour) hang showed,
+  just relocated to after the test run instead of during it; both were killed rather
+  than waited out. This story's own scope stayed green throughout: its 16 tests passed
+  16/16 on every single run (isolated and inside the full suite), `ruff`/`mypy --strict`/`import-linter`/`tests/architecture` (1342/1342) were independently
+  re-verified clean, and `trace-check`'s only remaining failures are the pre-existing,
+  unrelated `EC-M-4`/`EC-M-5`/`EC-M-6`/`EC-M-7` gaps (see the Definition of Done entry
+  above). Owner reviewed this evidence and approved marking the story `done` on that
+  basis, deferring `just check`/`just coverage-layers` confirmation to a quieter moment
+  rather than blocking the story on infrastructure noise outside its scope.

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-02T08:35:31Z'
+generated_at: '2026-08-02T12:25:49Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -4942,7 +4942,7 @@ stories:
         - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_client_impl.py::test_probe_reachable_uses_injected_http_client_not_a_new_one
   STORY-078:
     title: Run the launch glue — app-data directory, schema check, seeding, and the abort modals
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-K_platform_specifics.md#3-application-data-paths-per-operating-system
     - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
@@ -4965,17 +4965,24 @@ stories:
     - EC-M-3
     acceptance_criteria:
       STORY-078-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_launch_app_data_dir.py::test_app_data_permission_failure_aborts_with_modal_and_exits
       STORY-078-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_launch_schema_check.py::test_schema_version_mismatch_aborts_and_leaves_db_untouched
       STORY-078-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_launch_schema_check.py::test_unreadable_database_aborts_without_overwrite
       STORY-078-AC-4:
-        tests: []
+        tests:
+        - tests/integration/test_launch_seeding.py::test_seeding_is_idempotent_per_target_table[empty_catalog_gets_seeded]
+        - tests/integration/test_launch_seeding.py::test_seeding_is_idempotent_per_target_table[non_empty_catalog_left_untouched]
       STORY-078-AC-5:
-        tests: []
+        tests:
+        - tests/integration/test_launch_schema_check.py::test_write_connection_applies_pragmas_before_first_statement
       STORY-078-AC-6:
-        tests: []
+        tests:
+        - tests/integration/test_launch_instance_lock.py::test_second_instance_finds_lock_held_shows_modal_and_exits_without_opening_db
   STORY-079:
     title: Add the single-instance advisory lock with stale-owner recovery
     status: done
@@ -8380,15 +8387,36 @@ edge_cases:
   EC-M-1:
     stories:
     - STORY-078
-    tests: []
+    tests:
+    - tests/integration/test_launch_app_data_dir.py::test_app_data_permission_failure_aborts_with_modal_and_exits
+    - tests/integration/test_launch_instance_lock.py::test_second_instance_finds_lock_held_shows_modal_and_exits_without_opening_db
+    - tests/integration/test_launch_schema_check.py::test_schema_version_mismatch_aborts_and_leaves_db_untouched
+    - tests/integration/test_launch_schema_check.py::test_unreadable_database_aborts_without_overwrite
+    - tests/integration/test_launch_schema_check.py::test_write_connection_applies_pragmas_before_first_statement
+    - tests/integration/test_launch_seeding.py::test_seeding_is_idempotent_per_target_table[empty_catalog_gets_seeded]
+    - tests/integration/test_launch_seeding.py::test_seeding_is_idempotent_per_target_table[non_empty_catalog_left_untouched]
   EC-M-2:
     stories:
     - STORY-078
-    tests: []
+    tests:
+    - tests/integration/test_launch_app_data_dir.py::test_app_data_permission_failure_aborts_with_modal_and_exits
+    - tests/integration/test_launch_instance_lock.py::test_second_instance_finds_lock_held_shows_modal_and_exits_without_opening_db
+    - tests/integration/test_launch_schema_check.py::test_schema_version_mismatch_aborts_and_leaves_db_untouched
+    - tests/integration/test_launch_schema_check.py::test_unreadable_database_aborts_without_overwrite
+    - tests/integration/test_launch_schema_check.py::test_write_connection_applies_pragmas_before_first_statement
+    - tests/integration/test_launch_seeding.py::test_seeding_is_idempotent_per_target_table[empty_catalog_gets_seeded]
+    - tests/integration/test_launch_seeding.py::test_seeding_is_idempotent_per_target_table[non_empty_catalog_left_untouched]
   EC-M-3:
     stories:
     - STORY-078
-    tests: []
+    tests:
+    - tests/integration/test_launch_app_data_dir.py::test_app_data_permission_failure_aborts_with_modal_and_exits
+    - tests/integration/test_launch_instance_lock.py::test_second_instance_finds_lock_held_shows_modal_and_exits_without_opening_db
+    - tests/integration/test_launch_schema_check.py::test_schema_version_mismatch_aborts_and_leaves_db_untouched
+    - tests/integration/test_launch_schema_check.py::test_unreadable_database_aborts_without_overwrite
+    - tests/integration/test_launch_schema_check.py::test_write_connection_applies_pragmas_before_first_statement
+    - tests/integration/test_launch_seeding.py::test_seeding_is_idempotent_per_target_table[empty_catalog_gets_seeded]
+    - tests/integration/test_launch_seeding.py::test_seeding_is_idempotent_per_target_table[non_empty_catalog_left_untouched]
   EC-M-4:
     stories:
     - STORY-080
