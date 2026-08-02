@@ -1,14 +1,16 @@
 """Integration tests for the ordered shutdown sequence (STORY-080-AC-4, AC-6, AC-7)."""
 
+import functools
 from pathlib import Path
 import sqlite3
 from typing import cast
 
 import msgspec.structs
-from PySide6.QtCore import QEventLoop
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QEventLoop, Qt
+from PySide6.QtWidgets import QApplication, QPushButton
 import pytest
 from pytest_mock import MockerFixture
+from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.backend.infra import (
     InstanceLockOutcome,
@@ -17,7 +19,9 @@ from ollama_llm_bench.backend.infra import (
 )
 from ollama_llm_bench.backend.persistence.app_settings import (
     DB_FILENAME,
+    create_app_settings_store,
     ensure_schema,
+    open_read_connection,
     open_write_connection,
 )
 from ollama_llm_bench.backend.persistence.providers import seed_builtin_providers
@@ -187,3 +191,43 @@ def test_instance_lock_is_reacquirable_after_clean_quit(
     finally:
         if reacquired.lock is not None:
             reacquired.lock.release()
+
+
+def test_quit_persists_ui_state_before_closing_db(
+    seeded_app_data_root: Path, qapp: QApplication, qtbot: QtBot
+) -> None:
+    """Proves: STORY-080-AC-3
+
+    Given a quit has been confirmed, when the confirmed-quit path runs, then
+    the active workspace has been written through the settings service before
+    the database write connection is closed.
+    """
+    # Arrange
+    handle = build_app(app=qapp, loop=QEventLoop())
+    qtbot.addWidget(handle.window)
+    task_editor_button = cast(
+        "QPushButton",
+        handle.window.findChild(QPushButton, "workspace_switcher_task_editor"),
+    )
+    assert task_editor_button is not None
+    qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
+        task_editor_button, Qt.MouseButton.LeftButton
+    )
+
+    # Act
+    handle.window.close()
+    handle.shutdown(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
+
+    # Assert
+    db_path = seeded_app_data_root / DB_FILENAME
+    after_write_conn, after_lock = open_write_connection(db_path)
+    try:
+        appset = create_app_settings_store(
+            after_write_conn,
+            after_lock,
+            functools.partial(open_read_connection, db_path),
+            make_system_clock(),
+        )
+        assert appset.get_setting("ui.active_workspace") == "task_editor"
+    finally:
+        after_write_conn.close()

@@ -149,6 +149,7 @@ def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators pe
     shell.geometry_changed.connect(geometry_writer.on_window_geometry_changed)
 
     def _on_confirmed_quit() -> None:
+        gateway.set_active_workspace(workspace.active())
         geometry_writer.flush()
         shell.force_close()
 
