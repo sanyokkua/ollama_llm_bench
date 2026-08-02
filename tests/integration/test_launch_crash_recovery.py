@@ -148,11 +148,22 @@ def test_incomplete_run_left_for_resume_and_in_flight_rows_reset_to_pending(
         # Assert
         assert after_runs_store.get_run(run_id).status is RunStatus.INCOMPLETE
         after_by_task = {r.task_id: r for r in after_results_store.list_results(run_id)}
-        for task_id in task_ids[: len(_IN_FLIGHT_STATUSES)]:
-            swept = after_by_task[task_id]
-            assert swept.status is ResultStatus.PENDING
-            assert swept.terms == ()
-            assert swept.sanitized_response is None
+        swept_0 = after_by_task[task_ids[0]]
+        assert swept_0.status is ResultStatus.PENDING
+        assert swept_0.terms == ()
+        assert swept_0.sanitized_response is None
+        swept_1 = after_by_task[task_ids[1]]
+        assert swept_1.status is ResultStatus.PENDING
+        assert swept_1.terms == ()
+        assert swept_1.sanitized_response is None
+        swept_2 = after_by_task[task_ids[2]]
+        assert swept_2.status is ResultStatus.PENDING
+        assert swept_2.terms == ()
+        assert swept_2.sanitized_response is None
+        swept_3 = after_by_task[task_ids[3]]
+        assert swept_3.status is ResultStatus.PENDING
+        assert swept_3.terms == ()
+        assert swept_3.sanitized_response is None
         terminal_after = after_by_task[task_ids[-1]]
         assert terminal_after == terminal_before
         after_write_conn.close()

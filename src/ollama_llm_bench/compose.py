@@ -1,8 +1,8 @@
 """The single composition root (STORY-077). ``build_app(*, app, loop) -> AppHandle`` wires
 the whole object graph by hand, in the fixed order of
 ``16_Engineering_Standards/01_PROJECT_STRUCTURE.md`` §7, and returns an ``AppHandle``
-carrying the shown window, a partial ``shutdown()``, and the raw resource handles STORY-080's
-fuller shutdown sequence needs. Construction is synchronous and issues no network call. Keyword-argument-heavy
+carrying the shown window and a full 5-step ``shutdown()`` handle for ordered process termination.
+Construction is synchronous and issues no network call. Keyword-argument-heavy
 factory calls are pinned to one physical line each via ``# fmt: skip`` (E501 is
 unenforced, see ``rules/formatting.md``).
 """
