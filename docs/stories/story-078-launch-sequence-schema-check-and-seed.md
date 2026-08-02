@@ -223,7 +223,7 @@ database is opened, no file in the data directory is mutated, and the process ex
   covered, closing three of the eight gaps that were pre-existing debt before this
   story started).
 - [x] The module inventory is unchanged.
-- [x] Repo-wide `just check`/`just coverage-layers` **not confirmed green in this
+- [ ] Repo-wide `just check`/`just coverage-layers` **not confirmed green in this
   session** — see the environment-flake note below; the full pytest suite could not be
   run to a clean completion on this machine in this session, for reasons unrelated to
   this story's own code. Revisit those two gates separately once confirmed reproducible.
