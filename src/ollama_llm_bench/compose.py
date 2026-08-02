@@ -327,28 +327,11 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     try:
         app_data_root = create_app_data_dir(profile.app_data_root)
     except ConfigurationError as exc:
-        _abort_launch(
-            title="Cannot Create Application Data Folder",
-            message=(
-                "Ollama LLM Bench could not create its application data folder and cannot start."
-            ),
-            detail=str(exc),
-            clipboard=clipboard,
-            bus=bus,
-        )
+        _abort_launch(title="Cannot Create Application Data Folder", message="Ollama LLM Bench could not create its application data folder and cannot start.", detail=str(exc), clipboard=clipboard, bus=bus)  # fmt: skip
 
     lock_result = acquire_instance_lock(app_data_root=app_data_root, clock=clock)
     if lock_result.outcome is InstanceLockOutcome.ALREADY_RUNNING:
-        _abort_launch(
-            title="Already Running",
-            message=(
-                "Ollama LLM Bench is already running against this application data "
-                "folder. Only one copy can run against the same folder at a time."
-            ),
-            detail=str(app_data_root),
-            clipboard=clipboard,
-            bus=bus,
-        )
+        _abort_launch(title="Already Running", message="Ollama LLM Bench is already running against this application data folder. Only one copy can run against the same folder at a time.", detail=str(app_data_root), clipboard=clipboard, bus=bus)  # fmt: skip
     instance_lock = lock_result.lock
     if instance_lock is None:
         message = "acquire_instance_lock reported ACQUIRED with no release handle"
@@ -358,31 +341,14 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
         write_conn, lock = open_write_connection(app_data_root / DB_FILENAME)
     except PersistenceError as exc:
         instance_lock.release()
-        _abort_launch(
-            title="Database File Unreadable",
-            message=(
-                "The application database file exists but could not be opened. It may be corrupt."
-            ),
-            detail=f"{app_data_root / DB_FILENAME}\n\n{exc}",
-            clipboard=clipboard,
-            bus=bus,
-        )
+        _abort_launch(title="Database File Unreadable", message="The application database file exists but could not be opened. It may be corrupt.", detail=f"{app_data_root / DB_FILENAME}\n\n{exc}", clipboard=clipboard, bus=bus)  # fmt: skip
 
     try:
         ensure_schema(write_conn, lock, clock=clock)
     except PersistenceError as exc:
         write_conn.close()
         instance_lock.release()
-        _abort_launch(
-            title="Incompatible Database",
-            message=(
-                "The database schema does not match this application version. Remove "
-                "or relocate the database file so a fresh one can be created."
-            ),
-            detail=f"{app_data_root / DB_FILENAME}\n\n{exc}",
-            clipboard=clipboard,
-            bus=bus,
-        )
+        _abort_launch(title="Incompatible Database", message="The database schema does not match this application version. Remove or relocate the database file so a fresh one can be created.", detail=f"{app_data_root / DB_FILENAME}\n\n{exc}", clipboard=clipboard, bus=bus)  # fmt: skip
 
     read_conn = functools.partial(open_read_connection, app_data_root / DB_FILENAME)
     runs = create_runs_store(write_conn, lock, read_conn)
