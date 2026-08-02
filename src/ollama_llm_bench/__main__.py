@@ -188,11 +188,20 @@ def _handle_ui_thread_exception(
     *,
     collaborators: _CrashDialogCollaborators,
 ) -> None:
-    """Log, show the fatal Error dialog, close the database, and exit (EC-M-8).
+    """Log the crash, show the fatal Error dialog, and request the application to
+    exit (EC-M-8).
 
     Standalone and independently callable — not reachable only through a real
     uncaught exception — so it can be exercised directly by a test. Never raises:
     a failure inside this hook must not leave the crash unhandled.
+
+    This hook never calls ``AppHandle.shutdown()`` itself. Its dialog's Quit button
+    only ends the Qt event loop (``QApplication.exit(1)``), which makes ``main()``'s
+    own blocking ``app.exec()`` call return; ``main()``'s unconditional
+    post-``app.exec()`` tail then runs the ordered shutdown (including the database
+    checkpoint-and-close) exactly once, for both a normal quit and this crash path
+    (STORY-080) — a second call on an already-closed write connection would raise
+    ``sqlite3.ProgrammingError``.
 
     Re-entrancy: if a second uncaught user-interface-thread exception is delivered
     while this hook's fatal dialog is already showing (its ``.exec()`` runs a nested
@@ -205,8 +214,10 @@ def _handle_ui_thread_exception(
         exc_value: The uncaught exception instance.
         exc_traceback: The uncaught exception's traceback, if any.
         collaborators: The clipboard, event bus, ``AppHandle`` holder, and fatal-
-            dialog re-entrancy guard this hook depends on (coding-style.md's
-            4-parameter rule).
+            dialog re-entrancy guard this hook is constructed with (coding-style.md's
+            4-parameter rule). The ``AppHandle`` holder is not read by this hook —
+            it is retained on the bundle for parity with the rest of ``main()``'s
+            wiring.
     """
     tb_text = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
     event_name = "uncaught_ui_thread_exception"
@@ -219,9 +230,6 @@ def _handle_ui_thread_exception(
         return
 
     def _quit() -> None:
-        handle = collaborators.handle_holder.handle
-        if handle is not None:
-            handle.shutdown(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
         instance = QApplication.instance()
         if instance is not None:
             instance.exit(1)

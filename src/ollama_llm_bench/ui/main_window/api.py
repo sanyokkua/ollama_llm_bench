@@ -98,6 +98,8 @@ def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators pe
     app_version: str,
     settings_requested: Callable[[], None] | None = None,
     about_requested: Callable[[], None] | None = None,
+    dirty_buffer_count: Callable[[], int] = lambda: 0,
+    save_all_buffers: Callable[[], None] = lambda: None,
 ) -> QMainWindow:
     """Construct the application shell.
 
@@ -134,6 +136,16 @@ def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators pe
         about_requested: Optional callback invoked when the About menu-bar action is
             activated (STORY-077); forwarded unchanged to ``MainWindowController``,
             which already declares and defaults this parameter.
+        dirty_buffer_count: Optional callback returning the Task Editor's current
+            dirty-buffer count (STORY-080); forwarded unchanged to ``CloseHandler``,
+            which already declares and defaults this parameter to always-zero. The
+            real Task Editor supplier is STORY-114's — this parameter only makes it
+            injectable without reopening this module again.
+        save_all_buffers: Optional callback invoked once, before a confirmed quit
+            proceeds, when the user chooses "Save all" at the unsaved-buffers prompt
+            (STORY-080); forwarded unchanged to ``CloseHandler``, which already
+            declares and defaults this parameter to a no-op. The real per-file save
+            implementation is STORY-114's.
 
     Returns:
         The fully wired top-level ``QMainWindow``, ready to be shown.
@@ -157,6 +169,8 @@ def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators pe
         gateway=gateway,
         event_bus=event_bus,
         notifications=notifications,
+        dirty_buffer_count=dirty_buffer_count,
+        save_all_buffers=save_all_buffers,
         on_confirmed_quit=_on_confirmed_quit,
     )
     controller = MainWindowController(

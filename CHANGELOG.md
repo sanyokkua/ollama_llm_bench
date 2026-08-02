@@ -673,13 +673,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - App lifecycle: quitting the application now actually performs the full ordered shutdown
   instead of silently skipping most of it. Previously, confirming a quit closed the window and
   the process exited without ever hard-cancelling an in-progress run, draining the worker-thread
-  pool, joining the pipeline dispatcher thread, or releasing the single-instance advisory lock —
-  a second launch against the same application-data folder could spuriously report "already
-  running" until the OS eventually reclaimed the stale lock. Closing the app now runs all six
-  ordered steps in order: hard-cancel, dispatcher-join-then-pool-drain, HTTP-client close,
-  database checkpoint-and-close, instance-lock release, process exit. Choosing "Save all" at the
-  unsaved-changes prompt previously silently discarded every buffer identically to "Discard
-  all" — it now invokes a real save hook (the per-file write itself remains a follow-up story).
+  pool, joining the pipeline dispatcher thread, or explicitly releasing the single-instance
+  advisory lock — the lock was only ever released implicitly, by the operating system reclaiming
+  it once the process had already died, never as a deliberate step of quitting. Closing the app
+  now runs all six ordered steps in order: hard-cancel, dispatcher-join-then-pool-drain,
+  HTTP-client close, database checkpoint-and-close, instance-lock release, process exit. The quit
+  sequence's "Save all" choice is now wired to an injectable save-all hook, exercised by tests —
+  previously it had no hook at all and silently discarded every buffer exactly like "Discard All"
+  would. This is groundwork only: the unsaved-changes prompt itself still cannot appear in the
+  running application, because the dirty-buffer count it depends on has no real supplier yet — a
+  follow-up story (STORY-114) still owns wiring the Task Editor's real dirty-buffer count and its
+  real per-file save behind this hook, so nothing user-visible changes yet from this alone.
   The active workspace (Benchmark or Task Editor) is now persisted on quit, so the next launch
   restores it, closing a gap where the setting was read at launch but never written anywhere.
   Separately, a run interrupted by a crash previously only recovered a result stuck mid-inference
