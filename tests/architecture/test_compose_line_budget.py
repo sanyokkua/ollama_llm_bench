@@ -12,25 +12,32 @@ four abort-with-modal paths (app-data-directory creation, the single-instance lo
 opening the write connection, the schema check), each needing its own `try`/`except` and
 `_abort_launch(...)` call -- already condensed to one `# fmt: skip` line each, the same
 technique the first widening's docstring describes, and still 80 lines past the 400
-ceiling.
+ceiling. Widened a third time, by owner-approved exception, to 50-520 lines for
+STORY-080: `AppHandle` grows a `flow: QtBenchmarkFlow` field and its `shutdown()` method
+grows from 2 lines (steps 3-4 only) to the full 5-step ordered shutdown, plus the one
+`res.recover_in_flight_results()` launch-time sweep call -- landing at 508 lines against
+the prior 500 ceiling, with `compose.py` already at its prior widening's own ceiling
+(499/500) before this story touched it, per `docs/stories/story-078-...md`'s own session
+record; there was no further import-collapsing headroom left to absorb this story's
+minimal, spec-mandated addition.
 
 This is a standing invariant, not a one-time snapshot: it runs against `compose.py`'s
 *current* contents on every suite run, so it also constrains every later Phase-11 story
-(STORY-076, STORY-080, STORY-083) that touches `compose.py` after this one.
+(STORY-076, STORY-083) that touches `compose.py` after this one.
 """
 
 from pathlib import Path
 
 _MIN_LINES = 50
-_MAX_LINES = 500
+_MAX_LINES = 520
 
 
-def test_compose_py_within_50_to_500_lines() -> None:
+def test_compose_py_within_50_to_520_lines() -> None:
     """Proves: STORY-077-AC-5
 
     Given the current, committed `compose.py`, when its source lines are counted, then
-    the count falls within the owner-approved 50-500 composition-root budget (widened
-    from 50-200, then from 50-400 -- see the module docstring).
+    the count falls within the owner-approved 50-520 composition-root budget (widened
+    from 50-200, then 50-400, then 50-500 -- see the module docstring).
     """
     # Arrange
     compose_path = Path(__file__).resolve().parents[2] / "src" / "ollama_llm_bench" / "compose.py"

@@ -191,11 +191,17 @@ resume; and resuming a run sweeps again before it dispatches anything.
   statuses the sweep is about to rewrite.
 - `backend/benchmark_pipeline/`, `backend/persistence/results/`, and `backend/infra/` are Qt-free;
   the confirmation modals are Qt and stay in `ui/main_window/`.
-- **`compose.py`'s line budget is shared and nearly spent.** STORY-077-AC-5 asserts a 50–500-line
-  bound on the *final* `compose.py` as a standing invariant; the file is at 399 lines. This story's
-  compose-side work is one sweep call and roughly a dozen lines inside `AppHandle.shutdown()`. Keep
-  it that tight; do not add orchestration to `build_app`'s body that belongs behind an existing
-  module's public surface.
+- **`compose.py`'s line budget is shared and was fully spent, not "nearly."** This Design constraint
+  originally (2026-08-02, at promotion to `ready`) claimed the file was at 399 of the then-current
+  50–500-line bound (STORY-077-AC-5). That claim was stale: STORY-078's own session had already
+  pushed the file to 499/500 lines in its final fix wave, leaving zero headroom, not "roughly a
+  dozen lines." This story's minimal, spec-mandated compose-side work (the `flow: QtBenchmarkFlow`
+  field, `AppHandle.shutdown()`'s growth to the full 5-step sequence, and the one
+  `res.recover_in_flight_results()` sweep call) landed at 508 lines with no further
+  import-collapsing room available (per STORY-078's own exhaustive prior attempt at exactly that).
+  The owner approved a third widening, 500→520 (see `tests/architecture/test_compose_line_budget.py`'s
+  own updated docstring for the full history) rather than distorting this story's minimal diff to
+  chase a stale ceiling.
 - `compose.py` and `__main__.py` are not extractable `modules:` values (the traceability tooling
   recognises only `backend/…`, `adapters/…`, `ui/…` paths), so this story cites the modules it
   wires and extends, per ADR-0010's own note and STORY-076's precedent. `backend/settings/` is

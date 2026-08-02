@@ -15,7 +15,7 @@ import re
 import sqlite3
 import sys
 import threading
-from typing import NoReturn
+from typing import NoReturn, cast
 
 import httpx
 import msgspec
@@ -37,9 +37,13 @@ from ollama_llm_bench.adapters.file_system_actions import (  # fmt: skip
 )
 from ollama_llm_bench.adapters.native_pickers import make_native_pickers
 from ollama_llm_bench.adapters.notification_service import make_notification_service
-from ollama_llm_bench.adapters.qt_benchmark_flow import make_qt_benchmark_flow, make_run_dispatcher
+from ollama_llm_bench.adapters.qt_benchmark_flow import (  # fmt: skip
+    QtBenchmarkFlow,
+    make_qt_benchmark_flow,
+    make_run_dispatcher,
+)
 from ollama_llm_bench.adapters.qt_event_bus import make_qt_event_bus_deliverer
-from ollama_llm_bench.adapters.qt_runnables import make_qt_task_runner
+from ollama_llm_bench.adapters.qt_runnables import QtTaskRunner, make_qt_task_runner
 from ollama_llm_bench.adapters.ui_gateways import (  # fmt: skip
     make_main_window_gateway,
     make_new_benchmark_gateway,
@@ -53,7 +57,7 @@ from ollama_llm_bench.adapters.workspace_controller import make_workspace_contro
 from ollama_llm_bench.backend import mode_visibility
 from ollama_llm_bench.backend.benchmark_pipeline import make_benchmark_pipeline
 from ollama_llm_bench.backend.charts import make_chart_aggregator
-from ollama_llm_bench.backend.concurrency import CancellationToken, RunDispatcher, TaskRunner
+from ollama_llm_bench.backend.concurrency import CancellationToken, RunDispatcher
 from ollama_llm_bench.backend.csv_export import (  # fmt: skip
     ExportKind,
     compose_export_filename,
@@ -170,23 +174,27 @@ _EXPORT_KIND_MAP: dict[str, ExportKind] = {"Summary": ExportKind.SUMMARY, "Detai
 
 
 class AppHandle(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Composition-root return value (ADR-0010): the shown window, a partial ``shutdown()`` handle, and the raw resource handles STORY-080's fuller shutdown sequence needs. ``shutdown()`` performs only steps 3-4 of the six-step ordered shutdown (`05_CONCURRENCY_GUARANTEES.md` §8) -- steps 1-2 and 5 need pipeline/run state; step 5 (lock release) is `instance_lock.release()`, left to STORY-080's fuller assembled sequence, not called from `shutdown()` here."""  # fmt: skip
+    """Composition-root return value (ADR-0010): the shown window and the full 5-step shutdown handle (`shutdown()`) plus the raw resource handles it needs. `shutdown()` performs steps 1-5 of the six-step ordered shutdown (`05_CONCURRENCY_GUARANTEES.md` §8); step 6 (process exit) is `__main__.py`'s responsibility, since it runs only after `app.exec()` itself has returned."""  # fmt: skip
 
     window: QMainWindow
     write_conn: sqlite3.Connection
     write_lock: threading.Lock
-    task_runner: TaskRunner[object]
+    task_runner: QtTaskRunner[object]
     run_dispatcher: RunDispatcher
     http_client: httpx.Client
     instance_lock: InstanceLockHandle
     loop: QEventLoop
+    flow: QtBenchmarkFlow
 
-    def shutdown(self) -> None:
-        """Close the HTTP client, then checkpoint and close the write connection (steps 3-4)."""
-        self.http_client.close()
-        with self.write_lock:
+    def shutdown(self, *, timeout_ms: int) -> None:
+        """Run the ordered shutdown's steps 1-5, in order (steps 1-2 first). ``timeout_ms`` bounds the pipeline's hard-cancel/dispatcher-join wait (step 1 and the dispatcher-join half of step 2)."""  # fmt: skip
+        self.flow.shutdown(timeout_ms)  # 1: hard-cancel; 2a: join the dispatcher thread
+        self.task_runner.shutdown()  # 2b: drain the TaskRunner pool
+        self.http_client.close()  # 3
+        with self.write_lock:  # 4
             self.write_conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             self.write_conn.close()
+        self.instance_lock.release()  # 5
 
 
 def _sanitise_run_name(*, run_name: str, run_id: RunId) -> str:
@@ -373,6 +381,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     runs = create_runs_store(write_conn, lock, read_conn)
     tasks = create_tasks_store(write_conn, lock, read_conn)
     res = create_results_store(write_conn, lock, read_conn)
+    res.recover_in_flight_results()
     provs = create_providers_store(write_conn, lock, read_conn)
     caps = create_model_capabilities_store(write_conn, lock, read_conn)
     appset = create_app_settings_store(write_conn, lock, read_conn, clock)
@@ -384,7 +393,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     snapshot_builder = make_run_snapshot_builder(store=appset)
     atomic_writer = make_settings_atomic_writer(write_conn=write_conn, lock=lock, providers_store=provs, app_settings_store=appset)  # fmt: skip
     gate = make_inference_activity_store(clock=clock, event_bus=bus)
-    task_runner: TaskRunner[object] = make_qt_task_runner()
+    task_runner = cast("QtTaskRunner[object]", make_qt_task_runner())
     dispatcher = make_run_dispatcher()
     http_client = httpx.Client()
 
@@ -489,7 +498,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
         make_about_dialog(collaborators=ab_collabs, version=app_version, data_folder_path=str(app_data_root), parent=window).exec()  # fmt: skip
 
     window = make_main_window(event_bus=bus, gateway=main_window_gateway, workspace=workspace_controller, notifications=notifications, file_system_actions=fsa, container=workspace_region, status_bar=status_bar, app_version=app_version, settings_requested=_open_settings, about_requested=_open_about)  # fmt: skip
-    return AppHandle(window=window, write_conn=write_conn, write_lock=lock, task_runner=task_runner, run_dispatcher=dispatcher, http_client=http_client, instance_lock=instance_lock, loop=loop)  # fmt: skip
+    return AppHandle(window=window, write_conn=write_conn, write_lock=lock, task_runner=task_runner, run_dispatcher=dispatcher, http_client=http_client, instance_lock=instance_lock, loop=loop, flow=flow)  # fmt: skip
 
 
 def _resolve_app_version() -> str:

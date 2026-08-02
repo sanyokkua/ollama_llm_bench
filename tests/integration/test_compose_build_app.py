@@ -137,20 +137,20 @@ def _seed_setting(app_data_root: Path, *, key: str, value: str) -> None:
 
 
 def _shutdown(handle: AppHandle) -> None:
-    """Release the real dispatcher thread, HTTP client, and write connection a test's
-    `build_app` call constructed, so no test leaks a live thread into the next one.
+    """Release the real dispatcher thread, HTTP client, write connection, and instance
+    lock a test's `build_app` call constructed, so no test leaks a live thread or a
+    held lock into the next one.
 
-    Closes the window *first*, while the write connection is still open -- the shell's
-    real close sequence (`CloseHandler` -> `_on_confirmed_quit` -> a pending-geometry
-    flush) needs a live database. Closing it here, once, up front makes `pytestqt`'s own
-    automatic end-of-test `_close_widgets()` call a harmless no-op afterwards (the shell
-    is already `_quitting`, so a second `closeEvent` short-circuits before touching the
-    database again).
+    Closes the window *first* -- the shell's real close sequence (`CloseHandler` ->
+    `_on_confirmed_quit` -> a pending-geometry flush) needs a live database. Closing
+    it here, once, up front makes `pytestqt`'s own automatic end-of-test
+    `_close_widgets()` call a harmless no-op afterwards (the shell is already
+    `_quitting`, so a second `closeEvent` short-circuits before touching the database
+    again). `AppHandle.shutdown()` now performs the full 5-step ordered shutdown
+    (STORY-080) in one call.
     """
     handle.window.close()
-    handle.run_dispatcher.shutdown(timeout_ms=_DISPATCHER_SHUTDOWN_TIMEOUT_MS)
-    handle.http_client.close()
-    handle.write_conn.close()
+    handle.shutdown(timeout_ms=_DISPATCHER_SHUTDOWN_TIMEOUT_MS)
 
 
 @pytest.fixture
@@ -199,6 +199,7 @@ def test_build_app_returns_frozen_app_handle_with_window_and_shutdown(
         "http_client",
         "instance_lock",
         "loop",
+        "flow",
     }
 
     # Assert -- frozen: setting an existing field raises.
@@ -502,8 +503,9 @@ def test_workspace_switch_reuses_pages_and_never_duplicates_the_left_panel(
     assert container.count() == 2  # noqa: PLR2004  # still exactly Benchmark + Task Editor
     assert container.currentWidget() is benchmark_page
 
-    # Cleanup
-    _shutdown(handle)
+    # Cleanup -- `build_real_app`'s own fixture teardown already calls `_shutdown(handle)`
+    # for every handle it built; a second call here would double-checkpoint the write
+    # connection after AppHandle.shutdown()'s new step 4 has already closed it (STORY-080).
 
 
 def test_app_handle_shutdown_closes_http_client_and_write_connection(
@@ -522,7 +524,7 @@ def test_app_handle_shutdown_closes_http_client_and_write_connection(
     handle.run_dispatcher.shutdown(timeout_ms=_DISPATCHER_SHUTDOWN_TIMEOUT_MS)
 
     # Act
-    handle.shutdown()
+    handle.shutdown(timeout_ms=_DISPATCHER_SHUTDOWN_TIMEOUT_MS)
 
     # Assert
     assert handle.http_client.is_closed
