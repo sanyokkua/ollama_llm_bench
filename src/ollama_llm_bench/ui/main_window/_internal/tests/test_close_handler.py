@@ -1,5 +1,5 @@
 """Unit tests for ``_internal/close_handler.py`` (STORY-053-AC-5, STORY-053-AC-6,
-EC-RUN-4, EC-WS-2).
+STORY-080-AC-1, STORY-080-AC-2, EC-RUN-4, EC-WS-2, EC-M-6, EC-M-7).
 
 Per the module docstring on ``CloseHandler``, a real modal ``QMessageBox`` is never driven in
 these tests -- ``CloseHandler._confirm_running_benchmark_quit`` and
@@ -7,6 +7,7 @@ these tests -- ``CloseHandler._confirm_running_benchmark_quit`` and
 """
 
 from collections.abc import Callable
+from typing import Final
 
 import pytest
 
@@ -96,29 +97,88 @@ def test_quit_with_running_run_confirms_and_shuts_down(  # noqa: PLR0913  # one
 
 
 @pytest.mark.parametrize(
-    (
-        "running_confirm_result",
-        "buffers_confirm_result",
-        "expected_call_order",
-        "expected_quit_calls",
-        "expected_save_all_calls",
-    ),
+    ("running_confirm_result", "expected_shutdown_calls", "expected_quit_calls"),
     [
-        (False, "save_all", ["confirm_running_benchmark_quit"], 0, 0),
-        (True, "cancel", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 0, 0),
-        (True, "discard_all", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 1, 0),
-        (True, "save_all", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 1, 1),
+        (False, [], 0),
+        (True, [80], 1),
     ],
     ids=[
-        "cancel_at_running_prompt",
-        "cancel_at_buffers_prompt",
-        "confirm_discard_all_quits_without_saving",
-        "confirm_save_all_saves_then_quits",
+        "cancel_abandons_quit_with_no_shutdown_request",
+        "confirm_requests_shutdown_then_settles_and_quits",
     ],
 )
-def test_quit_with_running_run_and_dirty_buffers_confirms_in_order(  # noqa: PLR0913  # five
-    # parametrize axes plus four independently-overridable fixtures
+def test_running_benchmark_confirmation_outcome_per_ac1_table(  # noqa: PLR0913  # one
+    # parametrize axis plus five independently-overridable fixtures/expected values
     running_confirm_result: bool,  # noqa: FBT001  # parametrize tuple element
+    expected_shutdown_calls: list[int],
+    expected_quit_calls: int,
+    gateway: FakeMainWindowGateway,
+    event_bus: FakeEventBus,
+    notifications: FakeNotificationService,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Proves: STORY-080-AC-1
+
+    Given a benchmark is running and no dirty task buffers, when the user requests a quit,
+    then Cancel at the running-benchmark prompt abandons the quit -- no pipeline shutdown is
+    requested and ``on_confirmed_quit`` never runs -- while Confirm requests a bounded
+    pipeline shutdown with the configured timeout and the quit proceeds only after that wait
+    settles (EC-M-6).
+    """
+    # Arrange
+    gateway.set_run_active(True)
+    monkeypatch.setattr(
+        CloseHandler,
+        "_confirm_running_benchmark_quit",
+        staticmethod(lambda: running_confirm_result),
+    )
+    confirmed_quit_calls: list[None] = []
+    shutdown_timeout_ms = 80
+    close_handler = CloseHandler(
+        gateway=gateway,
+        event_bus=event_bus,
+        notifications=notifications,
+        on_confirmed_quit=lambda: confirmed_quit_calls.append(None),
+        shutdown_timeout_ms=shutdown_timeout_ms,
+    )
+
+    # Act
+    close_handler.request_close()
+    quit_calls_before_settle = len(confirmed_quit_calls)
+    event_bus.emit(SIGNAL_RUN_STOPPED, _make_run_stopped_event())
+
+    # Assert
+    assert quit_calls_before_settle == 0
+    assert gateway.shutdown_calls == expected_shutdown_calls
+    assert len(confirmed_quit_calls) == expected_quit_calls
+
+
+_CONFIRMATION_TABLE_PARAMS: Final[tuple[str, str, str, str, str]] = (
+    "running_confirm_result",
+    "buffers_confirm_result",
+    "expected_call_order",
+    "expected_quit_calls",
+    "expected_save_all_calls",
+)
+_CONFIRMATION_TABLE_ROWS: Final[list[tuple[bool, str, list[str], int, int]]] = [
+    (False, "save_all", ["confirm_running_benchmark_quit"], 0, 0),
+    (True, "cancel", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 0, 0),
+    (True, "discard_all", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 1, 0),
+    (True, "save_all", ["confirm_running_benchmark_quit", "confirm_unsaved_buffers"], 1, 1),
+]
+_CONFIRMATION_TABLE_IDS: Final[list[str]] = [
+    "cancel_at_running_prompt",
+    "cancel_at_buffers_prompt",
+    "confirm_discard_all_quits_without_saving",
+    "confirm_save_all_saves_then_quits",
+]
+
+
+def _assert_quit_confirmation_outcome(  # noqa: PLR0913  # nine collaborators/expected
+    # values shared verbatim by STORY-053-AC-6's and STORY-080-AC-2's tests; grouping them
+    # into a struct would only move the parameter count, not reduce it
+    *,
+    running_confirm_result: bool,
     buffers_confirm_result: str,
     expected_call_order: list[str],
     expected_quit_calls: int,
@@ -128,14 +188,12 @@ def test_quit_with_running_run_and_dirty_buffers_confirms_in_order(  # noqa: PLR
     notifications: FakeNotificationService,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Proves: STORY-053-AC-6, STORY-080-AC-1, STORY-080-AC-2 (EC-M-6, EC-M-7)
+    """Run one row of the running-benchmark + unsaved-buffers confirmation table.
 
-    Given both a non-terminal run and one or more dirty task buffers,
-    when the user requests a quit,
-    then the running-benchmark confirmation is shown before the unsaved-buffer confirmation,
-    a cancel at either step aborts the entire quit (EC-WS-2, EC-M-7),
-    and choosing "Save all" invokes the save-all hook exactly once before the quit proceeds,
-    while "Discard all" never invokes it.
+    Shared by ``test_quit_with_running_run_and_dirty_buffers_confirms_in_order``
+    (STORY-053-AC-6) and ``test_confirmation_paths_produce_documented_outcomes_per_ac2_table``
+    (STORY-080-AC-2) -- both prove the identical sequence over the identical four-row table;
+    only the traceability tag on each caller differs.
     """
     # Arrange
     gateway.set_run_active(True)
@@ -173,3 +231,84 @@ def test_quit_with_running_run_and_dirty_buffers_confirms_in_order(  # noqa: PLR
     assert call_order == expected_call_order
     assert len(confirmed_quit_calls) == expected_quit_calls
     assert len(save_all_calls) == expected_save_all_calls
+
+
+@pytest.mark.parametrize(
+    _CONFIRMATION_TABLE_PARAMS, _CONFIRMATION_TABLE_ROWS, ids=_CONFIRMATION_TABLE_IDS
+)
+def test_quit_with_running_run_and_dirty_buffers_confirms_in_order(  # noqa: PLR0913  # five
+    # parametrize axes plus four independently-overridable fixtures
+    running_confirm_result: bool,  # noqa: FBT001  # parametrize tuple element
+    buffers_confirm_result: str,
+    expected_call_order: list[str],
+    expected_quit_calls: int,
+    expected_save_all_calls: int,
+    gateway: FakeMainWindowGateway,
+    event_bus: FakeEventBus,
+    notifications: FakeNotificationService,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Proves: STORY-053-AC-6
+
+    Given both a non-terminal run and one or more dirty task buffers,
+    when the user requests a quit,
+    then the running-benchmark confirmation is shown before the unsaved-buffer confirmation,
+    a cancel at either step aborts the entire quit (EC-WS-2, EC-M-7),
+    and choosing "Save all" invokes the save-all hook exactly once before the quit proceeds,
+    while "Discard all" never invokes it.
+
+    This test also exercises STORY-080-AC-2's confirmation-path table and the
+    ``save_all_buffers`` hook it adds -- see
+    ``test_confirmation_paths_produce_documented_outcomes_per_ac2_table``, which runs the same
+    four rows under STORY-080-AC-2's own traceability tag through the shared
+    ``_assert_quit_confirmation_outcome`` helper.
+    """
+    _assert_quit_confirmation_outcome(
+        running_confirm_result=running_confirm_result,
+        buffers_confirm_result=buffers_confirm_result,
+        expected_call_order=expected_call_order,
+        expected_quit_calls=expected_quit_calls,
+        expected_save_all_calls=expected_save_all_calls,
+        gateway=gateway,
+        event_bus=event_bus,
+        notifications=notifications,
+        monkeypatch=monkeypatch,
+    )
+
+
+@pytest.mark.parametrize(
+    _CONFIRMATION_TABLE_PARAMS, _CONFIRMATION_TABLE_ROWS, ids=_CONFIRMATION_TABLE_IDS
+)
+def test_confirmation_paths_produce_documented_outcomes_per_ac2_table(  # noqa: PLR0913
+    # five parametrize axes plus four independently-overridable fixtures
+    running_confirm_result: bool,  # noqa: FBT001  # parametrize tuple element
+    buffers_confirm_result: str,
+    expected_call_order: list[str],
+    expected_quit_calls: int,
+    expected_save_all_calls: int,
+    gateway: FakeMainWindowGateway,
+    event_bus: FakeEventBus,
+    notifications: FakeNotificationService,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Proves: STORY-080-AC-2
+
+    Given a quit is requested while a benchmark is running and the dirty-buffer count is
+    non-zero, each confirmation path produces its documented outcome (EC-M-7): Cancel at the
+    running-benchmark prompt abandons the quit before the unsaved-changes prompt is ever
+    shown, which is also the proof that the running-benchmark prompt always comes first;
+    Confirm followed by Cancel at the unsaved-changes prompt abandons the quit without
+    invoking the save-all hook; Confirm followed by Discard All quits without invoking it;
+    Confirm followed by Save All invokes it exactly once before the quit proceeds.
+    """
+    _assert_quit_confirmation_outcome(
+        running_confirm_result=running_confirm_result,
+        buffers_confirm_result=buffers_confirm_result,
+        expected_call_order=expected_call_order,
+        expected_quit_calls=expected_quit_calls,
+        expected_save_all_calls=expected_save_all_calls,
+        gateway=gateway,
+        event_bus=event_bus,
+        notifications=notifications,
+        monkeypatch=monkeypatch,
+    )

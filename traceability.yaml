@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-02T13:59:01Z'
+generated_at: '2026-08-02T20:50:08Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2215,6 +2215,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_pause_stop.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_resume.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_resume_recovery_sweep.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stage_preserving_retry.py]
@@ -2256,6 +2257,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_pause_stop.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_resume.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_resume_recovery_sweep.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stage_preserving_retry.py]
@@ -2297,6 +2299,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_pause_stop.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_resume.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_resume_recovery_sweep.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stage_preserving_retry.py]
@@ -3660,7 +3663,8 @@ stories:
         tests:
         - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
         - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
-        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_discard_all_quits_without_saving]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_save_all_saves_then_quits]
       STORY-053-AC-7:
         tests:
         - src/ollama_llm_bench/ui/main_window/_internal/tests/test_geometry.py::test_resize_burst_coalesces_into_one_write
@@ -4925,7 +4929,7 @@ stories:
         - tests/unit/test_export_filename_bridge.py::test_bridge_maps_ui_kind_to_export_kind[summary]
       STORY-077-AC-5:
         tests:
-        - tests/architecture/test_compose_line_budget.py::test_compose_py_within_50_to_500_lines
+        - tests/architecture/test_compose_line_budget.py::test_compose_py_within_50_to_520_lines
       STORY-077-AC-6:
         tests:
         - tests/integration/test_compose_build_app.py::test_show_schedules_single_deferred_readiness_tick
@@ -5028,21 +5032,33 @@ stories:
     - EC-M-7
     acceptance_criteria:
       STORY-080-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[cancel_abandons_quit_with_no_shutdown_request]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[confirm_requests_shutdown_then_settles_and_quits]
       STORY-080-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[cancel_at_buffers_prompt]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[cancel_at_running_prompt]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_discard_all_quits_without_saving]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_save_all_saves_then_quits]
       STORY-080-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_quit_sequence.py::test_quit_persists_ui_state_before_closing_db
       STORY-080-AC-4:
-        tests: []
+        tests:
+        - tests/integration/test_quit_sequence.py::test_quit_closes_db_with_wal_checkpoint_truncate
       STORY-080-AC-5:
         tests: []
       STORY-080-AC-6:
-        tests: []
+        tests:
+        - tests/integration/test_quit_sequence.py::test_ordered_shutdown_runs_all_six_steps_in_order
+        - tests/integration/test_ui_thread_exception_hook.py::test_quit_callback_shuts_down_handle_with_configured_timeout
       STORY-080-AC-7:
-        tests: []
+        tests:
+        - tests/integration/test_quit_sequence.py::test_instance_lock_is_reacquirable_after_clean_quit
       STORY-080-AC-8:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_resume_recovery_sweep.py::test_resume_sweeps_in_flight_rows_before_dispatch
   STORY-081:
     title: Add the headless end-to-end smoke tier for launch, idle, and clean shutdown
     status: draft
@@ -8472,7 +8488,19 @@ edge_cases:
   EC-M-4:
     stories:
     - STORY-080
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_resume_recovery_sweep.py::test_resume_sweeps_in_flight_rows_before_dispatch
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[cancel_at_buffers_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[cancel_at_running_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_discard_all_quits_without_saving]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_save_all_saves_then_quits]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[cancel_abandons_quit_with_no_shutdown_request]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[confirm_requests_shutdown_then_settles_and_quits]
+    - tests/integration/test_quit_sequence.py::test_instance_lock_is_reacquirable_after_clean_quit
+    - tests/integration/test_quit_sequence.py::test_ordered_shutdown_runs_all_six_steps_in_order
+    - tests/integration/test_quit_sequence.py::test_quit_closes_db_with_wal_checkpoint_truncate
+    - tests/integration/test_quit_sequence.py::test_quit_persists_ui_state_before_closing_db
+    - tests/integration/test_ui_thread_exception_hook.py::test_quit_callback_shuts_down_handle_with_configured_timeout
   EC-M-5:
     stories:
     - STORY-081
@@ -8480,11 +8508,35 @@ edge_cases:
   EC-M-6:
     stories:
     - STORY-080
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_resume_recovery_sweep.py::test_resume_sweeps_in_flight_rows_before_dispatch
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[cancel_at_buffers_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[cancel_at_running_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_discard_all_quits_without_saving]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_save_all_saves_then_quits]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[cancel_abandons_quit_with_no_shutdown_request]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[confirm_requests_shutdown_then_settles_and_quits]
+    - tests/integration/test_quit_sequence.py::test_instance_lock_is_reacquirable_after_clean_quit
+    - tests/integration/test_quit_sequence.py::test_ordered_shutdown_runs_all_six_steps_in_order
+    - tests/integration/test_quit_sequence.py::test_quit_closes_db_with_wal_checkpoint_truncate
+    - tests/integration/test_quit_sequence.py::test_quit_persists_ui_state_before_closing_db
+    - tests/integration/test_ui_thread_exception_hook.py::test_quit_callback_shuts_down_handle_with_configured_timeout
   EC-M-7:
     stories:
     - STORY-080
-    tests: []
+    tests:
+    - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_resume_recovery_sweep.py::test_resume_sweeps_in_flight_rows_before_dispatch
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[cancel_at_buffers_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[cancel_at_running_prompt]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_discard_all_quits_without_saving]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_confirmation_paths_produce_documented_outcomes_per_ac2_table[confirm_save_all_saves_then_quits]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[cancel_abandons_quit_with_no_shutdown_request]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_running_benchmark_confirmation_outcome_per_ac1_table[confirm_requests_shutdown_then_settles_and_quits]
+    - tests/integration/test_quit_sequence.py::test_instance_lock_is_reacquirable_after_clean_quit
+    - tests/integration/test_quit_sequence.py::test_ordered_shutdown_runs_all_six_steps_in_order
+    - tests/integration/test_quit_sequence.py::test_quit_closes_db_with_wal_checkpoint_truncate
+    - tests/integration/test_quit_sequence.py::test_quit_persists_ui_state_before_closing_db
+    - tests/integration/test_ui_thread_exception_hook.py::test_quit_callback_shuts_down_handle_with_configured_timeout
   EC-M-8:
     stories:
     - STORY-076
@@ -8690,7 +8742,8 @@ edge_cases:
     tests:
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
-    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_discard_all_quits_without_saving]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_save_all_saves_then_quits]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
@@ -10202,7 +10255,8 @@ edge_cases:
     tests:
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
-    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_discard_all_quits_without_saving]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_save_all_saves_then_quits]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
@@ -10310,7 +10364,8 @@ edge_cases:
     tests:
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
-    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_discard_all_quits_without_saving]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_save_all_saves_then_quits]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
@@ -10503,7 +10558,8 @@ edge_cases:
     tests:
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_buffers_prompt]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[cancel_at_running_prompt]
-    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[no_cancel_confirms_quit]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_discard_all_quits_without_saving]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_and_dirty_buffers_confirms_in_order[confirm_save_all_saves_then_quits]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[bounded_timeout]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_quit_with_running_run_confirms_and_shuts_down[run_stopped_event]
     - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_run_started_shows_pill_disables_settings
