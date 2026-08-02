@@ -93,11 +93,17 @@ class FakeResultsStore:
         return self._reset_to_pending(result_ids)
 
     def recover_in_flight_results(self) -> int:
-        """Reset every row in a non-terminal in-flight status back to ``PENDING``."""
-        in_flight_ids = tuple(
-            result_id for result_id, row in self._rows.items() if row.status in _IN_FLIGHT_STATUSES
-        )
-        return self._reset_to_pending(in_flight_ids)
+        """Reset every row in a non-terminal in-flight status back to ``PENDING``, clearing child rows."""
+        changed = 0
+        for result_id, row in self._rows.items():
+            if row.status not in _IN_FLIGHT_STATUSES:
+                continue
+            # Delete child rows and reset status to PENDING
+            self._rows[result_id] = msgspec.structs.replace(
+                row, status=ResultStatus.PENDING, terms=(), attempts=()
+            )
+            changed += 1
+        return changed
 
     def _reset_to_pending(self, result_ids: tuple[ResultId, ...]) -> int:
         """Set each named row's status to ``PENDING``; return the count changed."""

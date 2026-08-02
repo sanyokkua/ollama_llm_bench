@@ -439,15 +439,17 @@ class _BenchmarkFlowApiImpl:
         )
 
     def resume(self, run_id: RunId) -> None:
-        """Resume a `STOPPED`/`FAILED` run's unfinished rows (STORY-029-AC-6).
+        """Resume a `STOPPED`/`FAILED` run's unfinished rows (STORY-029-AC-6, STORY-080-AC-8).
 
         Admits under the single-inference gate first, exactly like `start`
-        (SPEC-036, DD-50); a held gate makes this call a silent no-op. Any
-        row still `RUNNING_INFERENCE` (an artefact of a crash mid-unit, since
-        `list_resumable_results` itself only selects `PENDING` and retryable
-        failure rows) is reset to `PENDING` before dispatch. The run's
-        already-persisted `settings_snapshot`/model/provider entries are
-        reused verbatim — this method never re-resolves live settings.
+        (SPEC-036, DD-50); a held gate makes this call a silent no-op. Runs the
+        crash-recovery sweep (`10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §9)
+        before reading any result row, so a row left mid-flight by a previous
+        crash — in any of the four non-terminal in-flight statuses, not only
+        `RUNNING_INFERENCE` — is reset to `PENDING` with its child rows deleted
+        before the resumable set is computed. The run's already-persisted
+        `settings_snapshot`/model/provider entries are reused verbatim — this
+        method never re-resolves live settings.
         """
         context = InferenceActivityContext(
             activity=InferenceActivity.BENCHMARK_RUN, started_at=self._clock.monotonic_ms()
@@ -456,6 +458,7 @@ class _BenchmarkFlowApiImpl:
         if lease is None:
             return
         run = self._runs_store.get_run(run_id)
+        self._results_store.recover_in_flight_results()
         # `list_resumable_results` selects PENDING + retryable-failure rows
         # (its own docstring) — this call confirms that set per AC-6; the
         # actual re-run selection is `run_all_phases`' own per-phase
@@ -463,11 +466,6 @@ class _BenchmarkFlowApiImpl:
         # value itself is not threaded further here.
         self._results_store.list_resumable_results(run_id)
         current_rows = self._results_store.list_results(run_id)
-        stuck_ids = tuple(
-            row.result_id for row in current_rows if row.status is ResultStatus.RUNNING_INFERENCE
-        )
-        if stuck_ids:
-            self._results_store.reset_results(stuck_ids)
         token = make_cancellation_token(clock=self._clock)
         with self._lock:
             self._token = token
