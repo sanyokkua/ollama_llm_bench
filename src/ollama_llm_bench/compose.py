@@ -167,7 +167,7 @@ _EXPORT_KIND_MAP: dict[str, ExportKind] = {"Summary": ExportKind.SUMMARY, "Detai
 
 
 class AppHandle(msgspec.Struct, frozen=True, kw_only=True, gc=False):
-    """Composition-root return value (ADR-0010): the shown window, a partial ``shutdown()`` handle, and the raw resource handles STORY-080's fuller shutdown sequence needs. ``shutdown()`` performs only steps 3-4 of the six-step ordered shutdown (`05_CONCURRENCY_GUARANTEES.md` §8) -- steps 1-2 and 5 need pipeline/run state and a lock handle this struct does not carry; both remain STORY-080's job, which calls this method as one step of its own assembled sequence."""  # fmt: skip
+    """Composition-root return value (ADR-0010): the shown window, a partial ``shutdown()`` handle, and the raw resource handles STORY-080's fuller shutdown sequence needs. ``shutdown()`` performs only steps 3-4 of the six-step ordered shutdown (`05_CONCURRENCY_GUARANTEES.md` §8) -- steps 1-2 and 5 need pipeline/run state; step 5 (lock release) is `instance_lock.release()`, left to STORY-080's fuller assembled sequence, not called from `shutdown()` here."""  # fmt: skip
 
     window: QMainWindow
     write_conn: sqlite3.Connection
