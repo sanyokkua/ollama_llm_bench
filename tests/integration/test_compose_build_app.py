@@ -3,9 +3,11 @@
 
 Exercises a *real* `build_app(*, app, loop) -> AppHandle` call against a real, isolated
 SQLite database (schema applied and one enabled provider seeded by this file's own
-fixtures -- STORY-078, not this story, owns the real startup schema-check/seed sequence),
-a real `QApplication`, and real widgets -- the multi-module, real-local-resource shape the
-`testing-standard-pyqt` skill and `testing.md` reserve for the integration tier.
+fixtures, ahead of `build_app`'s own idempotent schema-check/seed calls -- STORY-078
+owns those calls; this file's fixtures merely pre-seed so these STORY-077 tests don't
+depend on STORY-078's abort/seed behaviour to pass), a real `QApplication`, and real
+widgets -- the multi-module, real-local-resource shape the `testing-standard-pyqt` skill
+and `testing.md` reserve for the integration tier.
 
 **Filesystem isolation beyond the root `_isolate_filesystem` fixture.** The real,
 non-injected `PlatformDetector` `build_app` constructs (`make_platform_detector()`) resolves
