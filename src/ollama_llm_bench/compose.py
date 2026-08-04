@@ -84,7 +84,11 @@ from ollama_llm_bench.backend.errors import (  # fmt: skip
     EmbeddingUnavailableError,
     PersistenceError,
 )
-from ollama_llm_bench.backend.events import EventBus
+from ollama_llm_bench.backend.events import (  # fmt: skip
+    SIGNAL_APP_SETTINGS_CHANGED,
+    AppSettingsChangedEvent,
+    EventBus,
+)
 from ollama_llm_bench.backend.import_export import make_import_export_service
 from ollama_llm_bench.backend.infra import (  # fmt: skip
     InstanceLockHandle,
@@ -441,6 +445,13 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     export_filenames = _ExportFilenameBridge()
     app_version = _resolve_app_version()
     theme_manager = make_theme_manager(app=app, theme_setting=ThemeSetting(settings.get_str("ui.theme") or "system"), platform_kind=plat)  # fmt: skip
+
+    def _reapply_theme_on_settings_change(payload: object) -> None:
+        """Re-read `ui.theme` and re-apply it live when a settings write changed it (08-J, 08-D §13)."""
+        if isinstance(payload, AppSettingsChangedEvent) and "ui.theme" in payload.changed_keys:
+            theme_manager.set_theme_setting(ThemeSetting(settings.get_str("ui.theme") or "system"))
+
+    bus.subscribe(SIGNAL_APP_SETTINGS_CHANGED, _reapply_theme_on_settings_change, owner=theme_manager)  # fmt: skip
     log_formatter = make_log_formatter()
 
     # Fix 2: one shared status bar built before the window; `parent=status_bar` gives NotificationService's modals a real parent instead of an orphan `QWidget()`.

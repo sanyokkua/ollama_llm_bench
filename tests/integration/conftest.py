@@ -89,9 +89,11 @@ def _disconnect_and_discard_warning(signal: SignalInstance) -> None:
 @pytest.fixture(autouse=True)
 def _disconnect_os_color_scheme_signal(qapp: QApplication) -> Generator[None]:
     """Disconnect every `ThemeManager` this file's `build_app` calls attached to
-    `qapp.styleHints().colorSchemeChanged` -- nothing in production ever
-    disconnects it (STORY-083, not this story, owns runtime theme re-application),
-    so a `ThemeManager` built by one test here would otherwise stay connected and
+    `qapp.styleHints().colorSchemeChanged` -- production never disconnects this
+    specific signal. STORY-083's runtime theme re-application (landed in
+    `compose.py`) subscribes to the settings-changed event bus instead and never
+    touches this OS-colour-scheme connection, so this fixture is still needed: a
+    `ThemeManager` built by one test here would otherwise stay connected and
     react to a *later, unrelated* test's own OS-colour-scheme simulation in the
     same session-scoped `qapp` (this contaminated
     `ui/theme/tests/test_theme_selection.py`'s own `test_explicit_override_ignores_
