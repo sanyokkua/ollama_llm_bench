@@ -1,7 +1,7 @@
 ---
 id: STORY-083
 title: Re-apply the theme at runtime on save and open the Settings and About dialogs from the menu
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching
   - 06_Settings_Dialog/description.md#46-display
@@ -121,7 +121,7 @@ then the About modal dialog opens.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-083.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-083.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.

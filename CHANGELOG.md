@@ -693,3 +693,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   documented recovery contract. Per `08_Cross_Cutting/08-M_app_lifecycle.md` §7-8,
   `12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md` §8,
   `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §9 (STORY-080).
+
+- Changing the theme in Settings now repaints the whole application immediately on save,
+  instead of only taking effect after a restart.

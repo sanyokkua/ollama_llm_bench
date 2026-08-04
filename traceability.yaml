@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-02T21:17:44Z'
+generated_at: '2026-08-04T11:15:20Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5100,7 +5100,7 @@ stories:
         tests: []
   STORY-083:
     title: Re-apply the theme at runtime on save and open the Settings and About dialogs from the menu
-    status: draft
+    status: done
     spec_clauses:
     - 01_Main_Window/description.md#31-settings-action
     - 01_Main_Window/description.md#32-about-action
@@ -5114,13 +5114,17 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-083-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_theme_reapply_on_save.py::test_saving_theme_change_reapplies_theme_without_restart
       STORY-083-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_theme_reapply_on_save.py::test_theme_reapply_emits_theme_changed_notification_once
       STORY-083-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_menu_opens_dialogs.py::test_settings_action_opens_settings_dialog
       STORY-083-AC-4:
-        tests: []
+        tests:
+        - tests/integration/test_menu_opens_dialogs.py::test_about_action_opens_about_dialog
   STORY-084:
     title: Complete drag-and-drop of task files onto the New Benchmark task-files list
     status: draft
