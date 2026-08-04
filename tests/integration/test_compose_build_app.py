@@ -15,9 +15,11 @@ non-injected `PlatformDetector` (`make_platform_detector()`) resolves `<app-data
 (`backend/platform/_internal/detector.py`), which the root `conftest.py`'s
 `_isolate_filesystem` fixture does not redirect -- see `tests/integration/conftest.py`'s
 module docstring for the full explanation and for the `isolated_home` fixture that closes
-that gap. `isolated_home`, `seeded_app_data_root`, `build_real_app`, and the `seed_setting`/
-`shutdown_handle`/`dispatcher_shutdown_timeout_ms` fixture parameters used throughout this
-file all live in that shared `conftest.py`, not below.
+that gap. `isolated_home`, `seeded_app_data_root`, `app_data_root_no_providers`,
+`build_real_app`, and the `seed_setting`/`shutdown_handle`/`dispatcher_shutdown_timeout_ms`
+fixture parameters used throughout this file all live in that shared `conftest.py`, not
+below -- `app_data_root_no_providers` was this file's own fixture until the menu-dialog
+suite needed the same zero-provider database.
 """
 
 from collections.abc import Callable
@@ -34,11 +36,8 @@ from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.adapters.qt_runnables import make_qt_task_runner
-from ollama_llm_bench.backend.infra import make_system_clock
 from ollama_llm_bench.backend.persistence.app_settings import (
-    DB_FILENAME,
     create_app_settings_store,
-    ensure_schema,
     open_write_connection,
 )
 from ollama_llm_bench.backend.persistence.model_capabilities import (
@@ -48,7 +47,6 @@ from ollama_llm_bench.backend.persistence.providers import create_providers_stor
 from ollama_llm_bench.backend.persistence.results import create_results_store
 from ollama_llm_bench.backend.persistence.runs import create_runs_store
 from ollama_llm_bench.backend.persistence.tasks import create_tasks_store
-from ollama_llm_bench.backend.platform import create_app_data_dir, make_platform_detector
 from ollama_llm_bench.backend.provider_anthropic.api import AnthropicClientCollaborators
 from ollama_llm_bench.backend.provider_gemini.api import GeminiClientCollaborators
 from ollama_llm_bench.backend.provider_openai_compatible.api import (
@@ -57,21 +55,6 @@ from ollama_llm_bench.backend.provider_openai_compatible.api import (
 from ollama_llm_bench.backend.readiness import ReadinessService, make_readiness_service
 from ollama_llm_bench.compose import AppHandle, build_app
 from ollama_llm_bench.ui.theme import ActiveThemeKind, ThemeManager, make_theme_manager
-
-
-@pytest.fixture
-def app_data_root_no_providers(isolated_home: Path) -> Path:
-    """Pre-create the schema only -- zero providers seeded, at the exact `<app-data>` path
-    `build_app` itself will resolve and open. Regression fixture for the STORY-077
-    remediation's Fix 1: a fresh install (or every provider disabled) must not crash
-    `build_app`."""
-    # Arrange
-    profile = make_platform_detector().detect()
-    app_data_root = create_app_data_dir(profile.app_data_root)
-    write_conn, lock = open_write_connection(app_data_root / DB_FILENAME)
-    ensure_schema(write_conn, lock, clock=make_system_clock())
-    write_conn.close()
-    return app_data_root
 
 
 def test_build_app_returns_frozen_app_handle_with_window_and_shutdown(

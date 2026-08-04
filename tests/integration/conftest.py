@@ -36,6 +36,7 @@ import functools
 from pathlib import Path
 import warnings
 
+import msgspec
 from PySide6.QtCore import QEventLoop, SignalInstance
 from PySide6.QtWidgets import QApplication
 import pytest
@@ -49,7 +50,10 @@ from ollama_llm_bench.backend.persistence.app_settings import (
     open_read_connection,
     open_write_connection,
 )
-from ollama_llm_bench.backend.persistence.providers import seed_builtin_providers
+from ollama_llm_bench.backend.persistence.providers import (
+    create_providers_store,
+    seed_builtin_providers,
+)
 from ollama_llm_bench.backend.platform import create_app_data_dir, make_platform_detector
 from ollama_llm_bench.compose import AppHandle, build_app
 
@@ -117,16 +121,79 @@ def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     return home
 
 
-@pytest.fixture
-def seeded_app_data_root(isolated_home: Path) -> Path:
-    """Pre-create the schema and one enabled builtin provider at the exact `<app-data>`
-    path `build_app` itself will resolve and open (same detector, same environment)."""
-    # Arrange
+def _create_app_data_root_with_schema() -> Path:
+    """Create, and apply the schema to, the database at the exact `<app-data>` path
+    `build_app` itself will resolve and open (same detector, same environment).
+
+    Returns the app-data root with the write connection already closed, so the caller --
+    and then `build_app` -- can reopen it. Callers wanting rows in `providers` seed them
+    in their own connection; see the three `*app_data_root*` fixtures below.
+    """
     profile = make_platform_detector().detect()
     app_data_root = create_app_data_dir(profile.app_data_root)
     write_conn, lock = open_write_connection(app_data_root / DB_FILENAME)
     ensure_schema(write_conn, lock, clock=make_system_clock())
+    write_conn.close()
+    return app_data_root
+
+
+@pytest.fixture
+def seeded_app_data_root(isolated_home: Path) -> Path:
+    """Pre-create the schema and the enabled builtin providers at the exact `<app-data>`
+    path `build_app` itself will resolve and open."""
+    # Arrange
+    app_data_root = _create_app_data_root_with_schema()
+    write_conn, lock = open_write_connection(app_data_root / DB_FILENAME)
     seed_builtin_providers(write_conn, lock)
+    write_conn.close()
+    return app_data_root
+
+
+@pytest.fixture
+def app_data_root_no_providers(isolated_home: Path) -> Path:
+    """Pre-create the schema only -- zero rows in `providers`, at the exact `<app-data>`
+    path `build_app` itself will resolve and open.
+
+    Originally a `test_compose_build_app.py`-local fixture backing that file's regression
+    test for the STORY-077 remediation's Fix 1 (a fresh install must not crash
+    `build_app`); lifted here so the whole directory shares one copy of the rig.
+    `test_compose_build_app.py` still gets it by fixture name, unchanged.
+
+    **This does not produce a running application with no providers.** `build_app` itself
+    re-seeds the builtins whenever it finds `providers` empty (`compose.py`:
+    `if not provs.list_providers(): seed_builtin_providers(...)`) -- an empty table is a
+    *fresh install*, and seeding it is exactly what a fresh install does. A test that needs
+    the built application to have no *enabled* provider wants
+    `app_data_root_all_providers_disabled` below instead.
+    """
+    # Arrange
+    return _create_app_data_root_with_schema()
+
+
+@pytest.fixture
+def app_data_root_all_providers_disabled(isolated_home: Path) -> Path:
+    """Pre-create the schema and the builtin providers, then disable every one of them.
+
+    The rows are present, so `build_app`'s fresh-install re-seed does not fire and the
+    application it builds genuinely has zero *enabled* providers -- the "every provider has
+    been disabled" configuration `test_compose_build_app.py`'s
+    `test_build_app_survives_zero_enabled_providers` describes, and a configuration a real
+    user can reach from the Settings dialog by unticking all three.
+
+    This is what makes a test that opens the real Settings dialog offline-safe; see
+    `build_real_app_without_enabled_providers` below for the full reasoning.
+    """
+    # Arrange
+    app_data_root = _create_app_data_root_with_schema()
+    db_path = app_data_root / DB_FILENAME
+    write_conn, lock = open_write_connection(db_path)
+    seed_builtin_providers(write_conn, lock)
+    store = create_providers_store(
+        write_conn, lock, functools.partial(open_read_connection, db_path)
+    )
+    store.replace_providers(
+        tuple(msgspec.structs.replace(config, enabled=False) for config in store.list_providers())
+    )
     write_conn.close()
     return app_data_root
 
@@ -224,18 +291,14 @@ def _shutdown(handle: AppHandle) -> None:
     handle.shutdown(timeout_ms=_DISPATCHER_SHUTDOWN_TIMEOUT_MS)
 
 
-@pytest.fixture
-def build_real_app(
-    qapp: QApplication, seeded_app_data_root: Path
-) -> Generator[Callable[[], AppHandle]]:
-    """Factory building a real `AppHandle` against the seeded, isolated app-data
-    directory; every handle it built is torn down at the end of the test.
+def _app_handle_factory(qapp: QApplication) -> Generator[Callable[[], AppHandle]]:
+    """Body shared by `build_real_app` and `build_real_app_without_enabled_providers`: hand
+    out a factory building real `AppHandle`s, then tear down every handle it built.
 
-    A test that triggers real background work through `handle.task_runner` (e.g.
-    opening the real Settings dialog) must drain it itself, via the
-    `drain_task_runner_deliveries` fixture below, before the test function returns --
-    see `_drain_pending_task_runner_deliveries`'s docstring for why that cannot instead
-    be done here, in this fixture's own teardown.
+    Both fixtures differ only in *which* app-data fixture they depend on -- i.e. what is
+    already in the database at the `<app-data>` path `build_app` resolves -- so the build
+    and teardown logic lives here once and each fixture delegates to it with `yield from`
+    (which forwards the teardown half as well, when pytest resumes the outer generator).
     """
     built: list[AppHandle] = []
 
@@ -248,6 +311,58 @@ def build_real_app(
 
     for handle in built:
         _shutdown(handle)
+
+
+@pytest.fixture
+def build_real_app(
+    qapp: QApplication, seeded_app_data_root: Path
+) -> Generator[Callable[[], AppHandle]]:
+    """Factory building a real `AppHandle` against the seeded, isolated app-data
+    directory; every handle it built is torn down at the end of the test.
+
+    The three seeded builtin providers are **enabled** and point at real local endpoints
+    (`http://localhost:11434` for Ollama, `http://localhost:1234` for LM Studio), so a test
+    that opens the real Settings dialog against *this* fixture performs real network I/O
+    against whatever the developer happens to have running -- see
+    `build_real_app_without_enabled_providers` below, which exists precisely to avoid that.
+
+    A test that triggers real background work through `handle.task_runner` must drain it
+    itself, via the `drain_task_runner_deliveries` fixture below, before the test function
+    returns -- see `_drain_pending_task_runner_deliveries`'s docstring for why that cannot
+    instead be done here, in this fixture's own teardown.
+    """
+    yield from _app_handle_factory(qapp)
+
+
+@pytest.fixture
+def build_real_app_without_enabled_providers(
+    qapp: QApplication, app_data_root_all_providers_disabled: Path
+) -> Generator[Callable[[], AppHandle]]:
+    """Same factory as `build_real_app`, but against an app-data directory whose builtin
+    providers are all **disabled** -- so nothing the built application does can reach a
+    network endpoint.
+
+    Use this for any test that opens the real Settings dialog. That dialog's embedding
+    section runs a first-start bootstrap search over the *enabled* providers
+    (`ui/settings_dialog/_internal/providers_tab/embedding_section.py`
+    `_bootstrap_search_next`), submitting a real `discover_models` call per provider to
+    `handle.task_runner`'s `QThreadPool` and delivering each result back through a queued
+    connection. Against `build_real_app`'s seeded builtins those calls hit
+    `localhost:11434`/`localhost:1234` for real, which makes the test's timing -- and
+    therefore how much in-flight work survives into the next test -- depend on whether the
+    developer running it happens to have Ollama or LM Studio up. That is how a menu-dialog
+    test came to abort the whole pytest process on a machine with those servers running
+    while looking clean on an offline CI runner. With every provider disabled the
+    bootstrap's `enabled_providers` tuple is empty, so `_bootstrap_search_next` returns at
+    its first line without submitting anything: no thread-pool work, no queued delivery, no
+    socket.
+
+    Note it must be *disabled* providers, not an *empty* `providers` table:
+    `app_data_root_no_providers` does not survive contact with `build_app`, which treats an
+    empty table as a fresh install and re-seeds the three enabled builtins itself
+    (`compose.py`: `if not provs.list_providers(): seed_builtin_providers(...)`).
+    """
+    yield from _app_handle_factory(qapp)
 
 
 @pytest.fixture
