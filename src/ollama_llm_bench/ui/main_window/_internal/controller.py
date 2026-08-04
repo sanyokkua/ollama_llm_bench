@@ -237,10 +237,17 @@ class MainWindowController:
         self._health_state = event.overall
         self._health_tooltip = _format_health_tooltip(event)
         logger.debug("readiness_changed_reflected", overall=event.overall.value)
+        # Render before the blocking modal so the status-bar health dot reflects NOT_READY
+        # immediately -- `show_error(..., blocking=True)` blocks the GUI thread inside a
+        # nested `QMessageBox.critical(...).exec()` loop until the user dismisses it, so a
+        # `_render()` placed after that call would leave the status bar showing the
+        # previous state for as long as the modal is up. The spec requires the failure be
+        # surfaced concurrently in both places (`08_Cross_Cutting/08-M_app_lifecycle.md`
+        # §5: "surfaced twice: in the status bar, and through an explanatory modal dialog").
+        self._render()
         if event.overall is ReadinessState.NOT_READY and not was_not_ready:
             logger.info("readiness_not_ready_modal_shown")
             self._notifications.show_error(_format_not_ready_modal_text(event), blocking=True)
-        self._render()
 
     def _on_global_message(self, event: GlobalMessageEvent) -> None:
         self._toast_text = event.text

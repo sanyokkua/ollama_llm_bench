@@ -37,8 +37,8 @@ from pathlib import Path
 import warnings
 
 import msgspec
-from PySide6.QtCore import QEventLoop, SignalInstance
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QEvent, QEventLoop, QObject, Qt, QTimer, SignalInstance
+from PySide6.QtWidgets import QApplication, QMessageBox
 import pytest
 from pytestqt.qtbot import QtBot
 
@@ -274,6 +274,78 @@ def _drain_pending_task_runner_deliveries(handle: AppHandle, qtbot: QtBot) -> No
         qtbot.wait(_TASK_RUNNER_DRAIN_TICK_MS)
 
 
+_NOT_READY_MODAL_DISMISS_DELAY_MS = 100
+
+
+def _dismiss_message_box(modal: QMessageBox) -> None:
+    """Hide `modal` in a way that always removes it from Qt's modal-widget stack.
+
+    Identical to `tests/integration/test_menu_opens_dialogs.py`'s
+    `_dismiss_and_clear_modal_stack` -- see that helper's docstring for the full mechanics.
+    In short: `QDialog.exec()` (which `QMessageBox.critical()` calls internally) shows the
+    dialog, which is what pushes it onto `QApplication.activeModalWidget()`'s stack; a plain
+    `close()`/`hide()` after the nested loop is already running does not reliably pop that
+    stack back off, and a stale entry left behind aborts a later, unrelated test's own modal
+    lookup with a fatal `QTEST_ASSERT` inside Qt. Restoring `WA_ShowModal` immediately before
+    hiding makes Qt run `leaveModal` and clears the stack properly; this is safe to call even
+    if the dialog already dismissed itself for some other reason (`hide()` on an
+    already-hidden widget is a no-op inside Qt).
+    """
+    modal.setAttribute(Qt.WidgetAttribute.WA_ShowModal, on=True)
+    modal.hide()
+    modal.setAttribute(Qt.WidgetAttribute.WA_ShowModal, on=False)
+
+
+class _DismissReadinessModalOnShow(QObject):
+    """App-wide event filter that auto-dismisses the real NOT_READY `QMessageBox` the
+    instant it is shown, wherever in a test's execution it happens to appear.
+
+    **Why this can't just be a delayed one-shot timer armed after `build_app()` returns**
+    (the way `tests/e2e/conftest.py`'s `_dismiss_active_modal_if_shown` does it). There, the
+    modal is only ever triggered once, by the deferred `QTimer.singleShot(0, ...)` armed on
+    the main window's first `showEvent`, so a single dismiss timer scheduled right after
+    build time is guaranteed to run after it. Here that assumption does not hold: opening the
+    real Settings dialog (`MainWindowController._on_settings_requested` ->
+    `SettingsDialogController.__init__` -> a synchronous `readiness.probe_all()`) re-runs the
+    readiness probe *synchronously, inside the menu-bar click itself* -- confirmed by
+    tracing a hang with `faulthandler.dump_traceback_later`: the modal opens from inside
+    `compose.py`'s `_open_settings()`, before `make_settings_dialog(...)` has even
+    constructed the real dialog, let alone called its `.exec()`. The NOT_READY modal can
+    therefore appear at build time, at the first `window.show()`, or mid-test from an
+    arbitrary later user action -- an event filter watching for the moment Qt actually shows
+    a `QMessageBox` is the only thing that reliably catches all three.
+
+    **Why this is safe for the tests that assert on a real Settings/About dialog
+    (`test_menu_opens_dialogs.py`) or drive a real error dialog's Quit button
+    (`test_launch_abort_modal_quits.py`).** This filter only ever acts on a widget that
+    `isinstance(watched, QMessageBox)` -- `QMessageBox.critical(...)` is what the production
+    NOT_READY path calls (`adapters/notification_service/_internal/qt_notification_service.py`
+    `_show_modal`). The Settings and About dialogs are `SettingsDialogView`/`AboutDialog`,
+    both plain `QDialog` subclasses, never `QMessageBox`; the launch-abort error dialog is
+    `ErrorDialog`, also a plain `QDialog`. None of them can ever satisfy this `isinstance`
+    check, so this filter cannot race with or steal a dialog those tests are asserting on --
+    and `test_launch_abort_modal_quits.py` does not use this fixture's build path at all (it
+    calls `build_app` directly), so it is doubly unaffected.
+
+    **Why the dismiss is scheduled on a delay rather than done synchronously inside the Show
+    event.** `QDialog.exec()`'s sequence is `show()` (which is what dispatches the `Show`
+    event this filter reacts to) followed by constructing and running its own nested
+    `QEventLoop` -- that loop object does not exist yet while `show()` is still on the call
+    stack, so hiding the widget from directly inside the event filter has nothing to make the
+    nested loop return; the loop would still block forever once `exec()` reaches it. Every
+    other real-dialog dismissal in this test suite (`test_menu_opens_dialogs.py`,
+    `tests/e2e/conftest.py`) uses the same "come back a little later, once the nested loop is
+    actually running" pattern for the same reason.
+    """
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.Show and isinstance(watched, QMessageBox):
+            QTimer.singleShot(
+                _NOT_READY_MODAL_DISMISS_DELAY_MS, functools.partial(_dismiss_message_box, watched)
+            )
+        return False
+
+
 def _shutdown(handle: AppHandle) -> None:
     """Release the real dispatcher thread, HTTP client, write connection, and instance
     lock a test's `build_app` call constructed, so no test leaks a live thread or a
@@ -299,8 +371,18 @@ def _app_handle_factory(qapp: QApplication) -> Generator[Callable[[], AppHandle]
     already in the database at the `<app-data>` path `build_app` resolves -- so the build
     and teardown logic lives here once and each fixture delegates to it with `yield from`
     (which forwards the teardown half as well, when pytest resumes the outer generator).
+
+    Installs `_DismissReadinessModalOnShow` on `qapp` for the duration of the test -- both
+    fixtures build against an app-data root with no reachable provider (all disabled, or
+    real localhost endpoints with nothing listening on an offline runner), so the real
+    application genuinely computes `NOT_READY` and production genuinely opens a blocking
+    `QMessageBox` (`08_Cross_Cutting/08-M_app_lifecycle.md` §5) -- see that class's docstring
+    for why every test built through this factory needs it, not just the ones that visibly
+    open a dialog.
     """
     built: list[AppHandle] = []
+    dismiss_not_ready_modal = _DismissReadinessModalOnShow()
+    qapp.installEventFilter(dismiss_not_ready_modal)
 
     def _build() -> AppHandle:
         handle = build_app(app=qapp, loop=QEventLoop())
@@ -309,6 +391,7 @@ def _app_handle_factory(qapp: QApplication) -> Generator[Callable[[], AppHandle]
 
     yield _build
 
+    qapp.removeEventFilter(dismiss_not_ready_modal)
     for handle in built:
         _shutdown(handle)
 
