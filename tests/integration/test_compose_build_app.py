@@ -9,17 +9,15 @@ depend on STORY-078's abort/seed behaviour to pass), a real `QApplication`, and 
 widgets -- the multi-module, real-local-resource shape the `testing-standard-pyqt` skill
 and `testing.md` reserve for the integration tier.
 
-**Filesystem isolation beyond the root `_isolate_filesystem` fixture.** The real,
-non-injected `PlatformDetector` `build_app` constructs (`make_platform_detector()`) resolves
-`<app-data>` from `Path.home()` on macOS and Windows, and only falls back to
-`XDG_DATA_HOME` on Linux (`backend/platform/_internal/detector.py`). The root `conftest.py`'s
-`_isolate_filesystem` fixture only redirects `XDG_DATA_HOME`/`XDG_CONFIG_HOME`/`LOCALAPPDATA`
-into `tmp_path` -- so on a macOS/Windows host it does *not* stop a real `build_app()` call
-from resolving into this machine's actual user profile directory. `compose.py` is the only
-call site in the whole codebase that constructs the real, non-injected
-`InjectablePlatformDetector` this way. The `isolated_home` fixture below additionally
-redirects `HOME`/`USERPROFILE` into `tmp_path` so every test in this file is safe on every
-host platform, regardless of which OS branch `Path.home()` resolves through.
+**Filesystem isolation, and the shared rig this file draws from.** `build_app`'s real,
+non-injected `PlatformDetector` (`make_platform_detector()`) resolves `<app-data>` from
+`Path.home()` on macOS and Windows, and only falls back to `XDG_DATA_HOME` on Linux
+(`backend/platform/_internal/detector.py`), which the root `conftest.py`'s
+`_isolate_filesystem` fixture does not redirect -- see `tests/integration/conftest.py`'s
+module docstring for the full explanation and for the `isolated_home` fixture that closes
+that gap. `isolated_home`, `seeded_app_data_root`, `build_real_app`, and the `seed_setting`/
+`shutdown_handle`/`dispatcher_shutdown_timeout_ms` fixture parameters used throughout this
+file all live in that shared `conftest.py`, not below.
 """
 
 from collections.abc import Callable
@@ -59,11 +57,6 @@ from ollama_llm_bench.backend.provider_openai_compatible.api import (
 from ollama_llm_bench.backend.readiness import ReadinessService, make_readiness_service
 from ollama_llm_bench.compose import AppHandle, build_app
 from ollama_llm_bench.ui.theme import ActiveThemeKind, ThemeManager, make_theme_manager
-from tests.integration.conftest import (
-    _DISPATCHER_SHUTDOWN_TIMEOUT_MS,
-    _seed_setting,
-    _shutdown,
-)
 
 
 @pytest.fixture
@@ -124,7 +117,10 @@ def test_build_app_returns_frozen_app_handle_with_window_and_shutdown(
 
 
 def test_build_app_is_synchronous_and_makes_no_network_call(
-    seeded_app_data_root: Path, qapp: QApplication, mocker: MockerFixture
+    seeded_app_data_root: Path,
+    qapp: QApplication,
+    mocker: MockerFixture,
+    shutdown_handle: Callable[[AppHandle], None],
 ) -> None:
     """Proves: STORY-077-AC-2
 
@@ -150,11 +146,14 @@ def test_build_app_is_synchronous_and_makes_no_network_call(
     network_spy.assert_not_called()
 
     # Cleanup
-    _shutdown(handle)
+    shutdown_handle(handle)
 
 
 def test_build_app_constructs_single_runner_writer_and_http_client(
-    seeded_app_data_root: Path, qapp: QApplication, mocker: MockerFixture
+    seeded_app_data_root: Path,
+    qapp: QApplication,
+    mocker: MockerFixture,
+    shutdown_handle: Callable[[AppHandle], None],
 ) -> None:
     """Proves: STORY-077-AC-3
 
@@ -228,11 +227,15 @@ def test_build_app_constructs_single_runner_writer_and_http_client(
     assert gemini_collabs_spy.call_args.kwargs["http_client"] is handle.http_client
 
     # Cleanup
-    _shutdown(handle)
+    shutdown_handle(handle)
 
 
 def test_show_schedules_single_deferred_readiness_tick(
-    seeded_app_data_root: Path, qapp: QApplication, qtbot: QtBot, mocker: MockerFixture
+    seeded_app_data_root: Path,
+    qapp: QApplication,
+    qtbot: QtBot,
+    mocker: MockerFixture,
+    shutdown_handle: Callable[[AppHandle], None],
 ) -> None:
     """Proves: STORY-077-AC-6
 
@@ -267,11 +270,15 @@ def test_show_schedules_single_deferred_readiness_tick(
     probe_all_spy.assert_called_once()
 
     # Cleanup
-    _shutdown(handle)
+    shutdown_handle(handle)
 
 
 def test_build_app_applies_persisted_theme_before_window_shown(
-    seeded_app_data_root: Path, qapp: QApplication, mocker: MockerFixture
+    seeded_app_data_root: Path,
+    qapp: QApplication,
+    mocker: MockerFixture,
+    seed_setting: Callable[..., None],
+    shutdown_handle: Callable[[AppHandle], None],
 ) -> None:
     """Proves: STORY-077-AC-7
 
@@ -283,7 +290,7 @@ def test_build_app_applies_persisted_theme_before_window_shown(
     can only have come from construction-time application.
     """
     # Arrange
-    _seed_setting(seeded_app_data_root, key="ui.theme", value="dark")
+    seed_setting(seeded_app_data_root, key="ui.theme", value="dark")
     captured_managers: list[ThemeManager] = []
 
     def _capture_theme_manager(**kwargs: object) -> ThemeManager:
@@ -304,7 +311,7 @@ def test_build_app_applies_persisted_theme_before_window_shown(
     assert qapp.styleSheet() != ""
 
     # Cleanup
-    _shutdown(handle)
+    shutdown_handle(handle)
 
 
 def test_build_app_injects_settings_and_about_callbacks(
@@ -347,7 +354,9 @@ def test_build_app_injects_settings_and_about_callbacks(
 
 
 def test_build_app_succeeds_with_zero_enabled_providers(
-    app_data_root_no_providers: Path, qapp: QApplication
+    app_data_root_no_providers: Path,
+    qapp: QApplication,
+    shutdown_handle: Callable[[AppHandle], None],
 ) -> None:
     """Regression coverage for the STORY-077 remediation's Fix 1.
 
@@ -365,7 +374,7 @@ def test_build_app_succeeds_with_zero_enabled_providers(
         assert isinstance(handle, AppHandle)
         assert handle.window is not None
     finally:
-        _shutdown(handle)
+        shutdown_handle(handle)
 
 
 def test_workspace_switch_reuses_pages_and_never_duplicates_the_left_panel(
@@ -418,7 +427,9 @@ def test_workspace_switch_reuses_pages_and_never_duplicates_the_left_panel(
 
 
 def test_app_handle_shutdown_closes_http_client_and_write_connection(
-    seeded_app_data_root: Path, qapp: QApplication
+    seeded_app_data_root: Path,
+    qapp: QApplication,
+    dispatcher_shutdown_timeout_ms: int,
 ) -> None:
     """Proves: STORY-077-AC-1
 
@@ -430,10 +441,10 @@ def test_app_handle_shutdown_closes_http_client_and_write_connection(
     # Arrange
     handle = build_app(app=qapp, loop=QEventLoop())
     handle.window.close()
-    handle.run_dispatcher.shutdown(timeout_ms=_DISPATCHER_SHUTDOWN_TIMEOUT_MS)
+    handle.run_dispatcher.shutdown(timeout_ms=dispatcher_shutdown_timeout_ms)
 
     # Act
-    handle.shutdown(timeout_ms=_DISPATCHER_SHUTDOWN_TIMEOUT_MS)
+    handle.shutdown(timeout_ms=dispatcher_shutdown_timeout_ms)
 
     # Assert
     assert handle.http_client.is_closed

@@ -4,14 +4,40 @@ Moved here from `test_compose_build_app.py` so the theme-reapply and menu-dialog
 (STORY-083) share one copy instead of triplicating it. The autouse
 `_disconnect_os_color_scheme_signal` fixture is load-bearing: every `build_app` constructs a
 `ThemeManager` that connects to the session-scoped `qapp.styleHints().colorSchemeChanged`,
-and `pytest-randomly` reorders tests, so a leaked connection corrupts a later test.
+and `pytest-randomly` reorders tests, so a leaked connection corrupts a later test. Because
+this fixture is autouse, it now runs for *every* test under `tests/integration/`, including
+the `persistence/` and `provider_stub/` suites that never construct a `ThemeManager` and so
+have nothing connected -- `_disconnect_signal_if_connected` below exists to make that the
+common case a silent no-op rather than a `RuntimeWarning`.
+
+**Cross-platform filesystem isolation.** The real, non-injected `PlatformDetector` `build_app`
+constructs (`make_platform_detector()`) resolves `<app-data>` from `Path.home()` on macOS and
+Windows, and only falls back to `XDG_DATA_HOME` on Linux
+(`backend/platform/_internal/detector.py`). The root `conftest.py`'s `_isolate_filesystem`
+fixture only redirects `XDG_DATA_HOME`/`XDG_CONFIG_HOME`/`LOCALAPPDATA` into `tmp_path` -- so
+on a macOS/Windows host it does *not* stop a real `build_app()` call from resolving into this
+machine's actual user profile directory. `compose.py` is the only call site in the whole
+codebase that constructs the real, non-injected `InjectablePlatformDetector` this way. The
+`isolated_home` fixture below additionally redirects `HOME`/`USERPROFILE` into `tmp_path` so
+every test that depends on it (directly, or transitively through `seeded_app_data_root`/
+`build_real_app`) is safe on every host platform, regardless of which OS branch
+`Path.home()` resolves through.
+
+**No cross-module import.** `_seed_setting`, `_shutdown`, and `_DISPATCHER_SHUTDOWN_TIMEOUT_MS`
+stay module-private here and are handed to test modules only through the `seed_setting`,
+`shutdown_handle`, and `dispatcher_shutdown_timeout_ms` fixtures below -- pytest auto-injects
+fixtures by name, so no test module needs `from tests.integration.conftest import ...`. There
+are zero `__init__.py` files anywhere under `tests/`; adding one just to support that kind of
+import would be a wider, unrelated change to how this repository's test tree is packaged.
 """
 
 from collections.abc import Callable, Generator
+import contextlib
 import functools
 from pathlib import Path
+import warnings
 
-from PySide6.QtCore import QEventLoop
+from PySide6.QtCore import QEventLoop, SignalInstance
 from PySide6.QtWidgets import QApplication
 import pytest
 
@@ -30,6 +56,30 @@ from ollama_llm_bench.compose import AppHandle, build_app
 _DISPATCHER_SHUTDOWN_TIMEOUT_MS = 2000
 
 
+def _disconnect_signal_if_connected(signal: SignalInstance) -> None:
+    """Disconnect every slot from `signal`, tolerating the case where nothing is connected.
+
+    PySide6's `SignalInstance.disconnect()` does not raise when there is nothing to
+    disconnect -- it emits a Python-level `RuntimeWarning` ("Failed to disconnect (None)
+    from signal ...") straight from the C++ binding and returns normally. That warning is
+    invisible to `tests/conftest.py`'s `_qt_parity_rig` (which only intercepts C++-level
+    `qInstallMessageHandler` traffic, not Python's `warnings` module), so it would otherwise
+    print unchecked noise for every test in this directory that never connects the signal in
+    the first place (confirmed empirically: `persistence/` and `provider_stub/` never
+    construct a `ThemeManager`, so every one of their tests hit this). Escalating the
+    specific warning to an exception for the duration of the call and swallowing it is the
+    only way to distinguish "nothing was connected" from "something was connected" without
+    tracking connection state ourselves -- PySide6 raises `SystemError` (not `RuntimeWarning`)
+    when the escalated warning propagates out of the C++ binding, so both exception types are
+    caught. A real connection disconnects silently, with neither warning nor exception, so
+    this still performs the cleanup teardown needs.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", category=RuntimeWarning, message="Failed to disconnect")
+        with contextlib.suppress(RuntimeWarning, SystemError):
+            signal.disconnect()
+
+
 @pytest.fixture(autouse=True)
 def _disconnect_os_color_scheme_signal(qapp: QApplication) -> Generator[None]:
     """Disconnect every `ThemeManager` this file's `build_app` calls attached to
@@ -44,7 +94,7 @@ def _disconnect_os_color_scheme_signal(qapp: QApplication) -> Generator[None]:
     test_theme_switching.py` already use for the same signal.
     """
     yield
-    qapp.styleHints().colorSchemeChanged.disconnect()
+    _disconnect_signal_if_connected(qapp.styleHints().colorSchemeChanged)
     qapp.styleHints().unsetColorScheme()
 
 
@@ -117,3 +167,28 @@ def build_real_app(
 
     for handle in built:
         _shutdown(handle)
+
+
+@pytest.fixture
+def dispatcher_shutdown_timeout_ms() -> int:
+    """The millisecond timeout `_shutdown` itself uses for `AppHandle.shutdown()`, exposed
+    so a test module that needs the same value (e.g. to call `handle.shutdown(...)` or
+    `handle.run_dispatcher.shutdown(...)` directly) never hand-copies the literal -- a second
+    copy could silently drift from the one `_shutdown` uses."""
+    return _DISPATCHER_SHUTDOWN_TIMEOUT_MS
+
+
+@pytest.fixture
+def seed_setting() -> Callable[..., None]:
+    """Hand `_seed_setting` to test modules as a fixture parameter instead of a cross-module
+    import -- see the module docstring."""
+    return _seed_setting
+
+
+@pytest.fixture
+def shutdown_handle() -> Callable[[AppHandle], None]:
+    """Hand `_shutdown` to test modules as a fixture parameter instead of a cross-module
+    import -- see the module docstring. `build_real_app`'s own teardown above calls
+    `_shutdown` directly and keeps doing so; this fixture is for tests that build an
+    `AppHandle` without going through `build_real_app`."""
+    return _shutdown
