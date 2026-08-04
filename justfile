@@ -39,6 +39,12 @@ arch-test:
 test:
     uv run pytest
 
+# The e2e tier alone. Pins the offscreen Qt platform plugin so a local run matches CI —
+# nothing outside the CI workflows sets QT_QPA_PLATFORM, and these tests build and show
+# the real main window (docs/v3_specification/16_Engineering_Standards/07_TESTING_STANDARD.md §12).
+test-e2e:
+    QT_QPA_PLATFORM=offscreen uv run pytest tests/e2e -q
+
 coverage-layers:
     # per-layer branch-coverage gate — see docs/v3_specification/16_Engineering_Standards/07_TESTING_STANDARD.md §11
     uv run pytest --cov=ollama_llm_bench --cov-report=
@@ -53,4 +59,4 @@ trace-check:
     uv run python scripts/validate_traceability.py
 
 check: lint format-check typecheck import-check arch-test
-    uv run pytest tests/unit tests/integration src -q
+    uv run pytest tests/unit tests/integration tests/e2e src -q
