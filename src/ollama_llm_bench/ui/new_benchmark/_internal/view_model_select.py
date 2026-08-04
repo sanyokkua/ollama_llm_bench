@@ -1,6 +1,7 @@
 """Pure state -> ``NewBenchmarkViewModel`` derivation (STORY-054, STORY-055). No Qt import."""
 
 from collections.abc import Mapping
+from typing import Final
 
 import msgspec
 
@@ -39,6 +40,7 @@ __all__: list[str] = [
 
 _IN_FLIGHT_TOOLTIP = "Another inference activity is in flight — please wait."
 _REVIEW_WARNINGS_TOOLTIP = "Click to review warnings before starting."
+_NOT_READY_TOOLTIP: Final[str] = "No provider is reachable — check provider settings."
 _ANALYSIS_SUFFIX = " + 1 run-analysis inference"
 
 
@@ -249,19 +251,28 @@ def build_run_start_request(state: RunStartRequestState) -> RunStartRequest:
 
 
 def compute_start_button_state(
-    *, validation_entries: tuple[ValidationEntry, ...], gate_idle: bool
+    *,
+    validation_entries: tuple[ValidationEntry, ...],
+    gate_idle: bool,
+    readiness_not_ready: bool,
 ) -> tuple[bool, str]:
-    """Derive the Start button's ``(enabled, tooltip)`` pair (STORY-055-AC-4, AC-5).
+    """Derive the Start button's ``(enabled, tooltip)`` pair (STORY-055-AC-4, AC-5; STORY-081-AC-2).
 
     Args:
         validation_entries: The Run Validator's current findings.
         gate_idle: Whether the single-inference gate is currently ``IDLE``.
+        readiness_not_ready: Whether application readiness is ``NOT_READY`` -- every
+            operability check failed, so no benchmark can run. Gated ahead of the
+            in-flight check because the user must never reach an enabled run-start
+            affordance for an environment that cannot run a benchmark
+            (``08-M_app_lifecycle.md`` section 5). ``DEGRADED`` does not gate here:
+            the spec gates only the modes whose prerequisites failed.
 
     Returns:
         ``(True, "")`` when nothing blocks Start and there is nothing to review;
         ``(True, "Click to review warnings before starting.")`` when only soft
         warnings remain; ``(False, <tooltip>)`` otherwise -- a joined hard-error
-        message list takes precedence over the in-flight-gate tooltip.
+        message list takes precedence over the readiness and in-flight tooltips.
     """
     hard_error_messages = tuple(
         entry.message
@@ -270,6 +281,8 @@ def compute_start_button_state(
     )
     if hard_error_messages:
         return False, "\n".join(hard_error_messages)
+    if readiness_not_ready:
+        return False, _NOT_READY_TOOLTIP
     if not gate_idle:
         return False, _IN_FLIGHT_TOOLTIP
     if validation_entries:

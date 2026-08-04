@@ -6,8 +6,14 @@ declared non-store helpers (``EventBus``, ``ModeVisibilityPolicy``, ``RunValidat
 
 import structlog
 
-from ollama_llm_bench.backend.domain import InferenceActivity, RunMode, RunStartRequest
+from ollama_llm_bench.backend.domain import (
+    InferenceActivity,
+    ReadinessState,
+    RunMode,
+    RunStartRequest,
+)
 from ollama_llm_bench.backend.events import (
+    SIGNAL_APP_READINESS_CHANGED,
     SIGNAL_INFERENCE_ACTIVITY_CHANGED,
     SIGNAL_PROVIDER_REGISTRY_RELOADED,
     SIGNAL_RUN_FAILED,
@@ -96,6 +102,9 @@ class NewBenchmarkController:
             self._on_inference_activity_changed,
             owner=self._view,
         )
+        self._event_bus.subscribe(
+            SIGNAL_APP_READINESS_CHANGED, self._on_readiness_changed, owner=self._view
+        )
         self._event_bus.subscribe(SIGNAL_RUN_STARTED, self._on_run_started, owner=self._view)
         self._event_bus.subscribe(SIGNAL_RUN_FINISHED, self._on_run_terminal, owner=self._view)
         self._event_bus.subscribe(SIGNAL_RUN_FAILED, self._on_run_terminal, owner=self._view)
@@ -149,6 +158,10 @@ class NewBenchmarkController:
     def _on_run_terminal(self, _payload: object) -> None:
         logger.debug("new_benchmark_run_terminal")
         self._is_locked = False
+
+    def _on_readiness_changed(self, _payload: object) -> None:
+        """Re-render so the Start button reflects the new readiness (STORY-081-AC-2)."""
+        self._render()
 
     def _on_start_clicked(self) -> None:
         if self._is_locked:
@@ -221,8 +234,11 @@ class NewBenchmarkController:
         self._push_view_model(self._last_validation_entries)
 
     def _push_view_model(self, validation_entries: tuple[ValidationEntry, ...]) -> None:
+        readiness = self._gateway.readiness_snapshot()
         start_enabled, start_tooltip = compute_start_button_state(
-            validation_entries=validation_entries, gate_idle=self._gate_idle
+            validation_entries=validation_entries,
+            gate_idle=self._gate_idle,
+            readiness_not_ready=readiness.overall is ReadinessState.NOT_READY,
         )
         advanced_options_section = self._view.advanced_options_section
         state = NewBenchmarkViewState(

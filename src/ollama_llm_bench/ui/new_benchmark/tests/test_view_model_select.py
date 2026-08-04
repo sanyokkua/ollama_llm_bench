@@ -1,6 +1,7 @@
-"""Unit tests for ``_internal.view_model_select.build_run_start_request`` (STORY-055-AC-3,
-AC-6). No Qt involvement -- ``RunStartRequestState`` -> ``RunStartRequest`` is a pure
-mapping.
+"""Unit tests for ``_internal.view_model_select`` (STORY-055-AC-3, AC-6; STORY-081-AC-2).
+No Qt involvement. Covers ``build_run_start_request`` (``RunStartRequestState`` ->
+``RunStartRequest``, a pure mapping) and ``compute_start_button_state`` (the Start button's
+``(enabled, tooltip)`` derivation, including the readiness gate).
 """
 
 from ollama_llm_bench.backend.domain import (
@@ -12,6 +13,7 @@ from ollama_llm_bench.backend.domain import (
 from ollama_llm_bench.ui.new_benchmark._internal.view_model_select import (
     RunStartRequestState,
     build_run_start_request,
+    compute_start_button_state,
 )
 
 
@@ -108,3 +110,31 @@ def test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_
     request = build_run_start_request(state)
     # Assert
     assert request.judge_model is None
+
+
+def test_start_button_disabled_when_readiness_is_not_ready() -> None:
+    """Proves: STORY-081-AC-2
+
+    A totally-failed health check must never leave an enabled run-start
+    affordance (08-M_app_lifecycle.md section 5).
+    """
+    # Arrange / Act
+    enabled, tooltip = compute_start_button_state(
+        validation_entries=(), gate_idle=True, readiness_not_ready=True
+    )
+    # Assert
+    assert (enabled, tooltip) == (False, "No provider is reachable — check provider settings.")
+
+
+def test_start_button_enabled_when_readiness_is_usable() -> None:
+    """Proves: STORY-081-AC-2
+
+    A usable environment is left alone -- the readiness gate only fires on a
+    total failure, never on DEGRADED.
+    """
+    # Arrange / Act
+    enabled, tooltip = compute_start_button_state(
+        validation_entries=(), gate_idle=True, readiness_not_ready=False
+    )
+    # Assert
+    assert (enabled, tooltip) == (True, "")
