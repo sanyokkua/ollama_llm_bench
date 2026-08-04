@@ -5,8 +5,10 @@ Neither dialog is stubbed to a `.exec()`-returns-instantly double -- that is the
 `ollama_llm_bench.compose.make_settings_dialog` / `make_about_dialog` are patched only to take a
 typed reference to the dialog the *real* factory builds; the call is forwarded unchanged. A
 `QTimer.singleShot` inspects the live modal and closes it so the nested `.exec()` returns. If
-the wiring regresses, these tests hang instead of quietly passing -- which is exactly the
-failure mode the existing STORY-077-AC-8 test (both dialogs mocked) cannot detect.
+the wiring regresses (e.g. the menu action no longer reaches the real factory), these tests
+fail with an `AssertionError` comparing the observed `{"visible": ..., "modal": ...}` dict
+against the expected one -- not a hang -- which is still a clean regression signal, and one the
+existing STORY-077-AC-8 test (both dialogs mocked, `.exec` never really called) cannot give.
 """
 
 from collections.abc import Callable
@@ -14,6 +16,7 @@ from typing import cast
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QDialog, QPushButton
+import pytest
 from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 
@@ -24,8 +27,16 @@ from ollama_llm_bench.ui.settings_dialog import make_settings_dialog as _real_ma
 _DISMISS_DELAY_MS = 50
 
 
+@pytest.mark.allow_qt_warnings  # offscreen-only: opening either real dialog resizes a
+# widget before the offscreen platform plugin has a native window to hint, which logs
+# "This plugin does not support propagateSizeHints()" -- pre-existing offscreen-plugin
+# behaviour (also hit by test_launch_abort_modal_quits.py's real-dialog `.exec()`), not a
+# defect in this test or the production dialog wiring.
 def test_settings_action_opens_settings_dialog(
-    build_real_app: Callable[[], AppHandle], qtbot: QtBot, mocker: MockerFixture
+    build_real_app: Callable[[], AppHandle],
+    qtbot: QtBot,
+    mocker: MockerFixture,
+    drain_task_runner_deliveries: Callable[[AppHandle], None],
 ) -> None:
     """Proves: STORY-083-AC-3
 
@@ -63,7 +74,20 @@ def test_settings_action_opens_settings_dialog(
     # Assert
     assert observed == {"visible": True, "modal": True}
 
+    # Cleanup -- opening the real Settings dialog starts the embedding section's
+    # first-start bootstrap search, which is still in flight on `handle.task_runner`
+    # after `.close()` returns above. Draining it here, before this function returns and
+    # `build_real_app`'s teardown tears down the widget tree, is what stops its delayed
+    # completion from firing into an already-deleted widget in a later test -- see
+    # `drain_task_runner_deliveries`/`_drain_pending_task_runner_deliveries` in
+    # `tests/integration/conftest.py` for the full mechanism and why this must happen
+    # here rather than in a fixture teardown.
+    drain_task_runner_deliveries(handle)
 
+
+@pytest.mark.allow_qt_warnings  # offscreen-only: see the identical marker/comment on
+# test_settings_action_opens_settings_dialog above -- same pre-existing offscreen-plugin
+# warning, not a defect in this test or the production About dialog wiring.
 def test_about_action_opens_about_dialog(
     build_real_app: Callable[[], AppHandle], qtbot: QtBot, mocker: MockerFixture
 ) -> None:

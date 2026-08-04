@@ -39,6 +39,7 @@ import warnings
 from PySide6.QtCore import QEventLoop, SignalInstance
 from PySide6.QtWidgets import QApplication
 import pytest
+from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.backend.infra import make_system_clock
 from ollama_llm_bench.backend.persistence.app_settings import (
@@ -141,6 +142,71 @@ def _seed_setting(app_data_root: Path, *, key: str, value: str) -> None:
     write_conn.close()
 
 
+_MAX_TASK_RUNNER_DRAIN_PASSES = 10
+_TASK_RUNNER_DRAIN_TICK_MS = 10
+
+
+def _drain_pending_task_runner_deliveries(handle: AppHandle, qtbot: QtBot) -> None:
+    """Let every in-flight `TaskRunner` unit finish and its queued-signal completion be
+    delivered, while `handle`'s widget tree is still fully alive.
+
+    **Call this from the test body itself, before the test function returns** -- never
+    from a fixture finalizer. Building the real app and opening a real dialog can leave
+    asynchronous work in flight when the test body returns. The concrete case this exists
+    for: opening the Settings dialog runs `ui/settings_dialog/_internal/providers_tab/
+    embedding_section.py`'s first-start embedding bootstrap search, which submits a
+    `discover_models` call per enabled provider to `handle.task_runner`'s real
+    `QThreadPool` and delivers the result back to a dropdown widget via `adapters/
+    ui_gateways/_internal/settings/gateway.py`'s `_CompletionRelay` -- a **queued**
+    connection (`Qt.ConnectionType.QueuedConnection`).
+
+    A queued signal is only *emitted* when the worker thread finishes; it is not
+    *delivered* until something ticks the GUI event loop. If the test ends without ever
+    ticking the loop again, the queued delivery survives -- unfired -- past this test's
+    own teardown (neither dialog sets `WA_DeleteOnClose`, so `compose.py` keeps them
+    alive as children of the main window in production) and only gets a chance to fire on
+    whatever event-loop tick happens to run next: typically the *next* test's, once this
+    test's widget tree has since been torn down. By then the widget it targets has
+    already been destroyed, so it crashes with `RuntimeError: Internal C++ object (...)
+    already deleted` in a test that never itself did anything wrong.
+
+    **Why this must run from the test body, not a fixture teardown (found the hard
+    way).** `qtbot.addWidget(handle.window)` registers the window with `pytest-qt`, whose
+    own `pytest_runtest_teardown` hookwrapper (`pytestqt/plugin.py`) calls
+    `_close_widgets(item)` -- `widget.close(); widget.deleteLater()` -- *before* running
+    any test fixture's finalizer, `build_real_app`'s included. Calling this function's
+    `qtbot.wait(...)` ticks from inside a fixture finalizer runs a real nested event loop
+    (`QTest.qWait`), which flushes that already-scheduled `deleteLater()` too -- destroying
+    `handle.window` earlier than the finalizer expects and turning `_shutdown`'s own
+    `handle.window.close()` into a crash on an already-deleted object (confirmed by
+    reproducing it: moving this drain into `build_real_app`'s finalizer made the *main
+    window* itself come up "already deleted", strictly worse than the original bug).
+    Calling it from the test body sidesteps this entirely -- `pytest-qt` does not touch
+    tracked widgets until `pytest_runtest_teardown`, well after the test function returns.
+
+    `handle.task_runner.shutdown()` blocks the calling thread until the pool is
+    genuinely idle (`QThreadPool.waitForDone()`) -- a real condition, not a sleep, and
+    idempotent (`_shutdown`'s own step 2b calls it again later; a no-op by then). But
+    *delivering* a queued signal can submit *more* work -- the embedding bootstrap search
+    chains one provider's discovery into the next's from inside the delivered callback
+    (`_on_bootstrap_models_discovered` -> `_bootstrap_search_next`) -- so a single
+    drain-then-tick pass is not always enough. This loops "drain the pool, then tick the
+    loop" a bounded number of times: three builtin providers are seeded per test
+    (`seed_builtin_providers`), so the bootstrap search chains at most three rounds;
+    `_MAX_TASK_RUNNER_DRAIN_PASSES` gives more than triple that as a safety margin
+    (mirroring `test_theme_reapply_on_save.py`'s `_flush_pending_widget_deletions`, which
+    caps its own condition-based widget-teardown loop at the same value for the same
+    reason -- a generous, explained bound instead of an unbounded wait). Each pass costs
+    at most `_TASK_RUNNER_DRAIN_TICK_MS`, and every pass past the point delivery has
+    genuinely stopped spawning new work costs next to nothing (`waitForDone()` returns
+    immediately on an already-idle pool), so spending the full budget on a test with
+    nothing pending is cheap.
+    """
+    for _ in range(_MAX_TASK_RUNNER_DRAIN_PASSES):
+        handle.task_runner.shutdown()
+        qtbot.wait(_TASK_RUNNER_DRAIN_TICK_MS)
+
+
 def _shutdown(handle: AppHandle) -> None:
     """Release the real dispatcher thread, HTTP client, write connection, and instance
     lock a test's `build_app` call constructed, so no test leaks a live thread or a
@@ -163,7 +229,14 @@ def build_real_app(
     qapp: QApplication, seeded_app_data_root: Path
 ) -> Generator[Callable[[], AppHandle]]:
     """Factory building a real `AppHandle` against the seeded, isolated app-data
-    directory; every handle it built is torn down at the end of the test."""
+    directory; every handle it built is torn down at the end of the test.
+
+    A test that triggers real background work through `handle.task_runner` (e.g.
+    opening the real Settings dialog) must drain it itself, via the
+    `drain_task_runner_deliveries` fixture below, before the test function returns --
+    see `_drain_pending_task_runner_deliveries`'s docstring for why that cannot instead
+    be done here, in this fixture's own teardown.
+    """
     built: list[AppHandle] = []
 
     def _build() -> AppHandle:
@@ -175,6 +248,15 @@ def build_real_app(
 
     for handle in built:
         _shutdown(handle)
+
+
+@pytest.fixture
+def drain_task_runner_deliveries(qtbot: QtBot) -> Callable[[AppHandle], None]:
+    """Hand `_drain_pending_task_runner_deliveries` to test modules as a fixture
+    parameter, pre-bound to this test's own `qtbot` -- see that function's docstring for
+    what it drains and why a test **must** call it itself, before its test function
+    returns, rather than relying on `build_real_app`'s teardown to do it."""
+    return functools.partial(_drain_pending_task_runner_deliveries, qtbot=qtbot)
 
 
 @pytest.fixture
