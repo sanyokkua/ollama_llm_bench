@@ -8,6 +8,7 @@ from typing import cast
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QPushButton, QWidget
 import pytest
+from pytest_mock import MockerFixture
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.adapters.workspace_controller.models import WorkspaceHint
@@ -115,6 +116,23 @@ def _running_pill(harness: MainWindowHarness) -> QPushButton:
 
 def _click_health_dot(harness: MainWindowHarness) -> None:
     harness.shell.status_bar.health_dot_clicked.emit()
+
+
+def _append_and_call(
+    sequence: list[str], label: str, original: Callable[..., None]
+) -> Callable[..., None]:
+    """Build a patch side effect recording ``label`` then delegating to ``original``.
+
+    Used to pin the relative order of two independently-faked collaborator calls
+    (the shell's ``apply_view_model`` and the notification service's ``show_error``)
+    against a single shared list, rather than asserting on two disconnected mocks.
+    """
+
+    def _side_effect(*args: object, **kwargs: object) -> None:
+        sequence.append(label)
+        original(*args, **kwargs)
+
+    return _side_effect
 
 
 def test_run_started_shows_pill_disables_settings(
@@ -471,6 +489,43 @@ def test_modal_text_names_the_unreachable_providers_and_the_remedy(
     # Assert
     text = harness.notifications.error_calls[0][0]
     assert "provider-1" in text and "Settings" in text
+
+
+def test_readiness_not_ready_renders_before_the_blocking_modal(
+    make_harness: Callable[..., MainWindowHarness],
+    mocker: MockerFixture,
+) -> None:
+    """Proves: STORY-081-AC-2
+
+    The two surfacings of a totally-failed health check must appear concurrently,
+    not with the status bar catching up once the user dismisses the dialog:
+    ``show_error(..., blocking=True)`` opens a nested ``QMessageBox.critical(...).exec()``
+    loop that blocks the GUI thread until the user dismisses it, so the shell's
+    view-model -- and with it the health dot's repaint to NOT_READY -- must already be
+    applied before that call, never after (08-M_app_lifecycle.md section 5: "surfaced
+    twice: in the status bar, and through an explanatory modal dialog").
+    """
+    # Arrange
+    harness = make_harness()
+    sequence: list[str] = []
+    render_original = harness.shell.apply_view_model
+    show_error_original = harness.notifications.show_error
+    mocker.patch.object(
+        harness.shell,
+        "apply_view_model",
+        side_effect=_append_and_call(sequence, "render", render_original),
+    )
+    mocker.patch.object(
+        harness.notifications,
+        "show_error",
+        side_effect=_append_and_call(sequence, "show_error", show_error_original),
+    )
+
+    # Act
+    harness.event_bus.emit(SIGNAL_APP_READINESS_CHANGED, _not_ready_event())
+
+    # Assert
+    assert sequence == ["render", "show_error"]
 
 
 def test_global_message_shows_toast_then_auto_clears(
