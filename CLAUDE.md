@@ -117,6 +117,25 @@ subagent to return a concise, structured summary (what changed, what's left), no
 - `.pre-commit-config.yaml` runs fast checks at commit time; the full test suite and
   `just trace-check` run at push time. Both are real git hooks (separate from the
   `.claude/settings.json` hooks above) — never bypass either.
+- **Verify against blast radius, not module scope.** Running the changed module's own tests is the
+  natural instinct and is insufficient whenever a change can escape its module: it can open a
+  modal or blocking dialog, block the calling thread (a nested event loop, `.exec()`,
+  `waitForDone()`, a join), touch `compose.py` or startup/shutdown ordering, add or change an
+  EventBus subscription or queued-connection signal, or change a shared fixture, `conftest.py`, or
+  a Gateway Protocol. In any of those cases run the full gate
+  (`uv run pytest tests/unit tests/integration tests/e2e src -q`) before declaring done. A six-line
+  change that added a blocking modal once passed its module's 41 tests, was independently reviewed
+  and approved, and hung the whole integration suite — every integration test builds the real app
+  offline, reaches that state, and waits forever for a click that never comes.
+- **Bound every test run; a hang is a result, not a delay.** The full gate takes ~2 minutes,
+  `tests/integration` ~50 seconds. Materially longer means hung — kill it and diagnose. There is no
+  `pytest-timeout` configured, so a blocking dialog produces no output at all.
+- **Never run two full-suite verifications concurrently** (including two subagents that each run
+  one). Timing-sensitive Qt tests fail under contention in a way indistinguishable from a real
+  regression; this has already produced two independent agents reporting the same non-existent
+  failure.
+- **Never accept "pre-existing and unrelated" without the exclusion test** — re-run with only the
+  suspect file ignored, compare the failure lists, and record that output beside the claim.
 
 ## Self-discovery
 
@@ -141,55 +160,55 @@ working in. Don't rely solely on what's spelled out in your own immediate prompt
 
 ## Rules Reference
 
-| Rule | Globs | Description |
-|------|-------|-------------|
-| [coding-style](rules/coding-style.md) | `src/**/*.py` | msgspec/Protocol conventions, naming, complexity limits |
-| [project-structure](rules/project-structure.md) | `src/**/*.py`, `pyproject.toml` | The 3-layer tree, module public-surface contract, import-linter contracts |
-| [concurrency-standard](rules/concurrency-standard.md) | `src/ollama_llm_bench/backend/**`, `src/ollama_llm_bench/adapters/qt_runnables/**` | Dispatcher thread, `TaskRunner`, `CancellationToken`, single-inference gate |
-| [error-handling-standard](rules/error-handling-standard.md) | `src/**/*.py` | The 4-category error taxonomy, adapter-boundary translation, retry policy |
-| [logging](rules/logging.md) | `src/**/*.py` | `structlog`, the two-stream `run.*`/`app.*` split |
-| [testing](rules/testing.md) | `tests/**/*.py`, `src/**/tests/**/*.py` | Pyramid, `pytest-qt`, contract-test suites, per-layer coverage |
-| [external-libraries](rules/external-libraries.md) | `pyproject.toml`, `src/**/*.py` | Approved/banned dependency table |
-| [formatting](rules/formatting.md) | `*.py`, `*.md`, `*.toml`, `*.yaml`, `*.sql`, `pyproject.toml` | Ruff + multi-language formatting |
-| [linting](rules/linting.md) | `*.py`, `pyproject.toml` | Ruff, mypy --strict, import-linter, pytest-archon, icontract |
-| [uv-project](rules/uv-project.md) | `pyproject.toml`, `uv.lock` | `uv_build`, dependency management |
-| [pyside6-app-development](rules/pyside6-app-development.md) | `src/ollama_llm_bench/ui/**/*.py`, `src/ollama_llm_bench/adapters/**/*.py` | Theme/token system, Gateway-only dependency rule, `QRunnable` pattern |
-| [repository-documentation](rules/repository-documentation.md) | `*.md`, `docs/**/*.md` | README/docs structure for this rewrite |
-| [code-documentation](rules/code-documentation.md) | `src/**/*.py` | Docstring style, `icontract` interplay |
-| [traceability-and-stories](rules/traceability-and-stories.md) | `docs/stories/**/*.md`, `docs/adr/**/*.md` | Story/spec-citation discipline |
+| Rule                                                          | Globs                                                                              | Description                                                                 |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [coding-style](rules/coding-style.md)                         | `src/**/*.py`                                                                      | msgspec/Protocol conventions, naming, complexity limits                     |
+| [project-structure](rules/project-structure.md)               | `src/**/*.py`, `pyproject.toml`                                                    | The 3-layer tree, module public-surface contract, import-linter contracts   |
+| [concurrency-standard](rules/concurrency-standard.md)         | `src/ollama_llm_bench/backend/**`, `src/ollama_llm_bench/adapters/qt_runnables/**` | Dispatcher thread, `TaskRunner`, `CancellationToken`, single-inference gate |
+| [error-handling-standard](rules/error-handling-standard.md)   | `src/**/*.py`                                                                      | The 4-category error taxonomy, adapter-boundary translation, retry policy   |
+| [logging](rules/logging.md)                                   | `src/**/*.py`                                                                      | `structlog`, the two-stream `run.*`/`app.*` split                           |
+| [testing](rules/testing.md)                                   | `tests/**/*.py`, `src/**/tests/**/*.py`                                            | Pyramid, `pytest-qt`, contract-test suites, per-layer coverage              |
+| [external-libraries](rules/external-libraries.md)             | `pyproject.toml`, `src/**/*.py`                                                    | Approved/banned dependency table                                            |
+| [formatting](rules/formatting.md)                             | `*.py`, `*.md`, `*.toml`, `*.yaml`, `*.sql`, `pyproject.toml`                      | Ruff + multi-language formatting                                            |
+| [linting](rules/linting.md)                                   | `*.py`, `pyproject.toml`                                                           | Ruff, mypy --strict, import-linter, pytest-archon, icontract                |
+| [uv-project](rules/uv-project.md)                             | `pyproject.toml`, `uv.lock`                                                        | `uv_build`, dependency management                                           |
+| [pyside6-app-development](rules/pyside6-app-development.md)   | `src/ollama_llm_bench/ui/**/*.py`, `src/ollama_llm_bench/adapters/**/*.py`         | Theme/token system, Gateway-only dependency rule, `QRunnable` pattern       |
+| [repository-documentation](rules/repository-documentation.md) | `*.md`, `docs/**/*.md`                                                             | README/docs structure for this rewrite                                      |
+| [code-documentation](rules/code-documentation.md)             | `src/**/*.py`                                                                      | Docstring style, `icontract` interplay                                      |
+| [traceability-and-stories](rules/traceability-and-stories.md) | `docs/stories/**/*.md`, `docs/adr/**/*.md`                                         | Story/spec-citation discipline                                              |
 
 ## Skills Reference
 
-| Skill | Use when |
-|-------|----------|
-| [msgspec-domain-modeling](skills/msgspec-domain-modeling/) | Defining/modifying any cross-boundary DTO or enum |
-| [protocol-first-interfaces](skills/protocol-first-interfaces/) | Defining a Protocol, or wiring a widget's Gateway |
-| [three-layer-architecture](skills/three-layer-architecture/) | Creating a new module, unsure which layer it belongs in |
-| [concurrency-and-cancellation](skills/concurrency-and-cancellation/) | Touching the pipeline, `TaskRunner`, cancellation, or the inference gate |
-| [icontract-design-by-contract](skills/icontract-design-by-contract/) | Writing/reviewing a module's `api.py` |
-| [error-taxonomy-and-redaction](skills/error-taxonomy-and-redaction/) | Raising/catching an exception, touching secrets or logs |
-| [pyside6-spec-ui](skills/pyside6-spec-ui/) | Writing/reviewing a PySide6 widget, dialog, or theming code |
-| [story-and-traceability-workflow](skills/story-and-traceability-workflow/) | Creating a story, finishing implementation work |
-| [acceptance-criteria-authoring](skills/acceptance-criteria-authoring/) | Writing ACs for a story or tests for an AC |
-| [edge-case-coverage](skills/edge-case-coverage/) | A story cites an `EC-` id, or you're deciding what edge-case tests a module needs |
-| [testing-standard-pyqt](skills/testing-standard-pyqt/) | Writing any test |
-| [adr-authoring](skills/adr-authoring/) | A decision is architecturally significant and costly to reverse |
-| [secrets-and-provider-config](skills/secrets-and-provider-config/) | Touching provider credentials, `ProviderConfig`, settings import/export |
-| [sqlite-persistence-conventions](skills/sqlite-persistence-conventions/) | Touching a persistence store or the SQLite schema |
-| [create-mermaid-diagrams](skills/create-mermaid-diagrams/) | Creating or updating an architecture/flow diagram |
-| [project-docs](skills/project-docs/) | Writing/updating project documentation outside a story file |
+| Skill                                                                      | Use when                                                                          |
+| -------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [msgspec-domain-modeling](skills/msgspec-domain-modeling/)                 | Defining/modifying any cross-boundary DTO or enum                                 |
+| [protocol-first-interfaces](skills/protocol-first-interfaces/)             | Defining a Protocol, or wiring a widget's Gateway                                 |
+| [three-layer-architecture](skills/three-layer-architecture/)               | Creating a new module, unsure which layer it belongs in                           |
+| [concurrency-and-cancellation](skills/concurrency-and-cancellation/)       | Touching the pipeline, `TaskRunner`, cancellation, or the inference gate          |
+| [icontract-design-by-contract](skills/icontract-design-by-contract/)       | Writing/reviewing a module's `api.py`                                             |
+| [error-taxonomy-and-redaction](skills/error-taxonomy-and-redaction/)       | Raising/catching an exception, touching secrets or logs                           |
+| [pyside6-spec-ui](skills/pyside6-spec-ui/)                                 | Writing/reviewing a PySide6 widget, dialog, or theming code                       |
+| [story-and-traceability-workflow](skills/story-and-traceability-workflow/) | Creating a story, finishing implementation work                                   |
+| [acceptance-criteria-authoring](skills/acceptance-criteria-authoring/)     | Writing ACs for a story or tests for an AC                                        |
+| [edge-case-coverage](skills/edge-case-coverage/)                           | A story cites an `EC-` id, or you're deciding what edge-case tests a module needs |
+| [testing-standard-pyqt](skills/testing-standard-pyqt/)                     | Writing any test                                                                  |
+| [adr-authoring](skills/adr-authoring/)                                     | A decision is architecturally significant and costly to reverse                   |
+| [secrets-and-provider-config](skills/secrets-and-provider-config/)         | Touching provider credentials, `ProviderConfig`, settings import/export           |
+| [sqlite-persistence-conventions](skills/sqlite-persistence-conventions/)   | Touching a persistence store or the SQLite schema                                 |
+| [create-mermaid-diagrams](skills/create-mermaid-diagrams/)                 | Creating or updating an architecture/flow diagram                                 |
+| [project-docs](skills/project-docs/)                                       | Writing/updating project documentation outside a story file                       |
 
 ## Agents Reference
 
-| Agent | Model | Use after |
-|-------|-------|-----------|
-| [investigator](agents/investigator.md) | Haiku | Starting any new phase/story — read-only mapping of what exists vs. what the spec requires |
-| [architect](agents/architect.md) | Opus | Investigation complete — turns findings into `docs/stories/*.md` |
-| [coder](agents/coder.md) | Sonnet | A story is `ready` — implements exactly one story |
-| [tester](agents/tester.md) | Sonnet | `coder` finishes a story — writes its acceptance-criteria tests |
-| [debugger](agents/debugger.md) | Sonnet (escalate to Opus after 2 failed attempts on the same bug) | A test or CI failure isn't a quick fix |
-| [docs-writer](agents/docs-writer.md) | Haiku | A story's public surface changed, or an ADR is needed |
-| [spec-conformance-reviewer](agents/spec-conformance-reviewer.md) | Opus | A story's implementation is done — independent re-derivation of its ACs from the spec, before marking it `done` |
+| Agent                                                            | Model                                                             | Use after                                                                                                       |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [investigator](agents/investigator.md)                           | Haiku                                                             | Starting any new phase/story — read-only mapping of what exists vs. what the spec requires                      |
+| [architect](agents/architect.md)                                 | Opus                                                              | Investigation complete — turns findings into `docs/stories/*.md`                                                |
+| [coder](agents/coder.md)                                         | Sonnet                                                            | A story is `ready` — implements exactly one story                                                               |
+| [tester](agents/tester.md)                                       | Sonnet                                                            | `coder` finishes a story — writes its acceptance-criteria tests                                                 |
+| [debugger](agents/debugger.md)                                   | Sonnet (escalate to Opus after 2 failed attempts on the same bug) | A test or CI failure isn't a quick fix                                                                          |
+| [docs-writer](agents/docs-writer.md)                             | Haiku                                                             | A story's public surface changed, or an ADR is needed                                                           |
+| [spec-conformance-reviewer](agents/spec-conformance-reviewer.md) | Opus                                                              | A story's implementation is done — independent re-derivation of its ACs from the spec, before marking it `done` |
 
 ## Context management
 
@@ -203,13 +222,13 @@ Communicate for the reader, not for the specification.
 
 When asking questions, explaining decisions, reporting progress, or describing issues:
 
-* Use plain, concrete language instead of internal terminology or abstractions.
-* Describe the actual behavior, scenario, or problem, not the document structure that defines it.
-* Never assume the reader will look up requirement IDs, acceptance criteria, phases, tickets, or other references.
-* If you refer to a requirement, restate its relevant meaning in the current message. References are for traceability only, never as the primary explanation.
-* Provide enough context for the reader to understand and answer without opening other documents.
-* Prefer concrete examples over abstract descriptions whenever they improve clarity.
-* Explain *what* is happening, *why* it matters, and *what decision or action* is needed.
-* Recommend a reasonable default when appropriate instead of delegating every decision to the reader.
+- Use plain, concrete language instead of internal terminology or abstractions.
+- Describe the actual behavior, scenario, or problem, not the document structure that defines it.
+- Never assume the reader will look up requirement IDs, acceptance criteria, phases, tickets, or other references.
+- If you refer to a requirement, restate its relevant meaning in the current message. References are for traceability only, never as the primary explanation.
+- Provide enough context for the reader to understand and answer without opening other documents.
+- Prefer concrete examples over abstract descriptions whenever they improve clarity.
+- Explain *what* is happening, *why* it matters, and *what decision or action* is needed.
+- Recommend a reasonable default when appropriate instead of delegating every decision to the reader.
 
 **Rule of thumb:** Every message should be understandable on its own. If the reader must navigate project documentation to understand your question, explanation, or recommendation, rewrite it.
