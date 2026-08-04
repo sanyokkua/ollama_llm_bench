@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-04T13:33:03Z'
+generated_at: '2026-08-04T20:48:38Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5062,7 +5062,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_resume_recovery_sweep.py::test_resume_sweeps_in_flight_rows_before_dispatch
   STORY-081:
     title: Add the headless end-to-end smoke tier for launch, idle, and clean shutdown
-    status: draft
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
     - 08_Cross_Cutting/08-M_app_lifecycle.md#5-the-readiness-probe
@@ -5072,13 +5072,27 @@ stories:
     modules:
     - backend/readiness/
     - ui/main_window/
+    - ui/new_benchmark/
     edge_cases:
     - EC-M-5
     acceptance_criteria:
       STORY-081-AC-1:
-        tests: []
+        tests:
+        - tests/e2e/test_launch_idle_shutdown_smoke.py::test_app_launches_reaches_idle_and_shuts_down_cleanly
+        - tests/e2e/test_launch_idle_shutdown_smoke.py::test_shutdown_closes_the_write_connection
+        - tests/e2e/test_launch_idle_shutdown_smoke.py::test_shutdown_leaves_no_dispatcher_thread_running
       STORY-081-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_entering_not_ready_shows_blocking_explanatory_modal
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_modal_text_names_the_unreachable_providers_and_the_remedy
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_readiness_not_ready_renders_before_the_blocking_modal
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_repeated_not_ready_results_show_the_modal_once
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_start_button_disabled_when_readiness_is_not_ready
+        - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_start_button_enabled_when_readiness_is_usable
+        - tests/integration/test_launch_not_ready_gating.py::test_readiness_probe_total_failure_resolves_not_ready_and_gates_run_start
+        - tests/integration/test_launch_not_ready_gating.py::test_readiness_probe_total_failure_shows_an_explanatory_modal
+        - tests/integration/test_launch_not_ready_gating.py::test_readiness_probe_total_failure_shows_not_ready_in_the_status_bar
+        - tests/integration/test_launch_not_ready_gating.py::test_user_interface_stays_navigable_when_not_ready
   STORY-082:
     title: Stop per-task timeout exhaustion from tripping the provider circuit breaker
     status: superseded
@@ -8511,7 +8525,20 @@ edge_cases:
   EC-M-5:
     stories:
     - STORY-081
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_entering_not_ready_shows_blocking_explanatory_modal
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_modal_text_names_the_unreachable_providers_and_the_remedy
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_readiness_not_ready_renders_before_the_blocking_modal
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_repeated_not_ready_results_show_the_modal_once
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_start_button_disabled_when_readiness_is_not_ready
+    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_start_button_enabled_when_readiness_is_usable
+    - tests/e2e/test_launch_idle_shutdown_smoke.py::test_app_launches_reaches_idle_and_shuts_down_cleanly
+    - tests/e2e/test_launch_idle_shutdown_smoke.py::test_shutdown_closes_the_write_connection
+    - tests/e2e/test_launch_idle_shutdown_smoke.py::test_shutdown_leaves_no_dispatcher_thread_running
+    - tests/integration/test_launch_not_ready_gating.py::test_readiness_probe_total_failure_resolves_not_ready_and_gates_run_start
+    - tests/integration/test_launch_not_ready_gating.py::test_readiness_probe_total_failure_shows_an_explanatory_modal
+    - tests/integration/test_launch_not_ready_gating.py::test_readiness_probe_total_failure_shows_not_ready_in_the_status_bar
+    - tests/integration/test_launch_not_ready_gating.py::test_user_interface_stays_navigable_when_not_ready
   EC-M-6:
     stories:
     - STORY-080
@@ -10880,6 +10907,7 @@ modules:
     - STORY-055
     - STORY-071
     - STORY-074
+    - STORY-081
     - STORY-084
     - STORY-085
     - STORY-092

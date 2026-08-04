@@ -646,6 +646,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   repository link in the user's default browser. Per `07_Common_Dialogs/about_dialog.md` §§4–6, 11;
   `error_dialog.md` §§5–6, 9, 12; and `08-E` §21c.
 
+- Not-ready explanatory modal (`ui/main_window/`): when the startup readiness probe fails every
+  check, the application now shows a blocking modal dialog naming the unreachable providers and
+  pointing at Settings, in addition to the existing status-bar indication — so a broken
+  environment is surfaced twice, not once, as required. The modal is edge-triggered: it fires
+  only on the transition into `NOT_READY`, not on every re-probe, since the probe re-runs on
+  demand and after every provider/embedding settings change and a modal on every unchanged
+  result would re-prompt endlessly; it fires again if readiness later recovers and then fails
+  once more. The status bar repaints before the modal opens, so the two surfaces never disagree
+  while the modal is up. Per `08_Cross_Cutting/08-M_app_lifecycle.md` §5 (STORY-081).
+
 ### Fixed
 
 - Circuit breaker: a new conformance test pins, across all three breaker states (`CLOSED`,
@@ -697,3 +707,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Changing the theme in Settings now repaints the whole application immediately on save,
   instead of only taking effect after a restart. Per
   `08_Cross_Cutting/08-D_color_palette_and_typography.md` §13 (STORY-083).
+
+- New Benchmark panel: the Start button is now disabled, with the tooltip "No provider is
+  reachable — check provider settings.", whenever no provider is reachable. Previously the
+  button stayed enabled and a run could not actually be started — the Run Summary dialog's own
+  pre-flight check refused it — but the user only discovered this after clicking Start, instead
+  of the affordance itself reflecting an environment that cannot run a benchmark. Per
+  `08_Cross_Cutting/08-M_app_lifecycle.md` §5 (STORY-081).

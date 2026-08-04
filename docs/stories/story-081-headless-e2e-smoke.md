@@ -1,7 +1,7 @@
 ---
 id: STORY-081
 title: Add the headless end-to-end smoke tier for launch, idle, and clean shutdown
-status: draft
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
   - 08_Cross_Cutting/08-M_app_lifecycle.md#5-the-readiness-probe
@@ -10,6 +10,7 @@ spec_clauses:
   - 08_Cross_Cutting/08-M_app_lifecycle.md#EC-M-5
 modules:
   - ui/main_window/
+  - ui/new_benchmark/
   - backend/readiness/
 acceptance_criteria:
   - STORY-081-AC-1
@@ -24,7 +25,7 @@ depends_on:
   - STORY-080
 adrs:
   - ADR-0010
-owner: tester
+owner: coder
 estimate: M
 ---
 
@@ -47,12 +48,19 @@ an enabled Start button for an environment that cannot run a benchmark.
 - The degraded-launch scenario: a readiness probe that fails every check resolves the application to
   `NOT_READY`, gates run start, surfaces the failure in the status bar and an explanatory modal, and
   leaves the user interface navigable.
+- Two small production changes discovered missing during planning, both required by
+  `08_Cross_Cutting/08-M_app_lifecycle.md` §5: the New Benchmark panel's Start button is now disabled
+  (with the tooltip "No provider is reachable — check provider settings.") whenever no provider is
+  reachable, so the user is never handed an enabled run-start affordance for an environment that
+  cannot run a benchmark; and a blocking explanatory modal now appears on entering `NOT_READY`,
+  naming the unreachable providers and pointing at Settings, so the problem is surfaced twice — in
+  the status bar and through the modal — as the spec requires, rather than in the status bar alone.
 
 ## Out of scope
 
 - The entry point and exception hooks (STORY-076), the object graph and `AppHandle` (STORY-077), the
   launch glue (STORY-078), the single-instance lock (STORY-079), and the quit sequence (STORY-080) —
-  this story exercises them end to end, it does not implement them.
+  this story exercises them end to end.
 - The readiness probe algorithm and its `READY` / `DEGRADED` / `NOT_READY` resolution — already
   delivered by STORY-016; this story asserts the `NOT_READY` launch effect only.
 - Any live LLM-server contact — the e2e tier runs fully offline with a faked provider surface.
@@ -101,14 +109,34 @@ the failure is surfaced in the status bar and an explanatory modal (EC-M-5).
 
 - STORY-081-AC-1 — e2e, `tests/e2e/test_launch_idle_shutdown_smoke.py`,
   `test_app_launches_reaches_idle_and_shuts_down_cleanly`.
-- STORY-081-AC-2 — e2e, `tests/e2e/test_launch_not_ready_gating.py`,
+
+- STORY-081-AC-2 — integration, `tests/integration/test_launch_not_ready_gating.py`,
   `test_readiness_probe_total_failure_resolves_not_ready_and_gates_run_start`. Covers EC-M-5.
+
+  **Correction:** the story originally planned this test under `tests/e2e/`. It is proven in
+  `tests/integration/` instead, matching `06_EDGE_CASE_TO_TEST_MAPPING.md:267`, which assigns
+  EC-M-5 the `integration` tier and `tests/integration/` as its proving module — the same
+  placement as every sibling app-lifecycle edge case, EC-M-1 through EC-M-4.
+
+## Notes
+
+- The not-ready explanatory modal is **edge-triggered**: it fires on the transition *into* the
+  `NOT_READY` state, not on every `NOT_READY` probe result. The spec fixes the requirement (a
+  problem that blocks the user must be surfaced twice — status bar and modal) but not the
+  frequency, and the readiness probe re-runs on demand from the user interface and after every
+  settings change affecting providers or the embedding model; a modal fired on every `NOT_READY`
+  result would re-prompt endlessly on an unchanged, still-broken environment. The modal fires
+  again if readiness later recovers and then fails once more.
+- The status bar repaints **before** the modal opens, not after. The modal blocks the GUI thread,
+  so repainting after it would leave the status bar stale for as long as the dialog stays open,
+  defeating the "surfaced twice" simultaneity the spec requires. This ordering was escalated to
+  and approved by the project owner and is pinned by a regression test.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-081.
-- [ ] EC-M-5 has a passing test.
-- [ ] The headless smoke test (launch → idle → clean shutdown) passes.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-081.
+- [x] EC-M-5 has a passing test.
+- [x] The headless smoke test (launch → idle → clean shutdown) passes.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
