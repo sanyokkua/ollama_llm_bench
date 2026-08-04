@@ -77,6 +77,23 @@ def _make_run_finished_event(*, run_id: int = 1) -> RunFinishedEvent:
     )
 
 
+def _not_ready_event() -> AppReadinessChangedEvent:
+    """Build a readiness event where every operability check failed."""
+    return AppReadinessChangedEvent(
+        overall=ReadinessState.NOT_READY,
+        per_provider=(
+            ProviderHealthSummary(
+                provider_id="provider-1",
+                reachable=False,
+                discovery_supported=True,
+                model_count=None,
+            ),
+        ),
+        embedding_reachable=False,
+        checked_at="2026-01-01T00:00:00Z",
+    )
+
+
 def _make_run_failed_event(*, run_id: int = 1) -> RunFailedEvent:
     return RunFailedEvent(
         run_id=run_id,
@@ -398,6 +415,62 @@ def test_readiness_changed_updates_health_dot_tooltip(
     tooltip = _health_dot(harness).toolTip()
     assert "provider-1: unreachable" in tooltip
     assert "embedding: unreachable" in tooltip
+
+
+def test_entering_not_ready_shows_blocking_explanatory_modal(
+    make_harness: Callable[..., MainWindowHarness],
+) -> None:
+    """Proves: STORY-081-AC-2
+
+    A totally-failed health check is surfaced twice -- the status bar dot and a
+    blocking explanatory modal (EC-M-5, 08-M_app_lifecycle.md section 5).
+    """
+    # Arrange
+    harness = make_harness()
+
+    # Act
+    harness.event_bus.emit(SIGNAL_APP_READINESS_CHANGED, _not_ready_event())
+
+    # Assert
+    assert [blocking for _text, blocking in harness.notifications.error_calls] == [True]
+
+
+def test_repeated_not_ready_results_show_the_modal_once(
+    make_harness: Callable[..., MainWindowHarness],
+) -> None:
+    """Proves: STORY-081-AC-2
+
+    The probe re-runs on demand and after settings changes; the modal is
+    edge-triggered so a still-broken environment does not re-prompt.
+    """
+    # Arrange
+    harness = make_harness()
+
+    # Act
+    harness.event_bus.emit(SIGNAL_APP_READINESS_CHANGED, _not_ready_event())
+    harness.event_bus.emit(SIGNAL_APP_READINESS_CHANGED, _not_ready_event())
+
+    # Assert
+    assert len(harness.notifications.error_calls) == 1
+
+
+def test_modal_text_names_the_unreachable_providers_and_the_remedy(
+    make_harness: Callable[..., MainWindowHarness],
+) -> None:
+    """Proves: STORY-081-AC-2
+
+    The modal states what is wrong and how to correct it, not merely that
+    something failed (08-M_app_lifecycle.md section 5).
+    """
+    # Arrange
+    harness = make_harness()
+
+    # Act
+    harness.event_bus.emit(SIGNAL_APP_READINESS_CHANGED, _not_ready_event())
+
+    # Assert
+    text = harness.notifications.error_calls[0][0]
+    assert "provider-1" in text and "Settings" in text
 
 
 def test_global_message_shows_toast_then_auto_clears(

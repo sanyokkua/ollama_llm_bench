@@ -10,7 +10,7 @@ Protocol plus ``EventBus``, ``WorkspaceController``, ``NotificationService``, an
 """
 
 from collections.abc import Callable, Sequence
-from typing import cast
+from typing import Final, cast
 
 from PySide6.QtCore import QTimer
 import structlog
@@ -18,7 +18,12 @@ import structlog
 from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
 from ollama_llm_bench.adapters.notification_service import NotificationService
 from ollama_llm_bench.adapters.workspace_controller import WorkspaceController, WorkspaceHint
-from ollama_llm_bench.backend.domain import AppReadinessSnapshot, ProviderHealth, RunId
+from ollama_llm_bench.backend.domain import (
+    AppReadinessSnapshot,
+    ProviderHealth,
+    ReadinessState,
+    RunId,
+)
 from ollama_llm_bench.backend.events import (
     SIGNAL_APP_READINESS_CHANGED,
     SIGNAL_GLOBAL_MESSAGE,
@@ -57,6 +62,11 @@ _DISABLED_TOOLTIP = "Disabled - a benchmark is in progress."
 _DEFAULT_TITLE_TEMPLATE = "Ollama LLM Bench v{version}"
 _RUNNING_TITLE_TEMPLATE = "Ollama LLM Bench - Running: {run_name}"
 _PAUSED_TITLE_TEMPLATE = "Ollama LLM Bench - Paused: {run_name}"
+_NOT_READY_MODAL_TITLE: Final[str] = "No provider is reachable."
+_NOT_READY_MODAL_REMEDY: Final[str] = (
+    "Open Settings to check each provider's base URL and credentials, then re-run "
+    "the check from the health dot in the status bar."
+)
 
 _RunTerminalEvent = RunStoppedEvent | RunFinishedEvent | RunFailedEvent
 
@@ -223,9 +233,13 @@ class MainWindowController:
         self._render()
 
     def _on_readiness_changed(self, event: AppReadinessChangedEvent) -> None:
+        was_not_ready = self._health_state is ReadinessState.NOT_READY
         self._health_state = event.overall
         self._health_tooltip = _format_health_tooltip(event)
         logger.debug("readiness_changed_reflected", overall=event.overall.value)
+        if event.overall is ReadinessState.NOT_READY and not was_not_ready:
+            logger.info("readiness_not_ready_modal_shown")
+            self._notifications.show_error(_format_not_ready_modal_text(event), blocking=True)
         self._render()
 
     def _on_global_message(self, event: GlobalMessageEvent) -> None:
@@ -305,6 +319,28 @@ def _format_health_tooltip(
     return _format_health_lines(
         per_provider=snapshot.per_provider, embedding_reachable=snapshot.embedding_reachable
     )
+
+
+def _format_not_ready_modal_text(event: AppReadinessChangedEvent) -> str:
+    """Explain a totally-failed readiness probe and how to correct it (STORY-081-AC-2).
+
+    Args:
+        event: The readiness result whose overall state is ``NOT_READY``.
+
+    Returns:
+        A multi-line message naming each unreachable provider, the embedding
+        model's reachability, and the remedy.
+    """
+    unreachable = ", ".join(
+        health.provider_id for health in event.per_provider if not health.reachable
+    )
+    lines = [_NOT_READY_MODAL_TITLE, ""]
+    if unreachable:
+        lines.append(f"Unreachable providers: {unreachable}")
+    if not event.embedding_reachable:
+        lines.append("Embedding model: unreachable")
+    lines.extend(["", _NOT_READY_MODAL_REMEDY])
+    return "\n".join(lines)
 
 
 def _format_health_lines(
