@@ -80,6 +80,34 @@ def _restore_global_exception_hooks() -> Generator[None]:
     threading.excepthook = original_threading_hook
 
 
+@pytest.fixture(autouse=True)
+def _clear_qt_quit_flag(qapp: QApplication) -> Generator[None]:
+    """Clear Qt's per-thread "quit now" flag after this module's tests run for real.
+
+    See the identical fixture in `test_launch_abort_modal_quits.py` for the full
+    mechanism: `QCoreApplication::exit()` sets `QThreadData::quitNow`, and the
+    **only** code that ever clears it is `QCoreApplication::exec()` itself. Under
+    `pytest` no top-level `app.exec()` is running, so once
+    `test_ui_thread_uncaught_exception_logs_shows_modal_and_requests_exit` below lets
+    the real quit callback call `QApplication.instance().exit(1)` on this module's
+    real, session-scoped `qapp` (the behaviour that test proves), the flag stays set
+    for the rest of the session -- every later `QDialog.exec()`/`QEventLoop.exec()`/
+    queued-signal-delivering nested loop on the GUI thread then returns immediately
+    without running. Measured: with this fixture absent, that one test alone poisons
+    unrelated `src/`-colocated Qt tests run later in the same session (e.g.
+    `ui/progress/tests/test_log_controller.py`'s queued-signal assertions), even
+    though every other test in this file already avoids triggering a real `.exit()`
+    on the shared `qapp` (see the `QApplication.instance` patch in
+    `test_quit_callback_never_shuts_down_the_handle_itself` above). This teardown
+    re-creates the one condition that clears the flag -- a real, bounded `qapp.exec()`
+    ended immediately by `qapp.exit(0)` -- after every test in this module, so nothing
+    leaks into tests collected afterward.
+    """
+    yield
+    QTimer.singleShot(0, lambda: qapp.exit(0))
+    qapp.exec()
+
+
 @pytest.fixture
 def isolated_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Redirect `Path.home()` into `tmp_path` -- see `test_compose_build_app.py`'s
