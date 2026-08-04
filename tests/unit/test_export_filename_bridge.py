@@ -1,12 +1,14 @@
-"""Unit tests for ``compose.py``'s ``_ExportFilenameBridge`` (STORY-077-AC-4).
+"""Unit tests for ``_compose_shims.py``'s ``_ExportFilenameBridge`` (STORY-077-AC-4).
 
-Cross-module: the bridge under test lives in ``compose.py`` (the composition root), which
-is explicitly exempted from the usual ``_internal/`` privacy boundary for testing purposes
-(the module's own docstring frames it as the sole wiring point, not a feature module with a
-public-surface contract) -- so this top-level ``tests/unit/`` file imports its private
-``_ExportFilenameBridge``/``_EXPORT_KIND_MAP``/``_sanitise_run_name`` names directly, and
-additionally reaches ``backend/csv_export``'s private ``sanitise_run_name`` helper solely to
-prove AC-4's own "byte-for-byte" claim about compose.py's local copy of it.
+Cross-module: the bridge under test lives in ``_compose_shims.py``, a private sibling
+module of ``compose.py`` (the composition root) housing its non-wiring shim/stub classes
+-- both are explicitly exempted from the usual ``_internal/`` privacy boundary for testing
+purposes (their own docstrings frame them as the sole wiring point plus its shims, not a
+feature module with a public-surface contract) -- so this top-level ``tests/unit/`` file
+imports its private ``_ExportFilenameBridge``/``_EXPORT_KIND_MAP``/``_sanitise_run_name``
+names directly, and additionally reaches ``backend/csv_export``'s private
+``sanitise_run_name`` helper solely to prove AC-4's own "byte-for-byte" claim about
+``_compose_shims.py``'s local copy of it.
 
 Table-driven (Pattern B): AC-4's own table enumerates a finite, total set of UI ``kind``
 strings the two real call sites (``ui/results/_internal/footer.py``,
@@ -15,13 +17,13 @@ strings the two real call sites (``ui/results/_internal/footer.py``,
 
 import pytest
 
+from ollama_llm_bench._compose_shims import _ExportFilenameBridge
 from ollama_llm_bench.backend.csv_export import ExportKind, compose_export_filename
 
-# Deliberate cross-check of compose.py's documented copy of this private helper -- see the
-# module docstring for why this narrow exception is safe here.
+# Deliberate cross-check of _compose_shims.py's documented copy of this private helper --
+# see the module docstring for why this narrow exception is safe here.
 from ollama_llm_bench.backend.csv_export._internal.filename import sanitise_run_name
 from ollama_llm_bench.backend.domain import BenchmarkRun, RunMode, RunStatus
-from ollama_llm_bench.compose import _ExportFilenameBridge
 
 _RUN_ID = 42
 

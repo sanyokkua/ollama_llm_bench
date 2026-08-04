@@ -21,23 +21,39 @@ the prior 500 ceiling, with `compose.py` already at its prior widening's own cei
 record; there was no further import-collapsing headroom left to absorb this story's
 minimal, spec-mandated addition.
 
+**Lowered for the first time, to 50-450 lines, by a targeted extraction (not a fourth
+widening).** At 519/520 lines, `compose.py` measured out to header+imports (179 lines),
+`AppHandle` (24 lines), ten private shim/stub classes and helpers that are not wiring at
+all (101 lines), `_abort_launch`/`_quit_nested_event_loop` (33 lines), `_resolve_app_version`
+(6 lines) -- and `build_app`, the actual composition-root wiring, at 177 lines: already
+inside the spec's original 50-200 figure. The ten shims (`_sanitise_run_name`,
+`_ExportFilenameBridge`, `_EmbeddingSelection`, `_ReadinessEmbeddingSelector`,
+`_NullEmbeddingClient`, `_NoActiveRunTaskPaths`, `_NoRunValidator`,
+`_NoOpManualProviderProbeCommand`, `_AlwaysOkRunLogWriteStatus`, `_NoModelFetcher`) moved
+verbatim (docstrings and comments intact) to the private sibling module
+`ollama_llm_bench._compose_shims`, together with the imports only they needed; `build_app`
+itself was not touched. That brought `compose.py` to 405 lines, so 450 restores roughly the
+same proportion of headroom the 50-400 budget originally gave the 177-line `build_app` --
+room to grow without inviting a fourth widening at the first opportunity.
+
 This is a standing invariant, not a one-time snapshot: it runs against `compose.py`'s
-*current* contents on every suite run, so it also constrains every later Phase-11 story
-(STORY-076, STORY-083) that touches `compose.py` after this one.
+*current* contents on every suite run, so it also constrains every later story that
+touches `compose.py` after this one.
 """
 
 from pathlib import Path
 
 _MIN_LINES = 50
-_MAX_LINES = 520
+_MAX_LINES = 450
 
 
 def test_compose_py_within_50_to_520_lines() -> None:
     """Proves: STORY-077-AC-5
 
     Given the current, committed `compose.py`, when its source lines are counted, then
-    the count falls within the owner-approved 50-520 composition-root budget (widened
-    from 50-200, then 50-400, then 50-500 -- see the module docstring).
+    the count falls within the owner-approved 50-450 composition-root budget (widened
+    from 50-200, then 50-400, then 50-500, then 50-520, then **lowered** to 50-450 by
+    extracting non-wiring shims into `_compose_shims.py` -- see the module docstring).
     """
     # Arrange
     compose_path = Path(__file__).resolve().parents[2] / "src" / "ollama_llm_bench" / "compose.py"

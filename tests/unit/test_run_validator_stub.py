@@ -1,7 +1,8 @@
-"""Unit test for `compose.py`'s `_NoRunValidator` stub (STORY-077-AC-12).
+"""Unit test for `_compose_shims.py`'s `_NoRunValidator` stub (STORY-077-AC-12).
 
-Cross-module: the stub under test lives in `compose.py`, which is explicitly exempted from
-the usual `_internal/` privacy boundary for testing purposes -- see
+Cross-module: the stub under test lives in `_compose_shims.py`, a private sibling module
+of `compose.py` (the composition root) housing its non-wiring shim/stub classes -- both are
+explicitly exempted from the usual `_internal/` privacy boundary for testing purposes -- see
 `tests/unit/test_export_filename_bridge.py`'s module docstring for the same reasoning.
 
 Given/When/Then (Pattern A): the stub's implementation unconditionally ignores its
@@ -10,8 +11,8 @@ enough to demonstrate the always-empty behaviour -- a Hypothesis property sweep 
 no additional confidence, since the code path taken is identical regardless of the input.
 """
 
+from ollama_llm_bench._compose_shims import _NoRunValidator
 from ollama_llm_bench.backend.domain import RunMode, RunStartRequest
-from ollama_llm_bench.compose import _NoRunValidator
 
 
 def _make_request(*, run_mode: RunMode = RunMode.TASKS) -> RunStartRequest:

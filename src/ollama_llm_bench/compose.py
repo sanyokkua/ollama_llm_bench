@@ -7,15 +7,13 @@ factory calls are pinned to one physical line each via ``# fmt: skip`` (E501 is
 unenforced, see ``rules/formatting.md``).
 """
 
-from collections.abc import Callable, Mapping
 import contextlib
 import functools
 import importlib.metadata
-import re
 import sqlite3
 import sys
 import threading
-from typing import NoReturn
+from typing import TYPE_CHECKING, NoReturn
 
 import httpx
 import msgspec
@@ -30,6 +28,19 @@ from PySide6.QtWidgets import (  # fmt: skip
 )
 import structlog
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+from ollama_llm_bench._compose_shims import (  # fmt: skip
+    _AlwaysOkRunLogWriteStatus,
+    _ExportFilenameBridge,
+    _NoActiveRunTaskPaths,
+    _NoModelFetcher,
+    _NoOpManualProviderProbeCommand,
+    _NoRunValidator,
+    _NullEmbeddingClient,
+    _ReadinessEmbeddingSelector,
+)
 from ollama_llm_bench.adapters.clipboard import Clipboard, make_clipboard
 from ollama_llm_bench.adapters.file_system_actions import (  # fmt: skip
     make_file_change_watcher,
@@ -58,30 +69,12 @@ from ollama_llm_bench.backend import mode_visibility
 from ollama_llm_bench.backend.benchmark_pipeline import make_benchmark_pipeline
 from ollama_llm_bench.backend.charts import make_chart_aggregator
 from ollama_llm_bench.backend.concurrency import CancellationToken, RunDispatcher
-from ollama_llm_bench.backend.csv_export import (  # fmt: skip
-    ExportKind,
-    compose_export_filename,
-    make_table_serializer,
-)
-from ollama_llm_bench.backend.domain import (  # fmt: skip
-    BenchmarkRun,
-    ChatRequest,
-    ChatResponse,
-    InferenceTestOutcome,
-    InferenceTestResult,
-    ModelName,
-    ProviderConfig,
-    ProviderHealth,
-    ProviderId,
-    ProviderType,
-    RunId,
-    RunStartRequest,
-)
+from ollama_llm_bench.backend.csv_export import make_table_serializer
+from ollama_llm_bench.backend.domain import ProviderId, ProviderType
 from ollama_llm_bench.backend.embedding import make_embedding_service
 from ollama_llm_bench.backend.errors import (  # fmt: skip
     ConfigurationError,
     ContractViolationError,
-    EmbeddingUnavailableError,
     PersistenceError,
 )
 from ollama_llm_bench.backend.events import (  # fmt: skip
@@ -106,7 +99,6 @@ from ollama_llm_bench.backend.persistence.app_settings import (  # fmt: skip
 )
 from ollama_llm_bench.backend.persistence.model_capabilities import create_model_capabilities_store
 from ollama_llm_bench.backend.persistence.providers import (  # fmt: skip
-    ProvidersStore,
     create_providers_store,
     seed_builtin_providers,
 )
@@ -127,7 +119,6 @@ from ollama_llm_bench.backend.provider_openai_compatible.api import (  # fmt: sk
     make_openai_client,
 )
 from ollama_llm_bench.backend.provider_registry import (  # fmt: skip
-    ChatStream,
     ClientBuilder,
     LLMClient,
     ProviderRegistry,
@@ -137,7 +128,6 @@ from ollama_llm_bench.backend.readiness import make_readiness_service
 from ollama_llm_bench.backend.run_analysis import make_run_analysis_service
 from ollama_llm_bench.backend.run_drift import make_run_drift_detector
 from ollama_llm_bench.backend.settings import (  # fmt: skip
-    SettingsService,
     make_run_snapshot_builder,
     make_settings_atomic_writer,
     make_settings_service,
@@ -155,7 +145,6 @@ from ollama_llm_bench.ui.common_dialogs import (  # fmt: skip
 )
 from ollama_llm_bench.ui.main_window import make_main_window, make_status_bar
 from ollama_llm_bench.ui.new_benchmark import NewBenchmarkCollaborators, make_new_benchmark_widget
-from ollama_llm_bench.ui.new_benchmark.models import ValidationEntry
 from ollama_llm_bench.ui.progress import make_progress_widget
 from ollama_llm_bench.ui.results import ResultCollaborators, make_result_widget
 from ollama_llm_bench.ui.resume_benchmark import (  # fmt: skip
@@ -173,8 +162,6 @@ from ollama_llm_bench.ui.theme import (  # fmt: skip
 __all__: list[str] = ["AppHandle", "build_app"]
 
 _LOG = structlog.get_logger("app.compose")
-
-_EXPORT_KIND_MAP: dict[str, ExportKind] = {"Summary": ExportKind.SUMMARY, "Details": ExportKind.DETAILS}  # fmt: skip
 
 
 class AppHandle(msgspec.Struct, frozen=True, kw_only=True, gc=False):
@@ -199,107 +186,6 @@ class AppHandle(msgspec.Struct, frozen=True, kw_only=True, gc=False):
             self.write_conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             self.write_conn.close()
         self.instance_lock.release()  # 5
-
-
-def _sanitise_run_name(*, run_name: str, run_id: RunId) -> str:
-    """Copy of ``csv_export._internal.filename.sanitise_run_name`` (import-linter forbids reaching it)."""  # fmt: skip
-    replaced = re.sub(r"[^A-Za-z0-9._-]", "_", run_name)
-    collapsed = re.sub(r"_+", "_", replaced).rstrip("_")
-    while collapsed[:1] in {"_", "."}:
-        collapsed = collapsed[1:]
-    return collapsed[:80] or f"Run_{run_id}"
-
-
-class _ExportFilenameBridge:
-    """Bridges the UI ``ExportFilenameHelper`` onto ``compose_export_filename``; unmapped kinds fall back to a local sanitise copy."""  # fmt: skip
-
-    def compose_filename(self, *, run: BenchmarkRun, kind: str, ext: str) -> str:
-        name = run.run_name or f"Run {run.run_id}"
-        export_kind = _EXPORT_KIND_MAP.get(kind)
-        if export_kind is not None:
-            return compose_export_filename(run_name=name, run_id=run.run_id, kind=export_kind, ext=ext)  # fmt: skip
-        return f"{_sanitise_run_name(run_name=name, run_id=run.run_id)}_{kind}.{ext}"
-
-
-class _EmbeddingSelection:
-    """A resolved ``(provider, model)`` pair satisfying ``ReadinessEmbeddingSelection``."""
-
-    def __init__(self, *, provider: ProviderConfig, model_name: str) -> None:
-        self.provider = provider
-        self.model_name = model_name
-
-
-class _ReadinessEmbeddingSelector:
-    """A thin adapter over ``SettingsService`` + ``ProvidersStore`` (sanctioned by ``readiness/protocols.py``)."""  # fmt: skip
-
-    def __init__(self, *, settings: SettingsService, providers_store: ProvidersStore) -> None:
-        self._settings = settings
-        self._providers_store = providers_store
-
-    def resolve_embedding_selection(self) -> _EmbeddingSelection | None:
-        name = self._settings.get_str("embedding.selected_provider_name")
-        model_name = self._settings.get_str("embedding.selected_model_name")
-        provider = self._providers_store.get_by_name(name) if name else None
-        if provider is None or not model_name:
-            return None
-        return _EmbeddingSelection(provider=provider, model_name=model_name)
-
-
-class _NullEmbeddingClient:
-    """Structural ``LLMClient`` stand-in for "no embedding provider configured" (Fix 1) -- satisfies ``make_embedding_service``'s ``client is not None`` precondition without guessing a provider the user never chose; ``embed`` raises ``EmbeddingUnavailableError``, which ``EmbeddingService.embed`` degrades to an empty vector, so `GRADED` reports itself unusable instead of crashing startup."""  # fmt: skip
-
-    def list_models(self) -> tuple[ModelName, ...]: return ()  # fmt: skip
-
-    def probe_health(self) -> ProviderHealth: return ProviderHealth(provider_id="00000000-0000-4000-8000-000000000000", reachable=False, discovery_supported=False, model_count=None, last_probe_ms=0, last_error="no embedding provider configured", probed_at=0)  # fmt: skip
-
-    def test_inference(self, model_name: ModelName) -> InferenceTestResult: return InferenceTestResult(outcome=InferenceTestOutcome.REACHABILITY_FAILED, provider_id="00000000-0000-4000-8000-000000000000", model_name=model_name or "unconfigured", last_error="no embedding provider configured", tested_at=0)  # fmt: skip
-
-    def chat(self, request: ChatRequest, *, token: CancellationToken) -> ChatResponse: raise EmbeddingUnavailableError(message="no embedding provider is configured")  # noqa: ARG002  # fmt: skip
-
-    def chat_stream(self, request: ChatRequest, *, token: CancellationToken) -> ChatStream: raise EmbeddingUnavailableError(message="no embedding provider is configured")  # noqa: ARG002  # fmt: skip
-
-    def embed(self, text: str) -> tuple[float, ...]: raise EmbeddingUnavailableError(message="no embedding provider is configured")  # noqa: ARG002  # fmt: skip
-
-    def supports_streaming(self) -> bool: return False  # fmt: skip
-
-    def supports_reasoning_effort(self) -> bool: return False  # fmt: skip
-
-    def supports_thinking(self) -> bool: return False  # fmt: skip
-
-    def supports_embedding(self) -> bool: return False  # fmt: skip
-
-    def supports_discovery(self) -> bool: return False  # fmt: skip
-
-    def close(self) -> None: return None  # fmt: skip
-
-
-class _NoActiveRunTaskPaths:
-    """Stub ``ActiveRunTaskPaths`` (Gap 3): no tracker exists yet; always empty."""
-
-    def task_paths_for(self, run_id: RunId) -> tuple[str, ...]: return ()  # noqa: ARG002  # fmt: skip
-
-
-class _NoRunValidator:
-    """Stub ``RunValidator`` (Gap 4): validation messages inert until a real backend implementation lands."""  # fmt: skip
-
-    def validate(self, request: RunStartRequest) -> tuple[ValidationEntry, ...]: return ()  # noqa: ARG002  # fmt: skip
-
-
-class _NoOpManualProviderProbeCommand:  # Stub ManualProviderProbeCommand: no manual-probe target wired yet
-    def probe(self) -> None: return None  # fmt: skip
-
-
-class _AlwaysOkRunLogWriteStatus:
-    """Stub ``RunLogWriteStatus``: no write-failure tracker is wired yet."""
-
-    def write_failed(self) -> bool: return False  # fmt: skip
-
-
-class _NoModelFetcher:
-    """Stub ``ModelFetcher`` for the Result widget's model picker: no fetch target wired yet; reports an empty catalog."""  # fmt: skip
-
-    def fetch_models(self, provider_id: object, *, on_success: Callable[..., None], on_error: Callable[..., None]) -> None:  # noqa: ARG002  # fmt: skip
-        on_success(provider_id, ())
 
 
 def _abort_launch(
