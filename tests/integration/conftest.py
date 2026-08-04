@@ -346,6 +346,56 @@ class _DismissReadinessModalOnShow(QObject):
         return False
 
 
+@pytest.fixture(autouse=True)
+def _dismiss_not_ready_modal(qapp: QApplication) -> Generator[None]:
+    """Install `_DismissReadinessModalOnShow` on `qapp` for every test in this directory, not
+    only the ones built through `build_real_app`/`build_real_app_without_enabled_providers`.
+
+    **Why this must be directory-wide.** Eight modules build the real application by calling
+    `compose.build_app` directly (`test_launch_crash_recovery.py`, `test_launch_app_data_dir.py`,
+    `test_ui_thread_exception_hook.py`, `test_quit_sequence.py`, `test_launch_schema_check.py`,
+    `test_launch_abort_modal_quits.py`, `test_launch_seeding.py`,
+    `test_launch_instance_lock.py`), bypassing both fixtures entirely. None of them currently
+    calls `handle.window.show()`, so the readiness tick `MainWindowController` arms on the main
+    window's `showEvent` never fires and the real NOT_READY `QMessageBox.critical(...).exec()`
+    (`08_Cross_Cutting/08-M_app_lifecycle.md` section 5) never has a chance to open -- but that is
+    an accident of what those tests happen to exercise today, not a guarantee. The first test
+    added to any of those modules that shows its window while running offline (no reachable
+    provider, which is how every `isolated_home`-based fixture in this directory builds its
+    app-data root) blocks the GUI thread inside that modal's nested event loop forever, and this
+    repository has no `pytest-timeout` to rescue the run.
+
+    Making this fixture autouse for the whole directory, rather than leaving the filter installed
+    only inside `_app_handle_factory`, closes that gap once for every current and future test
+    here -- including the eight `build_app`-direct modules above, which get no other chance to
+    opt in since they never go through either fixture.
+
+    **Verified safe for the tests that assert on a real, visible dialog.** The filter only acts
+    on `isinstance(watched, QMessageBox)` -- see `_DismissReadinessModalOnShow`'s own docstring.
+    `SettingsDialogView` and `AboutDialog` (`test_menu_opens_dialogs.py`) and `ErrorDialog` (the
+    launch-abort error dialog `test_launch_abort_modal_quits.py` and the schema-mismatch/
+    app-data-directory abort paths in `test_launch_schema_check.py`/`test_launch_app_data_dir.py`
+    show) are all plain `QDialog` subclasses, confirmed by reading their class definitions --
+    none of them can ever satisfy this `isinstance` check, so this filter cannot dismiss or race
+    with a dialog those tests are asserting on.
+
+    **Verified safe for `test_launch_abort_modal_quits.py` specifically.** That module's own
+    `_clear_qt_quit_flag` autouse fixture (module-local, not this one) still runs -- autouse
+    fixtures from different `conftest.py`/module scopes all apply, they do not replace each
+    other. Its test never calls `handle.window.show()` (the abort happens before `build_app`
+    ever returns a handle), so this filter's event loop never has a `QMessageBox` to see in that
+    test; installing an inert, never-triggered filter on `qapp` for the duration of that test
+    changes nothing about its behaviour.
+
+    Installed and removed per-test (function-scoped, matching `qapp`'s own effective per-test
+    widget lifetime in this suite) so no filter instance leaks into a later test.
+    """
+    dismiss_not_ready_modal = _DismissReadinessModalOnShow()
+    qapp.installEventFilter(dismiss_not_ready_modal)
+    yield
+    qapp.removeEventFilter(dismiss_not_ready_modal)
+
+
 def _shutdown(handle: AppHandle) -> None:
     """Release the real dispatcher thread, HTTP client, write connection, and instance
     lock a test's `build_app` call constructed, so no test leaks a live thread or a
@@ -372,17 +422,16 @@ def _app_handle_factory(qapp: QApplication) -> Generator[Callable[[], AppHandle]
     and teardown logic lives here once and each fixture delegates to it with `yield from`
     (which forwards the teardown half as well, when pytest resumes the outer generator).
 
-    Installs `_DismissReadinessModalOnShow` on `qapp` for the duration of the test -- both
-    fixtures build against an app-data root with no reachable provider (all disabled, or
+    Both fixtures build against an app-data root with no reachable provider (all disabled, or
     real localhost endpoints with nothing listening on an offline runner), so the real
     application genuinely computes `NOT_READY` and production genuinely opens a blocking
-    `QMessageBox` (`08_Cross_Cutting/08-M_app_lifecycle.md` §5) -- see that class's docstring
-    for why every test built through this factory needs it, not just the ones that visibly
-    open a dialog.
+    `QMessageBox` (`08_Cross_Cutting/08-M_app_lifecycle.md` §5). The directory-wide autouse
+    `_dismiss_not_ready_modal` fixture above installs `_DismissReadinessModalOnShow` on `qapp`
+    for every test in this directory, this factory included, so this function no longer installs
+    its own copy -- see that fixture's docstring for why one directory-wide filter now covers
+    both this factory's tests and the modules that build `AppHandle` directly.
     """
     built: list[AppHandle] = []
-    dismiss_not_ready_modal = _DismissReadinessModalOnShow()
-    qapp.installEventFilter(dismiss_not_ready_modal)
 
     def _build() -> AppHandle:
         handle = build_app(app=qapp, loop=QEventLoop())
@@ -391,7 +440,6 @@ def _app_handle_factory(qapp: QApplication) -> Generator[Callable[[], AppHandle]
 
     yield _build
 
-    qapp.removeEventFilter(dismiss_not_ready_modal)
     for handle in built:
         _shutdown(handle)
 
