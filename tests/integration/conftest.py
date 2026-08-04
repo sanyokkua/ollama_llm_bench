@@ -7,7 +7,7 @@ Moved here from `test_compose_build_app.py` so the theme-reapply and menu-dialog
 and `pytest-randomly` reorders tests, so a leaked connection corrupts a later test. Because
 this fixture is autouse, it now runs for *every* test under `tests/integration/`, including
 the `persistence/` and `provider_stub/` suites that never construct a `ThemeManager` and so
-have nothing connected -- `_disconnect_signal_if_connected` below exists to make that the
+have nothing connected -- `_disconnect_and_discard_warning` below exists to make that the
 common case a silent no-op rather than a `RuntimeWarning`.
 
 **Cross-platform filesystem isolation.** The real, non-injected `PlatformDetector` `build_app`
@@ -32,7 +32,6 @@ import would be a wider, unrelated change to how this repository's test tree is 
 """
 
 from collections.abc import Callable, Generator
-import contextlib
 import functools
 from pathlib import Path
 import warnings
@@ -56,8 +55,8 @@ from ollama_llm_bench.compose import AppHandle, build_app
 _DISPATCHER_SHUTDOWN_TIMEOUT_MS = 2000
 
 
-def _disconnect_signal_if_connected(signal: SignalInstance) -> None:
-    """Disconnect every slot from `signal`, tolerating the case where nothing is connected.
+def _disconnect_and_discard_warning(signal: SignalInstance) -> None:
+    """Disconnect every slot from `signal`, discarding whatever warning PySide6 emits.
 
     PySide6's `SignalInstance.disconnect()` does not raise when there is nothing to
     disconnect -- it emits a Python-level `RuntimeWarning` ("Failed to disconnect (None)
@@ -66,18 +65,25 @@ def _disconnect_signal_if_connected(signal: SignalInstance) -> None:
     `qInstallMessageHandler` traffic, not Python's `warnings` module), so it would otherwise
     print unchecked noise for every test in this directory that never connects the signal in
     the first place (confirmed empirically: `persistence/` and `provider_stub/` never
-    construct a `ThemeManager`, so every one of their tests hit this). Escalating the
-    specific warning to an exception for the duration of the call and swallowing it is the
-    only way to distinguish "nothing was connected" from "something was connected" without
-    tracking connection state ourselves -- PySide6 raises `SystemError` (not `RuntimeWarning`)
-    when the escalated warning propagates out of the C++ binding, so both exception types are
-    caught. A real connection disconnects silently, with neither warning nor exception, so
-    this still performs the cleanup teardown needs.
+    construct a `ThemeManager`, so every one of their tests hit this).
+
+    `warnings.catch_warnings(record=True)` combined with `simplefilter("always")` captures
+    every warning `disconnect()` raises -- regardless of category or exact wording -- into a
+    local list that this function never inspects and lets go out of scope, so it never
+    escapes to the caller or to pytest's warning capture. Nothing is ever escalated to an
+    exception, so no `SystemError` can arise from an escalated warning crossing the C++
+    binding, and no exception type needs to be caught or suppressed. When something *is*
+    connected, `disconnect()` performs the real disconnection and returns without warning, so
+    this still performs the cleanup teardown needs either way. Verified empirically against
+    the real `qapp.styleHints().colorSchemeChanged` signal: with nothing connected, no
+    warning escapes and no exception is raised; with a slot connected, `signal.emit(...)`
+    before this call reaches the slot and no longer does after it, proving the slot was
+    genuinely disconnected rather than merely silenced -- and no warning escapes in the
+    connected case either.
     """
-    with warnings.catch_warnings():
-        warnings.filterwarnings("error", category=RuntimeWarning, message="Failed to disconnect")
-        with contextlib.suppress(RuntimeWarning, SystemError):
-            signal.disconnect()
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("always")
+        signal.disconnect()
 
 
 @pytest.fixture(autouse=True)
@@ -94,7 +100,7 @@ def _disconnect_os_color_scheme_signal(qapp: QApplication) -> Generator[None]:
     test_theme_switching.py` already use for the same signal.
     """
     yield
-    _disconnect_signal_if_connected(qapp.styleHints().colorSchemeChanged)
+    _disconnect_and_discard_warning(qapp.styleHints().colorSchemeChanged)
     qapp.styleHints().unsetColorScheme()
 
 
