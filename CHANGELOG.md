@@ -695,4 +695,5 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `10_Domain_and_Data/03_PERSISTENCE_SCHEMA.md` §9 (STORY-080).
 
 - Changing the theme in Settings now repaints the whole application immediately on save,
-  instead of only taking effect after a restart.
+  instead of only taking effect after a restart. Per
+  `08_Cross_Cutting/08-D_color_palette_and_typography.md` §13 (STORY-083).

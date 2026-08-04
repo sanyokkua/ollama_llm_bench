@@ -45,6 +45,15 @@ when the user activates the menu items.
   re-read their colours.
 - Proving that activating the menu-bar Settings action opens the Settings modal dialog end to end.
 - Proving that activating the menu-bar About action opens the About modal dialog end to end.
+- Shared test-rig work in `tests/integration/` that these proofs need. The composed-application
+  rig (the isolated-home, seeded-app-data, and `build_real_app` fixtures) moved out of
+  `test_compose_build_app.py` into `tests/integration/conftest.py` so three files share one copy
+  instead of triplicating it; the `_disconnect_os_color_scheme_signal` fixture moved with it and
+  is autouse, so it now runs for the whole directory including `persistence/` and
+  `provider_stub/`, which never build a `ThemeManager`. New fixtures
+  `app_data_root_all_providers_disabled` / `build_real_app_without_enabled_providers` (an
+  application with no enabled provider, so opening the real Settings dialog touches no socket)
+  and a `drain_task_runner_deliveries` teardown helper were added alongside.
 
 ## Out of scope
 
@@ -111,7 +120,14 @@ then the About modal dialog opens.
 ## Test plan
 
 - STORY-083-AC-1 — integration (`pytest-qt`), `tests/integration/test_theme_reapply_on_save.py`,
-  `test_saving_theme_change_reapplies_theme_without_restart`.
+  `test_saving_theme_change_reapplies_theme_without_restart` (drives `SettingsService.set()`) and
+  `test_clicking_save_changes_in_the_real_settings_dialog_reapplies_theme` (drives the real
+  menu-bar Settings action, the real Theme combo, and the real Save Changes button). Both are
+  needed: Save Changes does *not* call `SettingsService.set()` — it writes through
+  `SqliteSettingsAtomicWriter.save_all()`, which emits nothing, and the settings-changed
+  announcement the re-apply hangs off comes from the Settings dialog controller's own separate
+  `_emit_settings_changed(...)`. The first test therefore covers the service-level emitter and
+  the second the production one.
 - STORY-083-AC-2 — integration (`pytest-qt`), same file,
   `test_theme_reapply_emits_theme_changed_notification_once`.
 - STORY-083-AC-3 — integration (`pytest-qt`), `tests/integration/test_menu_opens_dialogs.py`,
@@ -123,5 +139,31 @@ then the About modal dialog opens.
 
 - [x] Every acceptance criterion has a passing test that names STORY-083.
 - [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The traceability record validates with no orphan clause and no orphan test caused by this
+  story. `just trace-check` reports exactly one remaining finding,
+  `EC-M-5 is named by a story but has no proving test` — pre-existing, owned by STORY-081
+  (`status: draft`, not yet implemented), confirmed unrelated to this story's scope (this story
+  names no edge case at all: `edge_cases: []`).
 - [x] The module inventory is unchanged.
+
+## Notes
+
+- **`just trace-check` is red at this story's completion, and that is pre-existing.** It reports
+  exactly one finding — `EC-M-5 is named by a story but has no proving test`. `EC-M-5` belongs
+  to STORY-081, which is still `draft` and unimplemented; this story neither names nor touches
+  it. Recorded here so a reader seeing four ticked boxes above and a failing gate can tell the
+  two apart at a glance, mirroring how STORY-080 disclosed the identical situation.
+- **The launch-abort test's real `QApplication.exit(1)` was contaminating the whole test
+  session, and was fixed as part of this story's final review.**
+  `tests/integration/test_launch_abort_modal_quits.py` clicks the launch-abort modal's real
+  Quit button, whose production handler calls `QApplication.instance().exit(1)`. That is right
+  in production, where `main()` is inside `app.exec()`, but under `pytest` no top-level loop is
+  running, so Qt's per-thread "quit now" flag stayed set for the rest of the session — and while
+  it is set, every later `QDialog.exec()`/`qtbot.waitSignal` nested loop returns immediately
+  without entering. Nine of the ten failures in the headless suite came from that one file,
+  including this story's own AC-1 and AC-2 proof tests. The real `.exit(1)` call is kept (it is
+  the behaviour that test exists to prove) and every assertion is unchanged; a new autouse
+  teardown clears the flag afterwards by running one bounded top-level `qapp.exec()`.
+  `QT_QPA_PLATFORM=offscreen pytest tests/unit tests/integration --ignore=tests/integration/test_start_admission.py -p no:randomly` went from
+  `10 failed, 107 passed, 4 errors` to `1 failed, 117 passed, 4 errors`; the remaining failure
+  and all four errors are the pre-existing set.
