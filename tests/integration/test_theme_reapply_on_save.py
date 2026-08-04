@@ -17,9 +17,16 @@ window via `build_real_app` + `qtbot.addWidget` (true of most of this directory)
 `deleteLater()`-scheduled destruction is still pending when this test starts, and processing it
 concurrently with this test's own live style re-apply segfaults deep in Qt's style engine
 (reproduced deterministically, independent of test order, isolated down to this exact
-interaction -- confirmed both testing.md's local flush + a bare "second real re-apply" alone
-were each insufficient/unnecessary respectively). Giving Qt's deferred-delete queue and Python's
-cyclic GC two full passes before this test builds its own window reliably avoids it.
+interaction). The helper does not wait a fixed duration -- it loops `gc.collect()` plus a short
+event-loop tick, tracking `len(QApplication.allWidgets())`, until that count stops changing
+between passes. Direct instrumentation showed why a single pass is not enough: right after an
+earlier test's teardown, `QApplication.allWidgets()` still held 545 widgets from the torn-down
+app. Those widget wrapper objects only became collectible once a reference cycle involving them
+was broken by a `gc.collect()` pass, and the underlying C++ objects were only actually
+destroyed -- and so removed from `allWidgets()` -- once a *subsequent* pass's event-loop tick
+processed the resulting deferred-delete events; the count reached 0 only after the second pass.
+The wait *duration* between passes was not the load-bearing part: `qtbot.wait(10)` proved just
+as effective as `qtbot.wait(200)`, so the helper uses the shorter one.
 """
 
 from collections.abc import Callable
@@ -36,13 +43,39 @@ from ollama_llm_bench.compose import AppHandle
 from ollama_llm_bench.ui.theme import ActiveThemeKind, PlatformKind, ThemeManager
 from ollama_llm_bench.ui.theme.api import make_light_theme_tokens, make_theme_manager
 
+_MAX_FLUSH_PASSES = 10
+
 
 def _flush_pending_widget_deletions(qtbot: QtBot) -> None:
     """See the module docstring -- clears any earlier test's still-pending `build_app()`
-    window teardown before this test's own live, in-nested-loop theme re-apply runs."""
-    for _ in range(2):
+    window teardown before this test's own live, in-nested-loop theme re-apply runs.
+
+    Loops `gc.collect()` followed by a short `qtbot.wait(...)` event-loop tick, reading
+    `len(QApplication.allWidgets())` after each pass, until two consecutive passes report the
+    same count -- i.e. the widget count has genuinely stopped changing, not merely "enough time
+    has passed". This is condition-based rather than a fixed sleep because the load-bearing
+    factor is the *number* of `gc.collect()` + event-loop-tick passes (a previous test's widget
+    wrapper objects need one pass to become collectible via a broken reference cycle, and a
+    second pass's event-loop tick to actually process the resulting deferred deletes), not how
+    long any single pass waits.
+
+    Raises `AssertionError` if the count has not stabilized within `_MAX_FLUSH_PASSES` passes,
+    so a regression in the underlying Qt/GC behaviour this helper depends on fails loudly
+    instead of silently letting the segfault-inducing race back in.
+    """
+    previous_count: int | None = None
+    for _ in range(_MAX_FLUSH_PASSES):
         gc.collect()
-        qtbot.wait(200)
+        qtbot.wait(10)
+        current_count = len(QApplication.allWidgets())
+        if current_count == previous_count:
+            return
+        previous_count = current_count
+    raise AssertionError(
+        f"_flush_pending_widget_deletions: widget count did not stabilize after "
+        f"{_MAX_FLUSH_PASSES} passes (last count={previous_count}); the segfault-avoidance "
+        "guard this helper exists for may no longer be effective"
+    )
 
 
 def _capture_collaborators(
@@ -143,6 +176,11 @@ def test_theme_reapply_emits_theme_changed_notification_once(  # noqa: PLR0913  
     # Act
     with qtbot.waitSignal(manager.theme_changed, timeout=2000):
         settings.set("ui.theme", "light")
+
+    # `waitSignal` quits its nested loop on the *first* emission, so it cannot by itself prove
+    # there wasn't a second one queued for a later event-loop turn. Let the loop turn again
+    # before asserting, so a duplicate emission would still land in `notifications` in time.
+    qtbot.wait(50)
 
     # Assert
     assert notifications == [True]
