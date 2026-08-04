@@ -12,8 +12,20 @@ that stub, which is why none of them caught the original no-op `quit_callback` b
 reference to the dialog it constructs -- the call is forwarded to the real,
 unmocked factory, so the constructed `ErrorDialog` and its `.exec()` are entirely
 real. If the fix regresses, this test hangs/times out instead of completing.
+
+**Why this file needs the `_clear_qt_quit_flag` teardown below.** The production
+quit callback really does call `QApplication.instance().exit(1)`, and this test
+deliberately lets it, because that real call is the behaviour under test. Under
+`pytest` there is no top-level `QCoreApplication::exec()` running, so nothing ever
+clears the per-thread "quit now" flag `.exit()` sets -- and with that flag set,
+every later `QDialog.exec()`/`QEventLoop.exec()`/`qtbot.waitSignal` nested loop on
+the GUI thread returns immediately without entering. That is a whole-session
+contamination: it made nine tests across seven other files fail purely because
+they were collected after this one. The fixture clears the flag instead of
+avoiding the call, so nothing this test proves is weakened.
 """
 
+from collections.abc import Generator
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -35,6 +47,36 @@ if TYPE_CHECKING:
     from ollama_llm_bench.ui.common_dialogs._internal.error_view import ErrorDialog
 
 _QUIT_CLICK_DELAY_MS = 50
+
+
+@pytest.fixture(autouse=True)
+def _clear_qt_quit_flag(qapp: QApplication) -> Generator[None]:
+    """Clear Qt's per-thread "quit now" flag after this module's test has set it for real.
+
+    `QCoreApplication::exit()` sets `QThreadData::quitNow` and then exits every event
+    loop currently running on that thread. `QEventLoop::exec()` checks that flag on
+    entry and returns `-1` straight away while it is set, and the **only** code that
+    clears it is `QCoreApplication::exec()` itself -- which does so both on entry and
+    again after its own loop returns. Production therefore never notices: `main()` is
+    sitting inside `app.exec()` when the abort modal's Quit button fires, so the flag
+    is set, that loop unwinds, and the process exits. Under `pytest` no such top-level
+    loop exists, so the flag is simply left set for the rest of the session.
+
+    This teardown re-creates the one condition that clears it: run a real, top-level
+    `qapp.exec()` and end it immediately with a zero-delay `qapp.exit(0)`. Verified
+    directly against Qt on this toolchain -- with the flag set a nested `QEventLoop`
+    returns `-1` without entering; after this round-trip the same nested loop enters
+    and runs, a real `QDialog.exec()` blocks long enough for its dismissal timer to
+    fire, and the cycle is repeatable. `qapp.exit(0)` is used rather than `qapp.quit()`
+    deliberately: `exit()` only unwinds event loops, whereas `quit()` on a
+    `QGuiApplication` may also ask open top-level windows to close, and this fixture
+    runs against the shared, session-scoped `qapp` that other tests' widgets live in.
+    Confirmed empirically that an already-visible widget survives this round-trip
+    untouched.
+    """
+    yield
+    QTimer.singleShot(0, lambda: qapp.exit(0))
+    qapp.exec()
 
 
 @pytest.fixture

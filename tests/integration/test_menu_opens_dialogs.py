@@ -17,23 +17,25 @@ the captured dialog records `isVisible()`/`isModal()` at the instant `.exec()` s
 synchronously, inside the `.exec()` call, before any event loop is involved. The `QTimer` below
 exists only to *dismiss* the dialog so a blocking `.exec()` returns; nothing is asserted from it.
 
-That split matters because whether `.exec()` blocks at all is not a property of these tests. Qt
-keeps a per-thread "quit now" flag that `QCoreApplication::exit()` sets and only
-`QCoreApplication::exec()` clears. `tests/integration/test_launch_abort_modal_quits.py` drives the
-launch-abort modal's Quit button, whose production handler calls `QApplication.exit(1)` -- correct
-in production, where `app.exec()` is running and about to return, but under pytest no top-level
-event loop is running, so the flag is set and never cleared for the rest of the session. From that
-point on every `QDialog.exec()` on the GUI thread returns immediately without entering its nested
-loop. Verified directly against Qt: with the flag set, a dialog's dismissal timer never fires,
-`.exec()` returns at once, and the dialog is left shown. Reading the observation from a timer
-therefore made these tests pass alone and fail whenever they ran after that file -- an outcome
-determined by collection order, not by the behaviour under test. Reading it from the show event
-makes them report the same thing either way.
+That split matters because whether `.exec()` blocks at all must not be a property of these
+tests. Qt keeps a per-thread "quit now" flag that `QCoreApplication::exit()` sets and only
+`QCoreApplication::exec()` clears; while it is set, every `QDialog.exec()` on the GUI thread
+returns immediately without entering its nested loop, so a dialog's dismissal timer never fires
+and the dialog is left shown. `tests/integration/test_launch_abort_modal_quits.py` sets that
+flag for real -- its production handler calls `QApplication.exit(1)`, which is the behaviour
+that file exists to prove -- and it now clears the flag again in its own teardown, so the
+contamination no longer escapes into the rest of the session (see that file's
+`_clear_qt_quit_flag` fixture). Reading these tests' observation from the show event rather
+than from the dismissal timer predates that fix and is kept regardless: it is what makes the
+result independent of collection order and of whether any other test leaves a nested loop
+unrunnable, instead of something these two tests have to trust another file to maintain.
 
 **Why the dialog is dismissed through `_dismiss_and_clear_modal_stack` rather than `close()`.**
-See that helper's docstring: in the early-return case a plain `close()` leaves the dialog on Qt's
-modal-widget stack permanently, which corrupted a later, unrelated test badly enough to abort the
-whole pytest process.
+See that helper's docstring. With the quit flag clear, `.exec()` blocks and cleans up its own
+modal state on the way out, so the helper is a plain hide; the extra `WA_ShowModal` handling is
+what keeps it correct in the early-return case too, where a plain `close()` would leave the
+dialog on Qt's modal-widget stack permanently and corrupt a later, unrelated test badly enough
+to abort the whole pytest process.
 
 **Why these two build the application with every provider disabled.** Both tests use
 `build_real_app_without_enabled_providers` rather than the seeded `build_real_app`. The seeded
@@ -102,9 +104,10 @@ def _dismiss_and_clear_modal_stack(dialog: QDialog) -> None:
     `enterModal`), runs its nested loop, and on the way out restores the saved attribute and
     hides the dialog -- the hide being what pops the stack again, via `leaveModal`.
 
-    When that nested loop returns immediately (see the module docstring: any test running after
-    `test_launch_abort_modal_quits.py` is in a session where it does), `.exec()` still restores
-    `WA_ShowModal` to false but leaves the dialog *shown*. A later `close()`/`hide()`/`reject()`
+    When that nested loop returns immediately -- which happens in any session where Qt's
+    per-thread "quit now" flag has been left set (see the module docstring) -- `.exec()` still
+    restores `WA_ShowModal` to false but leaves the dialog *shown*. A later
+    `close()`/`hide()`/`reject()`
     then does **not** pop the stack, because as far as Qt is concerned the widget is no longer a
     modal one. Verified directly against Qt: after such an `.exec()`,
     `QApplication.activeModalWidget()` keeps returning that dialog through `close()`, `hide()`,

@@ -52,6 +52,7 @@ if TYPE_CHECKING:
 _DISPATCHER_SHUTDOWN_TIMEOUT_MS = 2000
 _QUEUE_DRAIN_WAIT_S = 0.5
 _QUIT_CLICK_DELAY_MS = 50
+_DIALOG_TEARDOWN_TICK_MS = 10
 
 
 @pytest.fixture(autouse=True)
@@ -202,6 +203,18 @@ def test_ui_thread_uncaught_exception_logs_shows_modal_and_requests_exit(
     # double-shutdown crash this session's final review found).
     assert not handle.http_client.is_closed
     handle.write_conn.execute("SELECT 1")
+
+    # Cleanup -- hide the real dialog and let the resulting layout work run here, inside
+    # this test. `QApplication.exit(1)` unwinds `.exec()`'s nested loop without ever going
+    # through `QDialog::done()`, so unlike a normal dismissal it leaves the dialog *shown*
+    # with layout work still queued. Under the offscreen platform plugin that queued work
+    # logs "This plugin does not support propagateSizeHints()" whenever it is finally
+    # processed -- and `pytest-qt` processes it in the *next* test's `pytest_runtest_setup`,
+    # where the root `_qt_parity_rig` fixture fails a test that did nothing wrong (measured:
+    # it landed on `test_quit_callback_never_shuts_down_the_handle_itself` below). Draining
+    # it here keeps the warning inside the test that caused it.
+    captured_dialogs[0].hide()
+    qtbot.wait(_DIALOG_TEARDOWN_TICK_MS)
 
     # Cleanup -- no `main()` tail runs in this test to close the handle's resources.
     handle.shutdown(timeout_ms=_DISPATCHER_SHUTDOWN_TIMEOUT_MS)
