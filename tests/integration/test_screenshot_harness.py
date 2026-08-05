@@ -17,6 +17,7 @@ at ``artifacts/screenshots/`` instead of the per-test temporary directory.
 from collections.abc import Callable
 import os
 from pathlib import Path
+import re
 from typing import Final, cast
 
 from PySide6.QtCore import Qt
@@ -643,3 +644,68 @@ def test_harness_captures_every_screen_in_dark_theme(  # noqa: PLR0913  # the re
 
     # Assert
     assert written == _EXPECTED_CAPTURES
+
+
+_REPORT_PATH: Final[Path] = (
+    Path(__file__).resolve().parents[2] / "docs" / "development" / "mockup_conformance_review.md"
+)
+
+_VERDICTS: Final[frozenset[str]] = frozenset({"conforms", "discrepancy", "not-applicable"})
+
+_CHECKLIST_ITEM_COUNT: Final[int] = 13
+
+_ROW_RE: Final[re.Pattern[str]] = re.compile(
+    r"^\|\s*(\d{1,2})\s*\|[^|]*\|\s*([a-z-]+)\s*\|", re.MULTILINE
+)
+
+_THEMES: Final[tuple[str, ...]] = ("light", "dark")
+
+_REPORT_CASES: Final[tuple[tuple[str, str], ...]] = tuple(
+    (screen_id, theme) for screen_id in _SCREEN_INDEX_IDS for theme in _THEMES
+)
+
+_REPORT_CASE_IDS: Final[tuple[str, ...]] = tuple(
+    f"{screen_id}-{theme}" for screen_id, theme in _REPORT_CASES
+)
+
+
+def _report_section(text: str, *, screen_id: str, theme: str) -> str:
+    """Return the report text for one screen under one theme."""
+    heading = re.compile(
+        rf"^###\s+Screen\s+{screen_id}\b.*\b{theme}\b.*$", re.MULTILINE | re.IGNORECASE
+    )
+    match = heading.search(text)
+    if match is None:
+        message = f"no '### Screen {screen_id} ... {theme}' section in the report"
+        raise AssertionError(message)
+    rest = text[match.end() :]
+    following = re.search(r"^##+\s", rest, re.MULTILINE)
+    return rest if following is None else rest[: following.start()]
+
+
+def _verdicts_in(section: str) -> tuple[str, ...]:
+    """Return the verdict cell of every numbered checklist row in ``section``."""
+    return tuple(match.group(2) for match in _ROW_RE.finditer(section))
+
+
+@pytest.mark.parametrize(("screen_id", "theme"), _REPORT_CASES, ids=_REPORT_CASE_IDS)
+def test_mockup_conformance_report_covers_every_screen(screen_id: str, theme: str) -> None:
+    """Proves: STORY-087-AC-3
+
+    The findings report records a valid standardization-review-checklist verdict
+    for all thirteen 08-L §14 items, for every screen in the screen index, under
+    both the Light and the Dark theme.
+    """
+    # Arrange
+    section = _report_section(
+        _REPORT_PATH.read_text(encoding="utf-8"), screen_id=screen_id, theme=theme
+    )
+
+    # Act
+    verdicts = _verdicts_in(section)
+
+    # Assert
+    assert (len(verdicts), tuple(v for v in verdicts if v not in _VERDICTS)) == (
+        _CHECKLIST_ITEM_COUNT,
+        (),
+    )
