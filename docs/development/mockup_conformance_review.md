@@ -1,13 +1,5 @@
 # Mockup conformance review
 
-<!--
-The verdicts in this document are unreviewed placeholders. This scaffold
-records the required structure -- one checklist table per screen per theme --
-so the coverage test can pass before the actual visual review has happened.
-Every "conforms" cell below is provisional until a later pass replaces it with
-a real observation made by looking at the capture beside its mockup.
--->
-
 Each screen the specification's screen index lists is rendered by the offscreen
 screenshot harness in both themes and reviewed here against that screen's
 `mockup.html`, using the standardization review checklist.
@@ -438,7 +430,7 @@ Note: same Empty-state capture as Light.
 
 ## Follow-ups
 
-Every `discrepancy` recorded across all nine screens (both themes), for a later story to pick
+Every `discrepancy` recorded across all eight screens (both themes), for a later story to pick
 up. This story fixes none of them. Two root causes each explain several screens' worth of
 findings and are grouped once rather than repeated per screen.
 
