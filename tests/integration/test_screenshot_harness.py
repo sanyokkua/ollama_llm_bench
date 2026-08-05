@@ -113,20 +113,6 @@ def test_capture_registry_covers_every_screen_in_the_screen_index() -> None:
     assert _covered_screen_ids() == frozenset(_SCREEN_INDEX_IDS)
 
 
-def _workspace_stack_of(benchmark: QWidget) -> QStackedWidget:
-    """Return the workspace `QStackedWidget` that hosts the benchmark splitter as a page.
-
-    `workspace_region` (`compose.py`) carries no `objectName`, so it cannot be located via
-    `findChild`. A `QStackedWidget` reparents each page directly onto itself, so the benchmark
-    splitter's parent *is* the stack.
-    """
-    stack = benchmark.parentWidget()
-    if not isinstance(stack, QStackedWidget):
-        message = f"benchmark workspace parent is {type(stack).__name__}, not QStackedWidget"
-        raise AssertionError(message)
-    return stack
-
-
 def _task_editor_page(stack: QStackedWidget, *, benchmark: QWidget) -> QWidget:
     """Return the workspace page that is not the benchmark splitter."""
     pages = [stack.widget(index) for index in range(stack.count())]
@@ -165,7 +151,8 @@ def _capture_app_screens(*, qtbot: QtBot, handle: AppHandle, destination: Path) 
     _capture(splitter.widget(1), path=destination / "04_progress.png")
     _capture(splitter.widget(2), path=destination / "05_result.png")
 
-    stack = _workspace_stack_of(splitter)
+    stack = cast("QStackedWidget | None", window.findChild(QStackedWidget, "workspace_region"))
+    assert stack is not None
     task_editor = _task_editor_page(stack, benchmark=splitter)
     stack.setCurrentWidget(task_editor)
     qtbot.wait(0)
