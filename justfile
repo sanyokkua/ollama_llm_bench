@@ -54,6 +54,7 @@ coverage-layers:
 
 # Capture every spec screen in both themes into artifacts/ for the mockup-conformance review (STORY-087).
 screenshots:
+    rm -rf artifacts/screenshots
     QT_QPA_PLATFORM=offscreen SCREENSHOT_ARTIFACTS_DIR=artifacts/screenshots uv run pytest tests/integration/test_screenshot_harness.py -q
 
 trace:

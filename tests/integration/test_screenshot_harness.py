@@ -102,14 +102,18 @@ _CAPTURE_IDS: Final[tuple[str, ...]] = (
 _WINDOW_SIZE: Final[tuple[int, int]] = (1600, 1000)
 
 
-def _artifacts_root(tmp_path: Path) -> Path:
+def _artifacts_root(tmp_path: Path, *, use_override: bool = True) -> Path:
     """Return the directory captures are written to.
 
     Honours the ``SCREENSHOT_ARTIFACTS_DIR`` environment variable so ``just
     screenshots`` can collect reviewable output, and falls back to the test's own
-    temporary directory so the pull-request gate stays hermetic.
+    temporary directory so the pull-request gate stays hermetic. Pass
+    ``use_override=False`` to always use ``tmp_path`` regardless of the
+    environment variable -- for test-fixture captures (the probe tests) that
+    are not part of the reviewable deliverable and must never land alongside
+    it in ``artifacts/screenshots/``.
     """
-    override = os.environ.get(_ARTIFACTS_ENV_VAR)
+    override = os.environ.get(_ARTIFACTS_ENV_VAR) if use_override else None
     if override:
         return Path(override)
     return tmp_path / "screenshots"
@@ -140,7 +144,7 @@ def test_capture_writes_a_decodable_png_of_the_widget_size(qtbot: QtBot, tmp_pat
     widget.resize(320, 200)
     widget.show()
     qtbot.wait(0)
-    destination = _artifacts_root(tmp_path) / "probe.png"
+    destination = _artifacts_root(tmp_path, use_override=False) / "probe.png"
 
     # Act
     _capture(widget, path=destination)
@@ -182,7 +186,7 @@ def _capture_app_screens(*, qtbot: QtBot, handle: AppHandle, destination: Path) 
     qtbot.wait(0)
     _capture(window, path=destination / "01_main_window.png")
 
-    left_panel = cast("QTabWidget", window.findChild(QTabWidget, "benchmark_left_panel"))
+    left_panel = cast("QTabWidget | None", window.findChild(QTabWidget, "benchmark_left_panel"))
     assert left_panel is not None
     splitter = left_panel.parentWidget()
     while splitter is not None and not isinstance(splitter, QSplitter):
@@ -221,7 +225,7 @@ def test_app_derived_screens_are_captured_from_one_real_app_build(
     # Arrange
     handle = build_real_app_without_enabled_providers()
     qtbot.addWidget(handle.window)
-    destination = _artifacts_root(tmp_path) / "probe-app"
+    destination = _artifacts_root(tmp_path, use_override=False) / "probe-app"
 
     # Act
     _capture_app_screens(qtbot=qtbot, handle=handle, destination=destination)
