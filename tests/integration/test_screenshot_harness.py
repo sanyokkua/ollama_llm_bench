@@ -568,3 +568,78 @@ def test_every_shared_modal_dialog_is_constructed_for_capture(qtbot: QtBot) -> N
 
     # Assert
     assert frozenset(dialogs) == expected
+
+
+_EXPECTED_CAPTURES: Final[frozenset[str]] = frozenset(
+    f"{capture_id}.png" for capture_id in _CAPTURE_IDS
+)
+
+
+def _capture_every_screen(
+    *,
+    qtbot: QtBot,
+    handle: AppHandle,
+    destination: Path,
+) -> frozenset[str]:
+    """Capture every screen in the index and return the filenames written."""
+    _capture_app_screens(qtbot=qtbot, handle=handle, destination=destination)
+    _capture(_build_settings_dialog(qtbot=qtbot), path=destination / "06_settings.png")
+    for capture_id, dialog in _build_common_dialogs(qtbot=qtbot).items():
+        _capture(dialog, path=destination / f"{capture_id}.png")
+    return frozenset(path.name for path in destination.glob("*.png"))
+
+
+@pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
+def test_harness_captures_every_screen_in_light_theme(  # noqa: PLR0913  # the real app-composition rig needs seed_setting/app_data_root_all_providers_disabled alongside build_real_app_without_enabled_providers/drain_task_runner_deliveries/qtbot/tmp_path
+    qtbot: QtBot,
+    tmp_path: Path,
+    app_data_root_all_providers_disabled: Path,
+    seed_setting: Callable[..., None],
+    build_real_app_without_enabled_providers: Callable[[], AppHandle],
+    drain_task_runner_deliveries: Callable[[AppHandle], None],
+) -> None:
+    """Proves: STORY-087-AC-1
+
+    Running the offscreen harness under the Light theme writes one PNG per screen
+    enumerated in the 08-R §2 screen index into the artifacts directory.
+    """
+    # Arrange
+    seed_setting(app_data_root_all_providers_disabled, key="ui.theme", value="light")
+    handle = build_real_app_without_enabled_providers()
+    qtbot.addWidget(handle.window)
+    destination = _artifacts_root(tmp_path) / "light"
+
+    # Act
+    written = _capture_every_screen(qtbot=qtbot, handle=handle, destination=destination)
+    drain_task_runner_deliveries(handle)
+
+    # Assert
+    assert written == _EXPECTED_CAPTURES
+
+
+@pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
+def test_harness_captures_every_screen_in_dark_theme(  # noqa: PLR0913  # the real app-composition rig needs seed_setting/app_data_root_all_providers_disabled alongside build_real_app_without_enabled_providers/drain_task_runner_deliveries/qtbot/tmp_path
+    qtbot: QtBot,
+    tmp_path: Path,
+    app_data_root_all_providers_disabled: Path,
+    seed_setting: Callable[..., None],
+    build_real_app_without_enabled_providers: Callable[[], AppHandle],
+    drain_task_runner_deliveries: Callable[[AppHandle], None],
+) -> None:
+    """Proves: STORY-087-AC-2
+
+    Running the offscreen harness under the Dark theme writes one PNG per screen
+    enumerated in the 08-R §2 screen index into the artifacts directory.
+    """
+    # Arrange
+    seed_setting(app_data_root_all_providers_disabled, key="ui.theme", value="dark")
+    handle = build_real_app_without_enabled_providers()
+    qtbot.addWidget(handle.window)
+    destination = _artifacts_root(tmp_path) / "dark"
+
+    # Act
+    written = _capture_every_screen(qtbot=qtbot, handle=handle, destination=destination)
+    drain_task_runner_deliveries(handle)
+
+    # Assert
+    assert written == _EXPECTED_CAPTURES
