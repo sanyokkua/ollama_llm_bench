@@ -21,13 +21,25 @@ from typing import Final, cast
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage
-from PySide6.QtWidgets import QLabel, QSplitter, QStackedWidget, QTabWidget, QWidget
+from PySide6.QtWidgets import QDialog, QLabel, QSplitter, QStackedWidget, QTabWidget, QWidget
 import pytest
 from pytestqt.qtbot import QtBot
 
+from ollama_llm_bench.adapters.clipboard import make_clipboard
+from ollama_llm_bench.adapters.file_system_actions import make_file_system_actions
+from ollama_llm_bench.adapters.native_pickers.testing import FakeNativePickers
+from ollama_llm_bench.adapters.notification_service.testing import FakeNotificationService
+from ollama_llm_bench.adapters.qt_event_bus import make_qt_event_bus_deliverer
 from ollama_llm_bench.compose import AppHandle
+from ollama_llm_bench.ui.settings_dialog import (
+    SettingsDialogCollaborators,
+    make_settings_dialog,
+)
+from ollama_llm_bench.ui.settings_dialog.testing import FakeSettingsGateway
 
 _ARTIFACTS_ENV_VAR: Final[str] = "SCREENSHOT_ARTIFACTS_DIR"
+
+_DIALOG_SIZE: Final[tuple[int, int]] = (900, 700)
 
 _SCREEN_INDEX_IDS: Final[tuple[str, ...]] = ("01", "02", "03", "04", "05", "06", "07", "09")
 
@@ -185,3 +197,35 @@ def test_app_derived_screens_are_captured_from_one_real_app_build(
         "05_result.png",
         "09_task_editor.png",
     }
+
+
+def _build_settings_dialog(*, qtbot: QtBot) -> QDialog:
+    """Construct the Settings dialog standalone, shown but never exec()'d.
+
+    ``compose.py`` builds this dialog lazily inside ``_open_settings()`` and
+    calls ``.exec()``, which would block the whole suite. Building it here
+    instead means the screenshot harness never opens a real modal.
+    """
+    collaborators = SettingsDialogCollaborators(
+        gateway=FakeSettingsGateway(),
+        event_bus=make_qt_event_bus_deliverer(),
+        native_pickers=FakeNativePickers(),
+        clipboard=make_clipboard(),
+        file_system_actions=make_file_system_actions(),
+        notifications=FakeNotificationService(),
+    )
+    dialog = make_settings_dialog(collaborators=collaborators)
+    qtbot.addWidget(dialog)
+    dialog.resize(*_DIALOG_SIZE)
+    dialog.show()
+    qtbot.wait(0)
+    return dialog
+
+
+@pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
+def test_settings_dialog_is_constructed_standalone_without_exec(qtbot: QtBot) -> None:
+    # Arrange / Act
+    dialog = _build_settings_dialog(qtbot=qtbot)
+
+    # Assert
+    assert dialog.isVisible()
