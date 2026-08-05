@@ -1,7 +1,7 @@
 ---
 id: STORY-087
 title: Capture every spec screen in both themes and review the captures against the mockups
-status: in-progress
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-R_screen_index_and_traceability.md#2-screen-index--every-mockup-and-its-drawn-states
   - 08_Cross_Cutting/08-L_ui_standardization.md#14-standardization-review-checklist
@@ -105,8 +105,62 @@ against that screen's `mockup.html`.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-087.
-- [ ] The findings report exists and covers every screen in the screen index for both themes.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-087.
+- [x] The findings report exists and covers every screen in the screen index for both themes.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+
+## Outcome
+
+`just screenshots` renders all 14 screens of the screen index in both themes — 28 PNGs into
+`artifacts/screenshots/{light,dark}/` — and `docs/development/mockup_conformance_review.md`
+records a verdict for all 13 standardization-review-checklist items per screen per theme
+(16 tables, 208 verdicts: 88 `conforms`, 40 `discrepancy`, 80 `not-applicable`).
+
+Screens 01–05 and 09 come from one real offline `build_app()`; the Settings dialog and the seven
+shared modal dialogs are constructed standalone, since the composition root builds them lazily and
+`.exec()`s them, which would block the suite. The theme is chosen by seeding `ui.theme` *before*
+`build_app()` runs, so the application's own `ThemeManager` performs the switch — the harness sets
+no styling itself.
+
+Verification: full gate `2446 passed`; `mypy --strict` clean over 1051 files; `import-linter`
+5 contracts kept / 0 broken; `arch-test` 1345 passed; `trace-check` zero gaps. Nothing under `src/`
+changed — `git diff` against the story's base commit is empty for `src/`.
+
+## Discrepancies found — follow-ups, not defects of this story
+
+Per ADR-0011 this harness reviews and never changes a widget, so every finding below belongs to a
+later story. All are listed in the report's `## Follow-ups` section. The three most significant,
+each independently verified against source:
+
+1. **19 of 22 design-token style roles are no-ops.** Widget code across `src/ollama_llm_bench/ui/`
+   sets 22 distinct `role` dynamic-property values, but `ui/theme/_internal/stylesheet_builder.py`
+   defines QSS rules for only three (`primary-button`, `destructive-button`,
+   `filter-chip-active`). The other 19 — including `running-pill`, `section-title`,
+   `outlined-muted-button`, `muted-caption`, `warning-callout`, `success-badge`,
+   `segmented-control`, `icon-button` — have no rule, so those controls fall back to default
+   native Qt styling instead of the mockups' appearance. This single root cause explains most of
+   the visual discrepancies recorded on screens 01, 02, 05, 06 and 07.
+
+1. **The Run Summary dialog displays raw `provider_id` UUID4s.**
+   `ui/common_dialogs/_internal/view_model_select.py:48` renders
+   `f"{target.provider_id} · {target.model_name}"` with no name lookup (lines 81 and 91 do the
+   same for the judge and embedding models), and `RunSummaryGateway` exposes no method that could
+   supply a provider name. This violates the project's non-negotiable that `provider_id` is
+   internal and never shown to the user, on the confirmation shown immediately before a run
+   starts. The sibling `resume_summary_select.py` documents the rule explicitly and resolves names
+   from `run.providers`; Run Summary has no equivalent path.
+
+1. **`src/ollama_llm_bench/ui/task_editor/` sets no `role` property at all**, so the Task Editor's
+   Save and New File buttons can never render as the mockup's filled-primary call to action. This
+   is distinct from finding 1 — the role is never assigned in the first place.
+
+Separately, the harness surfaced a **live crash** outside this story's scope:
+`ui/common_dialogs/_internal/generate_analysis_view.py:107-115` calls `event_bus.subscribe(...)`
+three times without the `owner=` argument that `QtEventBusDeliverer.subscribe` requires via an
+`icontract` precondition (`adapters/qt_event_bus/_internal/deliverer.py:110-114`). Contracts stay
+enabled in release builds, so opening Generate/Regenerate Analysis from the Result widget
+(`ui/results/_internal/controller.py:167`) raises a `ProgrammerError` and terminates the process.
+It is masked in that module's colocated unit tests by a hand-rolled fake event bus that accepts a
+missing owner. Task 4 works around it with a local test-file stub rather than touching `src/`.

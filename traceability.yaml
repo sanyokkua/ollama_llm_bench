@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-05T09:16:04Z'
+generated_at: '2026-08-05T11:04:16Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5202,7 +5202,7 @@ stories:
         tests: []
   STORY-087:
     title: Capture every spec screen in both themes and review the captures against the mockups
-    status: in-progress
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching
     - 08_Cross_Cutting/08-L_ui_standardization.md#14-standardization-review-checklist
@@ -5214,11 +5214,29 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-087-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_screenshot_harness.py::test_harness_captures_every_screen_in_light_theme
       STORY-087-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_screenshot_harness.py::test_harness_captures_every_screen_in_dark_theme
       STORY-087-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[01-dark]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[01-light]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[02-dark]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[02-light]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[03-dark]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[03-light]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[04-dark]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[04-light]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[05-dark]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[05-light]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[06-dark]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[06-light]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[07-dark]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[07-light]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[09-dark]
+        - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[09-light]
   STORY-088:
     title: Close three known test debts — Gemini contract leg, run-log retention, and a shared resume fixture
     status: draft

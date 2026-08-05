@@ -11,6 +11,11 @@ For now:
 - Coding, testing, and CI/CD standards: the remaining files under [`docs/v3_specification/16_Engineering_Standards/`](../v3_specification/16_Engineering_Standards/).
 - Local task runner: the repository-root `justfile` (`just check` mirrors the full CI gate).
 - Story and traceability workflow: [`docs/v3_specification/14_Process_and_Traceability/`](../v3_specification/14_Process_and_Traceability/).
+- Mockup conformance: [`mockup_conformance_review.md`](mockup_conformance_review.md) — the
+  standardization-review-checklist verdicts for every screen in the screen index, in both themes,
+  against that screen's `mockup.html`. Regenerate the captures it reviews with `just screenshots`;
+  they land in `artifacts/screenshots/{light,dark}/` (git-ignored). The review is a process
+  artifact, not a pass/fail pixel gate — see ADR-0011.
 
 This directory starts empty at Phase 0; see
 `docs/v3_specification/16_Engineering_Standards/01_PROJECT_STRUCTURE.md` Section 2 for its place
