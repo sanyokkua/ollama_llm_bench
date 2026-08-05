@@ -1,7 +1,7 @@
 ---
 id: STORY-087
 title: Capture every spec screen in both themes and review the captures against the mockups
-status: draft
+status: in-progress
 spec_clauses:
   - 08_Cross_Cutting/08-R_screen_index_and_traceability.md#2-screen-index--every-mockup-and-its-drawn-states
   - 08_Cross_Cutting/08-L_ui_standardization.md#14-standardization-review-checklist

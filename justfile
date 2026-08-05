@@ -52,6 +52,10 @@ coverage-layers:
     uv run coverage report --include='src/ollama_llm_bench/ui/*/_internal/controller.py,src/ollama_llm_bench/ui/*/_internal/view_model_select.py' --fail-under=85
     uv run coverage report --include='src/ollama_llm_bench/ui/*/_internal/view.py' --fail-under=60
 
+# Capture every spec screen in both themes into artifacts/ for the mockup-conformance review (STORY-087).
+screenshots:
+    QT_QPA_PLATFORM=offscreen SCREENSHOT_ARTIFACTS_DIR=artifacts/screenshots uv run pytest tests/integration/test_screenshot_harness.py -q
+
 trace:
     uv run python scripts/trace.py
 

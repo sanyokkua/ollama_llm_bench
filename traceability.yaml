@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-04T22:14:54Z'
+generated_at: '2026-08-05T09:16:04Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5202,7 +5202,7 @@ stories:
         tests: []
   STORY-087:
     title: Capture every spec screen in both themes and review the captures against the mockups
-    status: draft
+    status: in-progress
     spec_clauses:
     - 08_Cross_Cutting/08-D_color_palette_and_typography.md#13-theme-switching
     - 08_Cross_Cutting/08-L_ui_standardization.md#14-standardization-review-checklist
