@@ -1,7 +1,7 @@
 ---
 id: STORY-114
 title: Wire the Task Editor into the quit sequence and give its persisted settings their writers
-status: draft
+status: ready
 spec_clauses:
   - 09_Task_Editor/description.md#37-leave-confirmation-and-quit-confirmation
   - 09_Task_Editor/description.md#6-persistence
@@ -191,6 +191,31 @@ no pause, no stop, no cancel — and the quit proceeds through the standard shut
 - [ ] An architecture test confirms `ui/main_window/` does not import `ui/task_editor/`.
 - [ ] The traceability record validates with no orphan clause and no orphan test.
 - [ ] The module inventory is unchanged.
+- [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
+  `draft` → `ready`, and `just trace` re-run.
+- [ ] The next candidate stories are proposed in the closing report.
+
+## Unblocks and next steps
+
+**Unblocks**
+
+| Story     | Condition                                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| STORY-093 | Only once **every other** story STORY-093 depends on is also `done` — 076-089, 091, 092. STORY-093 is the phase closer and goes last. |
+
+**What to do on completion**
+
+1. Check STORY-093's full `depends_on` list — 076, 077, 078, 079, 080, 081, 082, 083, 084, 085,
+   086, 087, 088, 089, 091, 092, and this story. If and only if every one of them is `done` (a
+   `superseded` dependency, such as STORY-082, counts as satisfied), flip
+   `docs/stories/story-093-phase-12-traceability-risk-and-architecture-docs.md` from
+   `status: draft` to `status: ready`. If any is still open, leave it `draft` and say which ones
+   are outstanding.
+1. Re-run `just trace` — the traceability record embeds each story's `status`, so it goes stale the
+   moment a status changes — then `just trace-check`.
+1. Propose the next stories to pick up, ranked, in the closing report rather than stopping
+   silently. Rank whichever of STORY-093's remaining dependencies are still open ahead of
+   STORY-093 itself, since it cannot start until they land.
 
 ## Notes
 
@@ -205,15 +230,18 @@ no pause, no stop, no cancel — and the quit proceeds through the standard shut
   story. STORY-068's own notes hand the "leave/quit/close/reload/in-use/save-failure confirmation
   dialogs" to STORY-069, and STORY-069 delivered the Task Editor's own dialogs but never wired the
   application-level quit hook, because that hook (`CloseHandler`'s `dirty_buffer_count` parameter)
-  lives in `ui/main_window/` and had no injection path until STORY-080 adds one. This story is that
+  lives in `ui/main_window/` and had no injection path until STORY-080 added one. This story is that
   missing link, not a re-opening of either.
-- **`EC-TE-10` (a Save fails from disk full, permission denied, or a removed directory) has no
-  owning story anywhere.** It is deliberately left out of this story's scope — it is a property of
-  the Task Editor's ordinary Save action rather than of the quit path — but it will show as an
-  uncovered edge case in `just trace-check` until some story claims it. Flagged here so it is not
-  mistaken for fallout from this story.
+- **The `EC-TE-*` family is outside the traceability gate — do not rely on it to prove AC-6.**
+  `scripts/_traceability_lib.py`'s `EDGE_CASE_CATALOGS` list does not include
+  `09_Task_Editor/description.md`, and `14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md`
+  contains no `EC-TE-` row, so no `EC-TE-` id is ever checked by `just trace-check`. Two
+  consequences: the "EC-TE-11 has a passing test" checkbox above is verified by reading the test,
+  not by the gate; and **EC-TE-10 will not appear as an uncovered edge case in `just trace-check`**
+  even though no story owns it — an earlier draft of this story claimed it would, which was wrong.
+  EC-TE-10 (a Save fails from disk full, permission denied, or a removed directory) remains
+  genuinely unowned and is recorded here so it is not mistaken for fallout from this story.
 - **The leave-confirmation half of §3.7 (switching workspace away from a dirty Task Editor) is
   still unowned.** This story covers only the quit half. The switch half loses no data at process
   exit — the buffers survive a workspace switch in memory per §6 — which is why it is the lower
   priority of the two, but it is a real remaining gap in §3.7's coverage.
-  </content>

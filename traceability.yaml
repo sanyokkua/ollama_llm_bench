@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-05T11:32:03Z'
+generated_at: '2026-08-06T11:47:25Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5142,13 +5142,15 @@ stories:
         - tests/integration/test_menu_opens_dialogs.py::test_about_action_opens_about_dialog
   STORY-084:
     title: Complete drag-and-drop of task files onto the New Benchmark task-files list
-    status: draft
+    status: ready
     spec_clauses:
+    - 02_New_Benchmark_Widget/description.md#13-edge-cases
     - 02_New_Benchmark_Widget/description.md#43-task-files--task-benchmark-and-graded-benchmark
     - 02_New_Benchmark_Widget/description.md#5-behaviour-per-element
     modules:
     - ui/new_benchmark/
-    edge_cases: []
+    edge_cases:
+    - EC-TASK-1
     acceptance_criteria:
       STORY-084-AC-1:
         tests: []
@@ -5158,12 +5160,13 @@ stories:
         tests: []
   STORY-085:
     title: Drive a complete benchmark run from the UI through the real pipeline with fake providers
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#6-running-state
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#7-testing-the-qt-free-backend-headlessly
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#7a-the-provider-wire-stub-transport-level-test-double
     modules:
     - backend/benchmark_pipeline/
     - ui/new_benchmark/
@@ -5239,8 +5242,9 @@ stories:
         - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[09-light]
   STORY-088:
     title: Close three known test debts — Gemini contract leg, run-log retention, and a shared resume fixture
-    status: draft
+    status: ready
     spec_clauses:
+    - 12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#5-run-log-and-backup-retention
     - 12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#7-resource-limits-summary
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#7a-the-provider-wire-stub-transport-level-test-double
@@ -5257,7 +5261,7 @@ stories:
       STORY-088-AC-3:
         tests: []
   STORY-089:
-    title: Set an accessible name, objectName, and tooltip on every interactive control across the UI
+    title: Assert every icon-only and ambiguous control uses its pinned name, objectName, and tooltip app-wide
     status: draft
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#11-accessibility-floor-summary
@@ -5266,14 +5270,19 @@ stories:
     modules:
     - ui/common_dialogs/
     - ui/main_window/
+    - ui/new_benchmark/
+    - ui/progress/
     - ui/results/
+    - ui/settings_dialog/
+    - ui/shared/
+    - ui/task_editor/
     edge_cases: []
     acceptance_criteria:
       STORY-089-AC-1:
         tests: []
   STORY-090:
     title: Honor the OS reduced-motion and high-contrast preferences per the accessibility floor
-    status: draft
+    status: superseded
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#11-accessibility-floor-summary
@@ -5316,10 +5325,12 @@ stories:
         tests: []
   STORY-092:
     title: Expose the synthetic-size bucket table on the generator's public surface and consume it from the New Benchmark widget
-    status: draft
+    status: ready
     spec_clauses:
+    - 02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only
     - 02_New_Benchmark_Widget/description.md#6-validation-rules
     - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#23-size-definitions
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#4-preconditions
     - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#8-error-handling
     modules:
     - backend/performance_task_generator/
@@ -5333,16 +5344,20 @@ stories:
       STORY-092-AC-3:
         tests: []
   STORY-093:
-    title: Close Phase 12 with per-EC union traceability, a risk-mitigation verification sweep, and the real architecture and data-model docs
+    title: Close Phase 12 with per-edge-case test attribution, an auditable risk-mitigation sweep, and the real architecture and data-model docs
     status: draft
     spec_clauses:
+    - 12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep
     - 12_Quality_and_NFRs/06_DATA_INTEGRITY.md#3-the-single-writer-discipline
+    - 14_Process_and_Traceability/03_TRACEABILITY.md#4-generating-the-record
     - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#1-purpose-and-scope
     - 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#3-risk-summary-matrix
+    - 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-006--long-running-batched-pipeline-holding-partial-results
+    - 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-007--sqlite-wal-corruption-and-crash-recovery
     - 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-013--secret-leakage-through-one-of-the-two-redaction-surfaces-being-bypassed
     modules:
     - backend/errors/
-    - backend/persistence/app_settings/
+    - backend/persistence/results/
     edge_cases: []
     acceptance_criteria:
       STORY-093-AC-1:
@@ -5351,12 +5366,19 @@ stories:
         tests: []
       STORY-093-AC-3:
         tests: []
+      STORY-093-AC-4:
+        tests: []
+      STORY-093-AC-5:
+        tests: []
   STORY-094:
-    title: Add the per-OS PyInstaller onedir packaging specs and a local artifact smoke-launch check
-    status: draft
+    title: Add the per-OS PyInstaller onedir packaging specs and an opt-in packaged-artifact smoke-launch tier
+    status: ready
     spec_clauses:
     - 15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-011--cross-platform-packaging-drift-pyinstaller
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#3-test-layout
     - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#11-minimum-os-versions
+    - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#13-anti-patterns
     - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#6-build-backend-and-packaging
     - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#7-per-os-artifacts
     modules:
@@ -5370,13 +5392,20 @@ stories:
         tests: []
       STORY-094-AC-3:
         tests: []
+      STORY-094-AC-4:
+        tests: []
+      STORY-094-AC-5:
+        tests: []
   STORY-095:
-    title: Add the tag-triggered release workflow that builds the three OS artifacts with SHA256SUMS under the semver policy
+    title: Complete the release workflow with real per-OS packaging, a version-consistency gate, and failure cleanup
     status: draft
     spec_clauses:
+    - 13_Distribution_and_Release/02_INSTALLATION.md#1-where-to-download
     - 13_Distribution_and_Release/06_VERSIONING_POLICY.md#6-where-the-version-is-shown
     - 13_Distribution_and_Release/06_VERSIONING_POLICY.md#7-version-tags-and-releases
     - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#3-cicd-overview
+    - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#4-ci-jobs
+    - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#7-per-os-artifacts
     - 16_Engineering_Standards/08_CICD_AND_PACKAGING.md#8-checksums-and-reproducibility
     modules:
     - ui/common_dialogs/
@@ -5391,14 +5420,22 @@ stories:
         tests: []
       STORY-095-AC-4:
         tests: []
+      STORY-095-AC-5:
+        tests: []
   STORY-096:
     title: Write the user-facing install, first-run, unsigned-distribution, and uninstall documentation
     status: draft
     spec_clauses:
     - 13_Distribution_and_Release/02_INSTALLATION.md#1-where-to-download
+    - 13_Distribution_and_Release/02_INSTALLATION.md#2-verifying-the-download
+    - 13_Distribution_and_Release/02_INSTALLATION.md#7-where-application-data-is-stored
     - 13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#1-why-a-security-warning-appears
+    - 13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#2-macos--gatekeeper
+    - 13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#3-windows--smartscreen
+    - 13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#5a-updating-re-triggers-the-first-run-flow-per-binary
     - 13_Distribution_and_Release/05_FIRST_RUN_EXPERIENCE.md#6-the-first-run-sequence
     - 13_Distribution_and_Release/08_UNINSTALL.md#1-what-a-complete-uninstall-removes
+    - 13_Distribution_and_Release/08_UNINSTALL.md#7-what-is-left-behind
     modules:
     - backend/platform/
     edge_cases: []
@@ -5411,7 +5448,7 @@ stories:
         tests: []
   STORY-097:
     title: Add accessible names, objectNames, and tooltips to the main window, common dialogs, and shared primitives
-    status: draft
+    status: done
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
@@ -5424,16 +5461,29 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-097-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_a11y_names_shell.py::test_every_shell_control_has_a_nonempty_accessible_name
       STORY-097-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_a11y_names_shell.py::test_dialog_registry_controls_use_pinned_values[07_common_dialogs__about:copy_data_folder_path_button]
+        - tests/integration/test_a11y_names_shell.py::test_dialog_registry_controls_use_pinned_values[07_common_dialogs__about:dialog_close_button]
+        - tests/integration/test_a11y_names_shell.py::test_dialog_registry_controls_use_pinned_values[07_common_dialogs__about:open_data_folder_button]
+        - tests/integration/test_a11y_names_shell.py::test_dialog_registry_controls_use_pinned_values[07_common_dialogs__error:dialog_close_button]
+        - tests/integration/test_a11y_names_shell.py::test_dialog_registry_controls_use_pinned_values[07_common_dialogs__generate_analysis:gate_busy_indicator]
+        - tests/integration/test_a11y_names_shell.py::test_readiness_dot_tooltip_leads_with_the_pinned_sentence
+        - tests/integration/test_a11y_names_shell.py::test_shell_registry_controls_use_pinned_values[about_menu_button]
+        - tests/integration/test_a11y_names_shell.py::test_shell_registry_controls_use_pinned_values[running_pill_button]
+        - tests/integration/test_a11y_names_shell.py::test_shell_registry_controls_use_pinned_values[settings_menu_button]
+        - tests/integration/test_a11y_names_shell.py::test_shell_registry_controls_use_pinned_values[workspace_benchmark_button]
+        - tests/integration/test_a11y_names_shell.py::test_shell_registry_controls_use_pinned_values[workspace_task_editor_button]
   STORY-098:
     title: Add accessible names, objectNames, and tooltips to the New Benchmark, Resume, and Progress widgets
-    status: draft
+    status: ready
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
     modules:
+    - adapters/qt_table_models/
     - ui/new_benchmark/
     - ui/progress/
     - ui/resume_benchmark/
@@ -5443,13 +5493,16 @@ stories:
         tests: []
       STORY-098-AC-2:
         tests: []
+      STORY-098-AC-3:
+        tests: []
   STORY-099:
     title: Add accessible names, objectNames, and tooltips to the Result, Settings, and Task Editor widgets
-    status: draft
+    status: ready
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
     modules:
+    - adapters/qt_table_models/
     - ui/results/
     - ui/settings_dialog/
     - ui/task_editor/
@@ -5458,6 +5511,8 @@ stories:
       STORY-099-AC-1:
         tests: []
       STORY-099-AC-2:
+        tests: []
+      STORY-099-AC-3:
         tests: []
   STORY-100:
     title: Issue a dedicated lightweight liveness probe when a provider is PROBING
@@ -6035,7 +6090,7 @@ stories:
         - tests/architecture/test_result_gateway_delivers_ui_declared_analysis_type.py::test_regenerate_run_analysis_delivers_the_ui_declared_result_type
   STORY-114:
     title: Wire the Task Editor into the quit sequence and give its persisted settings their writers
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence
     - 09_Task_Editor/description.md#37-leave-confirmation-and-quit-confirmation
@@ -6058,6 +6113,48 @@ stories:
       STORY-114-AC-5:
         tests: []
       STORY-114-AC-6:
+        tests: []
+  STORY-115:
+    title: Prune run logs at startup by adding the orphan rule and wiring the cleanup into launch
+    status: draft
+    spec_clauses:
+    - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
+    - 10_Domain_and_Data/07_FILE_LAYOUT.md#82-run-log-cleanup
+    - 12_Quality_and_NFRs/03_OBSERVABILITY.md#42-run-log-retention
+    - 12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#5-run-log-and-backup-retention
+    - 12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#7-resource-limits-summary
+    modules:
+    - backend/log_file_writer/
+    - backend/persistence/results/
+    - backend/persistence/runs/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-115-AC-1:
+        tests: []
+      STORY-115-AC-2:
+        tests: []
+      STORY-115-AC-3:
+        tests: []
+      STORY-115-AC-4:
+        tests: []
+  STORY-116:
+    title: Bring the Task Editor edge-case catalog under the traceability gate
+    status: draft
+    spec_clauses:
+    - 09_Task_Editor/description.md#9-edge-cases
+    - 14_Process_and_Traceability/03_TRACEABILITY.md#5-validating-the-record
+    - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#10-mapping--workspace-and-task-editor
+    - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#19-coverage-summary
+    - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#191-the-traceability-validator-validate_traceabilitypy
+    modules:
+    - ui/task_editor/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-116-AC-1:
+        tests: []
+      STORY-116-AC-2:
+        tests: []
+      STORY-116-AC-3:
         tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
@@ -6103,12 +6200,16 @@ clauses:
     stories:
     - STORY-054
     - STORY-071
+  02_New_Benchmark_Widget/description.md#13-edge-cases:
+    stories:
+    - STORY-084
   02_New_Benchmark_Widget/description.md#3-run-modes-and-the-mode-selector:
     stories:
     - STORY-054
   02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only:
     stories:
     - STORY-071
+    - STORY-092
   02_New_Benchmark_Widget/description.md#43-task-files--task-benchmark-and-graded-benchmark:
     stories:
     - STORY-084
@@ -6854,6 +6955,7 @@ clauses:
     - STORY-078
     - STORY-080
     - STORY-081
+    - STORY-115
   08_Cross_Cutting/08-M_app_lifecycle.md#3-the-schema-check-and-the-no-migration-rule:
     stories:
     - STORY-078
@@ -6970,6 +7072,9 @@ clauses:
   09_Task_Editor/description.md#7-event-bus-integration:
     stories:
     - STORY-068
+  09_Task_Editor/description.md#9-edge-cases:
+    stories:
+    - STORY-116
   09_Task_Editor/description.md#EC-TE-11:
     stories:
     - STORY-114
@@ -7114,6 +7219,7 @@ clauses:
   10_Domain_and_Data/07_FILE_LAYOUT.md#82-run-log-cleanup:
     stories:
     - STORY-037
+    - STORY-115
   10_Domain_and_Data/07_FILE_LAYOUT.md#9-filesystem-permissions:
     stories:
     - STORY-037
@@ -7545,6 +7651,9 @@ clauses:
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#3-outputs:
     stories:
     - STORY-034
+  11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#4-preconditions:
+    stories:
+    - STORY-092
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#5-postconditions:
     stories:
     - STORY-034
@@ -7585,9 +7694,13 @@ clauses:
   11_Services_and_Algorithms/22_RUN_ANALYSIS_SERVICE.md#9-threading-and-concurrency:
     stories:
     - STORY-108
+  12_Quality_and_NFRs/03_OBSERVABILITY.md#42-run-log-retention:
+    stories:
+    - STORY-115
   12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep:
     stories:
     - STORY-011
+    - STORY-093
   12_Quality_and_NFRs/05_CONCURRENCY_GUARANTEES.md#2-the-single-execution-runner-guarantee:
     stories:
     - STORY-077
@@ -7617,9 +7730,14 @@ clauses:
   12_Quality_and_NFRs/06_DATA_INTEGRITY.md#7a-unique-on-name-invariants-and-auto-id-atomicity-dd-33:
     stories:
     - STORY-012
+  12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#5-run-log-and-backup-retention:
+    stories:
+    - STORY-088
+    - STORY-115
   12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#7-resource-limits-summary:
     stories:
     - STORY-088
+    - STORY-115
   12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method:
     stories:
     - STORY-090
@@ -7655,8 +7773,24 @@ clauses:
     - STORY-090
   13_Distribution_and_Release/02_INSTALLATION.md#1-where-to-download:
     stories:
+    - STORY-095
+    - STORY-096
+  13_Distribution_and_Release/02_INSTALLATION.md#2-verifying-the-download:
+    stories:
+    - STORY-096
+  13_Distribution_and_Release/02_INSTALLATION.md#7-where-application-data-is-stored:
+    stories:
     - STORY-096
   13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#1-why-a-security-warning-appears:
+    stories:
+    - STORY-096
+  13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#2-macos--gatekeeper:
+    stories:
+    - STORY-096
+  13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#3-windows--smartscreen:
+    stories:
+    - STORY-096
+  13_Distribution_and_Release/04_UNSIGNED_DISTRIBUTION.md#5a-updating-re-triggers-the-first-run-flow-per-binary:
     stories:
     - STORY-096
   13_Distribution_and_Release/05_FIRST_RUN_EXPERIENCE.md#6-the-first-run-sequence:
@@ -7669,6 +7803,9 @@ clauses:
     stories:
     - STORY-095
   13_Distribution_and_Release/08_UNINSTALL.md#1-what-a-complete-uninstall-removes:
+    stories:
+    - STORY-096
+  13_Distribution_and_Release/08_UNINSTALL.md#7-what-is-left-behind:
     stories:
     - STORY-096
   14_Process_and_Traceability/01_MODULE_INVENTORY.md#42-settings-stores-and-readiness-modules:
@@ -7685,13 +7822,34 @@ clauses:
   14_Process_and_Traceability/01_MODULE_INVENTORY.md#7-the-composition-root:
     stories:
     - STORY-077
+  14_Process_and_Traceability/03_TRACEABILITY.md#4-generating-the-record:
+    stories:
+    - STORY-093
+  14_Process_and_Traceability/03_TRACEABILITY.md#5-validating-the-record:
+    stories:
+    - STORY-116
   14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#1-purpose-and-scope:
     stories:
     - STORY-093
+  14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#10-mapping--workspace-and-task-editor:
+    stories:
+    - STORY-116
+  14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#19-coverage-summary:
+    stories:
+    - STORY-116
+  14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#191-the-traceability-validator-validate_traceabilitypy:
+    stories:
+    - STORY-116
   14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#EC-PERSIST-6:
     stories:
     - STORY-074
   15_Risks_and_Open_Questions/01_RISK_REGISTER.md#3-risk-summary-matrix:
+    stories:
+    - STORY-093
+  15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-006--long-running-batched-pipeline-holding-partial-results:
+    stories:
+    - STORY-093
+  15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-007--sqlite-wal-corruption-and-crash-recovery:
     stories:
     - STORY-093
   15_Risks_and_Open_Questions/01_RISK_REGISTER.md#r-011--cross-platform-packaging-drift-pyinstaller:
@@ -7757,6 +7915,7 @@ clauses:
     - STORY-081
     - STORY-085
     - STORY-086
+    - STORY-094
   16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid:
     stories:
     - STORY-081
@@ -7764,6 +7923,7 @@ clauses:
   16_Engineering_Standards/07_TESTING_STANDARD.md#3-test-layout:
     stories:
     - STORY-086
+    - STORY-094
   16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol:
     stories:
     - STORY-086
@@ -7773,11 +7933,18 @@ clauses:
     - STORY-085
   16_Engineering_Standards/07_TESTING_STANDARD.md#7a-the-provider-wire-stub-transport-level-test-double:
     stories:
+    - STORY-085
     - STORY-088
   16_Engineering_Standards/08_CICD_AND_PACKAGING.md#11-minimum-os-versions:
     stories:
     - STORY-094
+  16_Engineering_Standards/08_CICD_AND_PACKAGING.md#13-anti-patterns:
+    stories:
+    - STORY-094
   16_Engineering_Standards/08_CICD_AND_PACKAGING.md#3-cicd-overview:
+    stories:
+    - STORY-095
+  16_Engineering_Standards/08_CICD_AND_PACKAGING.md#4-ci-jobs:
     stories:
     - STORY-095
   16_Engineering_Standards/08_CICD_AND_PACKAGING.md#6-build-backend-and-packaging:
@@ -7786,6 +7953,7 @@ clauses:
   16_Engineering_Standards/08_CICD_AND_PACKAGING.md#7-per-os-artifacts:
     stories:
     - STORY-094
+    - STORY-095
   16_Engineering_Standards/08_CICD_AND_PACKAGING.md#8-checksums-and-reproducibility:
     stories:
     - STORY-095
@@ -10494,6 +10662,7 @@ edge_cases:
   EC-TASK-1:
     stories:
     - STORY-054
+    - STORY-084
     tests:
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_controller.py::test_mode_selector_restores_and_persists_last_mode_via_gateway
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
@@ -10702,6 +10871,8 @@ modules:
   adapters/qt_table_models/:
     stories:
     - STORY-046
+    - STORY-098
+    - STORY-099
   adapters/store_qt_bridge/:
     stories:
     - STORY-044
@@ -10790,6 +10961,7 @@ modules:
     stories:
     - STORY-037
     - STORY-088
+    - STORY-115
   backend/log_formatting/:
     stories:
     - STORY-036
@@ -10809,7 +10981,6 @@ modules:
     stories:
     - STORY-008
     - STORY-078
-    - STORY-093
     - STORY-110
   backend/persistence/model_capabilities/:
     stories:
@@ -10825,10 +10996,13 @@ modules:
     - STORY-029
     - STORY-074
     - STORY-080
+    - STORY-093
+    - STORY-115
   backend/persistence/runs/:
     stories:
     - STORY-009
     - STORY-074
+    - STORY-115
   backend/persistence/tasks/:
     stories:
     - STORY-010
@@ -10928,6 +11102,7 @@ modules:
     - STORY-081
     - STORY-084
     - STORY-085
+    - STORY-089
     - STORY-092
     - STORY-098
     - STORY-106
@@ -10937,6 +11112,7 @@ modules:
     - STORY-059
     - STORY-060
     - STORY-073
+    - STORY-089
     - STORY-098
     - STORY-107
   ui/results/:
@@ -10965,12 +11141,14 @@ modules:
     - STORY-066
     - STORY-067
     - STORY-083
+    - STORY-089
     - STORY-099
     - STORY-110
     - STORY-113
   ui/shared/:
     stories:
     - STORY-051
+    - STORY-089
     - STORY-090
     - STORY-091
     - STORY-097
@@ -10986,10 +11164,12 @@ modules:
     stories:
     - STORY-068
     - STORY-069
+    - STORY-089
     - STORY-099
     - STORY-111
     - STORY-112
     - STORY-114
+    - STORY-116
   ui/theme/:
     stories:
     - STORY-049

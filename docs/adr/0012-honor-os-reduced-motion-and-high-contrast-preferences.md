@@ -1,9 +1,10 @@
 # ADR-0012 — Honor the OS reduced-motion and high-contrast preferences to meet the release-blocking accessibility floor
 
-**Status:** accepted
+**Status:** superseded by ADR-0018
 **Date:** 2026-07-23
 **Deciders:** architect (finalization backlog) — requires product-owner ratification
 **Supersedes:** ADR-0008
+**Superseded by:** ADR-0018
 
 ## Context and problem statement
 
@@ -67,6 +68,15 @@ STORY-090 can cite it, but it **requires product-owner ratification** before STO
 `draft` to `ready`: the owner may instead choose to keep the exclusion and formally narrow the
 floor, in which case this ADR would itself be superseded.
 
+> **Superseded by ADR-0018 (2026-08-05).** The product-owner ratification this ADR made a
+> precondition was refused: the owner chose the branch named directly above — keep the exclusion —
+> so the application will ship without honoring the OS reduce-motion and increase-contrast
+> settings, in deliberate, recorded non-conformance with two of the floor's ten release-blocking
+> requirements. ADR-0018 is that record; it re-adopts ADR-0008's exclusion as a product decision.
+> STORY-090 is retired as `superseded` and STORY-091 keeps its five checks, none of which ever
+> covered motion or contrast. This body is retained unedited below the status line, per the ADR
+> lifecycle; only the `Status`/`Superseded by` lines and this note record the supersession.
+
 ### Consequences
 
 - Positive — The accessibility floor's two remaining release-blocking rows become satisfiable and
@@ -95,6 +105,6 @@ floor, in which case this ADR would itself be superseded.
 
 ## Links
 
-- Related ADRs: supersedes ADR-0008.
+- Related ADRs: supersedes ADR-0008; superseded by ADR-0018.
 - Spec clauses: `docs/v3_specification/12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md` §8, §10, §11.
 - Stories: STORY-090 (implementation), STORY-091 (accessibility floor verification suite).
