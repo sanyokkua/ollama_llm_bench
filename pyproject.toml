@@ -134,6 +134,13 @@ docstring-code-format = true
 "scripts/trace.py" = [
   "A005",
 ] # filename fixed by justfile's `just trace` invocation contract
+"scripts/sync-agent-files.py" = [
+  "T20",     # a CLI report tool that prints by design
+  "FBT001",  # positional bool kwargs match its upstream signature
+  "PLR0912", # each drift check enumerates every case in one function, by design
+  "PLR2004", # the 20/200/250 line-budget thresholds are self-explanatory in context
+] # vendored verbatim from .claude/skills/agent-memory-standard/scripts/ — keep it a straight
+# copy (no local rewrites) so future re-vendoring stays a diff-free drop-in
 
 [tool.mypy]
 python_version = "3.13"

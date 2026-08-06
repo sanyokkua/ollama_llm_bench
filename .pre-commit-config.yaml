@@ -1,6 +1,6 @@
 # Git-level quality gate — separate from, and complementary to, the Claude Code
-# hooks in .claude/settings.json. See CLAUDE.md "Quality gates — do not ignore
-# or bypass" and .claude/hooks/precommit_from_hook.sh.
+# hooks in .claude/settings.json. See AGENTS.md "Definition of Done" / "Non-negotiables"
+# and .claude/hooks/precommit_from_hook.sh.
 #
 # Setup (run once after this repo is bootstrapped):
 #   uv add --dev pre-commit
@@ -87,6 +87,13 @@ repos:
       - id: traceability-check
         name: just trace-check
         entry: just trace-check
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: agent-memory-sync-check
+        name: agent memory mirrors in sync (AGENTS.md/CLAUDE.md/.codex)
+        entry: python3 scripts/sync-agent-files.py --check
         language: system
         pass_filenames: false
         stages: [pre-push]
