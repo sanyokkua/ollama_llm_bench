@@ -181,7 +181,7 @@ def test_header_controls_visibility_per_run_state(  # noqa: PLR0913  # one param
     view.apply_header(run_name="Run 1", affordances=affordances)
 
     # Assert
-    pencil = cast("QToolButton", view.findChild(QToolButton, "progress.header.rename_pencil"))
+    pencil = cast("QToolButton", view.findChild(QToolButton, "rename_run_button"))
     pause_resume = cast("QPushButton", view.findChild(QPushButton, "progress.header.pause_resume"))
     stop = cast("QPushButton", view.findChild(QPushButton, "progress.header.stop"))
     assert pencil.isVisible() == pencil_visible
