@@ -72,6 +72,7 @@ class RetrySelectionDialog(QDialog):
         toolbar = QHBoxLayout()
         self.filter_combo = QComboBox()
         self.filter_combo.setObjectName("common_dialogs.retry_selection.filter")
+        self.filter_combo.setAccessibleName("Filter rows")
         for option in RetryFilterOption:
             self.filter_combo.addItem(_FILTER_LABELS[option], option)
         self.filter_combo.setCurrentIndex(
@@ -81,9 +82,13 @@ class RetrySelectionDialog(QDialog):
         toolbar.addWidget(self.filter_combo)
         toolbar.addStretch()
         check_all = QPushButton("Check all visible")
+        check_all.setObjectName("common_dialogs.retry_selection.check_all_button")
+        check_all.setAccessibleName("Check all visible")
         check_all.setProperty("role", "outlined-muted-button")
         check_all.clicked.connect(lambda: self._bulk_toggle(checked=True))
         uncheck_all = QPushButton("Uncheck all visible")
+        uncheck_all.setObjectName("common_dialogs.retry_selection.uncheck_all_button")
+        uncheck_all.setAccessibleName("Uncheck all visible")
         uncheck_all.setProperty("role", "outlined-muted-button")
         uncheck_all.clicked.connect(lambda: self._bulk_toggle(checked=False))
         toolbar.addWidget(check_all)
@@ -92,6 +97,7 @@ class RetrySelectionDialog(QDialog):
 
         self.table = QTableWidget(0, 3)
         self.table.setObjectName("common_dialogs.retry_selection.table")
+        self.table.setAccessibleName("Rows available to retry")
         self.table.setHorizontalHeaderLabels(["Task", "Status", "Reason"])
         self.table.itemChanged.connect(self._on_item_changed)
         outer.addWidget(self.table)
@@ -107,11 +113,14 @@ class RetrySelectionDialog(QDialog):
         footer = QHBoxLayout()
         footer.addStretch()
         cancel_button = QPushButton("Cancel")
+        cancel_button.setObjectName("common_dialogs.retry_selection.cancel_button")
+        cancel_button.setAccessibleName("Cancel")
         cancel_button.setProperty("role", "outlined-muted-button")
         cancel_button.clicked.connect(self.reject)
         footer.addWidget(cancel_button)
         self.retry_button = QPushButton("Retry Selected")
         self.retry_button.setObjectName("common_dialogs.retry_selection.retry_button")
+        self.retry_button.setAccessibleName("Retry Selected")
         self.retry_button.setProperty("role", "primary-button")
         self.retry_button.setDefault(True)
         self.retry_button.clicked.connect(self._on_retry_clicked)
@@ -178,6 +187,7 @@ class RetrySelectionDialog(QDialog):
             f"{completed_untouched} completed rows untouched"
         )
         self.retry_button.setEnabled(selected > 0)
+        self.retry_button.setToolTip("" if selected > 0 else "Select at least one row to retry.")
 
     def _on_retry_clicked(self) -> None:
         result_ids = tuple(self._checked_result_ids)

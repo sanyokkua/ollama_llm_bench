@@ -63,6 +63,7 @@ class RenameRunDialog(QDialog):
 
         self.new_name_edit = QLineEdit(current_custom_name or "")
         self.new_name_edit.setObjectName("common_dialogs.rename_run.new_name")
+        self.new_name_edit.setAccessibleName("New run name")
         self.new_name_edit.setPlaceholderText(self._computed_default_name)
         self.new_name_edit.textChanged.connect(self._on_text_changed)
         layout.addWidget(self.new_name_edit)
@@ -82,6 +83,7 @@ class RenameRunDialog(QDialog):
         footer = QHBoxLayout()
         self.use_default_button = QPushButton("Use default")
         self.use_default_button.setObjectName("common_dialogs.rename_run.use_default_button")
+        self.use_default_button.setAccessibleName("Use default")
         self.use_default_button.setProperty("role", "outlined-muted-button")
         self.use_default_button.clicked.connect(self._on_use_default_clicked)
         footer.addWidget(self.use_default_button)
@@ -89,12 +91,14 @@ class RenameRunDialog(QDialog):
 
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setObjectName("common_dialogs.rename_run.cancel_button")
+        self.cancel_button.setAccessibleName("Cancel")
         self.cancel_button.setProperty("role", "outlined-muted-button")
         self.cancel_button.clicked.connect(self.reject)
         footer.addWidget(self.cancel_button)
 
         self.rename_button = QPushButton("Rename")
         self.rename_button.setObjectName("common_dialogs.rename_run.rename_button")
+        self.rename_button.setAccessibleName("Rename")
         self.rename_button.setProperty("role", "primary-button")
         self.rename_button.setDefault(True)
         self.rename_button.clicked.connect(self._on_rename_clicked)
@@ -123,6 +127,7 @@ class RenameRunDialog(QDialog):
         )
         self._validation_label.setText(result.message or "")
         self.rename_button.setEnabled(result.is_valid)
+        self.rename_button.setToolTip("" if result.is_valid else (result.message or ""))
 
     def _on_rename_clicked(self) -> None:
         trimmed = self.new_name_edit.text().strip()
