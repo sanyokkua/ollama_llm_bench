@@ -244,8 +244,29 @@ def surface_widget_factory(
     return _build
 
 
-def test_every_benchmark_surface_control_has_a_nonempty_accessible_name(
+@pytest.fixture
+def benchmark_surface_widgets(
     qtbot: QtBot, qapp: QApplication, mocker: MockerFixture
+) -> list[QWidget]:
+    """Build all three benchmark-surface widgets (New Benchmark, Resume, Progress),
+    already registered with ``qtbot``.
+
+    Widget construction and qtbot registration happen in the fixture body
+    (where ``for`` loops are allowed), keeping the test body clean per
+    .claude/rules/testing.md:69 (no if/for in a test body).
+    """
+    widgets = [
+        _build_new_benchmark_widget(qapp),
+        _build_resume_benchmark_widget(mocker),
+        _build_progress_widget(mocker),
+    ]
+    for widget in widgets:
+        qtbot.addWidget(widget)
+    return widgets
+
+
+def test_every_benchmark_surface_control_has_a_nonempty_accessible_name(
+    benchmark_surface_widgets: list[QWidget],
 ) -> None:
     """Proves: STORY-098-AC-1
 
@@ -254,13 +275,7 @@ def test_every_benchmark_surface_control_has_a_nonempty_accessible_name(
     announce it and a name-based UI test can address it.
     """
     # Arrange
-    widgets = [
-        _build_new_benchmark_widget(qapp),
-        _build_resume_benchmark_widget(mocker),
-        _build_progress_widget(mocker),
-    ]
-    for widget in widgets:
-        qtbot.addWidget(widget)
+    widgets = benchmark_surface_widgets
 
     # Act
     unnamed = [
