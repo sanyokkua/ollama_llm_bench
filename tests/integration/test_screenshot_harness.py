@@ -40,11 +40,6 @@ from ollama_llm_bench.ui.settings_dialog.testing import FakeSettingsGateway
 
 _ARTIFACTS_ENV_VAR: Final[str] = "SCREENSHOT_ARTIFACTS_DIR"
 
-_PROVIDER_ID: Final[str] = "550e8400-e29b-41d4-a716-446655440000"
-_MODEL_NAME: Final[str] = "llama3.1:8b"
-_RUN_ID: Final[int] = 1
-_TIMESTAMP: Final[str] = "2026-08-05T12:00:00Z"
-
 _DIALOG_SIZE: Final[tuple[int, int]] = (900, 700)
 
 _SCREEN_INDEX_IDS: Final[tuple[str, ...]] = ("01", "02", "03", "04", "05", "06", "07", "09")
