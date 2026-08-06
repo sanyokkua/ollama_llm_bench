@@ -257,6 +257,16 @@ Full suite `2464 passed` (baseline 2446 plus this story's 18 tests), run without
 (1055 files), `just import-check`, and `just arch-test` (1345 passed) all clean;
 `just coverage-layers` 88.6% against an 80% floor; `just trace-check` reports zero gaps.
 
+### Follow-up filed: this story's tests add measurable suite pressure
+
+STORY-117 records a measured finding from this story's close-out. Eleven sequential full-suite
+runs — five at the pre-story commit, six after — showed 2 native crashes and 2 unrelated
+`ui/resume_benchmark` menu-action failures after this story, against zero of either before. The
+failures are not defects in this story's code (`ui/resume_benchmark/` is untouched, the factory
+those tests mock is unchanged, and that file passes 18/18 in isolation), but this story's tests
+build the whole application 7 times and construct 42 dialogs in one process, against a suite with
+a documented Qt-accumulation crash sensitivity. STORY-117 reduces that churn and re-measures.
+
 The suite is flaky at this commit and at the pre-story baseline alike — the project's documented
 ~1-in-3 native crash inside CPython's cyclic GC, plus independent timing flakes. Two clean
 full-suite runs at HEAD and two at the baseline were used to separate genuine failures from noise.

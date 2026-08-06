@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-06T12:10:14Z'
+generated_at: '2026-08-06T12:25:11Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -6156,6 +6156,21 @@ stories:
         tests: []
       STORY-116-AC-3:
         tests: []
+  STORY-117:
+    title: Reduce Qt object churn in the accessibility-name integration tests
+    status: draft
+    spec_clauses:
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#11-coverage-targets-and-time-budgets
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#5-fixtures
+    modules:
+    - ui/common_dialogs/
+    - ui/main_window/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-117-AC-1:
+        tests: []
+      STORY-117-AC-2:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -7910,6 +7925,9 @@ clauses:
   16_Engineering_Standards/06_LOGGING_STANDARD.md#9-rotation-retention-and-locations:
     stories:
     - STORY-004
+  16_Engineering_Standards/07_TESTING_STANDARD.md#11-coverage-targets-and-time-budgets:
+    stories:
+    - STORY-117
   16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment:
     stories:
     - STORY-081
@@ -7924,6 +7942,9 @@ clauses:
     stories:
     - STORY-086
     - STORY-094
+  16_Engineering_Standards/07_TESTING_STANDARD.md#5-fixtures:
+    stories:
+    - STORY-117
   16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol:
     stories:
     - STORY-086
@@ -11077,6 +11098,7 @@ modules:
     - STORY-106
     - STORY-107
     - STORY-109
+    - STORY-117
   ui/main_window/:
     stories:
     - STORY-053
@@ -11093,6 +11115,7 @@ modules:
     - STORY-104
     - STORY-105
     - STORY-114
+    - STORY-117
   ui/new_benchmark/:
     stories:
     - STORY-054
