@@ -54,6 +54,10 @@ _DIALOG_ALLOWED_IMPORTS = {
     "ollama_llm_bench.backend.model_helpers",
     "ollama_llm_bench.ui.common_dialogs._internal.generate_analysis_select",
     "ollama_llm_bench.ui.common_dialogs.models",
+    # Shared, Qt-only presentation primitives (the pinned dialog-close button and
+    # gate-busy strip, STORY-097) -- the same class of dependency as the two
+    # ``ui.shared.*`` dropdown entries below, not a backend Store/Service Protocol.
+    "ollama_llm_bench.ui.shared",
     "ollama_llm_bench.ui.shared.model_dropdown",
     "ollama_llm_bench.ui.shared.provider_dropdown",
 }
