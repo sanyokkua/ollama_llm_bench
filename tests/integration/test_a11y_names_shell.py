@@ -36,17 +36,18 @@ _INTERACTIVE_TYPES: tuple[type[QWidget], ...] = (
     QAbstractItemView,
 )
 
-_COMPOSITE_TYPES: tuple[type[QWidget], ...] = (QComboBox, QAbstractItemView)
+_COMPOSITE_TYPES: tuple[type[QWidget], ...] = (QComboBox, QAbstractItemView, QAbstractSpinBox)
 
 
 def _has_composite_ancestor(widget: QWidget) -> bool:
     """Whether `widget` is Qt's own internal part of a composite control.
 
-    A dropdown's popup list, and a table's column headers and corner button, are
-    constructed by Qt itself rather than by application code. They are parts of the
-    control the application already named, not controls of their own, so requiring a
-    separate name on each would mean announcing filler like "Filter rows popup list"
-    and would break every future dropdown or table until boilerplate was added.
+    A dropdown's popup list, a table's column headers and corner button, and a spin
+    box's internal `QLineEdit` are constructed by Qt itself rather than by
+    application code. They are parts of the control the application already named,
+    not controls of their own, so requiring a separate name on each would mean
+    announcing filler like "Filter rows popup list" and would break every future
+    dropdown, table, or spin box until boilerplate was added.
     """
     parent = cast("QObject | None", widget.parent())
     while parent is not None:
