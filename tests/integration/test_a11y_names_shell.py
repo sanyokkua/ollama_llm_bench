@@ -8,7 +8,7 @@ passes whenever production and spec drift together.
 """
 
 from collections.abc import Callable, Iterable
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -24,6 +24,9 @@ import pytest
 
 from ollama_llm_bench.compose import AppHandle
 
+if TYPE_CHECKING:
+    from PySide6.QtCore import QObject
+
 _INTERACTIVE_TYPES: tuple[type[QWidget], ...] = (
     QAbstractButton,
     QComboBox,
@@ -33,16 +36,40 @@ _INTERACTIVE_TYPES: tuple[type[QWidget], ...] = (
     QAbstractItemView,
 )
 
+_COMPOSITE_TYPES: tuple[type[QWidget], ...] = (QComboBox, QAbstractItemView)
+
+
+def _has_composite_ancestor(widget: QWidget) -> bool:
+    """Whether `widget` is Qt's own internal part of a composite control.
+
+    A dropdown's popup list, and a table's column headers and corner button, are
+    constructed by Qt itself rather than by application code. They are parts of the
+    control the application already named, not controls of their own, so requiring a
+    separate name on each would mean announcing filler like "Filter rows popup list"
+    and would break every future dropdown or table until boilerplate was added.
+    """
+    parent = cast("QObject | None", widget.parent())
+    while parent is not None:
+        if isinstance(parent, _COMPOSITE_TYPES):
+            return True
+        parent = cast("QObject | None", parent.parent())
+    return False
+
 
 def _interactive_descendants(root: QWidget) -> list[QWidget]:
     """Return every interactive control in `root`'s subtree, `root` included.
 
     "Interactive" is the set a user can click into or type into. Container widgets,
     plain labels, and custom-painted presentation surfaces are excluded -- the floor
-    requires a name on controls, not on decoration.
+    requires a name on controls, not on decoration. Qt's own internal parts of a
+    composite control are excluded too -- see `_has_composite_ancestor`.
     """
     descendants = cast("Iterable[QWidget]", root.findChildren(QWidget))
-    found = [w for w in descendants if isinstance(w, _INTERACTIVE_TYPES)]
+    found = [
+        w
+        for w in descendants
+        if isinstance(w, _INTERACTIVE_TYPES) and not _has_composite_ancestor(w)
+    ]
     if isinstance(root, _INTERACTIVE_TYPES):
         found.append(root)
     return found
