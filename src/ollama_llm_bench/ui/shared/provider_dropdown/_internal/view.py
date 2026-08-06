@@ -35,6 +35,7 @@ class ProviderDropdownWidget(QComboBox):
         self._provider_source = provider_source
         self._provider_filter = provider_filter
         self.setProperty("role", "dropdown")
+        self.setAccessibleName("Provider")
         self._populate()
         self.currentIndexChanged.connect(self._on_current_index_changed)
         event_bus.subscribe(

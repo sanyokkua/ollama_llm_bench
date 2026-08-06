@@ -5,6 +5,8 @@ across ui/* widgets. Pure presentation with dynamic-property roles (01_MODULE_IN
 
 from ollama_llm_bench.ui.shared.api import (
     make_badge_label,
+    make_dialog_close_button,
+    make_gate_busy_indicator,
     make_health_dot,
     make_multi_check_filter_button,
     resolve_badge_color_roles,
@@ -15,6 +17,8 @@ __all__: list[str] = [
     "BadgeStatus",
     "FilterSelectionChanged",
     "make_badge_label",
+    "make_dialog_close_button",
+    "make_gate_busy_indicator",
     "make_health_dot",
     "make_multi_check_filter_button",
     "resolve_badge_color_roles",

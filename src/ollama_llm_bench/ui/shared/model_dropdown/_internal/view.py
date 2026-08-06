@@ -30,6 +30,7 @@ class ModelDropdownWidget(QComboBox):
         self._model_filter = model_filter
         self._current_provider_id: ProviderId | None = None
         self.setProperty("role", "dropdown")
+        self.setAccessibleName("Model")
         self.currentIndexChanged.connect(self._on_current_index_changed)
 
     def set_provider(self, provider_id: ProviderId) -> None:

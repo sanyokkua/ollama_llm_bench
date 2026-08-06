@@ -20,6 +20,7 @@ class MultiCheckFilterButtonWidget(QPushButton):
         self._options = options
         self._checked: set[str] = set()
         self.setProperty("role", "outlined-muted-button")
+        self.setAccessibleName(label)
         menu = QMenu(self)
         self._actions: dict[str, QAction] = {}
         for option in options:
