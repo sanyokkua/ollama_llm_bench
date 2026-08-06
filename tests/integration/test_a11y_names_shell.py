@@ -247,4 +247,4 @@ def test_every_shell_control_has_a_nonempty_accessible_name(
     ]
 
     # Assert
-    assert unnamed == []
+    assert unnamed == [], "controls with no accessible name:\n" + "\n".join(unnamed)
