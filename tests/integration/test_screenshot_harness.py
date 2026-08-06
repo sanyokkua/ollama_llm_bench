@@ -25,7 +25,6 @@ from PySide6.QtGui import QImage
 from PySide6.QtWidgets import QDialog, QLabel, QSplitter, QStackedWidget, QTabWidget, QWidget
 import pytest
 from pytestqt.qtbot import QtBot
-from tests.integration.common_dialog_builders import build_common_dialogs
 
 from ollama_llm_bench.adapters.clipboard import make_clipboard
 from ollama_llm_bench.adapters.file_system_actions import make_file_system_actions
@@ -38,6 +37,7 @@ from ollama_llm_bench.ui.settings_dialog import (
     make_settings_dialog,
 )
 from ollama_llm_bench.ui.settings_dialog.testing import FakeSettingsGateway
+from tests.integration.common_dialog_builders import build_common_dialogs
 
 _ARTIFACTS_ENV_VAR: Final[str] = "SCREENSHOT_ARTIFACTS_DIR"
 
