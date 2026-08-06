@@ -37,7 +37,6 @@ from ollama_llm_bench.ui.settings_dialog import (
     make_settings_dialog,
 )
 from ollama_llm_bench.ui.settings_dialog.testing import FakeSettingsGateway
-from tests.integration.common_dialog_builders import build_common_dialogs
 
 _ARTIFACTS_ENV_VAR: Final[str] = "SCREENSHOT_ARTIFACTS_DIR"
 
@@ -243,12 +242,14 @@ def test_settings_dialog_is_constructed_standalone_without_exec(qtbot: QtBot) ->
 
 
 @pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
-def test_every_shared_modal_dialog_is_constructed_for_capture(qtbot: QtBot) -> None:
+def test_every_shared_modal_dialog_is_constructed_for_capture(
+    common_dialogs: dict[str, QDialog],
+) -> None:
     # Arrange
     expected = frozenset(capture_id for capture_id in _CAPTURE_IDS if capture_id.startswith("07_"))
 
     # Act
-    dialogs = build_common_dialogs(qtbot=qtbot)
+    dialogs = common_dialogs
 
     # Assert
     assert frozenset(dialogs) == expected
@@ -264,23 +265,25 @@ def _capture_every_screen(
     qtbot: QtBot,
     handle: AppHandle,
     destination: Path,
+    common_dialogs: dict[str, QDialog],
 ) -> frozenset[str]:
     """Capture every screen in the index and return the filenames written."""
     _capture_app_screens(qtbot=qtbot, handle=handle, destination=destination)
     _capture(_build_settings_dialog(qtbot=qtbot), path=destination / "06_settings.png")
-    for capture_id, dialog in build_common_dialogs(qtbot=qtbot).items():
+    for capture_id, dialog in common_dialogs.items():
         _capture(dialog, path=destination / f"{capture_id}.png")
     return frozenset(path.name for path in destination.glob("*.png"))
 
 
 @pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
-def test_harness_captures_every_screen_in_light_theme(  # noqa: PLR0913  # the real app-composition rig needs seed_setting/app_data_root_all_providers_disabled alongside build_real_app_without_enabled_providers/drain_task_runner_deliveries/qtbot/tmp_path
+def test_harness_captures_every_screen_in_light_theme(  # noqa: PLR0913  # the real app-composition rig needs seed_setting/app_data_root_all_providers_disabled/common_dialogs alongside build_real_app_without_enabled_providers/drain_task_runner_deliveries/qtbot/tmp_path
     qtbot: QtBot,
     tmp_path: Path,
     app_data_root_all_providers_disabled: Path,
     seed_setting: Callable[..., None],
     build_real_app_without_enabled_providers: Callable[[], AppHandle],
     drain_task_runner_deliveries: Callable[[AppHandle], None],
+    common_dialogs: dict[str, QDialog],
 ) -> None:
     """Proves: STORY-087-AC-1
 
@@ -294,7 +297,9 @@ def test_harness_captures_every_screen_in_light_theme(  # noqa: PLR0913  # the r
     destination = _artifacts_root(tmp_path) / "light"
 
     # Act
-    written = _capture_every_screen(qtbot=qtbot, handle=handle, destination=destination)
+    written = _capture_every_screen(
+        qtbot=qtbot, handle=handle, destination=destination, common_dialogs=common_dialogs
+    )
     drain_task_runner_deliveries(handle)
 
     # Assert
@@ -302,13 +307,14 @@ def test_harness_captures_every_screen_in_light_theme(  # noqa: PLR0913  # the r
 
 
 @pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
-def test_harness_captures_every_screen_in_dark_theme(  # noqa: PLR0913  # the real app-composition rig needs seed_setting/app_data_root_all_providers_disabled alongside build_real_app_without_enabled_providers/drain_task_runner_deliveries/qtbot/tmp_path
+def test_harness_captures_every_screen_in_dark_theme(  # noqa: PLR0913  # the real app-composition rig needs seed_setting/app_data_root_all_providers_disabled/common_dialogs alongside build_real_app_without_enabled_providers/drain_task_runner_deliveries/qtbot/tmp_path
     qtbot: QtBot,
     tmp_path: Path,
     app_data_root_all_providers_disabled: Path,
     seed_setting: Callable[..., None],
     build_real_app_without_enabled_providers: Callable[[], AppHandle],
     drain_task_runner_deliveries: Callable[[AppHandle], None],
+    common_dialogs: dict[str, QDialog],
 ) -> None:
     """Proves: STORY-087-AC-2
 
@@ -322,7 +328,9 @@ def test_harness_captures_every_screen_in_dark_theme(  # noqa: PLR0913  # the re
     destination = _artifacts_root(tmp_path) / "dark"
 
     # Act
-    written = _capture_every_screen(qtbot=qtbot, handle=handle, destination=destination)
+    written = _capture_every_screen(
+        qtbot=qtbot, handle=handle, destination=destination, common_dialogs=common_dialogs
+    )
     drain_task_runner_deliveries(handle)
 
     # Assert
