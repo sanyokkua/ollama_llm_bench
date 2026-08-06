@@ -55,6 +55,7 @@ from ollama_llm_bench.ui.common_dialogs._internal.generate_analysis_select impor
     resolve_title_and_button_label,
 )
 from ollama_llm_bench.ui.common_dialogs.models import GenerateAnalysisCollaborators
+from ollama_llm_bench.ui.shared import make_gate_busy_indicator
 from ollama_llm_bench.ui.shared.model_dropdown import ModelFetcher, make_model_dropdown
 from ollama_llm_bench.ui.shared.provider_dropdown import make_provider_dropdown
 
@@ -143,11 +144,7 @@ class GenerateAnalysisDialog(QDialog):
         fields_layout.addWidget(explanation)
         outer.addWidget(self._fields_container)
 
-        self._busy_label = QLabel(_GATE_BUSY_MESSAGE)
-        self._busy_label.setObjectName("common_dialogs.generate_analysis.busy_label")
-        self._busy_label.setProperty("role", "info-callout")
-        self._busy_label.setWordWrap(True)
-        self._busy_label.setVisible(False)
+        self._busy_label = make_gate_busy_indicator(message=_GATE_BUSY_MESSAGE)
         outer.addWidget(self._busy_label)
 
         self._progress_label = QLabel("")
@@ -161,11 +158,14 @@ class GenerateAnalysisDialog(QDialog):
         footer = QHBoxLayout()
         footer.addStretch()
         cancel_button = QPushButton("Cancel")
+        cancel_button.setObjectName("common_dialogs.generate_analysis.cancel_button")
+        cancel_button.setAccessibleName("Cancel")
         cancel_button.setProperty("role", "outlined-muted-button")
         cancel_button.clicked.connect(self.reject)
         footer.addWidget(cancel_button)
         self._confirm_button = QPushButton(button_label)
         self._confirm_button.setObjectName("common_dialogs.generate_analysis.confirm_button")
+        self._confirm_button.setAccessibleName(button_label)
         self._confirm_button.setProperty("role", "primary-button")
         self._confirm_button.setDefault(True)
         self._confirm_button.clicked.connect(self._on_confirm_clicked)

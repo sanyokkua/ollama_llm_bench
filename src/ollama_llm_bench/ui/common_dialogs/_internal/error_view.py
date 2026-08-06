@@ -28,6 +28,7 @@ from ollama_llm_bench.backend.errors import OsAdapterError
 from ollama_llm_bench.backend.events import SIGNAL_GLOBAL_MESSAGE, EventBus, GlobalMessageEvent
 from ollama_llm_bench.ui.common_dialogs._internal.theme_lookup import monospace_font
 from ollama_llm_bench.ui.common_dialogs.models import ErrorDialogPattern, ErrorDialogPayload
+from ollama_llm_bench.ui.shared import make_dialog_close_button
 
 __all__: list[str] = ["ErrorDialog"]
 
@@ -87,6 +88,7 @@ class ErrorDialog(QDialog):
         if payload.detail is not None:
             self._detail_edit = QTextEdit(payload.detail)
             self._detail_edit.setObjectName("common_dialogs.error.detail")
+            self._detail_edit.setAccessibleName("Error detail")
             self._detail_edit.setReadOnly(True)
             self._detail_edit.setProperty("role", "muted-caption")
             self._detail_edit.setFont(monospace_font())
@@ -99,6 +101,7 @@ class ErrorDialog(QDialog):
         if payload.detail is not None:
             self.copy_details_button = QPushButton("Copy Details")
             self.copy_details_button.setObjectName("common_dialogs.error.copy_details_button")
+            self.copy_details_button.setAccessibleName("Copy Details")
             self.copy_details_button.setProperty("role", "outlined-muted-button")
             self.copy_details_button.clicked.connect(self._on_copy_details_clicked)
             footer.addWidget(self.copy_details_button)
@@ -107,6 +110,7 @@ class ErrorDialog(QDialog):
         if payload.pattern is ErrorDialogPattern.ACTION_AVAILABLE and payload.action is not None:
             self.action_button = QPushButton(payload.action.label)
             self.action_button.setObjectName("common_dialogs.error.action_button")
+            self.action_button.setAccessibleName(payload.action.label)
             self.action_button.setProperty("role", "outlined-muted-button")
             self.action_button.clicked.connect(self._on_action_clicked)
             footer.addWidget(self.action_button)
@@ -114,14 +118,13 @@ class ErrorDialog(QDialog):
         if payload.pattern is ErrorDialogPattern.FATAL:
             self.quit_button = QPushButton("Quit")
             self.quit_button.setObjectName("common_dialogs.error.quit_button")
+            self.quit_button.setAccessibleName("Quit")
             self.quit_button.setProperty("role", "destructive-button")
             self.quit_button.setDefault(True)
             self.quit_button.clicked.connect(self._on_quit_clicked)
             footer.addWidget(self.quit_button)
         else:
-            self.close_button = QPushButton("Close")
-            self.close_button.setObjectName("common_dialogs.error.close_button")
-            self.close_button.setProperty("role", "primary-button")
+            self.close_button = make_dialog_close_button()
             self.close_button.setDefault(True)
             self.close_button.clicked.connect(self.accept)
             footer.addWidget(self.close_button)

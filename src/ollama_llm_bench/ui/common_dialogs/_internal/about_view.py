@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLayout,
-    QPushButton,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -28,6 +27,7 @@ from ollama_llm_bench.backend.errors import OsAdapterError
 from ollama_llm_bench.backend.events import SIGNAL_GLOBAL_MESSAGE, EventBus, GlobalMessageEvent
 from ollama_llm_bench.ui.common_dialogs._internal.theme_lookup import monospace_font
 from ollama_llm_bench.ui.common_dialogs.models import AboutDialogViewModel
+from ollama_llm_bench.ui.shared import make_dialog_close_button
 
 __all__: list[str] = ["AboutDialog"]
 
@@ -95,6 +95,8 @@ class AboutDialog(QDialog):
 
         self._repository_link = QLabel('<a href="repository">Project on GitHub</a>')
         self._repository_link.setObjectName("common_dialogs.about.repository_link")
+        self._repository_link.setAccessibleName("Project on GitHub")
+        self._repository_link.setToolTip("Open the project's GitHub repository in your browser")
         self._repository_link.setOpenExternalLinks(False)
         self._repository_link.linkActivated.connect(
             lambda _href: self._on_repository_link_activated(view_model.repository_url)
@@ -121,7 +123,8 @@ class AboutDialog(QDialog):
         row_layout.addWidget(self._path_label, stretch=1)
 
         self.copy_path_button = QToolButton()
-        self.copy_path_button.setObjectName("common_dialogs.about.copy_path_button")
+        self.copy_path_button.setObjectName("copy_data_folder_path_button")
+        self.copy_path_button.setAccessibleName("Copy application data folder path")
         self.copy_path_button.setProperty("role", "icon-button")
         self.copy_path_button.setText("⧉")
         self.copy_path_button.setToolTip(_COPY_PATH_TOOLTIP)
@@ -130,7 +133,8 @@ class AboutDialog(QDialog):
         row_layout.addWidget(self.copy_path_button)
 
         self.open_folder_button = QToolButton()
-        self.open_folder_button.setObjectName("common_dialogs.about.open_folder_button")
+        self.open_folder_button.setObjectName("open_data_folder_button")
+        self.open_folder_button.setAccessibleName("Open application data folder")
         self.open_folder_button.setProperty("role", "icon-button")
         self.open_folder_button.setText("📂")
         self.open_folder_button.setToolTip(_OPEN_FOLDER_TOOLTIP)
@@ -142,9 +146,7 @@ class AboutDialog(QDialog):
     def _build_footer(self) -> QHBoxLayout:
         footer = QHBoxLayout()
         footer.addStretch()
-        self.close_button = QPushButton("Close")
-        self.close_button.setObjectName("common_dialogs.about.close_button")
-        self.close_button.setProperty("role", "primary-button")
+        self.close_button = make_dialog_close_button()
         self.close_button.setDefault(True)
         self.close_button.clicked.connect(self.accept)
         footer.addWidget(self.close_button)

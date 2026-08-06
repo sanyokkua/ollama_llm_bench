@@ -103,7 +103,7 @@ def test_footer_buttons_per_pattern(
     has_copy_details = (
         dialog.findChild(QPushButton, "common_dialogs.error.copy_details_button") is not None
     )
-    has_close = dialog.findChild(QPushButton, "common_dialogs.error.close_button") is not None
+    has_close = dialog.findChild(QPushButton, "dialog_close_button") is not None
     has_action = dialog.findChild(QPushButton, "common_dialogs.error.action_button") is not None
     has_quit = dialog.findChild(QPushButton, "common_dialogs.error.quit_button") is not None
     # Assert
@@ -163,7 +163,7 @@ def test_fatal_pattern_quit_only_no_escape(qtbot: QtBot, mocker: MockerFixture) 
     )
 
     # Assert
-    assert dialog.findChild(QPushButton, "common_dialogs.error.close_button") is None
+    assert dialog.findChild(QPushButton, "dialog_close_button") is None
     assert dialog.quit_button.property("role") == "destructive-button"
     assert has_close_button_hint is False
     assert still_visible_after_escape is True

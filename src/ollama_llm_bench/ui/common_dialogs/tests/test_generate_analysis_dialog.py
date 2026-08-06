@@ -233,9 +233,7 @@ def test_gate_busy_keeps_dialog_open_and_re_enables_on_idle(qtbot: QtBot) -> Non
         "QPushButton",
         dialog.findChild(QPushButton, "common_dialogs.generate_analysis.confirm_button"),
     )
-    busy_label = cast(
-        "QLabel", dialog.findChild(QLabel, "common_dialogs.generate_analysis.busy_label")
-    )
+    busy_label = cast("QLabel", dialog.findChild(QLabel, "gate_busy_indicator"))
     # Act: Confirm is clicked while the gate would fail to acquire
     qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
         confirm_button, Qt.MouseButton.LeftButton
