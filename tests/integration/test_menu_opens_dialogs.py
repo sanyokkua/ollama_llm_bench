@@ -162,7 +162,9 @@ def test_settings_action_opens_settings_dialog(
     mocker.patch("ollama_llm_bench.compose.make_settings_dialog", side_effect=_capture)
     handle = build_real_app_without_enabled_providers()
     qtbot.addWidget(handle.window)
-    settings_button = cast("QPushButton", handle.window.findChild(QPushButton, "settings_action"))
+    settings_button = cast(
+        "QPushButton", handle.window.findChild(QPushButton, "settings_menu_button")
+    )
     assert settings_button is not None
     assert settings_button.isEnabled()
 
@@ -219,7 +221,7 @@ def test_about_action_opens_about_dialog(
     mocker.patch("ollama_llm_bench.compose.make_about_dialog", side_effect=_capture)
     handle = build_real_app_without_enabled_providers()
     qtbot.addWidget(handle.window)
-    about_button = cast("QPushButton", handle.window.findChild(QPushButton, "about_action"))
+    about_button = cast("QPushButton", handle.window.findChild(QPushButton, "about_menu_button"))
     assert about_button is not None
 
     # Act -- blocks inside the dialog's nested exec() until the timer dismisses it

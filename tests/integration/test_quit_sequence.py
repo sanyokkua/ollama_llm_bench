@@ -207,7 +207,7 @@ def test_quit_persists_ui_state_before_closing_db(
     qtbot.addWidget(handle.window)
     task_editor_button = cast(
         "QPushButton",
-        handle.window.findChild(QPushButton, "workspace_switcher_task_editor"),
+        handle.window.findChild(QPushButton, "workspace_task_editor_button"),
     )
     assert task_editor_button is not None
     qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs

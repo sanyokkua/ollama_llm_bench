@@ -49,6 +49,9 @@ _HEALTH_LABEL_BY_DISPLAY_STATE: Final[dict[HealthDisplayState, str]] = {
     HealthDisplayState.DOWN: "Not ready",
     HealthDisplayState.CHECKING: "Checking",
 }
+_READINESS_DOT_OBJECT_NAME: Final = "provider_readiness_indicator"
+_READINESS_DOT_ACCESSIBLE_NAME: Final = "Provider readiness status"
+_READINESS_DOT_TOOLTIP: Final = "Provider readiness — click to open Settings / Providers"
 
 
 def _map_readiness_to_health_display(state: ReadinessState) -> HealthDisplayState:
@@ -139,7 +142,9 @@ class StatusBarWidget(QStatusBar):
             theme_manager=self._theme_manager,
             platform_kind=self._platform_kind,
         )
-        dot.setToolTip(view_model.health_tooltip)
+        dot.setObjectName(_READINESS_DOT_OBJECT_NAME)
+        dot.setAccessibleName(_READINESS_DOT_ACCESSIBLE_NAME)
+        dot.setToolTip(f"{_READINESS_DOT_TOOLTIP}\n\n{view_model.health_tooltip}")
         dot.installEventFilter(self)
         self._health_layout.addWidget(dot)
         self._health_dot = dot

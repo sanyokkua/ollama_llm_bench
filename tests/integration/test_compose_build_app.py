@@ -320,8 +320,10 @@ def test_build_app_injects_settings_and_about_callbacks(
     make_about_dialog_spy = mocker.patch(
         "ollama_llm_bench.compose.make_about_dialog", return_value=about_dialog
     )
-    settings_button = cast("QPushButton", handle.window.findChild(QPushButton, "settings_action"))
-    about_button = cast("QPushButton", handle.window.findChild(QPushButton, "about_action"))
+    settings_button = cast(
+        "QPushButton", handle.window.findChild(QPushButton, "settings_menu_button")
+    )
+    about_button = cast("QPushButton", handle.window.findChild(QPushButton, "about_menu_button"))
     assert settings_button is not None
     assert about_button is not None
 
@@ -384,8 +386,8 @@ def test_workspace_switch_reuses_pages_and_never_duplicates_the_left_panel(
     assert container is not None
     assert container.count() == 2  # noqa: PLR2004  # Benchmark + Task Editor pages
     benchmark_page = container.currentWidget()
-    task_editor_button = cast("QPushButton", handle.window.findChild(QPushButton, "workspace_switcher_task_editor"))  # fmt: skip
-    benchmark_button = cast("QPushButton", handle.window.findChild(QPushButton, "workspace_switcher_benchmark"))  # fmt: skip
+    task_editor_button = cast("QPushButton", handle.window.findChild(QPushButton, "workspace_task_editor_button"))  # fmt: skip
+    benchmark_button = cast("QPushButton", handle.window.findChild(QPushButton, "workspace_benchmark_button"))  # fmt: skip
     assert task_editor_button is not None
     assert benchmark_button is not None
 

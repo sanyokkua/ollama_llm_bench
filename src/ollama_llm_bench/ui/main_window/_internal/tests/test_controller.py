@@ -107,11 +107,13 @@ def _make_run_failed_event(*, run_id: int = 1) -> RunFailedEvent:
 
 
 def _settings_action(harness: MainWindowHarness) -> QPushButton:
-    return cast("QPushButton", harness.shell.menu_bar.findChild(QPushButton, "settings_action"))
+    return cast(
+        "QPushButton", harness.shell.menu_bar.findChild(QPushButton, "settings_menu_button")
+    )
 
 
 def _running_pill(harness: MainWindowHarness) -> QPushButton:
-    return cast("QPushButton", harness.shell.menu_bar.findChild(QPushButton, "running_pill"))
+    return cast("QPushButton", harness.shell.menu_bar.findChild(QPushButton, "running_pill_button"))
 
 
 def _click_health_dot(harness: MainWindowHarness) -> None:
@@ -556,7 +558,7 @@ def test_global_message_shows_toast_then_auto_clears(
 def _workspace_switcher_task_editor_button(harness: MainWindowHarness) -> QPushButton:
     return cast(
         "QPushButton",
-        harness.shell.menu_bar.findChild(QPushButton, "workspace_switcher_task_editor"),
+        harness.shell.menu_bar.findChild(QPushButton, "workspace_task_editor_button"),
     )
 
 
@@ -661,7 +663,7 @@ def test_about_action_click_invokes_the_optional_callback(
     # Arrange
     harness = make_harness()
     about_action = cast(
-        "QPushButton", harness.shell.menu_bar.findChild(QPushButton, "about_action")
+        "QPushButton", harness.shell.menu_bar.findChild(QPushButton, "about_menu_button")
     )
 
     # Act

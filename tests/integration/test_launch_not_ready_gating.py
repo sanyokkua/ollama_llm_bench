@@ -334,7 +334,7 @@ def test_user_interface_stays_navigable_when_not_ready(
     handle.window.show()
     _wait_for_not_ready_health_dot(handle, qtbot)
     task_editor_button = cast(
-        "QPushButton", handle.window.findChild(QPushButton, "workspace_switcher_task_editor")
+        "QPushButton", handle.window.findChild(QPushButton, "workspace_task_editor_button")
     )
     qtbot.mouseClick(task_editor_button, Qt.MouseButton.LeftButton)  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
 

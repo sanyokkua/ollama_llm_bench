@@ -17,6 +17,12 @@ __all__: list[str] = ["MenuBarWidget"]
 
 _MENU_BAR_HEIGHT = 32
 _DISABLED_SETTINGS_TOOLTIP: Final = "Disabled - a benchmark is in progress."
+_SETTINGS_TOOLTIP: Final = "Open the Settings dialog"
+_ABOUT_TOOLTIP: Final = "Application information: version, links, data folders"
+_BENCHMARK_WORKSPACE_LABEL: Final = "Benchmark workspace"
+_TASK_EDITOR_WORKSPACE_LABEL: Final = "Task Editor workspace"
+_RUNNING_PILL_ACCESSIBLE_NAME: Final = "Run in progress — open Progress"
+_RUNNING_PILL_TOOLTIP: Final = "Switch to the Benchmark workspace and focus the Progress widget"
 
 
 class _WorkspaceSwitcherWidget(QWidget):
@@ -28,11 +34,15 @@ class _WorkspaceSwitcherWidget(QWidget):
         super().__init__()
         self.setObjectName("workspace_switcher")
         self._benchmark_button = QPushButton("Benchmark")
-        self._benchmark_button.setObjectName("workspace_switcher_benchmark")
+        self._benchmark_button.setObjectName("workspace_benchmark_button")
+        self._benchmark_button.setAccessibleName(_BENCHMARK_WORKSPACE_LABEL)
+        self._benchmark_button.setToolTip(_BENCHMARK_WORKSPACE_LABEL)
         self._benchmark_button.setCheckable(True)
         self._benchmark_button.setProperty("role", "segmented-control")
         self._task_editor_button = QPushButton("Task Editor")
-        self._task_editor_button.setObjectName("workspace_switcher_task_editor")
+        self._task_editor_button.setObjectName("workspace_task_editor_button")
+        self._task_editor_button.setAccessibleName(_TASK_EDITOR_WORKSPACE_LABEL)
+        self._task_editor_button.setToolTip(_TASK_EDITOR_WORKSPACE_LABEL)
         self._task_editor_button.setCheckable(True)
         self._task_editor_button.setProperty("role", "segmented-control")
         self._group = QButtonGroup(self)
@@ -79,17 +89,23 @@ class MenuBarWidget(QWidget):
         self.setObjectName("menu_bar")
         self.setFixedHeight(_MENU_BAR_HEIGHT)
         self._settings_action = QPushButton("Settings")
-        self._settings_action.setObjectName("settings_action")
+        self._settings_action.setObjectName("settings_menu_button")
+        self._settings_action.setAccessibleName("Settings")
+        self._settings_action.setToolTip(_SETTINGS_TOOLTIP)
         self._settings_action.setProperty("role", "menu-action")
         self._settings_action.clicked.connect(self.settings_requested)
         self._about_action = QPushButton("About")
-        self._about_action.setObjectName("about_action")
+        self._about_action.setObjectName("about_menu_button")
+        self._about_action.setAccessibleName("About")
+        self._about_action.setToolTip(_ABOUT_TOOLTIP)
         self._about_action.setProperty("role", "menu-action")
         self._about_action.clicked.connect(self.about_requested)
         self._workspace_switcher = _WorkspaceSwitcherWidget()
         self._workspace_switcher.segment_activated.connect(self.workspace_switch_requested)
         self._running_pill = QPushButton()
-        self._running_pill.setObjectName("running_pill")
+        self._running_pill.setObjectName("running_pill_button")
+        self._running_pill.setAccessibleName(_RUNNING_PILL_ACCESSIBLE_NAME)
+        self._running_pill.setToolTip(_RUNNING_PILL_TOOLTIP)
         self._running_pill.setProperty("role", "running-pill")
         self._running_pill.clicked.connect(self.running_pill_clicked)
         self._running_pill.setVisible(False)
@@ -114,7 +130,7 @@ class MenuBarWidget(QWidget):
         """
         self._settings_action.setEnabled(view_model.settings_action_enabled)
         self._settings_action.setToolTip(
-            "" if view_model.settings_action_enabled else _DISABLED_SETTINGS_TOOLTIP
+            _SETTINGS_TOOLTIP if view_model.settings_action_enabled else _DISABLED_SETTINGS_TOOLTIP
         )
         self._running_pill.setVisible(view_model.running_pill_visible)
         self._running_pill.setText(view_model.running_pill_label)

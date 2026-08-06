@@ -198,7 +198,9 @@ def test_clicking_save_changes_in_the_real_settings_dialog_reapplies_theme(  # n
     manager = managers[0]
     assert manager.active_theme_kind is ActiveThemeKind.DARK
     stylesheet_before = qapp.styleSheet()
-    settings_button = cast("QPushButton", handle.window.findChild(QPushButton, "settings_action"))
+    settings_button = cast(
+        "QPushButton", handle.window.findChild(QPushButton, "settings_menu_button")
+    )
     assert settings_button is not None
 
     # Act -- the menu-bar click blocks inside the real dialog's `.exec()`, so the theme switch
