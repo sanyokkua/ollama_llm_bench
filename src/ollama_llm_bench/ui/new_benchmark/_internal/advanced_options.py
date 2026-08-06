@@ -171,8 +171,15 @@ class _ControlRow:
         self.widget = widget
 
 
-def _make_checkbox_row(*, changed: Callable[[], None]) -> _ControlRow:
+def _name_control(widget: QWidget, *, key: SettingKey) -> None:
+    """Set the objectName/accessibleName every row-factory control needs (STORY-098-AC-1)."""
+    widget.setObjectName(f"new_benchmark.advanced_options.{key}")
+    widget.setAccessibleName(_LABELS.get(key, key))
+
+
+def _make_checkbox_row(key: SettingKey, *, changed: Callable[[], None]) -> _ControlRow:
     box = QCheckBox()
+    _name_control(box, key=key)
     box.toggled.connect(lambda _checked: changed())
     return _ControlRow(
         get_text=lambda: "true" if box.isChecked() else "false",
@@ -181,8 +188,9 @@ def _make_checkbox_row(*, changed: Callable[[], None]) -> _ControlRow:
     )
 
 
-def _make_reasoning_effort_row(*, changed: Callable[[], None]) -> _ControlRow:
+def _make_reasoning_effort_row(key: SettingKey, *, changed: Callable[[], None]) -> _ControlRow:
     combo = QComboBox()
+    _name_control(combo, key=key)
     combo.addItems(_REASONING_EFFORT_ITEMS)
     combo.currentTextChanged.connect(lambda _text: changed())
     return _ControlRow(
@@ -192,8 +200,9 @@ def _make_reasoning_effort_row(*, changed: Callable[[], None]) -> _ControlRow:
     )
 
 
-def _make_float_row(*, changed: Callable[[], None]) -> _ControlRow:
+def _make_float_row(key: SettingKey, *, changed: Callable[[], None]) -> _ControlRow:
     spin = QDoubleSpinBox()
+    _name_control(spin, key=key)
     spin.setRange(0.0, 1.0)
     spin.setSingleStep(0.01)
     spin.setDecimals(2)
@@ -205,8 +214,9 @@ def _make_float_row(*, changed: Callable[[], None]) -> _ControlRow:
     )
 
 
-def _make_int_row(*, changed: Callable[[], None]) -> _ControlRow:
+def _make_int_row(key: SettingKey, *, changed: Callable[[], None]) -> _ControlRow:
     spin = QSpinBox()
+    _name_control(spin, key=key)
     spin.setRange(0, 1_000_000)
     spin.valueChanged.connect(lambda _value: changed())
     return _ControlRow(
@@ -216,8 +226,9 @@ def _make_int_row(*, changed: Callable[[], None]) -> _ControlRow:
     )
 
 
-def _make_text_row(*, changed: Callable[[], None]) -> _ControlRow:
+def _make_text_row(key: SettingKey, *, changed: Callable[[], None]) -> _ControlRow:
     line_edit = QLineEdit()
+    _name_control(line_edit, key=key)
     line_edit.textChanged.connect(lambda _text: changed())
     return _ControlRow(get_text=line_edit.text, set_text=line_edit.setText, widget=line_edit)
 
@@ -238,14 +249,14 @@ def _coerce_int(value: str) -> int:
 
 def _make_control_row(key: SettingKey, *, changed: Callable[[], None]) -> _ControlRow:
     if key in _BOOLEAN_KEYS:
-        return _make_checkbox_row(changed=changed)
+        return _make_checkbox_row(key, changed=changed)
     if key == _REASONING_EFFORT_KEY:
-        return _make_reasoning_effort_row(changed=changed)
+        return _make_reasoning_effort_row(key, changed=changed)
     if key == _TEMPERATURE_KEY or key in _TEXT_KEYS:
-        return _make_text_row(changed=changed)
+        return _make_text_row(key, changed=changed)
     if key in _FLOAT_KEYS:
-        return _make_float_row(changed=changed)
-    return _make_int_row(changed=changed)
+        return _make_float_row(key, changed=changed)
+    return _make_int_row(key, changed=changed)
 
 
 class AdvancedOptionsSectionWidget(QWidget):
@@ -274,6 +285,8 @@ class AdvancedOptionsSectionWidget(QWidget):
     def _build_ui(self, *, grading_visible: bool) -> None:
         layout = QVBoxLayout(self)
         self._activation_box = QGroupBox("Override advanced options for this run")
+        self._activation_box.setObjectName("new_benchmark.advanced_options.activation_box")
+        self._activation_box.setAccessibleName("Override advanced options for this run")
         self._activation_box.setCheckable(True)
         self._activation_box.setChecked(False)
         self._activation_box.toggled.connect(self._on_activation_toggled)

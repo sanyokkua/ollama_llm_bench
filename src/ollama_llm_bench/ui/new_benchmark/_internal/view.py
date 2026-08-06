@@ -77,6 +77,7 @@ class NewBenchmarkView(QWidget):
 
         self.start_button = QPushButton("Start Benchmark")
         self.start_button.setObjectName("new_benchmark.start_button")
+        self.start_button.setAccessibleName("Start Benchmark")
         self.start_button.setProperty("role", "primary-button")
         outer.addWidget(self.start_button)
 
