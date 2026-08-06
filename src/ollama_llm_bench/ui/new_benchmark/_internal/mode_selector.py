@@ -41,6 +41,8 @@ class ModeSelectorWidget(QWidget):
         for mode in _DISPLAY_ORDER:
             title, caption = _CAPTIONS[mode]
             button = QRadioButton(f"{title}\n{caption}")
+            button.setObjectName(f"new_benchmark.mode_selector.{mode.value}")
+            button.setAccessibleName(f"{title}: {caption}")
             button.setProperty("role", "mode-selector-row")
             self._group.addButton(button)
             self._buttons[mode] = button

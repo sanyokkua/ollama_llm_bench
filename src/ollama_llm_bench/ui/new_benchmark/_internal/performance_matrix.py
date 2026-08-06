@@ -75,6 +75,7 @@ class PerformanceMatrixSectionWidget(QWidget):
         layout.addWidget(_section_title("Repeats"))
         self._repeats_stepper = QSpinBox()
         self._repeats_stepper.setObjectName("new_benchmark.performance_matrix.repeats")
+        self._repeats_stepper.setAccessibleName("Repeats")
         self._repeats_stepper.setRange(_REPEATS_MIN, _REPEATS_MAX)
         self._repeats_stepper.setValue(_REPEATS_DEFAULT)
         self._repeats_stepper.valueChanged.connect(self._on_matrix_input_changed)
@@ -92,6 +93,7 @@ class PerformanceMatrixSectionWidget(QWidget):
             caption = input_caption if group == "input" else output_caption
             box = QCheckBox(caption)
             box.setObjectName(f"new_benchmark.performance_matrix.{group}.{size_key}")
+            box.setAccessibleName(caption)
             box.setChecked(default_checked)
             box.toggled.connect(self._on_matrix_input_changed)
             boxes[tokens] = box

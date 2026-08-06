@@ -83,12 +83,18 @@ class TestModelsSectionWidget(QWidget):
         layout = QVBoxLayout(self)
 
         self._hide_embedding_checkbox = QCheckBox("Hide embedding models")
+        self._hide_embedding_checkbox.setObjectName(
+            "new_benchmark.test_models.hide_embedding_checkbox"
+        )
+        self._hide_embedding_checkbox.setAccessibleName("Hide embedding models")
         self._hide_embedding_checkbox.setChecked(self._hide_embedding_models)
         self._hide_embedding_checkbox.toggled.connect(self._on_hide_embedding_toggled)
         layout.addWidget(self._hide_embedding_checkbox)
 
         provider_row = QHBoxLayout()
         self._refresh_button = QPushButton("Refresh")
+        self._refresh_button.setObjectName("new_benchmark.test_models.refresh_button")
+        self._refresh_button.setAccessibleName("Refresh test models list")
         self._refresh_button.setProperty("role", "outlined-muted-button")
         self._refresh_button.clicked.connect(self._refresh_available_models)
         provider_row.addWidget(self._refresh_button)
@@ -109,14 +115,19 @@ class TestModelsSectionWidget(QWidget):
 
         self._available_list = QListWidget()
         self._available_list.setObjectName("new_benchmark.test_models.available_list")
+        self._available_list.setAccessibleName("Available test models")
         self._available_list.itemChanged.connect(self._on_available_item_changed)
         layout.addWidget(self._available_list)
 
         select_row = QHBoxLayout()
         self._select_all_button = QPushButton("Select All")
+        self._select_all_button.setObjectName("new_benchmark.test_models.select_all_button")
+        self._select_all_button.setAccessibleName("Select All")
         self._select_all_button.setProperty("role", "outlined-muted-button")
         self._select_all_button.clicked.connect(self._on_select_all_clicked)
         self._clear_all_button = QPushButton("Clear All")
+        self._clear_all_button.setObjectName("new_benchmark.test_models.clear_all_button")
+        self._clear_all_button.setAccessibleName("Clear All")
         self._clear_all_button.setProperty("role", "outlined-muted-button")
         self._clear_all_button.clicked.connect(self._on_clear_all_clicked)
         select_row.addWidget(self._select_all_button)
@@ -125,6 +136,7 @@ class TestModelsSectionWidget(QWidget):
 
         self._summary_list = QListWidget()
         self._summary_list.setObjectName("new_benchmark.test_models.summary_list")
+        self._summary_list.setAccessibleName("Selected test models")
         self._summary_list.setMinimumHeight(120)
         self._summary_list.setMaximumHeight(240)
         layout.addWidget(self._summary_list)
