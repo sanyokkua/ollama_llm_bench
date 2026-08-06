@@ -115,14 +115,18 @@ class JudgeSectionWidget(QWidget):
         title.setProperty("role", "section-title")
         header_row.addWidget(title)
         self._refresh_button = QPushButton("Refresh")
+        self._refresh_button.setObjectName("judge_model_refresh_button")
         self._refresh_button.setProperty("role", "outlined-muted-button")
+        self._refresh_button.setAccessibleName("Refresh judge model list")
         self._refresh_button.setToolTip("Refresh the judge provider's model list")
         self._refresh_button.clicked.connect(self._on_refresh_clicked)
         header_row.addWidget(self._refresh_button)
         layout.addLayout(header_row)
 
         self._analysis_checkbox = QCheckBox("Generate run analysis for this run")
+        self._analysis_checkbox.setObjectName("new_benchmark.judge.analysis_checkbox")
         self._analysis_checkbox.setProperty("role", "toggle")
+        self._analysis_checkbox.setAccessibleName("Generate run analysis for this run")
         self._analysis_checkbox.toggled.connect(self._on_analysis_toggled)
         layout.addWidget(self._analysis_checkbox)
 
