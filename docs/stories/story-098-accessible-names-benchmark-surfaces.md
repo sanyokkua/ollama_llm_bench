@@ -1,7 +1,7 @@
 ---
 id: STORY-098
 title: Add accessible names, objectNames, and tooltips to the New Benchmark, Resume, and Progress widgets
-status: ready
+status: done
 spec_clauses:
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names

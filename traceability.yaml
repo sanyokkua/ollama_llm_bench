@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-06T12:25:11Z'
+generated_at: '2026-08-06T22:01:43Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5478,7 +5478,7 @@ stories:
         - tests/integration/test_a11y_names_shell.py::test_shell_registry_controls_use_pinned_values[workspace_task_editor_button]
   STORY-098:
     title: Add accessible names, objectNames, and tooltips to the New Benchmark, Resume, and Progress widgets
-    status: ready
+    status: done
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
@@ -5490,11 +5490,18 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-098-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_a11y_names_benchmark_surfaces.py::test_every_benchmark_surface_control_has_a_nonempty_accessible_name
       STORY-098-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_a11y_names_benchmark_surfaces.py::test_benchmark_surface_registry_controls_use_pinned_values[new-benchmark-judge-refresh]
+        - tests/integration/test_a11y_names_benchmark_surfaces.py::test_benchmark_surface_registry_controls_use_pinned_values[progress-rename-pencil]
       STORY-098-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_accessible_text_role.py::test_frozen_row_table_model_answers_accessible_text_role_when_configured
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_accessible_text_role.py::test_frozen_row_table_model_returns_none_for_accessible_text_role_when_unconfigured
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_row_actions_delegate.py::test_delegate_creates_no_per_row_widget
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_actions_cell_exposes_rename_run_as_accessible_text
   STORY-099:
     title: Add accessible names, objectNames, and tooltips to the Result, Settings, and Task Editor widgets
     status: ready
