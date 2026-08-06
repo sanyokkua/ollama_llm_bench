@@ -20,7 +20,10 @@ class _FrozenRowTableModel[RowT](QAbstractTableModel):
 
     Holds no backend Protocol and performs no I/O — every row is supplied by
     its caller and never mutated in place; a data change is always a full
-    ``set_rows`` swap (``01_MODULE_INVENTORY.md`` §5).
+    ``set_rows`` swap (``01_MODULE_INVENTORY.md`` §5). A concrete subclass may
+    additionally supply an ``accessible_text`` callback so ``data()`` answers
+    ``Qt.ItemDataRole.AccessibleTextRole``; a subclass passing nothing keeps
+    today's behaviour of returning ``None`` for that role (STORY-098-AC-3).
     """
 
     def __init__(
@@ -29,10 +32,12 @@ class _FrozenRowTableModel[RowT](QAbstractTableModel):
         headers: tuple[str, ...],
         cell_value: Callable[[RowT, int], str],
         rows: tuple[RowT, ...],
+        accessible_text: Callable[[RowT, int], str] | None = None,
     ) -> None:
         super().__init__()
         self._headers = headers
         self._cell_value = cell_value
+        self._accessible_text = accessible_text
         self._rows = rows
 
     @property
@@ -64,9 +69,13 @@ class _FrozenRowTableModel[RowT](QAbstractTableModel):
         index: QModelIndex | QPersistentModelIndex,
         role: int = Qt.ItemDataRole.DisplayRole,
     ) -> object:
-        if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
+        if not index.isValid():
             return None
-        return self._cell_value(self._rows[index.row()], index.column())
+        if role == Qt.ItemDataRole.DisplayRole:
+            return self._cell_value(self._rows[index.row()], index.column())
+        if role == Qt.ItemDataRole.AccessibleTextRole and self._accessible_text is not None:
+            return self._accessible_text(self._rows[index.row()], index.column())
+        return None
 
     @override
     def headerData(

@@ -16,6 +16,7 @@ from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import (
     COL_NAME,
     COL_STARTED,
     COL_STATUS,
+    COL_TASKS,
     RunTableModel,
 )
 from ollama_llm_bench.ui.resume_benchmark._internal.view_model_select import select_run_rows
@@ -277,3 +278,17 @@ def test_status_column_user_role_carries_the_status_badge_status(qtbot: QtBot) -
     index = model.index(0, COL_STATUS)
     # Act / Assert
     assert model.data(index, Qt.ItemDataRole.UserRole) == "pass"
+
+
+def test_actions_cell_exposes_rename_run_as_accessible_text(qtbot: QtBot) -> None:
+    """Proves: STORY-098-AC-3
+
+    The Tasks column's delegate-painted rename glyph carries the registry's
+    canonical "Rename run" wording via AccessibleTextRole, since the glyph is
+    painted directly by the delegate rather than backed by a real widget.
+    """
+    # Arrange
+    model = RunTableModel(rows=(_row(1, "Alpha", "Synthetic Benchmark", "2024-01-01 00:00"),))
+    index = model.index(0, COL_TASKS)
+    # Act / Assert
+    assert model.data(index, Qt.ItemDataRole.AccessibleTextRole) == "Rename run"

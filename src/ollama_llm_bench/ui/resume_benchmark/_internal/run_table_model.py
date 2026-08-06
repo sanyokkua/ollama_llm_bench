@@ -151,6 +151,8 @@ class RunTableModel(QAbstractTableModel):
         row = self._visible_rows[index.row()]
         if role == Qt.ItemDataRole.UserRole and index.column() == COL_STATUS:
             return row.status_badge_status
+        if role == Qt.ItemDataRole.AccessibleTextRole and index.column() == COL_TASKS:
+            return "Rename run"
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         values = (

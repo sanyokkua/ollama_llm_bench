@@ -1,8 +1,10 @@
 """Colocated unit tests for RowActionsDelegate (STORY-056 gap fix, §3.3, SPEC-078)."""
 
+from typing import TYPE_CHECKING, cast
+
 from PySide6.QtCore import QEvent, QPointF, QRect, Qt
 from PySide6.QtGui import QMouseEvent, QPainter, QPixmap
-from PySide6.QtWidgets import QApplication, QStyleOptionViewItem
+from PySide6.QtWidgets import QApplication, QStyleOptionViewItem, QTableView, QWidget
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.ui.resume_benchmark._internal.row_actions_delegate import (
@@ -12,6 +14,9 @@ from ollama_llm_bench.ui.resume_benchmark._internal.row_actions_delegate import 
 from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import COL_TASKS, RunTableModel
 from ollama_llm_bench.ui.resume_benchmark.models import RunRow
 from ollama_llm_bench.ui.theme import PlatformKind, ThemeSetting, make_theme_manager
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def _row() -> RunRow:
@@ -170,3 +175,27 @@ def test_paint_with_unhovered_row_skips_icon_drawing(qtbot: QtBot, qapp: QApplic
     # Act / Assert (raises nothing)
     delegate.paint(painter, option, index)
     painter.end()
+
+
+def test_delegate_creates_no_per_row_widget(qtbot: QtBot, qapp: QApplication) -> None:
+    """Proves: STORY-098-AC-3
+
+    The delegate paints the rename/more-actions glyphs directly; it never
+    instantiates a per-row QWidget, keeping the table virtualised (EC-RB-12).
+    """
+    # Arrange
+    table = QTableView()
+    model = RunTableModel(rows=(_row(), _row()))
+    table.setModel(model)
+    delegate = RowActionsDelegate(theme_manager=None, platform_kind=PlatformKind.UNKNOWN)
+    table.setItemDelegateForColumn(COL_TASKS, delegate)
+    qtbot.addWidget(table)
+    children_before = len(list(cast("Iterable[QWidget]", table.viewport().findChildren(QWidget))))
+
+    # Act
+    table.viewport().update()
+    qtbot.wait(50)
+
+    # Assert
+    children_after = list(cast("Iterable[QWidget]", table.viewport().findChildren(QWidget)))
+    assert len(children_after) == children_before
