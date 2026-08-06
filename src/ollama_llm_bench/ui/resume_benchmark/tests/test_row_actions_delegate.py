@@ -193,8 +193,8 @@ def test_delegate_creates_no_per_row_widget(qtbot: QtBot, qapp: QApplication) ->
     children_before = len(list(cast("Iterable[QWidget]", table.viewport().findChildren(QWidget))))
 
     # Act
-    table.show()
-    qtbot.waitExposed(table)
+    with qtbot.waitExposed(table):
+        table.show()
     table.viewport().update()
     qtbot.wait(50)
 
