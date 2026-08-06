@@ -183,6 +183,21 @@ today. Its test asserts a first-line match; the other nine rows assert full equa
 enabled, and the specification's "Disabled - a benchmark is in progress." when disabled. Before
 this story the enabled state carried an empty tooltip.
 
+**This story resolves a second spec contradiction, not just the tooltip one above.**
+`ui/shared/_internal/health_dot.py`'s `make_health_dot` sets the dot's own accessible name to the
+health state in words (for example `"LIVE: Ready"`), matching the accessibility floor's §7
+element table and this story's own **In scope** bullet, both of which say a status dot's
+accessible name states the health state in words. But `status_bar.py` immediately overwrites
+that name with the registry's pinned static string `"Provider readiness status"`, because §7.2
+pins that exact string for this control. Nothing is lost to a user: the dot's child `QLabel`
+still carries "Ready"/"Degraded"/"Not ready" as its own accessible text, and the tooltip keeps
+the per-provider detail. `status_bar.py` is `make_health_dot`'s only real consumer (the one other
+reference, in `ui/main_window/api.py`, is a docstring mention, not a call), so the
+state-in-words name `make_health_dot` builds is now unused by every mounted instance in the
+application — it is immediately overwritten every time. This is recorded here so STORY-089's
+whole-registry sweep does not independently re-derive §7's status-dot row as unmet and "fix" it
+back to the state-in-words name, which would break the pinned registry value instead.
+
 **Acceptance criterion 2 is proven by three tests rather than one.** A single parametrised test
 covering both the shell and the dialogs would need an `if` in its body to choose which surface to
 mount, which `.claude/rules/testing.md` forbids. The traceability generator accepts more than one
@@ -194,7 +209,14 @@ constructs any of them, so no amount of naming work could ever have made the wal
 `_has_composite_ancestor` helper excludes any control whose ancestor chain contains a `QComboBox`
 or `QAbstractItemView`; both classes remain in the walker's interactive set, so a dropdown and a
 table each still need their own name. Known limitation: a control placed inside a table cell via
-`setCellWidget` would also be skipped. No such control exists today.
+`setCellWidget` would also be skipped. No such control exists today. A second, opposite-direction
+limitation: a `QSpinBox` carries one Qt-constructed, anonymous `QLineEdit` child, and
+`QAbstractSpinBox` is in the walker's interactive set but **not** in `_COMPOSITE_TYPES` — so if
+STORY-098 or STORY-099 reuse this walker on a surface containing a spin box, that internal edit
+will be reported as an unnamed control that no application code can name. This fails *safe* (a
+spurious test failure demanding attention, not a silent skip that hides a real gap); the fix when
+that day comes is adding `QAbstractSpinBox` to `_COMPOSITE_TYPES`. No spin box exists in this
+story's five modules today, so no code changes for this now — it is a note only.
 
 **The shared dialog builders are exposed as a `common_dialogs` fixture in
 `tests/integration/conftest.py`, not as an importable helper module.** The first attempt created a
@@ -213,10 +235,14 @@ convention. This is wider than the acceptance criteria and was a deliberate choi
 automated handle check does not fail on day one. (The plan estimated nine dialog buttons; the
 measured number is eight — the ninth was Generate Analysis's Cancel, handled in the same pass.)
 
-**Two controls that were disabled with no explanation gained the tooltip the project's UI rules
-require:** the Rename button in the Rename Run dialog now explains which validation rule failed,
-and the Retry Selected button now says "Select at least one row to retry." Each tooltip sits on the
-only code path that changes its button's enabled state.
+**Three controls gained a new tooltip, not two.** Two controls that were disabled with no
+explanation gained the tooltip the project's UI rules require: the Rename button in the Rename
+Run dialog now explains which validation rule failed, and the Retry Selected button now says
+"Select at least one row to retry." Each of those two tooltips sits on the only code path that
+changes its button's enabled state. The third is the About dialog's repository link, which
+gained the plain informational tooltip "Open the project's GitHub repository in your browser" —
+that control is always enabled, so its tooltip does not explain a disabled state; it only tells
+the user what clicking the link does.
 
 **One architecture allowlist was extended.** `tests/architecture/test_story_065_run_analysis_and_generate_dialog.py`
 pins the modules the Generate Analysis dialog may import; it already permitted

@@ -1,5 +1,6 @@
 """Unit tests for the shared gate-busy indicator strip (STORY-097)."""
 
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.ui.shared import make_gate_busy_indicator
@@ -35,10 +36,21 @@ def test_gate_busy_indicator_shows_the_callers_message(qtbot: QtBot) -> None:
 
 def test_gate_busy_indicator_starts_hidden(qtbot: QtBot) -> None:
     """The strip is mounted permanently and revealed only while the gate is held, so it
-    must not be visible at construction."""
-    # Arrange / Act
+    must not be visible at construction.
+
+    Asserted through `isVisibleTo` against a real parent rather than `isVisible()`: an
+    unparented widget that was never shown reports `isVisible() == False` regardless of
+    whether anything hid it, so a bare `isVisible()` check here would pass even if the
+    factory stopped hiding the strip at all.
+    """
+    # Arrange
+    container = QWidget()
+    layout = QVBoxLayout(container)
+    qtbot.addWidget(container)
+
+    # Act
     strip = make_gate_busy_indicator(message=_GENERATE_ANALYSIS_MESSAGE)
-    qtbot.addWidget(strip)
+    layout.addWidget(strip)
 
     # Assert
-    assert not strip.isVisible()
+    assert strip.isVisibleTo(container) is False

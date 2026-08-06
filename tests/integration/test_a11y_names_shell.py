@@ -149,7 +149,11 @@ def test_shell_registry_controls_use_pinned_values(
 
     # Assert
     assert control is not None, f"no control named {object_name!r} is mounted on the shell"
-    assert (control.accessibleName(), control.toolTip()) == (accessible_name, tooltip)
+    assert (control.objectName(), control.accessibleName(), control.toolTip()) == (
+        object_name,
+        accessible_name,
+        tooltip,
+    )
 
 
 @pytest.mark.parametrize(
@@ -177,7 +181,11 @@ def test_dialog_registry_controls_use_pinned_values(
 
     # Assert
     assert control is not None, f"no control named {object_name!r} is mounted on {surface}"
-    assert (control.accessibleName(), control.toolTip()) == (accessible_name, tooltip)
+    assert (control.objectName(), control.accessibleName(), control.toolTip()) == (
+        object_name,
+        accessible_name,
+        tooltip,
+    )
 
 
 def test_readiness_dot_tooltip_leads_with_the_pinned_sentence(
@@ -198,7 +206,8 @@ def test_readiness_dot_tooltip_leads_with_the_pinned_sentence(
 
     # Assert
     assert dot is not None, "no provider-readiness dot is mounted on the shell"
-    assert (dot.accessibleName(), dot.toolTip().splitlines()[0]) == (
+    assert (dot.objectName(), dot.accessibleName(), dot.toolTip().splitlines()[0]) == (
+        _READINESS_DOT_OBJECT_NAME,
         "Provider readiness status",
         _READINESS_DOT_TOOLTIP_FIRST_LINE,
     )

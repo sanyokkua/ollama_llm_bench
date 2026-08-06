@@ -240,10 +240,9 @@ def test_settings_dialog_is_constructed_standalone_without_exec(qtbot: QtBot) ->
 def test_every_shared_modal_dialog_is_constructed_for_capture(
     common_dialogs: dict[str, QDialog],
 ) -> None:
-    # Arrange
+    # Arrange -- the `common_dialogs` fixture is where the real action (building
+    # all seven shared modal dialogs) happens; this test only checks its output.
     expected = frozenset(capture_id for capture_id in _CAPTURE_IDS if capture_id.startswith("07_"))
-
-    # Act
     dialogs = common_dialogs
 
     # Assert

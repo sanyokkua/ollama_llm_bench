@@ -219,9 +219,11 @@ class _StubGenerateAnalysisEventBus:
     crash any real user opening this dialog, masked in
     ``ui/common_dialogs/tests/test_generate_analysis_dialog.py`` by that
     module's own ``_FakeEventBus``, which accepts a missing owner silently.
-    This mirrors that same fake, scoped to this one dialog only, so the
-    screenshot capture is not blocked by a defect outside this story's scope
-    (no ``src/`` change here -- see the task report).
+    This mirrors that same fake, scoped to this one dialog only, so both the
+    mockup-conformance screenshot harness (``test_screenshot_harness.py``) and
+    the accessibility-name walker (``test_a11y_names_shell.py``) can build
+    this dialog without hitting that defect. It changes no behaviour of its
+    own -- it only accepts the missing-owner calls the real bus would reject.
     """
 
     def subscribe(

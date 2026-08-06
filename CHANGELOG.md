@@ -24,15 +24,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and About menu buttons, the two workspace tabs, the running pill, the provider-readiness dot,
   the shared dialog Close button, the About dialog's two data-folder buttons, and the gate-busy
   strip — carry the exact objectName, accessible name, and tooltip pinned by
-  `12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md` §7.2. Two controls that were disabled with no
-  explanation (the Rename button and Retry Selected) now carry a tooltip saying why
-  (`STORY-097`).
+  `12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md` §7.2. Three controls gained a new tooltip: two
+  that were disabled with no explanation (the Rename button and Retry Selected) now carry a
+  tooltip saying why, and the About dialog's repository link — an always-enabled control — now
+  carries a plain informational tooltip saying what it does (`STORY-097`).
+
 - `ui/shared` public surface: `make_dialog_close_button(*, role="primary-button") -> QPushButton`
   and `make_gate_busy_indicator(*, message) -> QLabel`. Each defines one repeated control's pinned
   accessibility values in a single place so every dialog mounts the same primitive instead of
   retyping the strings. The gate-busy strip is deliberately a static text strip rather than an
   animated spinner, because ADR-0018 removed the reduced-motion preference a user would need to
   switch an animation off (`STORY-097`).
+
 - Launch-glue sequence (`compose.py`'s `build_app` prelude): on every launch, the application
   data directory is created (recursively, idempotently), the single-instance advisory lock is
   acquired, the database write connection is opened, and its schema version is checked, before
