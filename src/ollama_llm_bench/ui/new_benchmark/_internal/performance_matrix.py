@@ -94,6 +94,7 @@ class PerformanceMatrixSectionWidget(QWidget):
             box = QCheckBox(caption)
             box.setObjectName(f"new_benchmark.performance_matrix.{group}.{size_key}")
             box.setAccessibleName(caption)
+            box.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6 -- 24px click-target floor
             box.setChecked(default_checked)
             box.toggled.connect(self._on_matrix_input_changed)
             boxes[tokens] = box

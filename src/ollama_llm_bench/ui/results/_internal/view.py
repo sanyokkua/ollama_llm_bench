@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 
 from ollama_llm_bench.ui.results._internal.theme_lookup import resolve_spacing_tokens
 from ollama_llm_bench.ui.results.models import FooterViewModel, ResultViewModel
+from ollama_llm_bench.ui.shared import ensure_tab_bar_scroll_buttons_meet_click_target
 from ollama_llm_bench.ui.theme import PlatformKind
 
 __all__: list[str] = ["ResultView"]
@@ -68,6 +69,7 @@ class ResultView(QWidget):
 
         self._tab_widget = QTabWidget()
         self._tab_widget.setObjectName("result_widget.tabs")
+        ensure_tab_bar_scroll_buttons_meet_click_target(self._tab_widget)
         self._tab_hosts: dict[str, QWidget] = {}
         for tab_name, label, object_name in zip(
             _TAB_NAMES, _TAB_LABELS, _TAB_HOST_OBJECT_NAMES, strict=True
@@ -89,6 +91,7 @@ class ResultView(QWidget):
         self._save_directly_checkbox = QCheckBox("Save to app data folder")
         self._save_directly_checkbox.setObjectName("result_widget.save_directly")
         self._save_directly_checkbox.setAccessibleName("Save to app data folder")
+        self._save_directly_checkbox.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6
         self._save_directly_checkbox.toggled.connect(self.save_directly_toggled)
         footer_row.addWidget(self._save_directly_checkbox)
         self._open_folder_button = QPushButton("Open Exports Folder")

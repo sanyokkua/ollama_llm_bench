@@ -127,6 +127,7 @@ class JudgeSectionWidget(QWidget):
         self._analysis_checkbox.setObjectName("new_benchmark.judge.analysis_checkbox")
         self._analysis_checkbox.setProperty("role", "toggle")
         self._analysis_checkbox.setAccessibleName("Generate run analysis for this run")
+        self._analysis_checkbox.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6
         self._analysis_checkbox.toggled.connect(self._on_analysis_toggled)
         layout.addWidget(self._analysis_checkbox)
 

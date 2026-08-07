@@ -168,6 +168,7 @@ class EmbeddingSectionWidget(QWidget):
         self._show_all_checkbox = QCheckBox("Show all models")
         self._show_all_checkbox.setObjectName("settings_dialog.embedding_section.show_all")
         self._show_all_checkbox.setAccessibleName("Show all models")
+        self._show_all_checkbox.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6
         self._show_all_checkbox.toggled.connect(self._on_show_all_toggled)
         layout.addWidget(self._show_all_checkbox)
 

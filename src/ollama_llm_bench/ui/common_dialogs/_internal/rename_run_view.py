@@ -64,6 +64,7 @@ class RenameRunDialog(QDialog):
         self.new_name_edit = QLineEdit(current_custom_name or "")
         self.new_name_edit.setObjectName("common_dialogs.rename_run.new_name")
         self.new_name_edit.setAccessibleName("New run name")
+        self.new_name_edit.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6
         self.new_name_edit.setPlaceholderText(self._computed_default_name)
         self.new_name_edit.textChanged.connect(self._on_text_changed)
         layout.addWidget(self.new_name_edit)

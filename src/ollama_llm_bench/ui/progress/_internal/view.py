@@ -243,6 +243,7 @@ class ProgressView(QWidget):
         self._log_search_edit.setObjectName("progress.log.search")
         self._log_search_edit.setPlaceholderText("Search the run log…")
         self._log_search_edit.setAccessibleName("Search the run log")
+        self._log_search_edit.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6
         self._log_search_edit.textChanged.connect(self.log_search_changed)
         self._log_clear_button = QPushButton("Clear")
         self._log_clear_button.setObjectName("progress.log.clear")

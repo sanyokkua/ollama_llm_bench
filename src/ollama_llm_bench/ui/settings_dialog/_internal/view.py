@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 from ollama_llm_bench.ui.settings_dialog._internal.general_tab.view import GeneralTabView
 from ollama_llm_bench.ui.settings_dialog._internal.providers_tab.view import ProvidersTabWidget
 from ollama_llm_bench.ui.settings_dialog.models import DialogChromeViewModel, GeneralFieldState
+from ollama_llm_bench.ui.shared import ensure_tab_bar_scroll_buttons_meet_click_target
 
 if TYPE_CHECKING:
     from ollama_llm_bench.ui.settings_dialog._internal.controller import SettingsController
@@ -66,6 +67,7 @@ class SettingsDialogView(QDialog):
 
         self._tab_widget = QTabWidget()
         self._tab_widget.setObjectName("settings_dialog.tabs")
+        ensure_tab_bar_scroll_buttons_meet_click_target(self._tab_widget)
         self._tab_widget.addTab(self._providers_tab, "Providers")
         self._tab_widget.addTab(self._general_tab, "General")
         layout.addWidget(self._tab_widget, 1)

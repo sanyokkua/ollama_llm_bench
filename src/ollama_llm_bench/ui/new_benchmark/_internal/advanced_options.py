@@ -181,6 +181,7 @@ def _make_checkbox_row(key: SettingKey, *, changed: Callable[[], None]) -> _Cont
     box = QCheckBox()
     _name_control(box, key=key)
     box.setObjectName(f"new_benchmark.advanced_options.{key}.checkbox")
+    box.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6 -- 24px click-target floor
     box.toggled.connect(lambda _checked: changed())
     return _ControlRow(
         get_text=lambda: "true" if box.isChecked() else "false",
@@ -234,6 +235,7 @@ def _make_text_row(key: SettingKey, *, changed: Callable[[], None]) -> _ControlR
     line_edit = QLineEdit()
     _name_control(line_edit, key=key)
     line_edit.setObjectName(f"new_benchmark.advanced_options.{key}.line_edit")
+    line_edit.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6 -- 24px click-target floor
     line_edit.textChanged.connect(lambda _text: changed())
     return _ControlRow(get_text=line_edit.text, set_text=line_edit.setText, widget=line_edit)
 

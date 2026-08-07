@@ -4,6 +4,7 @@ across ui/* widgets. Pure presentation with dynamic-property roles (01_MODULE_IN
 """
 
 from ollama_llm_bench.ui.shared.api import (
+    ensure_tab_bar_scroll_buttons_meet_click_target,
     make_badge_label,
     make_dialog_close_button,
     make_gate_busy_indicator,
@@ -16,6 +17,7 @@ from ollama_llm_bench.ui.shared.models import BadgeStatus, FilterSelectionChange
 __all__: list[str] = [
     "BadgeStatus",
     "FilterSelectionChanged",
+    "ensure_tab_bar_scroll_buttons_meet_click_target",
     "make_badge_label",
     "make_dialog_close_button",
     "make_gate_busy_indicator",

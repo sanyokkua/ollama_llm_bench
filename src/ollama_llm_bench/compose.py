@@ -152,6 +152,7 @@ from ollama_llm_bench.ui.resume_benchmark import (  # fmt: skip
     make_resume_benchmark_widget,
 )
 from ollama_llm_bench.ui.settings_dialog import SettingsDialogCollaborators, make_settings_dialog
+from ollama_llm_bench.ui.shared import ensure_tab_bar_scroll_buttons_meet_click_target
 from ollama_llm_bench.ui.task_editor import TaskEditorCollaborators, make_task_editor_workspace
 from ollama_llm_bench.ui.theme import (  # fmt: skip
     PlatformKind as UiPlatformKind,
@@ -360,6 +361,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
         resume_widget = make_resume_benchmark_widget(collaborators=resume_collabs)
         left_panel = QTabWidget()
         left_panel.setObjectName("benchmark_left_panel")
+        ensure_tab_bar_scroll_buttons_meet_click_target(left_panel)
         left_panel.addTab(new_benchmark_widget, "New Benchmark")
         left_panel.addTab(resume_widget, "Resume")
         progress_widget = make_progress_widget(bus=bus, gateway=progress_gateway, log_formatter=log_formatter)  # fmt: skip

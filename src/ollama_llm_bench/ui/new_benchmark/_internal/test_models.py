@@ -87,6 +87,7 @@ class TestModelsSectionWidget(QWidget):
             "new_benchmark.test_models.hide_embedding_checkbox"
         )
         self._hide_embedding_checkbox.setAccessibleName("Hide embedding models")
+        self._hide_embedding_checkbox.setMinimumHeight(24)  # 08_ACCESSIBILITY_FLOOR.md §6
         self._hide_embedding_checkbox.setChecked(self._hide_embedding_models)
         self._hide_embedding_checkbox.toggled.connect(self._on_hide_embedding_toggled)
         layout.addWidget(self._hide_embedding_checkbox)

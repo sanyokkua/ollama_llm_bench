@@ -1,7 +1,7 @@
 """Public factories for ui/shared's reusable visual primitives (08-L §6, §8, §9; 08-D §5, §6)."""
 
 import icontract
-from PySide6.QtWidgets import QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import QLabel, QPushButton, QTabWidget, QWidget
 
 from ollama_llm_bench.ui.shared._internal.badge_label import (
     BadgeLabelWidget,
@@ -19,10 +19,14 @@ from ollama_llm_bench.ui.shared._internal.health_dot import HealthDotWidget
 from ollama_llm_bench.ui.shared._internal.multi_check_filter_button import (
     MultiCheckFilterButtonWidget,
 )
+from ollama_llm_bench.ui.shared._internal.tab_bar_scroll_buttons import (
+    apply_tab_bar_scroll_button_min_hit_area as _apply_tab_bar_scroll_button_min_hit_area,
+)
 from ollama_llm_bench.ui.shared.models import BadgeStatus
 from ollama_llm_bench.ui.theme import HealthDisplayState, PlatformKind, ThemeManager
 
 __all__: list[str] = [
+    "ensure_tab_bar_scroll_buttons_meet_click_target",
     "make_badge_label",
     "make_dialog_close_button",
     "make_gate_busy_indicator",
@@ -113,3 +117,21 @@ def resolve_badge_color_roles(status: BadgeStatus) -> tuple[str, str]:
     constructing a full widget instance.
     """
     return _resolve_badge_color_roles(status)
+
+
+@icontract.require(
+    lambda tab_widget: isinstance(tab_widget, QTabWidget), "tab_widget must be a QTabWidget"
+)
+def ensure_tab_bar_scroll_buttons_meet_click_target(tab_widget: QTabWidget) -> None:
+    """Resize `tab_widget`'s tab-overflow scroll buttons to the 24x24px click-target
+    floor (``08_ACCESSIBILITY_FLOOR.md`` §6).
+
+    Qt's ``QTabBar`` privately constructs a pair of ``QToolButton``s the instant a
+    ``QTabWidget`` is built, sized below the accessibility floor by default; the
+    application has no construction site of its own for them, so every mounted
+    `QTabWidget` whose tab strip can overflow calls this once, right after construction.
+
+    Args:
+        tab_widget: The tab widget whose tab-bar scroll buttons (if any) are resized.
+    """
+    _apply_tab_bar_scroll_button_min_hit_area(tab_widget)
