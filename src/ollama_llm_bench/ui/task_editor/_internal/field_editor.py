@@ -237,9 +237,10 @@ class FieldEditorWidget(QWidget):
         label_row.addWidget(label)
 
         help_button = QToolButton()
-        help_button.setObjectName(f"task_editor.field_editor.row.{row.field_name}.help")
+        help_button.setObjectName(f"{row.field_name}_help_button")
         help_button.setText("?")
-        help_button.setToolTip(row.help_text)
+        help_button.setAccessibleName(f"Help: {row.label}")
+        help_button.setToolTip("About this field")
         help_button.clicked.connect(partial(self._show_help, row.label, row.help_text))
         label_row.addWidget(help_button)
         label_row.addStretch()
