@@ -33,6 +33,11 @@ _VIEW_FILE = _MODULE_ROOT / "_internal" / "view.py"
 _FORBIDDEN_CONCURRENCY_ROOTS = ("asyncio", "anyio", "qasync")
 _ALLOWED_CONTROLLER_BACKEND_IMPORTS = {
     "ollama_llm_bench.backend.events",
+    # STORY-099-AC-2: on_validation_summary_clicked reads ValidationSeverity, a
+    # Qt-free StrEnum already re-exported through this module's own models.py --
+    # this module's docstring already documents TaskFileValidator (also
+    # backend.task_files) as a sanctioned declared non-store helper.
+    "ollama_llm_bench.backend.task_files",
 }
 _ALLOWED_CONTROLLER_ADAPTER_IMPORTS = {
     "ollama_llm_bench.adapters.native_pickers",

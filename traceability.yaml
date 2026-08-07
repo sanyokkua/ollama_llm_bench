@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-06T22:01:43Z'
+generated_at: '2026-08-07T07:01:20Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5516,11 +5516,21 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-099-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_a11y_names_result_settings_task_editor.py::test_every_result_settings_task_editor_control_has_a_nonempty_accessible_name
       STORY-099-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_validation_summary_clicked_focuses_first_warning_task
+        - tests/integration/test_a11y_names_result_settings_task_editor.py::test_result_settings_task_editor_registry_controls_use_pinned_values[result-chart-next]
+        - tests/integration/test_a11y_names_result_settings_task_editor.py::test_result_settings_task_editor_registry_controls_use_pinned_values[result-chart-prev]
+        - tests/integration/test_a11y_names_result_settings_task_editor.py::test_result_settings_task_editor_registry_controls_use_pinned_values[result-detach-chart]
+        - tests/integration/test_a11y_names_result_settings_task_editor.py::test_result_settings_task_editor_registry_controls_use_pinned_values[task-editor-field-help-golden-answer]
+        - tests/integration/test_a11y_names_result_settings_task_editor.py::test_result_settings_task_editor_registry_controls_use_pinned_values[task-editor-field-help-question]
+        - tests/integration/test_a11y_names_result_settings_task_editor.py::test_result_settings_task_editor_registry_controls_use_pinned_values[task-editor-validation-summary]
       STORY-099-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/adapters/qt_table_models/tests/test_accessible_text_role.py::test_providers_enabled_cell_exposes_state_and_actions_as_accessible_text
+        - src/ollama_llm_bench/ui/settings_dialog/tests/test_row_actions_delegate.py::test_providers_delegate_creates_no_per_row_widget
   STORY-100:
     title: Issue a dedicated lightweight liveness probe when a provider is PROBING
     status: done
