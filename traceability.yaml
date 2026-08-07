@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-07T15:42:18Z'
+generated_at: '2026-08-07T16:21:29Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5280,23 +5280,23 @@ stories:
     acceptance_criteria:
       STORY-089-AC-1:
         tests:
-        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[about_menu_button-About-Application information: version, links, data folders]'
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[chart_next_button-Next chart-Next chart]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[chart_prev_button-Previous chart-Previous chart]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[copy_data_folder_path_button-Copy application data folder path-Copy the application data folder path]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[detach_chart_button-Detach chart-Open the chart in its own window]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[dialog_close_button-Close dialog-Close]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[gate_busy_indicator-Inference in flight \u2014 controls temporarily disabled-An inference is in flight; please wait.]
-        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[golden_answer_help_button-Help: Golden answer-About this field]'
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[judge_model_refresh_button-Refresh judge model list-Refresh the judge provider's model list]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[open_data_folder_button-Open application data folder-Open the application data folder]
-        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[question_help_button-Help: Question-About this field]'
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[rename_run_button-Rename run-Rename run]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[running_pill_button-Run in progress \u2014 open Progress-Switch to the Benchmark workspace and focus the Progress widget]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[settings_menu_button-Settings-Open the Settings dialog]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[validation_summary_button-Validation summary \u2014 focus first issue-Click to focus the first task with a warning]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[workspace_benchmark_button-Benchmark workspace-Benchmark workspace]
-        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[workspace_task_editor_button-Task Editor workspace-Task Editor workspace]
+        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[about_menu_button-About-Application information: version, links, data folders-menu_bar]'
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[chart_next_button-Next chart-Next chart-charts_tab_host]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[chart_prev_button-Previous chart-Previous chart-charts_tab_host]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[copy_data_folder_path_button-Copy application data folder path-Copy the application data folder path-common_dialogs.about]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[detach_chart_button-Detach chart-Open the chart in its own window-charts_tab_host]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[dialog_close_button-Close dialog-Close-common_dialogs.about]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[gate_busy_indicator-Inference in flight \u2014 controls temporarily disabled-An inference is in flight; please wait.-common_dialogs.generate_analysis]
+        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[golden_answer_help_button-Help: Golden answer-About this field-task_editor.field_editor]'
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[judge_model_refresh_button-Refresh judge model list-Refresh the judge provider's model list-new_benchmark.judge]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[open_data_folder_button-Open application data folder-Open the application data folder-common_dialogs.about]
+        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[question_help_button-Help: Question-About this field-task_editor.field_editor]'
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[rename_run_button-Rename run-Rename run-progress.header]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[running_pill_button-Run in progress \u2014 open Progress-Switch to the Benchmark workspace and focus the Progress widget-menu_bar]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[settings_menu_button-Settings-Open the Settings dialog-menu_bar]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[validation_summary_button-Validation summary \u2014 focus first issue-Click to focus the first task with a warning-task_editor.toolbar]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[workspace_benchmark_button-Benchmark workspace-Benchmark workspace-workspace_switcher]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[workspace_task_editor_button-Task Editor workspace-Task Editor workspace-workspace_switcher]
         - tests/e2e/test_icon_only_registry_conformance.py::test_provider_readiness_indicator_tooltip_leads_with_the_pinned_sentence
   STORY-090:
     title: Honor the OS reduced-motion and high-contrast preferences per the accessibility floor
@@ -6206,6 +6206,26 @@ stories:
         tests: []
       STORY-117-AC-2:
         tests: []
+  STORY-118:
+    title: Bind the Generate Analysis dialog's event-bus subscriptions to its own lifetime
+    status: ready
+    spec_clauses:
+    - 07_Common_Dialogs/generate_analysis_dialog.md#8-confirm-behaviour-and-the-single-inference-gate
+    - 07_Common_Dialogs/generate_analysis_dialog.md#81-live-progress-line-during-the-analysis-call
+    - 08_Cross_Cutting/08-J_event_bus_catalog.md#2-subscription-ownership-binding-rule
+    - 16_Engineering_Standards/05_ERROR_HANDLING_STANDARD.md#2-the-error-category-model
+    modules:
+    - ui/common_dialogs/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-118-AC-1:
+        tests: []
+      STORY-118-AC-2:
+        tests: []
+      STORY-118-AC-3:
+        tests: []
+      STORY-118-AC-4:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -6584,6 +6604,10 @@ clauses:
   07_Common_Dialogs/generate_analysis_dialog.md#8-confirm-behaviour-and-the-single-inference-gate:
     stories:
     - STORY-065
+    - STORY-118
+  07_Common_Dialogs/generate_analysis_dialog.md#81-live-progress-line-during-the-analysis-call:
+    stories:
+    - STORY-118
   07_Common_Dialogs/rename_run_dialog.md#10-commit-effects:
     stories:
     - STORY-056
@@ -6952,6 +6976,7 @@ clauses:
   08_Cross_Cutting/08-J_event_bus_catalog.md#2-subscription-ownership-binding-rule:
     stories:
     - STORY-003
+    - STORY-118
   08_Cross_Cutting/08-J_event_bus_catalog.md#3-threading-model:
     stories:
     - STORY-003
@@ -7945,6 +7970,9 @@ clauses:
     stories:
     - STORY-040
     - STORY-044
+  16_Engineering_Standards/05_ERROR_HANDLING_STANDARD.md#2-the-error-category-model:
+    stories:
+    - STORY-118
   16_Engineering_Standards/06_LOGGING_STANDARD.md#2-the-two-log-streams:
     stories:
     - STORY-004
@@ -11134,6 +11162,7 @@ modules:
     - STORY-107
     - STORY-109
     - STORY-117
+    - STORY-118
   ui/main_window/:
     stories:
     - STORY-053
