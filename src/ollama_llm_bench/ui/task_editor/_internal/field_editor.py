@@ -94,6 +94,7 @@ class _ChipInputWidget(QWidget):
         layout = QVBoxLayout(self)
         self._list = QListWidget()
         self._list.setObjectName("task_editor.field_editor.chip_list")
+        self._list.setAccessibleName("Chip values")
         layout.addWidget(self._list)
 
         row = QHBoxLayout()

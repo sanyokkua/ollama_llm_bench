@@ -455,6 +455,7 @@ class ChartsTabView(QWidget):
         row.addStretch()
         self._clear_filters_button = QPushButton("Clear filters")
         self._clear_filters_button.setObjectName("charts_tab.clear_filters")
+        self._clear_filters_button.setAccessibleName("Clear filters")
         self._clear_filters_button.clicked.connect(self.clear_filters_clicked)
         row.addWidget(self._clear_filters_button)
         self._options_row = QHBoxLayout()

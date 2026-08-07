@@ -92,6 +92,7 @@ class JudgeAnalysisTabView(QWidget):
 
         self._narrative_body = QTextBrowser()
         self._narrative_body.setObjectName("run_analysis_tab.narrative_body")
+        self._narrative_body.setAccessibleName("Generated run analysis narrative")
         self._narrative_body.setOpenExternalLinks(False)
         self._narrative_body.setReadOnly(True)
         root.addWidget(self._narrative_body, 1)
