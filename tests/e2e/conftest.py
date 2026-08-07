@@ -308,7 +308,7 @@ def shutdown_handle(qtbot: QtBot) -> Callable[[AppHandle], None]:
         try:
             if shiboken6.isValid(handle.window):
                 handle.window.close()
-                qtbot.wait(_GEOMETRY_DEBOUNCE_DRAIN_MS)
+            qtbot.wait(_GEOMETRY_DEBOUNCE_DRAIN_MS)
         finally:
             handle.shutdown(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
 
@@ -680,6 +680,7 @@ def _build_common_dialogs(*, qtbot: QtBot) -> dict[str, QDialog]:
 
 @pytest.fixture
 def mounted_app_surfaces(
+    request: pytest.FixtureRequest,
     qtbot: QtBot,
     build_smoke_app: Callable[[], AppHandle],
     shutdown_handle: Callable[[AppHandle], None],
@@ -697,13 +698,23 @@ def mounted_app_surfaces(
     that never calls `shutdown_handle` leaves that thread running forever -- CPython's
     interpreter-shutdown sequence (`Py_Finalize`) blocks joining every live non-daemon thread,
     so the whole `pytest` process hangs after printing its summary rather than exiting. Every
-    other fixture in this tier that builds an `AppHandle` via `build_smoke_app`
-    (`test_launch_idle_shutdown_smoke.py`'s three tests) already calls `handle.shutdown`
+    other test in this tier that builds an `AppHandle` via `build_smoke_app`
+    (`test_launch_idle_shutdown_smoke.py`'s three tests) already calls `shutdown_handle(handle)`
     explicitly for the same reason -- `test_icon_only_registry_conformance.py`'s `registry_app`
     builds its `AppHandle` via `build_app` directly, not `build_smoke_app`, but calls
     `handle.shutdown` for the identical reason.
+
+    **Registers `shutdown_handle` via `request.addfinalizer` before anything else that can
+    raise.** Every statement between `build_smoke_app()` and `yield` -- `qtbot.waitUntil`
+    timing out, `_build_settings_dialog`/`_build_common_dialogs` raising -- can raise before
+    this generator ever reaches its `yield`. A plain post-`yield` teardown line only runs once
+    the generator resumes after `yield`, so a setup-time exception would skip it entirely and
+    reopen the same non-daemon-thread hang described above, just reachable through the setup
+    error path instead of the happy path. `request.addfinalizer` runs regardless of whether the
+    fixture body ever reaches `yield`.
     """
     handle = build_smoke_app()
+    request.addfinalizer(functools.partial(shutdown_handle, handle))
     qtbot.addWidget(handle.window)
     handle.window.show()
     qtbot.waitUntil(handle.window.isVisible, timeout=5000)
@@ -712,5 +723,3 @@ def mounted_app_surfaces(
     common_dialogs = _build_common_dialogs(qtbot=qtbot)
 
     yield [handle.window, settings_dialog, *common_dialogs.values()]
-
-    shutdown_handle(handle)
