@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 )
 import pytest
 from pytestqt.qtbot import QtBot
+import shiboken6
 
 from ollama_llm_bench.adapters.clipboard import make_clipboard
 from ollama_llm_bench.adapters.file_system_actions import make_file_system_actions
@@ -251,7 +252,17 @@ def build_smoke_app(
     yield _build
     qapp.removeEventFilter(dismiss_not_ready_modal)
     for handle in built:
-        handle.window.close()
+        # `shiboken6.isValid` guards a widget a consuming fixture already fully tore down
+        # (e.g. `mounted_app_surfaces` calling `shutdown_handle`, whose own `qtbot.wait` for
+        # the geometry-debounce drain flushes pytest-qt's own `_close_widgets` deleteLater --
+        # pytest-qt's `pytest_runtest_teardown` wrapper always closes+deleteLater()s every
+        # `qtbot.addWidget`-registered widget *before* any fixture finalizer, including this
+        # one, runs). Calling `.close()` on an already-C++-deleted widget raises
+        # `RuntimeError: Internal C++ object ... already deleted` -- this loop's job is a
+        # best-effort close of whatever it built, not a second mandatory shutdown step, so a
+        # widget already gone is skipped rather than treated as a failure.
+        if shiboken6.isValid(handle.window):
+            handle.window.close()
 
 
 @pytest.fixture
@@ -653,12 +664,27 @@ def _build_common_dialogs(*, qtbot: QtBot) -> dict[str, QDialog]:
 
 
 @pytest.fixture
-def mounted_app_surfaces(qtbot: QtBot, build_smoke_app: Callable[[], AppHandle]) -> list[QWidget]:
+def mounted_app_surfaces(
+    qtbot: QtBot,
+    build_smoke_app: Callable[[], AppHandle],
+    shutdown_handle: Callable[[AppHandle], None],
+) -> Generator[list[QWidget]]:
     """Every top-level surface the accessibility-floor checks (AC-2/3/4) must walk.
 
     The main window (built via build_smoke_app -- eagerly contains every workspace tab per
     compose.py's construction order), the Settings dialog, and the seven shared modal
     dialogs, all shown but never exec()'d.
+
+    **Runs `shutdown_handle` at teardown.** `build_app` starts the non-daemon
+    `pipeline-dispatcher` thread (DD-38) as a side effect of construction; that thread parks on
+    `queue.Queue.get()` until `AppHandle.shutdown` enqueues its stop sentinel and joins it.
+    `build_smoke_app`'s own finalizer only closes the window (see its docstring), so a fixture
+    that never calls `shutdown_handle` leaves that thread running forever -- CPython's
+    interpreter-shutdown sequence (`Py_Finalize`) blocks joining every live non-daemon thread,
+    so the whole `pytest` process hangs after printing its summary rather than exiting. Every
+    other consumer of `build_smoke_app` in this tier (`test_launch_idle_shutdown_smoke.py`,
+    `test_icon_only_registry_conformance.py`'s `registry_app`) already calls `handle.shutdown`
+    explicitly for the same reason.
     """
     handle = build_smoke_app()
     qtbot.addWidget(handle.window)
@@ -668,4 +694,6 @@ def mounted_app_surfaces(qtbot: QtBot, build_smoke_app: Callable[[], AppHandle])
     settings_dialog = _build_settings_dialog(qtbot=qtbot)
     common_dialogs = _build_common_dialogs(qtbot=qtbot)
 
-    return [handle.window, settings_dialog, *common_dialogs.values()]
+    yield [handle.window, settings_dialog, *common_dialogs.values()]
+
+    shutdown_handle(handle)
