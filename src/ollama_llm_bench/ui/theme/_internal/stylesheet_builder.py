@@ -52,4 +52,10 @@ def render_stylesheet(tokens: ThemeTokens) -> str:
         f"    border-radius: {tokens.radius.md}px;\n"
         f"    padding: {tokens.spacing.sm}px {tokens.spacing.md}px;\n"
         "}\n"
+        "\n"
+        "QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QAbstractSpinBox:focus,\n"
+        "QTableView:focus, QListView:focus, QTreeView:focus {\n"
+        f"    border: {tokens.focus_ring.outer_width}px solid {tokens.colors.border_focus};\n"
+        "    outline: none;\n"
+        "}\n"
     )
