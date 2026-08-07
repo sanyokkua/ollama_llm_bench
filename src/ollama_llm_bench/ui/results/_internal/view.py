@@ -62,6 +62,7 @@ class ResultView(QWidget):
 
         self._run_dropdown = QComboBox()
         self._run_dropdown.setObjectName("result_widget.run_dropdown")
+        self._run_dropdown.setAccessibleName("Select run")
         self._run_dropdown.currentIndexChanged.connect(self._on_dropdown_index_changed)
         root.addWidget(self._run_dropdown)
 
@@ -87,10 +88,12 @@ class ResultView(QWidget):
         footer_row.addStretch()
         self._save_directly_checkbox = QCheckBox("Save to app data folder")
         self._save_directly_checkbox.setObjectName("result_widget.save_directly")
+        self._save_directly_checkbox.setAccessibleName("Save to app data folder")
         self._save_directly_checkbox.toggled.connect(self.save_directly_toggled)
         footer_row.addWidget(self._save_directly_checkbox)
         self._open_folder_button = QPushButton("Open Exports Folder")
         self._open_folder_button.setObjectName("result_widget.open_exports_folder")
+        self._open_folder_button.setAccessibleName("Open exports folder")
         self._open_folder_button.setProperty("role", "outlined-muted-button")
         self._open_folder_button.clicked.connect(self.open_exports_folder_clicked)
         footer_row.addWidget(self._open_folder_button)
@@ -143,6 +146,7 @@ class ResultView(QWidget):
             button = QPushButton(label)
             slug = label.replace(" ", "_").lower()
             button.setObjectName(f"result_widget.export.{slug}")
+            button.setAccessibleName(label)
             button.setEnabled(footer_vm.exports_enabled)
             button.setToolTip(footer_vm.disabled_tooltip or "")
             button.clicked.connect(partial(self.export_clicked.emit, label))
