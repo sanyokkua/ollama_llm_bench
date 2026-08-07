@@ -390,15 +390,22 @@ def _open_and_dismiss_about_dialog(handle: AppHandle) -> None:
 def _open_benchmark_workspace_and_charts_tab(handle: AppHandle) -> None:
     """Switch to the Benchmark workspace, then click the Result widget's Charts tab.
 
-    Enables the pinned rows for `judge_model_refresh_button` (New Benchmark is the left
-    panel's default-active tab -- `compose.py`'s `_make_benchmark_workspace` adds it first,
-    so no dedicated New Benchmark click is needed) and for the three Charts-tab controls
-    (`chart_prev_button`, `chart_next_button`, `detach_chart_button`), which only exist once
-    `charts_tab_host` has been mounted into the visible tab. `_seed_one_completed_run` (run at
-    fixture build time, before this call) makes `ResultController.load_initial_state` select a
-    run and enable `result_widget.tabs` (`ui/results/_internal/controller.py:219-239`,
-    `ui/results/_internal/view.py:137`); this waits for that enablement instead of assuming it
-    is already true by the time the workspace switch renders.
+    `judge_model_refresh_button`, `chart_prev_button`, `chart_next_button`, and
+    `detach_chart_button` are already findable before this function ever runs: per this
+    module's own docstring, `compose.py`'s `build_app()` primes both workspaces eagerly
+    (`compose.py:380-387`) and `ui/results/_internal/controller.py`'s `bind()` mounts all
+    four Result tabs -- including `charts_tab_host` -- unconditionally at construction time,
+    not on tab click. This function's clicks are not load-bearing for those controls'
+    existence or parentage.
+
+    What the clicks are for: exercising genuine navigation (switching the Benchmark
+    workspace into view, then clicking the Charts tab into view) and reaching an
+    *interactable* state for the pinned Charts-tab rows. `_seed_one_completed_run` (run at
+    fixture build time, before this call) makes `ResultController.load_initial_state` select
+    a run and enable `result_widget.tabs` (`ui/results/_internal/controller.py:219-239`,
+    `ui/results/_internal/view.py:137`); this waits for that enablement instead of assuming
+    it is already true by the time the workspace switch renders, then clicks the Charts tab
+    so the assertions below run against the tab actually on screen.
 
     Called second in `registry_app`'s navigation sequence, after
     `_open_and_dismiss_about_dialog`.
