@@ -76,6 +76,8 @@ class ResultView(QWidget):
             self._tab_hosts[tab_name] = host
             self._tab_widget.addTab(host, label)
         self._tab_widget.currentChanged.connect(self._on_tab_index_changed)
+        for index, label in enumerate(_TAB_LABELS):
+            self._tab_widget.tabBar().setAccessibleTabName(index, label)
         root.addWidget(self._tab_widget, 1)
 
         footer_row = QHBoxLayout()

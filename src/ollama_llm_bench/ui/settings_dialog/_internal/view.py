@@ -118,6 +118,10 @@ class SettingsDialogView(QDialog):
         Changes button's enabled state/asterisk (§2, §5)."""
         self._tab_widget.setTabText(_PROVIDERS_TAB_INDEX, chrome.providers_tab_label)
         self._tab_widget.setTabText(_GENERAL_TAB_INDEX, chrome.general_tab_label)
+        self._tab_widget.tabBar().setAccessibleTabName(
+            _PROVIDERS_TAB_INDEX, chrome.providers_tab_label
+        )
+        self._tab_widget.tabBar().setAccessibleTabName(_GENERAL_TAB_INDEX, chrome.general_tab_label)
         self._save_state_label.setText(chrome.save_state_text)
         self._save_changes_button.setText("Save Changes*" if chrome.dirty else "Save Changes")
         self._save_changes_button.setEnabled(chrome.save_enabled)
