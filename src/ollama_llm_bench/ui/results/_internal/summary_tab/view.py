@@ -73,6 +73,7 @@ class _FilterChipButton(QPushButton):
     def __init__(self, *, label: str) -> None:
         super().__init__()
         self.setObjectName(f"summary_tab.chip.{label.lower()}")
+        self.setAccessibleName(f"Filter by {label}")
         self._label = label
         self._options: tuple[str, ...] = ()
         self._checked: set[str] = set()
@@ -144,6 +145,7 @@ class _ColumnsPopover(QWidget):
         for column in columns:
             checkbox = QCheckBox(select.column_label(column))
             checkbox.setChecked(column in visible)
+            checkbox.setAccessibleName(select.column_label(column))
             if column is SummaryColumnKey.PROVIDER_MODEL:
                 # Pinned first column; never hideable (§7) -- shown checked and
                 # disabled rather than omitted, so it still counts toward the
@@ -155,11 +157,13 @@ class _ColumnsPopover(QWidget):
         footer = QHBoxLayout()
         reset_button = QPushButton("Reset")
         reset_button.setProperty("role", "outlined-muted-button")
+        reset_button.setAccessibleName("Reset columns")
         reset_button.clicked.connect(on_reset)
         footer.addWidget(reset_button)
         footer.addStretch()
         done_button = QPushButton("Done")
         done_button.setProperty("role", "primary-button")
+        done_button.setAccessibleName("Done choosing columns")
         done_button.clicked.connect(self.close)
         footer.addWidget(done_button)
         layout.addLayout(footer)
@@ -194,6 +198,7 @@ class SummaryTabView(QWidget):
 
         self._table_view = QTableView()
         self._table_view.setObjectName("summary_tab.table")
+        self._table_view.setAccessibleName("Summary results table")
         header = self._table_view.horizontalHeader()
         header.setSectionsMovable(True)
         header.sectionClicked.connect(self._on_section_clicked)
@@ -231,11 +236,13 @@ class SummaryTabView(QWidget):
         row.addStretch()
         self._clear_filters_button = QPushButton("Clear filters")
         self._clear_filters_button.setObjectName("summary_tab.clear_filters")
+        self._clear_filters_button.setAccessibleName("Clear filters")
         self._clear_filters_button.setProperty("role", "outlined-muted-button")
         self._clear_filters_button.clicked.connect(self._on_clear_filters_clicked)
         row.addWidget(self._clear_filters_button)
         self._columns_button = QPushButton("Columns")
         self._columns_button.setObjectName("summary_tab.columns_button")
+        self._columns_button.setAccessibleName("Show or hide columns")
         self._columns_button.setProperty("role", "outlined-muted-button")
         self._columns_button.clicked.connect(self._open_columns_popover)
         row.addWidget(self._columns_button)
