@@ -25,7 +25,7 @@ from typing import cast
 import msgspec
 from PySide6.QtCore import QEvent, QEventLoop, QObject, Qt, QTimer
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
 import pytest
 
 from ollama_llm_bench.backend.domain import (
@@ -52,12 +52,15 @@ from ollama_llm_bench.backend.persistence.results import create_results_store
 from ollama_llm_bench.backend.persistence.runs import create_runs_store
 from ollama_llm_bench.backend.persistence.tasks import create_tasks_store
 from ollama_llm_bench.backend.platform import create_app_data_dir, make_platform_detector
+import ollama_llm_bench.compose as _compose_module
 from ollama_llm_bench.compose import AppHandle, build_app
+from ollama_llm_bench.ui.common_dialogs import make_about_dialog as _real_make_about_dialog
 
 _IDLE_TIMEOUT_MS = 10_000
 _NOT_READY_HEALTH_LABEL = "Not ready"
 _GEOMETRY_DEBOUNCE_DRAIN_MS = 300
 _SHUTDOWN_TIMEOUT_MS = 2000
+_DISMISS_DELAY_MS = 50
 
 _PLACEHOLDER_RUN_ID = -1
 _PROVIDER_ID = "aaaaaaaa-1111-4111-8111-111111111111"
@@ -82,6 +85,17 @@ _PINNED_ROWS: tuple[tuple[str, str, str], ...] = (
         "Switch to the Benchmark workspace and focus the Progress widget",
     ),
     ("rename_run_button", "Rename run", "Rename run"),
+    ("dialog_close_button", "Close dialog", "Close"),
+    (
+        "open_data_folder_button",
+        "Open application data folder",
+        "Open the application data folder",
+    ),
+    (
+        "copy_data_folder_path_button",
+        "Copy application data folder path",
+        "Copy the application data folder path",
+    ),
 )
 # Note: `provider_readiness_indicator` is deliberately not in `_PINNED_ROWS` above -- its
 # tooltip needs the first-line-only comparison (STORY-097 precedent), so it gets its own,
@@ -138,6 +152,20 @@ def _dismiss_message_box(modal: QMessageBox) -> None:
     modal.setAttribute(Qt.WidgetAttribute.WA_ShowModal, on=False)
 
 
+def _dismiss_and_clear_modal_stack(dialog: QDialog) -> None:
+    """Hide `dialog` in a way that always removes it from Qt's modal-widget stack.
+
+    Restated verbatim from `tests/integration/test_menu_opens_dialogs.py`'s helper of the
+    same name -- see that file's docstring for the full Qt-internals rationale (a plain
+    `close()`/`hide()` after a genuinely-blocked `.exec()` leaves a stale entry on
+    `QApplication.activeModalWidget()`'s stack that aborts a later `findChild`+click with a
+    fatal `QTEST_ASSERT` inside Qt).
+    """
+    dialog.setAttribute(Qt.WidgetAttribute.WA_ShowModal, on=True)
+    dialog.hide()
+    dialog.setAttribute(Qt.WidgetAttribute.WA_ShowModal, on=False)
+
+
 class _DismissReadinessModalOnShow(QObject):
     """App-wide event filter auto-dismissing the real NOT_READY `QMessageBox` the instant it
     is shown. Restated from `tests/e2e/conftest.py`'s identical class -- see that class's
@@ -149,6 +177,38 @@ class _DismissReadinessModalOnShow(QObject):
         if event.type() == QEvent.Type.Show and isinstance(watched, QMessageBox):
             QTimer.singleShot(100, functools.partial(_dismiss_message_box, watched))
         return False
+
+
+def _open_and_dismiss_about_dialog(handle: AppHandle) -> None:
+    """Open the real About dialog via a genuine button click, then dismiss it.
+
+    Enables the pinned rows for the About dialog's controls (Close, Open data folder, Copy
+    data-folder path) to be located by the shared test function below. `mocker` (function-
+    scoped) cannot be injected into the module-scoped `registry_app` fixture, so the patch on
+    `compose.make_about_dialog` is a manual assign/restore instead of `mocker.patch` -- see
+    `tests/integration/test_menu_opens_dialogs.py:162,221` for the equivalent
+    `mocker.patch("ollama_llm_bench.compose.make_about_dialog", ...)` this mirrors by hand,
+    and that same file's `_dismiss_and_clear_modal_stack` for why the dismissal timer must be
+    armed *before* the click that opens the dialog, not after.
+    """
+    captured_about_dialog: list[QDialog] = []
+
+    def _capture_about(**kwargs: object) -> QDialog:
+        dialog = _real_make_about_dialog(**kwargs)  # type: ignore[arg-type]  # forwarding real compose kwargs
+        captured_about_dialog.append(dialog)
+        return dialog
+
+    original_make_about_dialog = _compose_module.make_about_dialog  # type: ignore[attr-defined]  # patch at the point of use; compose.py imports this name at module scope but does not re-export it
+    _compose_module.make_about_dialog = _capture_about  # type: ignore[attr-defined]  # same manual-patch target as above
+    try:
+        about_button = cast("QWidget", handle.window.findChild(QWidget, "about_menu_button"))
+        QTimer.singleShot(
+            _DISMISS_DELAY_MS,
+            lambda: _dismiss_and_clear_modal_stack(captured_about_dialog[0]),
+        )
+        QTest.mouseClick(about_button, Qt.MouseButton.LeftButton)
+    finally:
+        _compose_module.make_about_dialog = original_make_about_dialog  # type: ignore[attr-defined]  # restore the manual patch
 
 
 def _seed_one_completed_run(app_data_root: Path) -> None:
@@ -266,6 +326,8 @@ def registry_app(
     handle.window.show()
     _wait_until(handle.window.isVisible, timeout_ms=_IDLE_TIMEOUT_MS)
     _wait_until(lambda: _health_dot_settled(handle), timeout_ms=_IDLE_TIMEOUT_MS)
+
+    _open_and_dismiss_about_dialog(handle)
 
     yield handle
 
