@@ -144,6 +144,7 @@ class _ColumnsPopover(QWidget):
         layout = QVBoxLayout(self)
         for column in columns:
             checkbox = QCheckBox(select.column_label(column))
+            checkbox.setObjectName(f"summary_tab.columns_popover.column.{column.value}")
             checkbox.setChecked(column in visible)
             checkbox.setAccessibleName(select.column_label(column))
             if column is SummaryColumnKey.PROVIDER_MODEL:
@@ -156,12 +157,14 @@ class _ColumnsPopover(QWidget):
             layout.addWidget(checkbox)
         footer = QHBoxLayout()
         reset_button = QPushButton("Reset")
+        reset_button.setObjectName("summary_tab.columns_popover.reset_button")
         reset_button.setProperty("role", "outlined-muted-button")
         reset_button.setAccessibleName("Reset columns")
         reset_button.clicked.connect(on_reset)
         footer.addWidget(reset_button)
         footer.addStretch()
         done_button = QPushButton("Done")
+        done_button.setObjectName("summary_tab.columns_popover.done_button")
         done_button.setProperty("role", "primary-button")
         done_button.setAccessibleName("Done choosing columns")
         done_button.clicked.connect(self.close)
@@ -222,9 +225,13 @@ class SummaryTabView(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(spacing_px)
         self._chip_models = _FilterChipButton(label="Models")
+        self._chip_models.setObjectName("summary_tab.chip.models")
         self._chip_verdict = _FilterChipButton(label="Verdict")
+        self._chip_verdict.setObjectName("summary_tab.chip.verdict")
         self._chip_difficulty = _FilterChipButton(label="Difficulty")
+        self._chip_difficulty.setObjectName("summary_tab.chip.difficulty")
         self._chip_category = _FilterChipButton(label="Category")
+        self._chip_category.setObjectName("summary_tab.chip.category")
         for chip_name, chip in (
             ("models", self._chip_models),
             ("verdict", self._chip_verdict),

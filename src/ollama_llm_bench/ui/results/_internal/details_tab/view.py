@@ -289,6 +289,7 @@ class _ColumnsPopover(QWidget):
         layout = QVBoxLayout(self)
         for column in columns:
             checkbox = QCheckBox(select.column_label(column))
+            checkbox.setObjectName(f"details_tab.columns_popover.column.{column.value}")
             checkbox.setChecked(column in visible)
             checkbox.setAccessibleName(select.column_label(column))
             if column is DetailsColumnKey.PROVIDER_MODEL:
@@ -301,12 +302,14 @@ class _ColumnsPopover(QWidget):
             layout.addWidget(checkbox)
         footer = QHBoxLayout()
         reset_button = QPushButton("Reset")
+        reset_button.setObjectName("details_tab.columns_popover.reset_button")
         reset_button.setProperty("role", "outlined-muted-button")
         reset_button.setAccessibleName("Reset columns")
         reset_button.clicked.connect(on_reset)
         footer.addWidget(reset_button)
         footer.addStretch()
         done_button = QPushButton("Done")
+        done_button.setObjectName("details_tab.columns_popover.done_button")
         done_button.setProperty("role", "primary-button")
         done_button.setAccessibleName("Done choosing columns")
         done_button.clicked.connect(self.close)

@@ -146,17 +146,20 @@ class GeneralTabView(QWidget):
 
     def _build_bool_control(self, setting_key: SettingKey) -> QCheckBox:
         checkbox = QCheckBox()
+        checkbox.setObjectName(setting_key)
         checkbox.toggled.connect(functools.partial(self._on_bool_changed, setting_key))
         return checkbox
 
     def _build_enum_control(self, spec: FieldSpec) -> QComboBox:
         combo = QComboBox()
+        combo.setObjectName(spec.setting_key)
         combo.addItems(list(spec.enum_choices))
         combo.currentTextChanged.connect(functools.partial(self._on_text_changed, spec.setting_key))
         return combo
 
     def _build_int_control(self, spec: FieldSpec) -> QSpinBox:
         spin = QSpinBox()
+        spin.setObjectName(spec.setting_key)
         spin.setRange(
             spec.int_min if spec.int_min is not None else 0, spec.int_max or _INT_MAX_FALLBACK
         )
@@ -165,6 +168,7 @@ class GeneralTabView(QWidget):
 
     def _build_float_control(self, spec: FieldSpec) -> QDoubleSpinBox:
         dspin = QDoubleSpinBox()
+        dspin.setObjectName(spec.setting_key)
         dspin.setDecimals(2)
         dspin.setRange(
             spec.float_min if spec.float_min is not None else 0.0,
@@ -175,6 +179,7 @@ class GeneralTabView(QWidget):
 
     def _build_text_control(self, setting_key: SettingKey) -> QLineEdit:
         line_edit = QLineEdit()
+        line_edit.setObjectName(setting_key)
         line_edit.textEdited.connect(functools.partial(self._on_text_changed, setting_key))
         return line_edit
 

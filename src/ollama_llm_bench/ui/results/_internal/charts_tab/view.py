@@ -439,10 +439,15 @@ class ChartsTabView(QWidget):
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(spacing_px)
         self._chip_models = _FilterChipButton(object_suffix="models", label="Models")
+        self._chip_models.setObjectName("charts_tab.filters.models")
         self._chip_status = _FilterChipButton(object_suffix="status", label="Status")
+        self._chip_status.setObjectName("charts_tab.filters.status")
         self._chip_verdict = _FilterChipButton(object_suffix="verdict", label="Verdict")
+        self._chip_verdict.setObjectName("charts_tab.filters.verdict")
         self._chip_category = _FilterChipButton(object_suffix="category", label="Category")
+        self._chip_category.setObjectName("charts_tab.filters.category")
         self._chip_difficulty = _FilterChipButton(object_suffix="difficulty", label="Difficulty")
+        self._chip_difficulty.setObjectName("charts_tab.filters.difficulty")
         for chip_name, chip in (
             ("models", self._chip_models),
             ("statuses", self._chip_status),
@@ -533,11 +538,13 @@ class ChartsTabView(QWidget):
     def _build_option_widget(self, control: ChartOptionControl) -> QWidget:
         if control.kind == "toggle":
             checkbox = QPushButton(control.label)
+            checkbox.setObjectName(f"charts_tab.option.{control.key}")
             checkbox.setCheckable(True)
             checkbox.setChecked(control.value == "true")
             checkbox.toggled.connect(partial(self._on_toggle_changed, control.key))
             return checkbox
         combo = QComboBox()
+        combo.setObjectName(f"charts_tab.option.{control.key}")
         combo.setToolTip(control.label)
         combo.setAccessibleName(control.label)
         for choice in control.choices:
