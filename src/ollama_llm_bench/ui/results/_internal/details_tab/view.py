@@ -218,6 +218,7 @@ class _FilterChipButton[T](QPushButton):
     def __init__(self, *, label: str) -> None:
         super().__init__()
         self.setObjectName(f"details_tab.chip.{label.lower()}")
+        self.setAccessibleName(f"Filter by {label}")
         self._label = label
         self._items: tuple[tuple[T, str], ...] = ()
         self._checked: set[T] = set()
@@ -289,6 +290,7 @@ class _ColumnsPopover(QWidget):
         for column in columns:
             checkbox = QCheckBox(select.column_label(column))
             checkbox.setChecked(column in visible)
+            checkbox.setAccessibleName(select.column_label(column))
             if column is DetailsColumnKey.PROVIDER_MODEL:
                 # Pinned first column; never hideable (§7) -- shown checked and
                 # disabled rather than omitted, so it still counts toward the
@@ -300,11 +302,13 @@ class _ColumnsPopover(QWidget):
         footer = QHBoxLayout()
         reset_button = QPushButton("Reset")
         reset_button.setProperty("role", "outlined-muted-button")
+        reset_button.setAccessibleName("Reset columns")
         reset_button.clicked.connect(on_reset)
         footer.addWidget(reset_button)
         footer.addStretch()
         done_button = QPushButton("Done")
         done_button.setProperty("role", "primary-button")
+        done_button.setAccessibleName("Done choosing columns")
         done_button.clicked.connect(self.close)
         footer.addWidget(done_button)
         layout.addLayout(footer)
@@ -536,6 +540,7 @@ class _TaskDetailPanel(QWidget):
         content_layout = QVBoxLayout(content)
         self._detach_button = QPushButton("Detach window")
         self._detach_button.setObjectName("details_tab.detail_panel.detach_window")
+        self._detach_button.setAccessibleName("Detach task detail")
         self._detach_button.setProperty("role", "outlined-muted-button")
         self._detach_button.clicked.connect(self._on_detach_clicked)
         content_layout.addWidget(self._detach_button)
@@ -550,6 +555,7 @@ class _TaskDetailPanel(QWidget):
         )
         self._raw_response_toggle = QPushButton("Show raw response")
         self._raw_response_toggle.setObjectName("details_tab.detail_panel.raw_response_toggle")
+        self._raw_response_toggle.setAccessibleName("Show raw response")
         self._raw_response_toggle.setProperty("role", "outlined-muted-button")
         self._raw_response_toggle.setCheckable(True)
         self._raw_response_toggle.toggled.connect(self._on_raw_response_toggled)
@@ -682,6 +688,7 @@ class DetailsTabView(QWidget):
 
         self._table_view = QTableView()
         self._table_view.setObjectName("details_tab.table")
+        self._table_view.setAccessibleName("Details results table")
         self._table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self._header_interaction = _HeaderInteractionController(
             table_view=self._table_view,
@@ -751,11 +758,13 @@ class DetailsTabView(QWidget):
         row.addStretch()
         self._clear_filters_button = QPushButton("Clear filters")
         self._clear_filters_button.setObjectName("details_tab.clear_filters")
+        self._clear_filters_button.setAccessibleName("Clear filters")
         self._clear_filters_button.setProperty("role", "outlined-muted-button")
         self._clear_filters_button.clicked.connect(self._on_clear_filters_clicked)
         row.addWidget(self._clear_filters_button)
         self._columns_button = QPushButton("Columns")
         self._columns_button.setObjectName("details_tab.columns_button")
+        self._columns_button.setAccessibleName("Show or hide columns")
         self._columns_button.setProperty("role", "outlined-muted-button")
         self._columns_button.clicked.connect(self._open_columns_popover)
         row.addWidget(self._columns_button)
