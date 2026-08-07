@@ -6,10 +6,12 @@ Proves the accessibility floor's §6/§10 verification row (08_ACCESSIBILITY_FLO
 from collections.abc import Callable
 
 from PySide6.QtWidgets import QWidget
+import pytest
 
 _MIN_HIT_AREA_PX = 24
 
 
+@pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
 def test_every_clickable_control_meets_24px_minimum_hit_area(
     mounted_app_surfaces: list[QWidget],
     interactive_descendants: Callable[[QWidget], list[QWidget]],
