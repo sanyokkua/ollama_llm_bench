@@ -151,6 +151,7 @@ class EmbeddingSectionWidget(QWidget):
             event_bus=collaborators.event_bus,
         )
         self._provider_dropdown.setObjectName("settings_dialog.embedding_section.provider_dropdown")
+        self._provider_dropdown.setAccessibleName("Embedding provider")
         cast("_ProviderChangedEmitter", self._provider_dropdown).provider_changed.connect(
             self._on_provider_changed
         )
@@ -161,10 +162,12 @@ class EmbeddingSectionWidget(QWidget):
             filter=lambda name: self._show_all or is_embedding_model(name),
         )
         self._model_dropdown.setObjectName("settings_dialog.embedding_section.model_dropdown")
+        self._model_dropdown.setAccessibleName("Embedding model")
         layout.addWidget(self._model_dropdown)
 
         self._show_all_checkbox = QCheckBox("Show all models")
         self._show_all_checkbox.setObjectName("settings_dialog.embedding_section.show_all")
+        self._show_all_checkbox.setAccessibleName("Show all models")
         self._show_all_checkbox.toggled.connect(self._on_show_all_toggled)
         layout.addWidget(self._show_all_checkbox)
 
@@ -172,6 +175,7 @@ class EmbeddingSectionWidget(QWidget):
         self._test_embedding_button.setObjectName(
             "settings_dialog.embedding_section.test_embedding"
         )
+        self._test_embedding_button.setAccessibleName("Test Embedding")
         self._test_embedding_button.clicked.connect(self._on_test_embedding_clicked)
         layout.addWidget(self._test_embedding_button)
 

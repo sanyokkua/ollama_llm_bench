@@ -61,6 +61,7 @@ class ImportPreviewDialog(QDialog):
     ) -> None:
         rows_list = QListWidget()
         rows_list.setObjectName("settings_dialog.import_preview.rows")
+        rows_list.setAccessibleName("Import preview rows")
         for line in row_lines:
             QListWidgetItem(line, rows_list)
 
@@ -70,11 +71,13 @@ class ImportPreviewDialog(QDialog):
 
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setObjectName("settings_dialog.import_preview.cancel")
+        self.cancel_button.setAccessibleName("Cancel")
         self.cancel_button.setProperty("role", "outlined-muted-button")
         self.cancel_button.clicked.connect(self._on_cancel_clicked)
 
         self.apply_button = QPushButton("Apply import")
         self.apply_button.setObjectName("settings_dialog.import_preview.apply")
+        self.apply_button.setAccessibleName("Apply import")
         self.apply_button.setProperty("role", "primary-button")
         self.apply_button.setEnabled(not blocked)
         if blocked:

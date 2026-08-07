@@ -35,11 +35,13 @@ class ResetConfirmationDialog(QDialog):
 
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setObjectName("settings_dialog.reset_confirmation.cancel")
+        self.cancel_button.setAccessibleName("Cancel")
         self.cancel_button.setProperty("role", "outlined-muted-button")
         self.cancel_button.clicked.connect(self._on_cancel_clicked)
 
         self.reset_button = QPushButton("Reset")
         self.reset_button.setObjectName("settings_dialog.reset_confirmation.reset")
+        self.reset_button.setAccessibleName("Reset to defaults")
         self.reset_button.setProperty("role", "destructive-button")
         self.reset_button.clicked.connect(self._on_reset_clicked)
 

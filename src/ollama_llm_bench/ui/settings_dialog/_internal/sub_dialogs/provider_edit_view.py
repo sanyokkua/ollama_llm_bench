@@ -121,6 +121,7 @@ class ProviderEditDialog(QDialog):
 
         self._name_edit = QLineEdit()
         self._name_edit.setObjectName("settings_dialog.provider_edit.name")
+        self._name_edit.setAccessibleName("Provider name")
         self._name_edit.textChanged.connect(self._on_name_changed)
         layout.addWidget(self._name_edit)
         self._name_error_label = QLabel("")
@@ -130,6 +131,7 @@ class ProviderEditDialog(QDialog):
 
         self._type_combo = QComboBox()
         self._type_combo.setObjectName("settings_dialog.provider_edit.type")
+        self._type_combo.setAccessibleName("Provider type")
         for provider_type, label in _PROVIDER_TYPE_LABELS:
             self._type_combo.addItem(label, provider_type.value)
         self._type_combo.setEnabled(self._is_new)
@@ -137,15 +139,18 @@ class ProviderEditDialog(QDialog):
 
         self._enabled_checkbox = QCheckBox("Enabled")
         self._enabled_checkbox.setObjectName("settings_dialog.provider_edit.enabled")
+        self._enabled_checkbox.setAccessibleName("Enabled")
         layout.addWidget(self._enabled_checkbox)
 
         self._base_url_edit = QLineEdit()
         self._base_url_edit.setObjectName("settings_dialog.provider_edit.base_url")
+        self._base_url_edit.setAccessibleName("Base URL")
         self._base_url_edit.setPlaceholderText("https://api.openai.com/v1")
         layout.addWidget(self._base_url_edit)
 
         self._api_key_edit = QLineEdit()
         self._api_key_edit.setObjectName("settings_dialog.provider_edit.api_key")
+        self._api_key_edit.setAccessibleName("API key")
         self._api_key_edit.setPlaceholderText("OPENAI_API_KEY")
         self._api_key_edit.textChanged.connect(self._on_api_key_changed)
         layout.addWidget(self._api_key_edit)
@@ -178,16 +183,19 @@ class ProviderEditDialog(QDialog):
         self._manual_entry_checkbox.setObjectName(
             "settings_dialog.provider_edit.manual_entry_toggle"
         )
+        self._manual_entry_checkbox.setAccessibleName("Enter model name manually")
         self._manual_entry_checkbox.toggled.connect(self._on_manual_entry_toggled)
         panel_layout.addWidget(self._manual_entry_checkbox)
 
         self._model_stack = QStackedWidget()
         self._model_dropdown = QComboBox()
         self._model_dropdown.setObjectName("settings_dialog.provider_edit.model_dropdown")
+        self._model_dropdown.setAccessibleName("Model")
         self._model_dropdown.currentIndexChanged.connect(self._refresh_run_button_state)
         self._model_stack.addWidget(self._model_dropdown)
         self._manual_model_edit = QLineEdit()
         self._manual_model_edit.setObjectName("settings_dialog.provider_edit.manual_model")
+        self._manual_model_edit.setAccessibleName("Manual model name")
         self._manual_model_edit.textChanged.connect(self._refresh_run_button_state)
         self._model_stack.addWidget(self._manual_model_edit)
         panel_layout.addWidget(self._model_stack)
@@ -204,6 +212,7 @@ class ProviderEditDialog(QDialog):
 
         self._run_inference_button = QPushButton("Run inference test")
         self._run_inference_button.setObjectName("settings_dialog.provider_edit.run_inference")
+        self._run_inference_button.setAccessibleName("Run inference test")
         self._run_inference_button.clicked.connect(self._on_run_inference_clicked)
         panel_layout.addWidget(self._run_inference_button)
         return self._inference_panel
@@ -214,23 +223,27 @@ class ProviderEditDialog(QDialog):
         self._test_reachability_button.setObjectName(
             "settings_dialog.provider_edit.test_reachability"
         )
+        self._test_reachability_button.setAccessibleName("Test reachability")
         self._test_reachability_button.clicked.connect(self._on_test_reachability_clicked)
         footer.addWidget(self._test_reachability_button)
 
         self._test_inference_button = QPushButton("Test inference")
         self._test_inference_button.setObjectName("settings_dialog.provider_edit.test_inference")
+        self._test_inference_button.setAccessibleName("Test inference")
         self._test_inference_button.clicked.connect(self._on_test_inference_toggled)
         footer.addWidget(self._test_inference_button)
         footer.addStretch()
 
         cancel_button = QPushButton("Cancel")
         cancel_button.setObjectName("settings_dialog.provider_edit.cancel")
+        cancel_button.setAccessibleName("Cancel")
         cancel_button.setProperty("role", "outlined-muted-button")
         cancel_button.clicked.connect(self.reject)
         footer.addWidget(cancel_button)
 
         self._save_button = QPushButton("Save")
         self._save_button.setObjectName("settings_dialog.provider_edit.save")
+        self._save_button.setAccessibleName("Save")
         self._save_button.setProperty("role", "primary-button")
         self._save_button.setDefault(True)
         self._save_button.clicked.connect(self._on_save_clicked)
