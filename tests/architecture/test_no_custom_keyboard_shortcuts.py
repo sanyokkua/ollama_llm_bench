@@ -2,12 +2,30 @@
 
 import ast
 from pathlib import Path
-import re
 
 _SRC_ROOT = Path(__file__).resolve().parents[2] / "src" / "ollama_llm_bench"
-_MNEMONIC_RE = re.compile(r"(?<!&)&(?!&)")
 _TEXT_SETTING_ATTRS = frozenset({"setText", "setWindowTitle", "setTitle"})
 _TEXT_CONSTRUCTOR_NAMES = frozenset({"QAction", "QMenu"})
+
+
+def _has_unescaped_mnemonic(text: str) -> bool:
+    """Whether `text` contains a Qt accelerator marker: a '&' not part of an escaped '&&' pair.
+
+    Qt consumes ampersands left-to-right, pairing consecutive ones as escaped literals; an odd
+    run of 3+ consecutive '&' still leaves one live mnemonic marker, which a lookaround regex
+    checking only immediate neighbours misses (e.g. "&&&Save" renders as "&Save" with S as a
+    live accelerator).
+    """
+    i = 0
+    length = len(text)
+    while i < length:
+        if text[i] == "&":
+            if i + 1 < length and text[i + 1] == "&":
+                i += 2
+                continue
+            return True
+        i += 1
+    return False
 
 
 def _iter_python_files() -> list[Path]:
@@ -36,7 +54,7 @@ def _offenders_in_file(path: Path) -> list[str]:
                 for arg in node.args
                 if isinstance(arg, ast.Constant)
                 and isinstance(arg.value, str)
-                and _MNEMONIC_RE.search(arg.value)
+                and _has_unescaped_mnemonic(arg.value)
             )
         if isinstance(func, ast.Name) and func.id in _TEXT_CONSTRUCTOR_NAMES:
             offenders.extend(
@@ -44,20 +62,24 @@ def _offenders_in_file(path: Path) -> list[str]:
                 for arg in node.args
                 if isinstance(arg, ast.Constant)
                 and isinstance(arg.value, str)
-                and _MNEMONIC_RE.search(arg.value)
+                and _has_unescaped_mnemonic(arg.value)
             )
     return offenders
 
 
-def test_mnemonic_regex_flags_unescaped_ampersand_and_spares_escaped_one() -> None:
+def test_mnemonic_scan_flags_unescaped_ampersand_and_spares_escaped_one() -> None:
     """Proves: STORY-091-AC-5 (self-check)
 
-    The mnemonic regex matches a single '&' (a Qt accelerator marker) and does not match
-    an escaped '&&' (Qt's literal-ampersand form) -- proving the check catches a real
-    mnemonic before it is trusted against the real source tree.
+    _has_unescaped_mnemonic flags a single '&' (a Qt accelerator marker) and an odd run of
+    3+ consecutive '&' (still one live marker after pairing), and does not flag an escaped
+    '&&' or an even-length run of '&' -- proving the check catches a real mnemonic, including
+    the lookaround-regex blind spot the prior implementation missed, before it is trusted
+    against the real source tree.
     """
-    assert _MNEMONIC_RE.search("&Save") is not None
-    assert _MNEMONIC_RE.search("Save && Close") is None
+    assert _has_unescaped_mnemonic("&Save") is True
+    assert _has_unescaped_mnemonic("Save && Close") is False
+    assert _has_unescaped_mnemonic("&&&Save") is True
+    assert _has_unescaped_mnemonic("&&&&Save") is False
 
 
 def test_no_custom_shortcut_accelerator_or_mnemonic_is_registered() -> None:
