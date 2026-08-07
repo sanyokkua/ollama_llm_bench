@@ -28,6 +28,7 @@ from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QTabWidget, QWidget
 import pytest
 
+import ollama_llm_bench.adapters.native_pickers._internal.qt_native_pickers as _qt_native_pickers_module
 from ollama_llm_bench.backend.domain import (
     BenchmarkResult,
     BenchmarkRun,
@@ -73,6 +74,25 @@ _MODEL_NAME = "llama3"
 _TASK_ID = "synthetic_small_1"
 _TIMESTAMP = "2026-08-05T12:00:00Z"  # matches conftest.py's `_canned_run` precedent
 
+# Copied verbatim from `tests/integration/test_a11y_names_result_settings_task_editor.py`'s
+# `_SEED_TASK_YAML` (STORY-099's own precedent for mounting the Task Editor's Field Editor
+# rows) -- one minimal, schema-valid task so `_add_buffer` auto-selects task index 0 and the
+# Field Editor mounts its rows (`ui/task_editor/_internal/controller.py`).
+_SEED_TASK_YAML = (
+    "schema_version: 1\n"
+    "tasks:\n"
+    '  - task_id: "t1"\n'
+    "    difficulty: medium\n"
+    '    question: "What is 2+2?"\n'
+    '    golden_answer: "4"\n'
+    '    pass_criteria: "answer is correct"\n'
+    '    fail_criteria: "answer is incorrect"\n'
+    "    required_terms:\n"
+    "      exact: []\n"
+    "      semantic: []\n"
+    "      forbidden: []\n"
+)
+
 
 # (object_name, accessible_name, tooltip)
 _PINNED_ROWS: tuple[tuple[str, str, str], ...] = (
@@ -117,6 +137,13 @@ _PINNED_ROWS: tuple[tuple[str, str, str], ...] = (
         "gate_busy_indicator",
         "Inference in flight — controls temporarily disabled",
         "An inference is in flight; please wait.",
+    ),
+    ("question_help_button", "Help: Question", "About this field"),
+    ("golden_answer_help_button", "Help: Golden answer", "About this field"),
+    (
+        "validation_summary_button",
+        "Validation summary — focus first issue",
+        "Click to focus the first task with a warning",
     ),
 )
 # Note: `provider_readiness_indicator` is deliberately not in `_PINNED_ROWS` above -- its
@@ -384,6 +411,47 @@ def _open_and_dismiss_about_dialog(handle: AppHandle) -> None:
         _compose_module.make_about_dialog = original_make_about_dialog  # type: ignore[attr-defined]  # restore the manual patch
 
 
+def _open_task_editor_with_seeded_file(handle: AppHandle, seed_task_path: Path) -> None:
+    """Switch to the Task Editor workspace, then load `seed_task_path` through a genuine
+    click on the real "Open File" toolbar button, with only `QFileDialog.getOpenFileNames`
+    stubbed at the Qt level.
+
+    Enables the pinned rows for `question_help_button`/`golden_answer_help_button` (the
+    Field Editor mounts its rows only once a task buffer with at least one task is open --
+    `ui/task_editor/_internal/controller.py`'s `_add_buffer` auto-selects task index 0, see
+    `on_open_file_clicked`/`_open_path`) and for `validation_summary_button` (mounted on the
+    toolbar itself, but only exercised meaningfully once a buffer exists). The Open File
+    button (`task_editor.toolbar.open_file`) drives `NativePickers.open_file` with
+    `allow_multiple=True` (`ui/task_editor/_internal/controller.py:186-192`), which calls the
+    plural `QFileDialog.getOpenFileNames` -- the exact patch target this mirrors from
+    `src/ollama_llm_bench/adapters/native_pickers/tests/test_native_pickers.py:109-118`.
+    Everything downstream of the stubbed dialog call -- the real `NativePickers` adapter,
+    `TaskEditorController.on_open_file_clicked`, buffer loading, and Field Editor mounting --
+    stays real; this is the first test in this file driving `NativePickers` through a genuine
+    button click rather than calling `QtNativePickers.open_file` directly. `mocker` (function-
+    scoped) cannot be injected into this module-scoped fixture, so the patch is a manual
+    assign/restore, same as `_open_and_dismiss_about_dialog`'s and
+    `_open_run_analysis_tab_and_generate_dialog`'s patches above.
+    """
+    workspace_task_editor_button = cast(
+        "QWidget", handle.window.findChild(QWidget, "workspace_task_editor_button")
+    )
+    QTest.mouseClick(workspace_task_editor_button, Qt.MouseButton.LeftButton)
+
+    original_get_open_file_names = _qt_native_pickers_module.QFileDialog.getOpenFileNames  # type: ignore[attr-defined]  # manual patch mirroring test_native_pickers.py:109-118; module-scoped fixture cannot take mocker
+    _qt_native_pickers_module.QFileDialog.getOpenFileNames = staticmethod(  # type: ignore[attr-defined, method-assign]  # same manual-patch target as above
+        lambda *_args, **_kwargs: ([str(seed_task_path)], "")
+    )
+    try:
+        open_file_button = cast(
+            "QWidget",
+            handle.window.findChild(QWidget, "task_editor.toolbar.open_file"),
+        )
+        QTest.mouseClick(open_file_button, Qt.MouseButton.LeftButton)
+    finally:
+        _qt_native_pickers_module.QFileDialog.getOpenFileNames = original_get_open_file_names  # type: ignore[attr-defined, method-assign]  # restore the manual patch
+
+
 def _seed_one_completed_run(app_data_root: Path) -> None:
     """Insert one completed run + one completed result row directly into the seeded,
     schema-initialized database at `app_data_root`, via the real `RunsStore`/`ResultsStore`
@@ -507,6 +575,13 @@ def registry_app(
     # children are destroyed by `pytest-qt`'s post-setup `processEvents()` call the moment
     # no Python reference to the dialog survives, unlike every other dialog this file opens.
     generate_analysis_dialog = _open_run_analysis_tab_and_generate_dialog(handle)
+
+    # A second, separate temp dir from `tmp_path` above (the app-data home) -- keeps the
+    # seeded task file's concerns separate from the app-data-root filesystem isolation.
+    task_files_root = tmp_path_factory.mktemp("task_files")
+    seed_task_path = task_files_root / "sample_tasks.yaml"
+    seed_task_path.write_text(_SEED_TASK_YAML, encoding="utf-8")
+    _open_task_editor_with_seeded_file(handle, seed_task_path)
 
     yield handle
 
