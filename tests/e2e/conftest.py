@@ -290,12 +290,27 @@ def shutdown_handle(qtbot: QtBot) -> Callable[[AppHandle], None]:
     real modal has already appeared and been dismissed by `build_smoke_app`'s installed
     `_DismissReadinessModalOnShow` filter -- this fixture no longer needs its own dismiss
     timer.
+
+    **Guards its own `.close()` and always runs `handle.shutdown(...)`.** pytest-qt's own
+    `pytest_runtest_teardown` hook closes and `deleteLater()`s every `qtbot.addWidget`-registered
+    widget *before* any fixture's own teardown code runs. A caller that registered
+    `handle.window` via `qtbot.addWidget` (e.g. `mounted_app_surfaces`) therefore may already
+    have a C++-deleted window by the time this function runs, and `handle.window.close()` on an
+    already-deleted widget raises `RuntimeError: Internal C++ object ... already deleted`. Left
+    unguarded, that exception would abort this function before it ever reaches
+    `handle.shutdown(...)` -- the actual root-cause fix for the non-daemon dispatcher-thread
+    hang (see the docstring on `mounted_app_surfaces`) -- silently reopening that hole. The
+    `shiboken6.isValid` guard skips the redundant close cleanly instead of raising, and the
+    `try/finally` guarantees `handle.shutdown(...)` always runs, whether or not `.close()` ran.
     """
 
     def _shutdown(handle: AppHandle) -> None:
-        handle.window.close()
-        qtbot.wait(_GEOMETRY_DEBOUNCE_DRAIN_MS)
-        handle.shutdown(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
+        try:
+            if shiboken6.isValid(handle.window):
+                handle.window.close()
+                qtbot.wait(_GEOMETRY_DEBOUNCE_DRAIN_MS)
+        finally:
+            handle.shutdown(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
 
     return _shutdown
 
@@ -682,9 +697,11 @@ def mounted_app_surfaces(
     that never calls `shutdown_handle` leaves that thread running forever -- CPython's
     interpreter-shutdown sequence (`Py_Finalize`) blocks joining every live non-daemon thread,
     so the whole `pytest` process hangs after printing its summary rather than exiting. Every
-    other consumer of `build_smoke_app` in this tier (`test_launch_idle_shutdown_smoke.py`,
-    `test_icon_only_registry_conformance.py`'s `registry_app`) already calls `handle.shutdown`
-    explicitly for the same reason.
+    other fixture in this tier that builds an `AppHandle` via `build_smoke_app`
+    (`test_launch_idle_shutdown_smoke.py`'s three tests) already calls `handle.shutdown`
+    explicitly for the same reason -- `test_icon_only_registry_conformance.py`'s `registry_app`
+    builds its `AppHandle` via `build_app` directly, not `build_smoke_app`, but calls
+    `handle.shutdown` for the identical reason.
     """
     handle = build_smoke_app()
     qtbot.addWidget(handle.window)
