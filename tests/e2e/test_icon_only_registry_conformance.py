@@ -25,7 +25,7 @@ from typing import cast
 import msgspec
 from PySide6.QtCore import QEvent, QEventLoop, QObject, Qt, QTimer
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QWidget
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QTabWidget, QWidget
 import pytest
 
 from ollama_llm_bench.backend.domain import (
@@ -95,6 +95,18 @@ _PINNED_ROWS: tuple[tuple[str, str, str], ...] = (
         "copy_data_folder_path_button",
         "Copy application data folder path",
         "Copy the application data folder path",
+    ),
+    (
+        "judge_model_refresh_button",
+        "Refresh judge model list",
+        "Refresh the judge provider's model list",
+    ),
+    ("chart_prev_button", "Previous chart", "Previous chart"),
+    ("chart_next_button", "Next chart", "Next chart"),
+    (
+        "detach_chart_button",
+        "Detach chart",
+        "Open the chart in its own window",
     ),
 )
 # Note: `provider_readiness_indicator` is deliberately not in `_PINNED_ROWS` above -- its
@@ -177,6 +189,38 @@ class _DismissReadinessModalOnShow(QObject):
         if event.type() == QEvent.Type.Show and isinstance(watched, QMessageBox):
             QTimer.singleShot(100, functools.partial(_dismiss_message_box, watched))
         return False
+
+
+def _open_benchmark_workspace_and_charts_tab(handle: AppHandle) -> None:
+    """Switch to the Benchmark workspace, then click the Result widget's Charts tab.
+
+    Enables the pinned rows for `judge_model_refresh_button` (New Benchmark is the left
+    panel's default-active tab -- `compose.py`'s `_make_benchmark_workspace` adds it first,
+    so no dedicated New Benchmark click is needed) and for the three Charts-tab controls
+    (`chart_prev_button`, `chart_next_button`, `detach_chart_button`), which only exist once
+    `charts_tab_host` has been mounted into the visible tab. `_seed_one_completed_run` (run at
+    fixture build time, before this call) makes `ResultController.load_initial_state` select a
+    run and enable `result_widget.tabs` (`ui/results/_internal/controller.py:219-239`,
+    `ui/results/_internal/view.py:137`); this waits for that enablement instead of assuming it
+    is already true by the time the workspace switch renders.
+    """
+    workspace_benchmark_button = cast(
+        "QWidget", handle.window.findChild(QWidget, "workspace_benchmark_button")
+    )
+    QTest.mouseClick(workspace_benchmark_button, Qt.MouseButton.LeftButton)
+
+    result_tabs = cast("QTabWidget", handle.window.findChild(QTabWidget, "result_widget.tabs"))
+    _wait_until(result_tabs.isEnabled, timeout_ms=_IDLE_TIMEOUT_MS)
+    charts_tab_index = next(
+        index
+        for index in range(result_tabs.count())
+        if result_tabs.widget(index).objectName() == "charts_tab_host"
+    )
+    QTest.mouseClick(
+        result_tabs.tabBar(),
+        Qt.MouseButton.LeftButton,
+        pos=result_tabs.tabBar().tabRect(charts_tab_index).center(),
+    )
 
 
 def _open_and_dismiss_about_dialog(handle: AppHandle) -> None:
@@ -328,6 +372,7 @@ def registry_app(
     _wait_until(lambda: _health_dot_settled(handle), timeout_ms=_IDLE_TIMEOUT_MS)
 
     _open_and_dismiss_about_dialog(handle)
+    _open_benchmark_workspace_and_charts_tab(handle)
 
     yield handle
 
