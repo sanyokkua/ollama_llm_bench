@@ -99,6 +99,7 @@ class _ChipInputWidget(QWidget):
         row = QHBoxLayout()
         self._input = QLineEdit()
         self._input.setObjectName("task_editor.field_editor.chip_input")
+        self._input.setAccessibleName("Add chip value")
         self._input.setPlaceholderText("Type a term, comma or Enter to add")
         self._input.textChanged.connect(self._on_input_text_changed)
         self._input.returnPressed.connect(self._commit_input)
@@ -106,6 +107,7 @@ class _ChipInputWidget(QWidget):
 
         self._remove_button = QPushButton("Remove")
         self._remove_button.setObjectName("task_editor.field_editor.chip_remove")
+        self._remove_button.setAccessibleName("Remove selected chip values")
         self._remove_button.clicked.connect(self._on_remove_clicked)
         row.addWidget(self._remove_button)
         layout.addLayout(row)
@@ -247,7 +249,9 @@ class FieldEditorWidget(QWidget):
         hint_label.setObjectName(f"task_editor.field_editor.row.{row.field_name}.hint")
         layout.addWidget(hint_label)
 
-        layout.addWidget(self._build_control(row))
+        control = self._build_control(row)
+        control.setAccessibleName(row.label)
+        layout.addWidget(control)
 
         strip = QLabel(row.validation_message or _STATE_LABEL[row.validation_state])
         strip.setObjectName(f"task_editor.field_editor.row.{row.field_name}.strip")
