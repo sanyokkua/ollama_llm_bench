@@ -3,7 +3,8 @@ YAML, and the aggregate validation pill (STORY-068, STORY-069; ``description.md`
 §3.2).
 """
 
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QHBoxLayout, QPushButton, QToolButton, QWidget
 
 from ollama_llm_bench.ui.task_editor.models import ToolbarViewModel, ValidationState
 
@@ -25,6 +26,8 @@ _AGGREGATE_LABEL_BY_STATE: dict[ValidationState, str] = {
 
 class EditorToolbar(QWidget):
     """Passive toolbar row; forwards every enabled click to its controller."""
+
+    validation_summary_clicked = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -72,8 +75,12 @@ class EditorToolbar(QWidget):
 
         layout.addStretch()
 
-        self._validation_pill = QLabel(_NO_FILE_OPEN_TEXT)
-        self._validation_pill.setObjectName("task_editor.toolbar.validation_pill")
+        self._validation_pill = QToolButton()
+        self._validation_pill.setText(_NO_FILE_OPEN_TEXT)
+        self._validation_pill.setObjectName("validation_summary_button")
+        self._validation_pill.setAccessibleName("Validation summary — focus first issue")
+        self._validation_pill.setToolTip("Click to focus the first task with a warning")
+        self._validation_pill.clicked.connect(self.validation_summary_clicked)
         layout.addWidget(self._validation_pill)
 
     def apply(

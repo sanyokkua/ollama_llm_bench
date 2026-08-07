@@ -420,3 +420,68 @@ def test_successful_save_emits_task_file_changed(qtbot: QtBot, tmp_path: Path) -
     changed_event = task_file_changed_events[-1]
     assert isinstance(changed_event, TaskFileChangedEvent)
     assert changed_event.path == str(source_path)
+
+
+def _file_result_with_per_task_severities(
+    source_path: str, severities: tuple[ValidationSeverity, ...]
+) -> FileValidationResult:
+    """Build a ``FileValidationResult`` carrying one task result per entry in
+    ``severities``, in file order -- the aggregate ``severity`` is ``ERROR`` if
+    any task is ``ERROR``, matching this test's fixed fixture data."""
+    task_results = tuple(
+        TaskValidationResult(task_index=index, task_id=f"t{index}", severity=severity)
+        for index, severity in enumerate(severities)
+    )
+    aggregate_severity = (
+        ValidationSeverity.ERROR
+        if ValidationSeverity.ERROR in severities
+        else ValidationSeverity.CLEAN
+    )
+    return FileValidationResult(
+        source_path=source_path,
+        severity=aggregate_severity,
+        save_enabled=ValidationSeverity.ERROR not in severities,
+        task_results=task_results,
+    )
+
+
+def test_validation_summary_clicked_focuses_first_warning_task(
+    qtbot: QtBot, tmp_path: Path
+) -> None:
+    """Proves: STORY-099-AC-2
+
+    Clicking the validation-summary pill selects the active file's first task
+    at WARNING or ERROR severity, skipping over any earlier CLEAN/INFO tasks.
+    """
+    # Arrange
+    source_path = tmp_path / "mixed_severity.yaml"
+    source_path.write_text(
+        "tasks:\n"
+        "  - task_id: t0\n    question: Q0?\n"
+        "  - task_id: t1\n    question: Q1?\n"
+        "  - task_id: t2\n    question: Q2?\n",
+        encoding="utf-8",
+    )
+    validator = ScratchAwareTaskFileValidator()
+    validator.set_validation_result(
+        str(source_path),
+        _file_result_with_per_task_severities(
+            str(source_path),
+            (ValidationSeverity.CLEAN, ValidationSeverity.WARNING, ValidationSeverity.ERROR),
+        ),
+    )
+    native_pickers = FakeNativePickers()
+    native_pickers.set_open_file_result((str(source_path),))
+    controller, _bus = make_bound_task_editor_controller(
+        qtbot=qtbot,
+        collaborators=_collaborators(
+            gateway=FakeTaskEditorGateway(), native_pickers=native_pickers, validator=validator
+        ),
+    )
+    controller.on_open_file_clicked()
+
+    # Act
+    controller.on_validation_summary_clicked()
+
+    # Assert
+    assert controller._active_task_index == 1

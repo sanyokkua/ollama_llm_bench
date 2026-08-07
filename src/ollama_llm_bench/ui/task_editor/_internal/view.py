@@ -84,6 +84,7 @@ class TaskEditorView(QWidget):
     save_all_clicked = Signal()
     view_yaml_toggled = Signal()
     copy_yaml_clicked = Signal()
+    validation_summary_clicked = Signal()
     field_text_changed = Signal(str, str)
     field_focus_lost = Signal(str, str)
     field_boolean_changed = Signal(str, bool)
@@ -107,6 +108,7 @@ class TaskEditorView(QWidget):
         self._toolbar.save_button.clicked.connect(self.save_clicked.emit)
         self._toolbar.save_all_button.clicked.connect(self.save_all_clicked.emit)
         self._toolbar.view_yaml_button.clicked.connect(self.view_yaml_toggled.emit)
+        self._toolbar.validation_summary_clicked.connect(self.validation_summary_clicked.emit)
         layout.addWidget(self._toolbar)
 
         self._stack = QStackedWidget()

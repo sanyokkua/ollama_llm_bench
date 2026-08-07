@@ -37,6 +37,7 @@ from ollama_llm_bench.backend.events import (
     RunStartedEvent,
     TaskFileChangedEvent,
 )
+from ollama_llm_bench.backend.task_files import ValidationSeverity
 from ollama_llm_bench.ui.task_editor._internal import dialogs
 from ollama_llm_bench.ui.task_editor._internal.buffer import (
     TaskBuffer,
@@ -315,6 +316,25 @@ class TaskEditorController:
             return
         self._active_task_index = index
         self._push_view_model()
+
+    def on_validation_summary_clicked(self) -> None:
+        """Focus the active file's first task at WARNING or ERROR severity, if any
+        (STORY-099-AC-2, `validation_summary_button`)."""
+        buffer = self._active_buffer()
+        if buffer is None or buffer.validation is None:
+            return
+        target_index = next(
+            (
+                result.task_index
+                for result in sorted(buffer.validation.task_results, key=lambda r: r.task_index)
+                if result.severity in (ValidationSeverity.WARNING, ValidationSeverity.ERROR)
+            ),
+            None,
+        )
+        if target_index is None:
+            return
+        logger.debug("task_editor_validation_summary_clicked", task_index=target_index)
+        self.on_task_row_selected(target_index)
 
     # ---- tasks -----------------------------------------------------
 

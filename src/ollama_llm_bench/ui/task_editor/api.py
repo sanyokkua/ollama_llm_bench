@@ -72,6 +72,7 @@ def make_task_editor_workspace(*, bus: EventBus, collaborators: TaskEditorCollab
     view.save_all_clicked.connect(controller.on_save_all_clicked)
     view.view_yaml_toggled.connect(controller.on_view_yaml_toggled)
     view.copy_yaml_clicked.connect(controller.on_copy_yaml_clicked)
+    view.validation_summary_clicked.connect(controller.on_validation_summary_clicked)
     view.field_text_changed.connect(controller.on_field_text_changed)
     view.field_focus_lost.connect(controller.on_field_focus_lost)
     view.field_boolean_changed.connect(controller.on_field_boolean_changed)
