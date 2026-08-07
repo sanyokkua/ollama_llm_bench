@@ -54,7 +54,12 @@ from ollama_llm_bench.backend.persistence.tasks import create_tasks_store
 from ollama_llm_bench.backend.platform import create_app_data_dir, make_platform_detector
 import ollama_llm_bench.compose as _compose_module
 from ollama_llm_bench.compose import AppHandle, build_app
-from ollama_llm_bench.ui.common_dialogs import make_about_dialog as _real_make_about_dialog
+import ollama_llm_bench.ui.common_dialogs as _common_dialogs_module
+from ollama_llm_bench.ui.common_dialogs import (
+    GenerateAnalysisCollaborators,
+    make_about_dialog as _real_make_about_dialog,
+    make_generate_analysis_dialog as _real_make_generate_analysis_dialog,
+)
 
 _IDLE_TIMEOUT_MS = 10_000
 _NOT_READY_HEALTH_LABEL = "Not ready"
@@ -107,6 +112,11 @@ _PINNED_ROWS: tuple[tuple[str, str, str], ...] = (
         "detach_chart_button",
         "Detach chart",
         "Open the chart in its own window",
+    ),
+    (
+        "gate_busy_indicator",
+        "Inference in flight — controls temporarily disabled",
+        "An inference is in flight; please wait.",
     ),
 )
 # Note: `provider_readiness_indicator` is deliberately not in `_PINNED_ROWS` above -- its
@@ -178,6 +188,44 @@ def _dismiss_and_clear_modal_stack(dialog: QDialog) -> None:
     dialog.setAttribute(Qt.WidgetAttribute.WA_ShowModal, on=False)
 
 
+class _NoOpGenerateAnalysisSubscription:
+    """No-op `Subscription` handle; cancellation does nothing."""
+
+    def cancel(self) -> None:
+        return None
+
+
+class _GenerateAnalysisEventBusFake:
+    """Structural `EventBus` fake routing this fixture around a real, still-unfixed
+    production defect.
+
+    `ui/common_dialogs/_internal/generate_analysis_view.py` calls
+    `event_bus.subscribe(signal, handler)` three times with no `owner=` keyword. The
+    real `QtEventBusDeliverer.subscribe` carries an `icontract` precondition requiring
+    a non-`None` owner (`08-J_event_bus_catalog.md` §2), so building this dialog
+    against the app's real event bus raises `icontract.errors.ViolationError` and
+    crashes the process -- a genuine defect first surfaced by STORY-087's screenshot
+    harness (see that story's Findings section) and worked around identically by
+    `tests/integration/conftest.py`'s `_StubGenerateAnalysisEventBus`. Restated here,
+    not imported, because fixtures do not cross the `tests/e2e` vs other test-tier
+    boundary (same rationale as this file's other restated helpers); global constraints
+    for this story forbid touching `src/`, so the fix itself is out of this story's
+    scope. It changes no behaviour of its own -- it only accepts the missing-owner
+    calls the real bus would reject.
+    """
+
+    def subscribe(
+        self,
+        signal_name: str,
+        handler: Callable[[object], None],
+        owner: object | None = None,
+    ) -> _NoOpGenerateAnalysisSubscription:
+        return _NoOpGenerateAnalysisSubscription()
+
+    def emit(self, signal_name: str, payload: object) -> None:
+        return None
+
+
 class _DismissReadinessModalOnShow(QObject):
     """App-wide event filter auto-dismissing the real NOT_READY `QMessageBox` the instant it
     is shown. Restated from `tests/e2e/conftest.py`'s identical class -- see that class's
@@ -221,6 +269,87 @@ def _open_benchmark_workspace_and_charts_tab(handle: AppHandle) -> None:
         Qt.MouseButton.LeftButton,
         pos=result_tabs.tabBar().tabRect(charts_tab_index).center(),
     )
+
+
+def _open_run_analysis_tab_and_generate_dialog(handle: AppHandle) -> QDialog:
+    """Click the Result widget's Run Analysis tab, then trigger and dismiss the real
+    Generate Analysis dialog via a genuine "Generate analysis" button click.
+
+    Enables the pinned row for `gate_busy_indicator` (STORY-089-AC-1) -- that indicator
+    is mounted inside the Generate Analysis dialog itself
+    (`ui/common_dialogs/_internal/generate_analysis_view.py`), so it only exists in the
+    widget tree once this dialog has been constructed at least once. `_seed_one_completed_run`
+    (run at fixture build time) gives the tab's toolbar-gate an enabled "Generate analysis"
+    button (`ui/results/_internal/run_analysis_tab/select.py`'s `_button_gate`: a terminal,
+    idle-gate run with a `COMPLETED` result), so no extra waiting is needed beyond the tab
+    switch itself.
+
+    Unlike `_open_and_dismiss_about_dialog` above -- where `compose.py` imports
+    `make_about_dialog` at module scope, patchable at `_compose_module.make_about_dialog` --
+    `_on_run_analysis_generate_clicked` (`ui/results/_internal/controller.py`) imports
+    `make_generate_analysis_dialog` *inside its own function body*, a deferred import the
+    function's own comment says exists to break a transitive import-cycle risk through
+    `ui.new_benchmark`. That means there is no persistent
+    `ollama_llm_bench.ui.results._internal.controller.make_generate_analysis_dialog`
+    attribute to patch -- the name is re-resolved from `ui.common_dialogs`'s own namespace on
+    every call. The only working patch target is therefore `ui.common_dialogs` itself, the
+    **source** module -- a deliberate, narrow exception to "patch at the point of use, never
+    the source module", justified specifically by this deferred-import pattern.
+
+    Returns the constructed dialog so the caller (`registry_app`) can keep a live Python
+    reference for the rest of the fixture's lifetime. Confirmed empirically (unlike the About
+    dialog's `compose.py:395` chained `make_about_dialog(...).exec()` with no Python reference
+    at all, which survives): once every Python reference to this specific dialog drops, the
+    next `QApplication.processEvents()` call -- which `pytest-qt`'s own
+    `pytest_runtest_setup` hook (`pytestqt/plugin.py`) runs immediately after this fixture's
+    `yield`, before the parametrized test body -- destroys the underlying `QLabel` this row
+    needs, and `gate_busy_indicator` becomes unfindable from the real test.
+    """
+    result_tabs = cast("QTabWidget", handle.window.findChild(QTabWidget, "result_widget.tabs"))
+    run_analysis_tab_index = next(
+        index
+        for index in range(result_tabs.count())
+        if result_tabs.widget(index).objectName() == "run_analysis_tab_host"
+    )
+    QTest.mouseClick(
+        result_tabs.tabBar(),
+        Qt.MouseButton.LeftButton,
+        pos=result_tabs.tabBar().tabRect(run_analysis_tab_index).center(),
+    )
+
+    generate_button = cast(
+        "QWidget",
+        result_tabs.widget(run_analysis_tab_index).findChild(
+            QWidget, "run_analysis_tab.generate_button"
+        ),
+    )
+
+    captured_generate_analysis_dialog: list[QDialog] = []
+
+    def _capture_generate_analysis(**kwargs: object) -> QDialog:
+        collaborators = cast("GenerateAnalysisCollaborators", kwargs["collaborators"])
+        # Route around the live `event_bus.subscribe(...)`-with-no-`owner=` defect this
+        # dialog's own constructor hits -- see `_GenerateAnalysisEventBusFake`'s docstring.
+        kwargs["collaborators"] = msgspec.structs.replace(
+            collaborators, event_bus=_GenerateAnalysisEventBusFake()
+        )
+        dialog = _real_make_generate_analysis_dialog(**kwargs)  # type: ignore[arg-type]  # forwarding real controller kwargs
+        captured_generate_analysis_dialog.append(dialog)
+        return dialog
+
+    original_make_generate_analysis_dialog = _common_dialogs_module.make_generate_analysis_dialog
+    _common_dialogs_module.make_generate_analysis_dialog = _capture_generate_analysis
+    try:
+        QTimer.singleShot(
+            _DISMISS_DELAY_MS,
+            lambda: _dismiss_and_clear_modal_stack(captured_generate_analysis_dialog[0]),
+        )
+        QTest.mouseClick(generate_button, Qt.MouseButton.LeftButton)
+    finally:
+        _common_dialogs_module.make_generate_analysis_dialog = (
+            original_make_generate_analysis_dialog
+        )
+    return captured_generate_analysis_dialog[0]
 
 
 def _open_and_dismiss_about_dialog(handle: AppHandle) -> None:
@@ -373,9 +502,15 @@ def registry_app(
 
     _open_and_dismiss_about_dialog(handle)
     _open_benchmark_workspace_and_charts_tab(handle)
+    # Held for the fixture's whole lifetime (not just discarded once dismissed) -- see
+    # `_open_run_analysis_tab_and_generate_dialog`'s docstring: this dialog's `QLabel`
+    # children are destroyed by `pytest-qt`'s post-setup `processEvents()` call the moment
+    # no Python reference to the dialog survives, unlike every other dialog this file opens.
+    generate_analysis_dialog = _open_run_analysis_tab_and_generate_dialog(handle)
 
     yield handle
 
+    del generate_analysis_dialog
     qapp.removeEventFilter(dismiss_filter)
     handle.window.close()
     QTest.qWait(_GEOMETRY_DEBOUNCE_DRAIN_MS)
