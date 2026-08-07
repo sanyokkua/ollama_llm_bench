@@ -78,6 +78,7 @@ class _FilterChipButton(QPushButton):
     def __init__(self, *, object_suffix: str, label: str) -> None:
         super().__init__()
         self.setObjectName(f"charts_tab.filters.{object_suffix}")
+        self.setAccessibleName(f"Filter by {label}")
         self._label = label
         self._options: tuple[str, ...] = ()
         self._checked: set[str] = set()
@@ -537,6 +538,7 @@ class ChartsTabView(QWidget):
             return checkbox
         combo = QComboBox()
         combo.setToolTip(control.label)
+        combo.setAccessibleName(control.label)
         for choice in control.choices:
             combo.addItem(choice)
         index = combo.findText(control.value)
