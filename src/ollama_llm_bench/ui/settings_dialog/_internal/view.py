@@ -77,6 +77,7 @@ class SettingsDialogView(QDialog):
 
         reset_button = QPushButton("Reset to Defaults")
         reset_button.setObjectName("settings_dialog.reset_to_defaults_button")
+        reset_button.setAccessibleName("Reset to Defaults")
         reset_button.setProperty("role", "outlined-muted-button")
         reset_button.clicked.connect(self.reset_clicked)
         footer.addWidget(reset_button)
@@ -89,24 +90,28 @@ class SettingsDialogView(QDialog):
 
         import_button = QPushButton("Import…")
         import_button.setObjectName("settings_dialog.import_button")
+        import_button.setAccessibleName("Import settings")
         import_button.setProperty("role", "outlined-muted-button")
         import_button.clicked.connect(self.import_clicked)
         footer.addWidget(import_button)
 
         export_button = QPushButton("Export…")
         export_button.setObjectName("settings_dialog.export_button")
+        export_button.setAccessibleName("Export settings")
         export_button.setProperty("role", "outlined-muted-button")
         export_button.clicked.connect(self.export_clicked)
         footer.addWidget(export_button)
 
         close_button = QPushButton("Close")
         close_button.setObjectName("settings_dialog.close_button")
+        close_button.setAccessibleName("Close")
         close_button.setProperty("role", "outlined-muted-button")
         close_button.clicked.connect(self.close_requested)
         footer.addWidget(close_button)
 
         self._save_changes_button = QPushButton("Save Changes")
         self._save_changes_button.setObjectName("settings_dialog.save_changes_button")
+        self._save_changes_button.setAccessibleName("Save Changes")
         self._save_changes_button.setProperty("role", "primary-button")
         self._save_changes_button.clicked.connect(self.save_clicked)
         footer.addWidget(self._save_changes_button)

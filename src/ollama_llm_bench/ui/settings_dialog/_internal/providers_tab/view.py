@@ -67,6 +67,7 @@ class ProvidersTabWidget(QWidget):
         header_row.addStretch()
         self._add_button = QPushButton("Add Provider")
         self._add_button.setObjectName("settings_dialog.providers_tab.add_button")
+        self._add_button.setAccessibleName("Add Provider")
         self._add_button.setProperty("role", "primary-button")
         self._add_button.clicked.connect(self.add_clicked)
         header_row.addWidget(self._add_button)
@@ -74,6 +75,7 @@ class ProvidersTabWidget(QWidget):
 
         self._table_view = QTableView()
         self._table_view.setObjectName("settings_dialog.providers_tab.table")
+        self._table_view.setAccessibleName("Providers table")
         self._table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self._table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._table_view.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
