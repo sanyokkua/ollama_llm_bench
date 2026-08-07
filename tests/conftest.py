@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from hypothesis import HealthCheck, settings
-from PySide6.QtCore import QtMsgType, qInstallMessageHandler
+from PySide6.QtCore import QCoreApplication, QEvent, QtMsgType, qInstallMessageHandler
 from PySide6.QtGui import QFont, QFontMetrics
 from PySide6.QtWidgets import QApplication
 import pytest
@@ -109,6 +109,26 @@ def _isolate_qapp_appearance() -> Iterator[None]:
 
     Uses ``QApplication.instance()`` rather than the ``qapp`` fixture so a Qt-free test never
     forces a ``QApplication`` into existence.
+
+    **Drains pending ``DeferredDelete`` events before touching the shared ``qapp``.**
+    ``QApplication.setStyleSheet()`` forces Qt to re-polish every widget it currently has
+    registered, walking its own internal widget registry in C++. Several e2e fixtures
+    (``tests/e2e/conftest.py``'s ``build_smoke_app``, ``test_icon_only_registry_conformance.py``'s
+    ``registry_app``) build and tear down a real, fully composed application against this same
+    session-scoped ``qapp``; their teardown calls ``QWidget.close()``, and ``pytest-qt``'s own
+    per-test widget cleanup additionally calls ``deleteLater()`` on the window `qtbot.addWidget`
+    was given -- both leave the actual C++ destruction *posted*, not synchronous. If nothing
+    pumps the event loop before this fixture's restore runs, that posted deletion is still
+    pending when ``setStyleSheet()`` starts its widget walk; Qt processes posted events
+    (including the pending ``DeferredDelete``) as a side effect of that walk, destroying a
+    widget the walk has not yet finished visiting and leaving a dangling pointer in Qt's own
+    registry -- a native segfault, not a Python exception, so nothing catches it. Explicitly
+    draining every pending ``DeferredDelete`` event *before* calling ``setStyleSheet()`` ensures
+    any widget torn down earlier in the same test (or an earlier test sharing this ``qapp``) is
+    fully, synchronously destroyed first, so the walk below never visits a half-dead widget.
+    Confirmed with `lldb`: without this drain, the crash is `EXC_BAD_ACCESS` inside
+    `QWidget::style()`, called from `QApplication::setStyleSheet()`, dereferencing a `QWidget*`
+    whose backing memory had already been freed by that same reentrant deletion.
     """
     app = QApplication.instance()
     stylesheet_before = app.styleSheet() if isinstance(app, QApplication) else None
@@ -120,5 +140,6 @@ def _isolate_qapp_appearance() -> Iterator[None]:
         and stylesheet_before is not None
         and palette_before is not None
     ):
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         app.setStyleSheet(stylesheet_before)
         app.setPalette(palette_before)
