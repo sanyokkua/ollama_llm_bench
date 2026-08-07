@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-07T07:01:20Z'
+generated_at: '2026-08-07T07:07:10Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5262,7 +5262,7 @@ stories:
         tests: []
   STORY-089:
     title: Assert every icon-only and ambiguous control uses its pinned name, objectName, and tooltip app-wide
-    status: draft
+    status: ready
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#11-accessibility-floor-summary
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
@@ -5504,7 +5504,7 @@ stories:
         - src/ollama_llm_bench/ui/resume_benchmark/tests/test_run_table_model.py::test_actions_cell_exposes_rename_run_as_accessible_text
   STORY-099:
     title: Add accessible names, objectNames, and tooltips to the Result, Settings, and Task Editor widgets
-    status: ready
+    status: done
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names

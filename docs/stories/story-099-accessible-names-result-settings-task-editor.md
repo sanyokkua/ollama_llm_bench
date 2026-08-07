@@ -1,7 +1,7 @@
 ---
 id: STORY-099
 title: Add accessible names, objectNames, and tooltips to the Result, Settings, and Task Editor widgets
-status: ready
+status: done
 spec_clauses:
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
@@ -140,20 +140,20 @@ that paints those glyphs — no per-row widget is created.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-099.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
-- [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
+- [x] Every acceptance criterion has a passing test that names STORY-099.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+- [x] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
   `draft` → `ready`, and `just trace` re-run.
-- [ ] The next candidate stories are proposed in the closing report.
+- [x] The next candidate stories are proposed in the closing report.
 
 ## Unblocks and next steps
 
 **Unblocks**
 
-- **STORY-089** — the whole-registry conformance story. Flip it `draft` → `ready` **only once
-  STORY-097 and STORY-098 are also `done`**; STORY-089 depends on all three children.
+- **STORY-089** — the whole-registry conformance story. STORY-097 and STORY-098 were already
+  `done`; flipped `draft` → `ready` on STORY-099's completion.
 
 **What to do on completion**
 
