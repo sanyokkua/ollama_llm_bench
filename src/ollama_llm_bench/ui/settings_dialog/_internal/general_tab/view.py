@@ -116,6 +116,7 @@ class GeneralTabView(QWidget):
             label, signal_stem = trailing
             button = QPushButton(label)
             button.setObjectName(f"settings_dialog.general_tab.{signal_stem}")
+            button.setAccessibleName(label)
             button.clicked.connect(getattr(self, f"{signal_stem}_clicked"))
             group_layout.addWidget(button)
         return group
@@ -127,6 +128,7 @@ class GeneralTabView(QWidget):
         row_layout.addWidget(QLabel(spec.label))
         control = self._build_control(spec)
         control.setObjectName(spec.setting_key)
+        control.setAccessibleName(spec.label)
         self._controls[spec.setting_key] = control
         row_layout.addWidget(control, 1)
         return row
@@ -187,12 +189,14 @@ class GeneralTabView(QWidget):
         path_row_layout.addWidget(self._app_data_path_label, 1)
         copy_button = QPushButton("Copy")
         copy_button.setObjectName("settings_dialog.general_tab.copy_app_data_path")
+        copy_button.setAccessibleName("Copy application data folder path")
         copy_button.clicked.connect(self.copy_app_data_path_clicked)
         path_row_layout.addWidget(copy_button)
         layout.addWidget(path_row)
 
         open_app_folder_button = QPushButton("Open App folder")
         open_app_folder_button.setObjectName("settings_dialog.general_tab.open_app_folder")
+        open_app_folder_button.setAccessibleName("Open App folder")
         open_app_folder_button.clicked.connect(self.open_app_folder_clicked)
         layout.addWidget(open_app_folder_button)
         return group
