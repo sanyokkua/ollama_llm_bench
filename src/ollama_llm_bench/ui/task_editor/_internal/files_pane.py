@@ -109,6 +109,7 @@ class FilesPaneWidget(QWidget):
 
         self._list = QListWidget()
         self._list.setObjectName("task_editor.files_pane.list")
+        self._list.setAccessibleName("Open task files")
         self._list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self._list.currentRowChanged.connect(self._on_current_row_changed)
         self._list.setContextMenuPolicy(self._list.contextMenuPolicy().CustomContextMenu)
@@ -118,14 +119,17 @@ class FilesPaneWidget(QWidget):
         footer = QHBoxLayout()
         self.open_file_button = QPushButton("Open File")
         self.open_file_button.setObjectName("task_editor.files_pane.open_file")
+        self.open_file_button.setAccessibleName("Open File")
         footer.addWidget(self.open_file_button)
 
         self.open_folder_button = QPushButton("Open Folder")
         self.open_folder_button.setObjectName("task_editor.files_pane.open_folder")
+        self.open_folder_button.setAccessibleName("Open Folder")
         footer.addWidget(self.open_folder_button)
 
         self.new_file_button = QPushButton("New File")
         self.new_file_button.setObjectName("task_editor.files_pane.new_file")
+        self.new_file_button.setAccessibleName("New File")
         footer.addWidget(self.new_file_button)
         layout.addLayout(footer)
 

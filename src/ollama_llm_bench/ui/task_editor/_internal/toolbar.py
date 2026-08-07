@@ -36,31 +36,38 @@ class EditorToolbar(QWidget):
 
         self.open_file_button = QPushButton("Open File")
         self.open_file_button.setObjectName("task_editor.toolbar.open_file")
+        self.open_file_button.setAccessibleName("Open File")
         layout.addWidget(self.open_file_button)
 
         self.open_folder_button = QPushButton("Open Folder")
         self.open_folder_button.setObjectName("task_editor.toolbar.open_folder")
+        self.open_folder_button.setAccessibleName("Open Folder")
         layout.addWidget(self.open_folder_button)
 
         self.new_file_button = QPushButton("New File")
         self.new_file_button.setObjectName("task_editor.toolbar.new_file")
+        self.new_file_button.setAccessibleName("New File")
         layout.addWidget(self.new_file_button)
 
         self.save_button = QPushButton("Save")
         self.save_button.setObjectName("task_editor.toolbar.save")
+        self.save_button.setAccessibleName("Save")
         layout.addWidget(self.save_button)
 
         self.save_all_button = QPushButton("Save All (0)")
         self.save_all_button.setObjectName("task_editor.toolbar.save_all")
+        self.save_all_button.setAccessibleName("Save all files")
         layout.addWidget(self.save_all_button)
 
         self.reload_button = QPushButton("Reload")
         self.reload_button.setObjectName("task_editor.toolbar.reload")
+        self.reload_button.setAccessibleName("Reload")
         self.reload_button.setEnabled(False)
         layout.addWidget(self.reload_button)
 
         self.view_yaml_button = QPushButton(_VIEW_YAML_HIDDEN_TEXT)
         self.view_yaml_button.setObjectName("task_editor.toolbar.view_yaml")
+        self.view_yaml_button.setAccessibleName("View YAML")
         layout.addWidget(self.view_yaml_button)
 
         layout.addStretch()

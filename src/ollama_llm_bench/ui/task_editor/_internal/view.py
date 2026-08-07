@@ -131,6 +131,7 @@ class TaskEditorView(QWidget):
 
         self._recent_files_list = QListWidget()
         self._recent_files_list.setObjectName("task_editor.empty_state.recent_files")
+        self._recent_files_list.setAccessibleName("Recent task files")
         self._recent_files_list.itemActivated.connect(self._on_recent_file_activated)
         self._recent_files_list.itemClicked.connect(self._on_recent_file_activated)
         empty_layout.addWidget(self._recent_files_list)
