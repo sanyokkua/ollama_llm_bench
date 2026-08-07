@@ -1,7 +1,7 @@
 ---
 id: STORY-091
 title: Add the accessibility-floor verification suite of objectName, accessible-name, click-target, focus-ring, and no-shortcut checks
-status: draft
+status: ready
 spec_clauses:
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names

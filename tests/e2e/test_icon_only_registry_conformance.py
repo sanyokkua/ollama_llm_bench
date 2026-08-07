@@ -633,3 +633,34 @@ def test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip(
         accessible_name,
         tooltip,
     )
+
+
+_READINESS_DOT_OBJECT_NAME = "provider_readiness_indicator"
+_READINESS_DOT_TOOLTIP_FIRST_LINE = "Provider readiness — click to open Settings / Providers"
+
+
+def test_provider_readiness_indicator_tooltip_leads_with_the_pinned_sentence(
+    registry_app: AppHandle,
+) -> None:
+    """Proves: STORY-089-AC-1
+
+    The provider-readiness dot reports the pinned objectName and accessible name, and its
+    tooltip's FIRST line is the registry's pinned sentence. Only the first line is pinned:
+    the lines beneath it carry the per-provider reachability detail the Main Window
+    specification separately requires, which the registry's one sentence does not include --
+    identical scope to STORY-097-AC-2's own assertion for this same control
+    (`tests/integration/test_a11y_names_shell.py::test_readiness_dot_tooltip_leads_with_the_pinned_sentence`).
+    """
+    # Arrange
+    handle = registry_app
+
+    # Act
+    dot = cast("QWidget | None", handle.window.findChild(QWidget, _READINESS_DOT_OBJECT_NAME))
+
+    # Assert
+    assert dot is not None, "no provider-readiness dot is mounted in the app"
+    assert (dot.objectName(), dot.accessibleName(), dot.toolTip().splitlines()[0]) == (
+        _READINESS_DOT_OBJECT_NAME,
+        "Provider readiness status",
+        _READINESS_DOT_TOOLTIP_FIRST_LINE,
+    )

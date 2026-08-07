@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-07T07:07:10Z'
+generated_at: '2026-08-07T15:42:18Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5262,7 +5262,7 @@ stories:
         tests: []
   STORY-089:
     title: Assert every icon-only and ambiguous control uses its pinned name, objectName, and tooltip app-wide
-    status: ready
+    status: done
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#11-accessibility-floor-summary
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
@@ -5279,7 +5279,25 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-089-AC-1:
-        tests: []
+        tests:
+        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[about_menu_button-About-Application information: version, links, data folders]'
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[chart_next_button-Next chart-Next chart]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[chart_prev_button-Previous chart-Previous chart]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[copy_data_folder_path_button-Copy application data folder path-Copy the application data folder path]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[detach_chart_button-Detach chart-Open the chart in its own window]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[dialog_close_button-Close dialog-Close]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[gate_busy_indicator-Inference in flight \u2014 controls temporarily disabled-An inference is in flight; please wait.]
+        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[golden_answer_help_button-Help: Golden answer-About this field]'
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[judge_model_refresh_button-Refresh judge model list-Refresh the judge provider's model list]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[open_data_folder_button-Open application data folder-Open the application data folder]
+        - 'tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[question_help_button-Help: Question-About this field]'
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[rename_run_button-Rename run-Rename run]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[running_pill_button-Run in progress \u2014 open Progress-Switch to the Benchmark workspace and focus the Progress widget]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[settings_menu_button-Settings-Open the Settings dialog]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[validation_summary_button-Validation summary \u2014 focus first issue-Click to focus the first task with a warning]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[workspace_benchmark_button-Benchmark workspace-Benchmark workspace]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_every_registry_control_uses_its_pinned_name_objectname_and_tooltip[workspace_task_editor_button-Task Editor workspace-Task Editor workspace]
+        - tests/e2e/test_icon_only_registry_conformance.py::test_provider_readiness_indicator_tooltip_leads_with_the_pinned_sentence
   STORY-090:
     title: Honor the OS reduced-motion and high-contrast preferences per the accessibility floor
     status: superseded
@@ -5300,7 +5318,7 @@ stories:
         tests: []
   STORY-091:
     title: Add the accessibility-floor verification suite of objectName, accessible-name, click-target, focus-ring, and no-shortcut checks
-    status: draft
+    status: ready
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#4-mouse-only-operation

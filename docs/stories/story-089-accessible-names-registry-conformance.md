@@ -1,7 +1,7 @@
 ---
 id: STORY-089
 title: Assert every icon-only and ambiguous control uses its pinned name, objectName, and tooltip app-wide
-status: ready
+status: done
 spec_clauses:
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#72-icon-only-and-ambiguous-control-registry-canonical-names
