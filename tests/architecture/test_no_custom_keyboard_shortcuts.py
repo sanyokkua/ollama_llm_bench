@@ -17,7 +17,9 @@ _TEXT_CONSTRUCTOR_NAMES = frozenset(
         "QLabel",
     }
 )
-_TEXT_ADDING_ATTRS = frozenset({"addTab", "insertTab", "setTabText", "addItem", "addAction"})
+_TEXT_ADDING_ATTRS = frozenset(
+    {"addTab", "insertTab", "setTabText", "addItem", "addAction", "addButton"}
+)
 
 
 def _has_unescaped_mnemonic(text: str) -> bool:
