@@ -1,7 +1,7 @@
 ---
 id: STORY-091
 title: Add the accessibility-floor verification suite of objectName, accessible-name, click-target, focus-ring, and no-shortcut checks
-status: ready
+status: done
 spec_clauses:
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names
@@ -157,15 +157,18 @@ nothing.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-091.
-- [ ] The two architecture checks run in `just arch-test` and the three e2e checks run in
-  `just test-e2e`; all five therefore run in the offline pull-request gate via `just check`.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
-- [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
-  `draft` → `ready`, and `just trace` re-run.
-- [ ] The next candidate stories are proposed in the closing report.
+- [x] Every acceptance criterion has a passing test that names STORY-091.
+- [x] The two architecture checks run in `just arch-test` and the three e2e checks run in
+  `just test-e2e`; all five therefore run in the offline pull-request gate via `just check`
+  (CI's `pr-gate.yml` pins `QT_QPA_PLATFORM: offscreen` at the workflow-env level, which is why
+  the e2e-tier geometry/focus checks are CI/`just test-e2e`-parity checks, not raw-local-`just check`-parity checks on a machine without a real display session attached).
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+- [x] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
+  `draft` → `ready`, and `just trace` re-run. (STORY-093 checked and left `draft` — see closing
+  report for the outstanding dependencies.)
+- [x] The next candidate stories are proposed in the closing report.
 
 ## Unblocks and next steps
 

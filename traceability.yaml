@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-07T16:21:29Z'
+generated_at: '2026-08-08T11:02:14Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5318,7 +5318,7 @@ stories:
         tests: []
   STORY-091:
     title: Add the accessibility-floor verification suite of objectName, accessible-name, click-target, focus-ring, and no-shortcut checks
-    status: ready
+    status: done
     spec_clauses:
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
     - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#4-mouse-only-operation
@@ -5332,15 +5332,20 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-091-AC-1:
-        tests: []
+        tests:
+        - tests/architecture/test_objectnames_present.py::test_every_interactive_control_sets_a_nonempty_objectname
       STORY-091-AC-2:
-        tests: []
+        tests:
+        - tests/e2e/test_accessible_name_walker.py::test_every_interactive_element_has_a_nonempty_accessible_name
       STORY-091-AC-3:
-        tests: []
+        tests:
+        - tests/e2e/test_click_target_size.py::test_every_clickable_control_meets_24px_minimum_hit_area
       STORY-091-AC-4:
-        tests: []
+        tests:
+        - tests/e2e/test_focus_ring_visibility.py::test_focus_retaining_input_renders_focus_ring_on_click
       STORY-091-AC-5:
-        tests: []
+        tests:
+        - tests/architecture/test_no_custom_keyboard_shortcuts.py::test_no_custom_shortcut_accelerator_or_mnemonic_is_registered
   STORY-092:
     title: Expose the synthetic-size bucket table on the generator's public surface and consume it from the New Benchmark widget
     status: ready
