@@ -51,6 +51,11 @@ from ollama_llm_bench.ui.shared._internal.health_dot import HealthDotWidget
 _READINESS_TIMEOUT_MS = 15_000
 _RUN_TIMEOUT_MS = 30_000
 _UI_REFRESH_TIMEOUT_MS = 5000
+
+_VERDICT_HEADER: Final[str] = "Verdict"
+_STATUS_HEADER: Final[str] = "Status"
+_GRADED_VERDICT_CELL: Final[str] = "PASS"
+_PENDING_CELL: Final[str] = "pending"
 _SHUTDOWN_TIMEOUT_MS = 2000
 _CHECKING_HEALTH_LABEL: Final[str] = "Checking"
 
@@ -169,6 +174,26 @@ def _register_wire_stub_routes(httpserver: HTTPServer) -> None:
     )
 
 
+def _details_table(handle: AppHandle) -> QTableView:
+    return cast("QTableView", handle.window.findChild(QTableView, "details_tab.table"))
+
+
+def _details_cell(handle: AppHandle, *, row: int, header: str) -> str | None:
+    """The Details table cell under the column labelled `header`, or `None`.
+
+    Resolves the column by its header text rather than a fixed index: the
+    Details tab's visible column set is mode-dependent and user-reorderable, so
+    an index would silently read a different column.
+    """
+    model = _details_table(handle).model()
+    if model is None or row >= model.rowCount():
+        return None
+    for column in range(model.columnCount()):
+        if model.headerData(column, Qt.Orientation.Horizontal) == header:
+            return cast("str | None", model.index(row, column).data())
+    return None
+
+
 def _details_row_count(handle: AppHandle) -> int:
     """The Details table's current row count; -1 when it has no model yet.
 
@@ -180,8 +205,7 @@ def _details_row_count(handle: AppHandle) -> int:
     and the test fails, which is exactly what the negative control (deleting the
     three `recompute_and_push()` calls) produces.
     """
-    table = cast("QTableView", handle.window.findChild(QTableView, "details_tab.table"))
-    model = table.model()
+    model = _details_table(handle).model()
     return -1 if model is None else model.rowCount()
 
 
@@ -420,8 +444,19 @@ def test_result_widget_reflects_persisted_results(
 ) -> None:
     """Proves: STORY-085-AC-3
 
-    Once the run settles, the Result widget's Details table renders one row per
-    persisted result with no further user action -- the terminal-refresh path.
+    Once the run settles, the Result widget's Details table renders the run's
+    persisted rows -- count and terminal cell values -- with no further user
+    action.
+
+    **This test does not, on its own, falsify the terminal-refresh fix.** Against
+    an instant wire stub a one-task run can reach its terminal state before the
+    queued `_run_started` event is delivered to the GUI thread, so the run-start
+    `set_run_context` already renders the final rows and the table is correct
+    either way. Deleting the three `recompute_and_push()` calls therefore leaves
+    this test green. The load-bearing, negative-controlled proof of that fix is
+    the colocated `ui/results/tests/test_controller.py::
+    test_run_terminal_recomputes_summary_details_and_charts`, which drives the
+    events in the order a real (slower) run produces and does fail without it.
     """
     # Arrange + Act
     handle = _run_a_graded_benchmark(
@@ -437,9 +472,17 @@ def test_result_widget_reflects_persisted_results(
         # Assert -- see `_details_row_count` on why this waits rather than reads once
         assert persisted != ()
         qtbot.waitUntil(
-            lambda: _details_row_count(handle) == len(persisted), timeout=_UI_REFRESH_TIMEOUT_MS
+            lambda: _details_cell(handle, row=0, header=_VERDICT_HEADER) == _GRADED_VERDICT_CELL,
+            timeout=_UI_REFRESH_TIMEOUT_MS,
         )
         assert _details_row_count(handle) == len(persisted)
+        # Row *count* alone cannot prove the terminal refresh happened: selecting
+        # the live run at run start already renders its PENDING row, and the run
+        # produces exactly that many rows. The cell contents are what changed --
+        # PENDING/em-dash at start, COMPLETED/PASS once the judge has run -- so
+        # asserting on them is what fails when the refresh is removed.
+        assert _details_cell(handle, row=0, header=_VERDICT_HEADER) == _GRADED_VERDICT_CELL
+        assert _details_cell(handle, row=0, header=_STATUS_HEADER) != _PENDING_CELL
     finally:
         shutdown_handle(handle)
 

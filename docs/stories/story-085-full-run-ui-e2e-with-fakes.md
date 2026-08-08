@@ -275,6 +275,18 @@ defeat the change-detection short-circuit. That route goes through `set_run_cont
 `_selected_result_id = None` — so a user who has a Details row selected when the run finishes would
 silently lose their selection. Recomputing directly keeps the selection intact.
 
+**Which test actually proves this — corrected during implementation.** The plan predicted that
+deleting the three `recompute_and_push()` calls would fail the end-to-end
+`test_result_widget_reflects_persisted_results`. It does not, and the negative control was run to
+confirm that: against an instant wire stub a one-task run reaches its terminal state before the
+queued `_run_started` event is delivered to the GUI thread, so the run-start `set_run_context`
+already renders the *final* rows and the table is correct with or without the fix. The
+negative-controlled proof is therefore the colocated
+`ui/results/tests/test_controller.py::test_run_terminal_recomputes_summary_details_and_charts`,
+which drives the events in the order a real, slower run produces them and does fail without the
+fix. The e2e test still asserts the terminal cell values (Verdict `PASS`, Status not pending)
+rather than only the row count, since row count alone is satisfied by the run-start render.
+
 ### Discovered during implementation — the embedding client was never given its model
 
 The end-to-end test found a third production defect, not predicted when this story was written:
