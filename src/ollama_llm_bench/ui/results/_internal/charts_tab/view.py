@@ -540,6 +540,7 @@ class ChartsTabView(QWidget):
         if control.kind == "toggle":
             checkbox = QPushButton(control.label)
             checkbox.setObjectName(f"charts_tab.option.{control.key}")
+            checkbox.setAccessibleName(control.label)
             checkbox.setCheckable(True)
             checkbox.setChecked(control.value == "true")
             checkbox.toggled.connect(partial(self._on_toggle_changed, control.key))
