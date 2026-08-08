@@ -9,6 +9,7 @@ shared -- a deliberate duplication, not an oversight.
 from collections.abc import Callable, Generator, Iterable
 import functools
 from pathlib import Path
+from ssl import SSLContext
 from typing import Final, cast
 import warnings
 
@@ -27,6 +28,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 import pytest
+from pytest_httpserver import HTTPServer
 from pytestqt.qtbot import QtBot
 import shiboken6
 
@@ -56,6 +58,7 @@ from ollama_llm_bench.backend.domain import (
 from ollama_llm_bench.backend.infra import make_system_clock
 from ollama_llm_bench.backend.persistence.app_settings import (
     DB_FILENAME,
+    create_app_settings_store,
     ensure_schema,
     open_read_connection,
     open_write_connection,
@@ -85,6 +88,14 @@ from ollama_llm_bench.ui.settings_dialog import SettingsDialogCollaborators, mak
 from ollama_llm_bench.ui.settings_dialog.testing import FakeSettingsGateway
 
 _SHUTDOWN_TIMEOUT_MS = 2000
+_WIRE_STUB_PROVIDER_ORDER: Final[int] = 0
+"""Which built-in provider row the wire-stub rig keeps enabled -- `seed_builtin_providers`
+inserts Ollama/LM Studio/llama.cpp at `provider_order` 0/1/2 with fresh UUIDs each call, so
+the order column is the only stable handle on a specific row."""
+_WIRE_STUB_BASE_PATH: Final[str] = "/v1"
+_TEST_MODEL_NAME: Final[str] = "test-model"
+_JUDGE_MODEL_NAME: Final[str] = "judge-model"
+_EMBEDDING_MODEL_NAME: Final[str] = "embed-model"
 _GEOMETRY_DEBOUNCE_DRAIN_MS = 300
 _NOT_READY_MODAL_DISMISS_DELAY_MS = 100
 
@@ -167,6 +178,129 @@ def offline_app_data_root(isolated_home: Path) -> Path:
     )
     write_conn.close()
     return app_data_root
+
+
+@pytest.fixture(scope="session")
+def make_httpserver(
+    httpserver_listen_address: tuple[str | None, int | None],
+    httpserver_ssl_context: SSLContext | None,
+) -> Generator[HTTPServer]:
+    """Override `pytest_httpserver`'s fixture to run the server `threaded=True`.
+
+    Restated from `backend/provider_openai_compatible/tests/conftest.py`'s identical
+    override (no importable shared home exists under `tests/`, see this module's own
+    docstring). Upstream's single-threaded default serves one request at a time, so a
+    handler still running blocks the next connection -- a full benchmark run issues a
+    reachability handshake, a model list, one or more chat calls and an embedding call,
+    several of them from different threads, and would deadlock against itself.
+    """
+    host, port = httpserver_listen_address
+    server = HTTPServer(
+        host=host or HTTPServer.DEFAULT_LISTEN_HOST,
+        port=port or HTTPServer.DEFAULT_LISTEN_PORT,
+        ssl_context=httpserver_ssl_context,
+        threaded=True,
+    )
+    server.start()
+    yield server
+    server.clear()
+    if server.is_running():
+        server.stop()
+
+
+def _seed_setting(app_data_root: Path, *, key: str, value: str) -> None:
+    """Persist one `AppSettingsStore` row directly, before `build_app` opens its own
+    write connection to the same database file.
+
+    Restated from `tests/integration/conftest.py`'s identical helper -- the two
+    conftests duplicate by design (see this module's docstring).
+    """
+    db_path = app_data_root / DB_FILENAME
+    write_conn, lock = open_write_connection(db_path)
+    read_conn = functools.partial(open_read_connection, db_path)
+    store = create_app_settings_store(write_conn, lock, read_conn, make_system_clock())
+    store.upsert_settings({key: value})
+    write_conn.close()
+
+
+@pytest.fixture
+def wire_stub_app_data_root(isolated_home: Path, httpserver: HTTPServer) -> Path:
+    """Seed the app-data directory with exactly one provider, pointed at the wire stub.
+
+    The sibling `offline_app_data_root` disables *every* provider, which makes the app
+    genuinely NOT_READY and gates run start -- correct for a launch smoke test, useless
+    for one that has to start a run. This leaves the first built-in provider enabled with
+    its `base_url` rewritten to the local `pytest-httpserver`, so the real adapter -> real
+    SDK -> real HTTP path runs end to end against programmed bytes and never leaves
+    `127.0.0.1`.
+
+    `default_models` is the whole model-picker seam: both the test-model picker and the
+    judge picker read `ProviderConfig.default_models`, so seeding it means neither needs a
+    live discovery call to offer a model.
+    """
+    app_data_root = _create_app_data_root_with_schema()
+    db_path = app_data_root / DB_FILENAME
+    write_conn, lock = open_write_connection(db_path)
+    seed_builtin_providers(write_conn, lock)
+    store = create_providers_store(write_conn, lock, functools.partial(open_read_connection, db_path))  # fmt: skip
+    store.replace_providers(
+        tuple(
+            msgspec.structs.replace(
+                config,
+                enabled=config.provider_order == _WIRE_STUB_PROVIDER_ORDER,
+                base_url=(
+                    httpserver.url_for(_WIRE_STUB_BASE_PATH)
+                    if config.provider_order == _WIRE_STUB_PROVIDER_ORDER
+                    else config.base_url
+                ),
+                default_models=(
+                    (_TEST_MODEL_NAME, _JUDGE_MODEL_NAME)
+                    if config.provider_order == _WIRE_STUB_PROVIDER_ORDER
+                    else ()
+                ),
+            )
+            for config in store.list_providers()
+        )
+    )
+    write_conn.close()
+    enabled_provider_name = next(
+        config.name
+        for config in store.list_providers()
+        if config.provider_order == _WIRE_STUB_PROVIDER_ORDER
+    )
+    _seed_setting(
+        app_data_root, key="embedding.selected_provider_name", value=enabled_provider_name
+    )
+    _seed_setting(app_data_root, key="embedding.selected_model_name", value=_EMBEDDING_MODEL_NAME)
+    return app_data_root
+
+
+@pytest.fixture
+def build_wire_stub_app(
+    qapp: QApplication, wire_stub_app_data_root: Path
+) -> Generator[Callable[[], AppHandle]]:
+    """Build the real composed app against the wire-stub app-data root.
+
+    Mirrors `build_smoke_app`, differing only in the app-data root it builds against.
+    Keeps `_DismissReadinessModalOnShow` installed even though this app should resolve
+    READY rather than NOT_READY: if readiness ever *does* degrade here, production opens
+    a real blocking `QMessageBox.critical`, and with no `pytest-timeout` configured that
+    hangs the entire suite with no output rather than failing the one test.
+    """
+    built: list[AppHandle] = []
+    dismiss_not_ready_modal = _DismissReadinessModalOnShow()
+    qapp.installEventFilter(dismiss_not_ready_modal)
+
+    def _build() -> AppHandle:
+        handle = build_app(app=qapp, loop=QEventLoop())
+        built.append(handle)
+        return handle
+
+    yield _build
+    qapp.removeEventFilter(dismiss_not_ready_modal)
+    for handle in built:
+        if shiboken6.isValid(handle.window):
+            handle.window.close()
 
 
 def _dismiss_message_box(modal: QMessageBox) -> None:

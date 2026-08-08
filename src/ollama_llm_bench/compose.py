@@ -120,6 +120,7 @@ from ollama_llm_bench.backend.provider_gemini.api import (  # fmt: skip
 )
 from ollama_llm_bench.backend.provider_openai_compatible.api import (  # fmt: skip
     OpenAICompatibleClientCollaborators,
+    OpenAICompatibleClientSettings,
     make_openai_client,
 )
 from ollama_llm_bench.backend.provider_registry import (  # fmt: skip
@@ -295,8 +296,13 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
     openai_collabs = OpenAICompatibleClientCollaborators(clock=clock, event_bus=bus, inference_activity_store=gate, http_client=http_client)  # fmt: skip
     anthropic_collabs = AnthropicClientCollaborators(clock=clock, event_bus=bus, inference_activity_store=gate, http_client=http_client)  # fmt: skip
     gemini_collabs = GeminiClientCollaborators(clock=clock, event_bus=bus, inference_activity_store=gate, http_client=http_client)  # fmt: skip
+    # Without `embedding_model`, `OpenAICompatibleClient.embed` raises before issuing any
+    # request, `EmbeddingService` degrades that to an empty vector, and every GRADED run
+    # dies at the DD-48 run-start embedding probe. The field is read only by `embed`, so
+    # binding the app-wide selection onto every OPENAI_COMPATIBLE client is harmless.
+    openai_settings = OpenAICompatibleClientSettings(embedding_model=settings.get_str("embedding.selected_model_name") or None)  # fmt: skip
     client_builders: Mapping[ProviderType, ClientBuilder] = {
-        ProviderType.OPENAI_COMPATIBLE: functools.partial(make_openai_client, collaborators=openai_collabs),
+        ProviderType.OPENAI_COMPATIBLE: functools.partial(make_openai_client, collaborators=openai_collabs, settings=openai_settings),
         ProviderType.ANTHROPIC: functools.partial(make_anthropic_client, collaborators=anthropic_collabs),
         ProviderType.GEMINI: functools.partial(make_gemini_client, collaborators=gemini_collabs),
     }  # fmt: skip

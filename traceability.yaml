@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-08T15:39:54Z'
+generated_at: '2026-08-08T16:02:17Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2220,6 +2220,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_stage_preserving_retry.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_task_staging.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_timeout_never_reaches_breaker.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[tests/test_warmup.py]
@@ -2263,6 +2264,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_stage_preserving_retry.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_task_staging.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_timeout_never_reaches_breaker.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[tests/test_warmup.py]
@@ -2306,6 +2308,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_serial_execution.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_stage_preserving_retry.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_task_staging.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_timeout_never_reaches_breaker.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[tests/test_warmup.py]
@@ -5187,19 +5190,27 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-085-AC-1:
-        tests: []
+        tests:
+        - tests/e2e/test_full_run_from_ui_smoke.py::test_run_started_from_ui_completes_and_persists_results
       STORY-085-AC-2:
-        tests: []
+        tests:
+        - tests/e2e/test_full_run_from_ui_smoke.py::test_graded_run_produces_binary_verdicts
       STORY-085-AC-3:
-        tests: []
+        tests:
+        - tests/e2e/test_full_run_from_ui_smoke.py::test_result_widget_reflects_persisted_results
       STORY-085-AC-4:
-        tests: []
+        tests:
+        - tests/e2e/test_full_run_from_ui_smoke.py::test_full_run_contacts_no_live_server
       STORY-085-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_task_staging.py::test_synthetic_run_stages_one_task_per_grid_cell
       STORY-085-AC-6:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_task_staging.py::test_duplicate_task_id_across_files_keeps_the_first_occurrence
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_task_staging.py::test_tasks_mode_stages_tasks_from_every_task_path
       STORY-085-AC-7:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_run_terminal_recomputes_summary_details_and_charts
   STORY-086:
     title: Add an opt-in, env-gated live smoke tier against a local Ollama and LM Studio
     status: draft

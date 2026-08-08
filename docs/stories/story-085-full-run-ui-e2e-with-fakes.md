@@ -275,6 +275,28 @@ defeat the change-detection short-circuit. That route goes through `set_run_cont
 `_selected_result_id = None` — so a user who has a Details row selected when the run finishes would
 silently lose their selection. Recomputing directly keeps the selection intact.
 
+### Discovered during implementation — the embedding client was never given its model
+
+The end-to-end test found a third production defect, not predicted when this story was written:
+**no `GRADED` run with a golden answer could ever succeed in the real application.**
+
+`OpenAICompatibleClient.embed` reads its model from `OpenAICompatibleClientSettings.embedding_model`,
+and `compose.py` built every OpenAI-compatible client from the default settings bundle, where that
+field is `None`. `embed` therefore raised before issuing any request, `EmbeddingService` degraded
+that to an empty vector, and the DD-48 run-start embedding probe failed the run before a single
+inference call — `run_analysis` reading "embedding endpoint cannot embed: the run-start probe
+returned an empty vector". The field had **no assignment anywhere in production**; the models.py
+docstring ("`embedding_model` is `None` for a client never used for `embed`") shows the composition
+root was always meant to set it.
+
+Fixed in `compose.py`: the `OPENAI_COMPATIBLE` builder partial now binds
+`OpenAICompatibleClientSettings(embedding_model=<embedding.selected_model_name>)`. The field is read
+only by `embed`, so binding the app-wide selection onto every OpenAI-compatible client changes no
+other behaviour. Anthropic/Gemini embedding is untouched and out of scope here.
+
+This is a scope addition beyond the two gaps this story was expanded for; it is included because
+AC-1 through AC-4 are unreachable without it.
+
 ### Which Qt platform — decided, not left open
 
 `just test-e2e` (justfile line 46) runs `QT_QPA_PLATFORM=offscreen uv run pytest tests/e2e -q`, and
