@@ -34,6 +34,7 @@ from ollama_llm_bench.ui.results._internal.charts_tab.controller import (
     ChartsTabController,
     ChartsTabViewProtocol,
 )
+from ollama_llm_bench.ui.results._internal.charts_tab.view import ChartsTabView
 from ollama_llm_bench.ui.results._internal.charts_tab.view_state import (
     decode_view_state,
     default_view_state,
@@ -676,3 +677,31 @@ def test_export_uses_active_theme_palette(mocker: MockerFixture) -> None:
     assert not image.isNull()
     assert (image.width(), image.height()) == (painting.EXPORT_WIDTH, painting.EXPORT_HEIGHT)
     assert image.pixelColor(0, 0) == expected
+
+
+# ---------------------------------------------------------------------------
+# Accessibility floor: option-control accessible names (STORY-091 fix-wave)
+# ---------------------------------------------------------------------------
+
+
+def test_toggle_option_control_has_a_non_empty_accessible_name(
+    qtbot: QtBot, mocker: MockerFixture
+) -> None:
+    """A real, mounted ``ChartsTabView`` -- not the mocked ``ChartsTabViewProtocol``
+    used elsewhere in this file -- exposes a non-empty ``accessibleName()`` on a
+    per-chart "toggle" option control (e.g. "Exclude outliers"), matching every
+    other interactive control on this view."""
+    # Arrange
+    gateway = FakeResultGateway(runs=(make_run(1, run_mode=RunMode.TASKS),))
+    controller = ChartsTabController(
+        gateway=gateway, bus=FakeEventBus(), view_state_store=PerRunViewStateStore(gateway=gateway)
+    )
+    view = ChartsTabView()
+    qtbot.addWidget(view)
+    controller.bind(view, on_drilldown=mocker.Mock())
+    # Act -- AVG_TTFT_PER_MODEL is the first offered chart for TASKS mode and
+    # always carries the "drop_outliers" toggle option control
+    controller.set_run_context(run_id=1, run_mode=RunMode.TASKS)
+    toggle = cast("QWidget", view.findChild(QWidget, "charts_tab.option.drop_outliers"))
+    # Assert
+    assert toggle.accessibleName() != ""
