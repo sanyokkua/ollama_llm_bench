@@ -63,12 +63,37 @@ def test_focus_retaining_input_renders_focus_ring_on_click(
 
     checked = 0
     for surface in mounted_app_surfaces:
+
+        def _activate(surface: QWidget = surface) -> bool:
+            surface.raise_()
+            surface.activateWindow()
+            return surface.isActiveWindow()
+
+        qtbot.waitUntil(_activate, timeout=2000)
+
         for control in interactive_descendants(surface):
-            if not isinstance(control, _FOCUS_RETAINING_TYPES) or not control.isVisible():
+            if (
+                not isinstance(control, _FOCUS_RETAINING_TYPES)
+                or not control.isVisible()
+                or not control.isEnabled()
+            ):
+                # A disabled control (e.g. `result_widget.run_dropdown` with no runs yet
+                # seeded in this fixture) structurally cannot accept a click or hold focus
+                # in Qt -- it is not a "focus-retaining input control" in DD-52's operative
+                # sense, the same reasoning that already exempts momentary buttons.
                 continue
             qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
                 control, Qt.MouseButton.LeftButton
             )
+            if isinstance(control, QComboBox):
+                # A click on a QComboBox opens its popup, and Qt moves actual keyboard
+                # focus to the popup's internal QListView for the duration -- hasFocus()
+                # on the combo itself is therefore False while the popup is showing, by
+                # Qt's own design (needed for arrow-key item navigation), not a product
+                # defect. Closing the popup -- the same as a user selecting an item or
+                # clicking away -- returns focus to the combo, matching the settled state
+                # DD-52's ring requirement actually describes.
+                control.hidePopup()
             assert control.hasFocus(), (
                 f"{control.objectName()} did not report hasFocus() after a click"
             )
