@@ -1,4 +1,5 @@
-"""Public factories for ui/shared's reusable visual primitives (08-L §6, §8, §9; 08-D §5, §6)."""
+"""Public factories and mutators for ui/shared's reusable visual primitives (08-L §6, §8, §9;
+08-D §5, §6)."""
 
 import icontract
 from PySide6.QtWidgets import QLabel, QPushButton, QTabWidget, QWidget
