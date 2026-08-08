@@ -5,7 +5,19 @@ from pathlib import Path
 
 _SRC_ROOT = Path(__file__).resolve().parents[2] / "src" / "ollama_llm_bench"
 _TEXT_SETTING_ATTRS = frozenset({"setText", "setWindowTitle", "setTitle"})
-_TEXT_CONSTRUCTOR_NAMES = frozenset({"QAction", "QMenu"})
+_TEXT_CONSTRUCTOR_NAMES = frozenset(
+    {
+        "QAction",
+        "QMenu",
+        "QPushButton",
+        "QToolButton",
+        "QCheckBox",
+        "QRadioButton",
+        "QGroupBox",
+        "QLabel",
+    }
+)
+_TEXT_ADDING_ATTRS = frozenset({"addTab", "insertTab", "setTabText", "addItem", "addAction"})
 
 
 def _has_unescaped_mnemonic(text: str) -> bool:
@@ -49,6 +61,14 @@ def _offenders_in_file(path: Path) -> list[str]:
         if isinstance(func, ast.Attribute) and func.attr in {"setShortcut", "setShortcuts"}:
             offenders.append(f"{relative}:{node.lineno} .{func.attr}(...) called")
         if isinstance(func, ast.Attribute) and func.attr in _TEXT_SETTING_ATTRS:
+            offenders.extend(
+                f"{relative}:{node.lineno} .{func.attr}({arg.value!r}) has an unescaped '&' mnemonic"
+                for arg in node.args
+                if isinstance(arg, ast.Constant)
+                and isinstance(arg.value, str)
+                and _has_unescaped_mnemonic(arg.value)
+            )
+        if isinstance(func, ast.Attribute) and func.attr in _TEXT_ADDING_ATTRS:
             offenders.extend(
                 f"{relative}:{node.lineno} .{func.attr}({arg.value!r}) has an unescaped '&' mnemonic"
                 for arg in node.args
