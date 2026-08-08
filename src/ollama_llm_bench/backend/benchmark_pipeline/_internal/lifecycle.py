@@ -38,7 +38,7 @@ from ollama_llm_bench.backend.benchmark_pipeline._internal.units import (
     build_keyword_unit,
 )
 from ollama_llm_bench.backend.benchmark_pipeline.models import Phase
-from ollama_llm_bench.backend.benchmark_pipeline.protocols import BenchmarkFlowApi
+from ollama_llm_bench.backend.benchmark_pipeline.protocols import BenchmarkFlowApi, RunTaskStager
 from ollama_llm_bench.backend.circuit_breaker import make_circuit_breaker
 from ollama_llm_bench.backend.concurrency import CancellationToken, make_cancellation_token
 from ollama_llm_bench.backend.concurrency.protocols import RunDispatcher, TaskRunner
@@ -67,7 +67,12 @@ from ollama_llm_bench.backend.domain.models import (
     RunStatusPatch,
 )
 from ollama_llm_bench.backend.embedding.protocols import EmbeddingService
-from ollama_llm_bench.backend.errors import AppError, ContractViolationError, TaskCancelledError
+from ollama_llm_bench.backend.errors import (
+    AppError,
+    ContractViolationError,
+    TaskCancelledError,
+    TaskFileError,
+)
 from ollama_llm_bench.backend.evaluation import (
     make_cosine_evaluator,
     make_judge_evaluator,
@@ -194,6 +199,7 @@ class _BenchmarkFlowApiImpl:
         results_store: ResultsStore,
         runs_store: RunsStore,
         tasks_store: TasksStore,
+        task_stager: RunTaskStager,
         inference_activity_store: InferenceActivityStore,
         task_runner: TaskRunner[object],
         run_dispatcher: RunDispatcher,
@@ -207,6 +213,7 @@ class _BenchmarkFlowApiImpl:
         self._results_store = results_store
         self._runs_store = runs_store
         self._tasks_store = tasks_store
+        self._task_stager = task_stager
         self._inference_activity_store = inference_activity_store
         self._task_runner = task_runner
         self._run_dispatcher = run_dispatcher
@@ -228,19 +235,21 @@ class _BenchmarkFlowApiImpl:
             activity=InferenceActivity.BENCHMARK_RUN, started_at=self._clock.monotonic_ms()
         )
         lease = self._inference_activity_store.try_acquire(InferenceActivity.BENCHMARK_RUN, context)
+        no_run_created_sentinel: RunId = 0
         if lease is None:
-            emit_run_start_failed(
-                self._bus,
-                RunStartFailedEvent(
-                    run_mode=request.run_mode,
-                    error_kind=ErrorKind.OTHER,
-                    error_message="another inference activity already holds the single-inference gate",
-                    attempted_at=self._clock.now_utc(),
-                ),
+            self._reject_run_start(
+                run_mode=request.run_mode,
+                error_message="another inference activity already holds the single-inference gate",
             )
-            no_run_created_sentinel: RunId = 0
             return no_run_created_sentinel
-        run = self._prepare_and_persist_run(request)
+        try:
+            staged = self._task_stager.build(request)
+        except TaskFileError as exc:
+            self._reject_run_start(
+                run_mode=request.run_mode, error_message=exc.message, lease=lease
+            )
+            return no_run_created_sentinel
+        run = self._prepare_and_persist_run(request, staged=staged)
         token = make_cancellation_token(clock=self._clock)
         with self._lock:
             self._token = token
@@ -250,35 +259,63 @@ class _BenchmarkFlowApiImpl:
         self._emit_run_started(run)
         return run.run_id
 
-    def _prepare_and_persist_run(self, request: RunStartRequest) -> BenchmarkRun:
-        """Build the run header, persist it and its initial result rows.
+    def _reject_run_start(
+        self, *, run_mode: RunMode, error_message: str, lease: GateLease | None = None
+    ) -> None:
+        """Emit `_run_start_failed` and release `lease`; no run header is created.
 
-        SCOPE BOUNDARY (STORY-029 Task 9): `TasksStore` is assumed to already
-        carry this run's frozen task rows, staged by a future New-Benchmark
-        use case that does not exist yet (`backend/task_files` and
-        `backend/performance_task_generator` are both unimplemented, zero-LOC
-        stubs as of this story). In real production use today this list is
-        empty; tests seed `TasksStore` directly. This is a deliberate, narrow
-        scope boundary agreed with the project owner, not a bug.
+        The two ways `start()` can refuse a request before any run exists: a
+        held single-inference gate (no lease to release) and a `task_paths`
+        entry the loader cannot read at all. Neither can settle a run `FAILED`
+        — there is no run id yet — so both surface as this event instead, and
+        `start()` returns its no-run-created sentinel. Nothing raises to the
+        GUI thread either way (DD-44).
         """
-        run = self._build_run(request)
+        emit_run_start_failed(
+            self._bus,
+            RunStartFailedEvent(
+                run_mode=run_mode,
+                error_kind=ErrorKind.OTHER,
+                error_message=error_message,
+                attempted_at=self._clock.now_utc(),
+            ),
+        )
+        if lease is not None:
+            self._inference_activity_store.release(lease)
+
+    def _prepare_and_persist_run(
+        self, request: RunStartRequest, *, staged: tuple[BenchmarkTask, ...]
+    ) -> BenchmarkRun:
+        """Persist the run header, its staged tasks, and its initial result rows.
+
+        `staged` is built before this call, not read back out of `TasksStore`
+        afterwards, which is what lets the header carry a real `total_tasks`
+        at insert time — `RunStatusPatch` has no `total_tasks` field, so a
+        value not known until after `create_run` could never be corrected.
+        The tasks are still re-read through `list_tasks` before building the
+        result rows, so the rows are built from what the store actually
+        persisted rather than from what was handed to it.
+
+        `total_tasks` is the *result-row* count, not the task count:
+        `10_Domain_and_Data/01_DOMAIN_MODEL.md` §2 defines the column as
+        "expected benchmark_results rows" and `08-Q` says the same of the
+        `_run_started` payload field. `completed_tasks` counts terminal result
+        rows, so a task-count denominator would report 6/3 on a three-task run
+        across two test models.
+        """
+        run = self._build_run(request, total_tasks=len(staged) * len(request.test_models))
         run_id = self._runs_store.create_run(run)
         run = msgspec.structs.replace(run, run_id=run_id)
+        self._tasks_store.create_tasks(run_id, staged)
         tasks = self._tasks_store.list_tasks(run_id)
         initial_results = _build_initial_results(run=run, tasks=tasks)
         self._results_store.create_results(initial_results)
-        # NOTE (concern flagged in this story's report): RunStatusPatch has no
-        # total_tasks field, so total_tasks cannot be corrected post-insert
-        # here even though it is only known after list_tasks(run_id) returns.
-        # started_at is persisted below; total_tasks stays at the
-        # construction-time value (0) until a later story extends
-        # RunStatusPatch/RunsStore.
         self._runs_store.update_run_status(
             run_id, RunStatusPatch(total_elapsed_ms=0, started_at=run.created_at)
         )
         return run
 
-    def _build_run(self, request: RunStartRequest) -> BenchmarkRun:
+    def _build_run(self, request: RunStartRequest, *, total_tasks: int) -> BenchmarkRun:
         """Assemble the pre-insert `BenchmarkRun` header (run_id is a placeholder)."""
         settings_snapshot = self._resolve_settings_snapshot(request)
         models = self._resolve_model_entries(request)
@@ -295,7 +332,7 @@ class _BenchmarkFlowApiImpl:
             timestamp=now,
             run_mode=request.run_mode,
             status=RunStatus.INCOMPLETE,
-            total_tasks=0,
+            total_tasks=total_tasks,
             completed_tasks=0,
             total_elapsed_ms=0,
             judge_provider_id=judge_provider_id,

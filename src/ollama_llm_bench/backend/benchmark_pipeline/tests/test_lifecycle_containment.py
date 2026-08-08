@@ -7,7 +7,7 @@ import time
 from pytest_mock import MockerFixture
 
 from ollama_llm_bench.backend.benchmark_pipeline import BenchmarkFlowApi, make_benchmark_pipeline
-from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import make_task
+from ollama_llm_bench.backend.benchmark_pipeline.tests.conftest import StagesNoTasks, make_task
 from ollama_llm_bench.backend.domain.models import (
     ModelDescriptor,
     RequiredTerms,
@@ -67,6 +67,7 @@ def _make_pipeline(  # noqa: PLR0913  # test wiring must name every fixture coll
         results_store=fake_results_store,
         runs_store=fake_runs_store,
         tasks_store=fake_tasks_store,
+        task_stager=StagesNoTasks(),
         inference_activity_store=fake_inference_activity_store,
         task_runner=inline_task_runner,  # type: ignore[arg-type]  # fixture is TaskRunner[ResultPatch]
         run_dispatcher=inline_run_dispatcher,  # type: ignore[arg-type]  # fixture is RunDispatcher

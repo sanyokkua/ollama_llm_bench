@@ -333,6 +333,20 @@ class ResultController:
         self._charts_tab.set_run_terminal_state(is_terminal=True)
         self._run_analysis_tab.set_run_terminal_state(is_terminal=True)
         self._push_view_model()
+        # `_push_view_model`'s three `_sync_*_tab` calls are change-detected on
+        # `(run_id, run_mode)`, which `_on_run_started` already set to this very
+        # run -- so they no-op here and the tables would still show the empty
+        # state they had at run start. `set_run_terminal_state` only toggles the
+        # export button. These three calls are what actually re-read the now-
+        # persisted rows.
+        #
+        # Deliberately NOT done by clearing `_details_tab_context` to defeat the
+        # change detection: that routes back through `set_run_context`, which
+        # resets `_selected_result_id` to `None`, so a user who had a row
+        # selected while the run finished would lose their selection.
+        self._summary_tab.recompute_and_push()
+        self._details_tab.recompute_and_push()
+        self._charts_tab.recompute_and_push()
 
     def _push_view_model(self) -> None:
         self._sync_summary_tab()

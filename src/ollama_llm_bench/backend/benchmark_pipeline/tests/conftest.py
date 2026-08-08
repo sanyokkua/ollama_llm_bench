@@ -21,6 +21,7 @@ from ollama_llm_bench.backend.domain.models import (
     ProviderId,
     RequiredTerms,
     ResultPatch,
+    RunStartRequest,
     TaskOrigin,
 )
 from ollama_llm_bench.backend.embedding.protocols import EmbeddingService
@@ -291,6 +292,21 @@ def fake_tasks_store(mocker: MockerFixture) -> TasksStore:
     store = mocker.Mock(spec=TasksStore)
     store.list_tasks.return_value = ()
     return cast("TasksStore", store)
+
+
+class StagesNoTasks:
+    """A `RunTaskStager` double that stages nothing.
+
+    Every test in this package seeds `fake_tasks_store.list_tasks` with the rows
+    it wants the run to execute rather than routing them through a real
+    `RunStartRequest`, so a stager that returns nothing keeps `create_tasks`
+    from writing over that seeding and keeps `total_tasks` at the `0` these
+    tests were written against. A test specifically about staging supplies its
+    own stager instead.
+    """
+
+    def build(self, request: RunStartRequest, /) -> tuple[BenchmarkTask, ...]:
+        return ()
 
 
 @pytest.fixture

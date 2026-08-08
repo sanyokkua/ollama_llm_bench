@@ -91,6 +91,21 @@ own fixture set (kept as a self-contained local copy per this module's placement
 `tests/integration/`, outside that module's colocated `tests/`)."""
 
 
+class _StagesNoTasks:
+    """A `RunTaskStager` double that stages nothing.
+
+    This test seeds its `TasksStore` with the rows it wants the run to execute
+    rather than routing them through `RunStartRequest.task_paths`, so a stager
+    that returns nothing leaves that seeding untouched. Restated here rather
+    than imported -- `backend/benchmark_pipeline/tests/conftest.py` has the
+    same double, but the integration tier does not reach into a colocated test
+    package (see this tier's own duplication convention).
+    """
+
+    def build(self, request: RunStartRequest, /) -> tuple[BenchmarkTask, ...]:
+        return ()
+
+
 def _make_task() -> BenchmarkTask:
     """A minimal, valid `BenchmarkTask` with no grading requirements."""
     return BenchmarkTask(
@@ -186,6 +201,7 @@ def _make_facade(mocker: MockerFixture) -> QtBenchmarkFlow:
         results_store=FakeResultsStore(),
         runs_store=runs_store,
         tasks_store=tasks_store,
+        task_stager=_StagesNoTasks(),
         inference_activity_store=inference_activity_store,
         task_runner=task_runner,
         run_dispatcher=make_run_dispatcher(),

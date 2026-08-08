@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-08T11:02:14Z'
+generated_at: '2026-08-08T15:39:54Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2194,6 +2194,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/stability_phase.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/task_staging.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[_internal/warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_defines_no_async_function[api.py]
@@ -2236,6 +2237,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/stability_phase.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/task_staging.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[_internal/warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_concrete_provider_adapter[api.py]
@@ -2278,6 +2280,7 @@ stories:
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/provider_probe.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_dispatch.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/stability_phase.py]
+        - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/task_staging.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/units.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[_internal/warmup.py]
         - tests/architecture/test_benchmark_pipeline_module.py::test_benchmark_pipeline_module_imports_no_qt_or_asyncio[api.py]
@@ -5162,13 +5165,23 @@ stories:
     title: Drive a complete benchmark run from the UI through the real pipeline with fake providers
     status: ready
     spec_clauses:
+    - 02_New_Benchmark_Widget/description.md#11-per-mode-payload--runstartevent
+    - 05_Result_Widget/description.md#12-event-bus-integration
+    - 05_Result_Widget/state_machine.md#3-per-tab-data-lifecycle
+    - 08_Cross_Cutting/08-E_interfaces_contracts.md#14-task-file-loader
     - 08_Cross_Cutting/08-M_app_lifecycle.md#6-running-state
+    - 10_Domain_and_Data/01_DOMAIN_MODEL.md#35-benchmarktask
+    - 10_Domain_and_Data/01_DOMAIN_MODEL.md#7-run-snapshot-and-immutability
+    - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#63-how-the-output-feeds-the-pipeline
+    - 14_Process_and_Traceability/01_MODULE_INVENTORY.md#44-pipeline-and-evaluation-modules
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#7-testing-the-qt-free-backend-headlessly
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#7a-the-provider-wire-stub-transport-level-test-double
     modules:
     - backend/benchmark_pipeline/
+    - backend/performance_task_generator/
+    - backend/task_files/
     - ui/new_benchmark/
     - ui/results/
     edge_cases: []
@@ -5180,6 +5193,12 @@ stories:
       STORY-085-AC-3:
         tests: []
       STORY-085-AC-4:
+        tests: []
+      STORY-085-AC-5:
+        tests: []
+      STORY-085-AC-6:
+        tests: []
+      STORY-085-AC-7:
         tests: []
   STORY-086:
     title: Add an opt-in, env-gated live smoke tier against a local Ollama and LM Studio
@@ -6271,6 +6290,9 @@ clauses:
   01_Main_Window/state_machine.md#2-state-semantics:
     stories:
     - STORY-053
+  02_New_Benchmark_Widget/description.md#11-per-mode-payload--runstartevent:
+    stories:
+    - STORY-085
   02_New_Benchmark_Widget/description.md#12-section-visibility-decision-table:
     stories:
     - STORY-054
@@ -6414,6 +6436,7 @@ clauses:
   05_Result_Widget/description.md#12-event-bus-integration:
     stories:
     - STORY-061
+    - STORY-085
   05_Result_Widget/description.md#4-tab-strip-and-the-four-tabs:
     stories:
     - STORY-061
@@ -6450,6 +6473,9 @@ clauses:
   05_Result_Widget/implementation_structure.md#9-dependency-protocols:
     stories:
     - STORY-108
+  05_Result_Widget/state_machine.md#3-per-tab-data-lifecycle:
+    stories:
+    - STORY-085
   05_Result_Widget/tabs/charts_tab.md#11-empty-states:
     stories:
     - STORY-064
@@ -6793,6 +6819,9 @@ clauses:
     - STORY-055
     - STORY-065
     - STORY-066
+  08_Cross_Cutting/08-E_interfaces_contracts.md#14-task-file-loader:
+    stories:
+    - STORY-085
   08_Cross_Cutting/08-E_interfaces_contracts.md#17-adaptive-timeout-service:
     stories:
     - STORY-022
@@ -7178,6 +7207,12 @@ clauses:
   10_Domain_and_Data/01_DOMAIN_MODEL.md#315-in-memory-only-entities:
     stories:
     - STORY-001
+  10_Domain_and_Data/01_DOMAIN_MODEL.md#35-benchmarktask:
+    stories:
+    - STORY-085
+  10_Domain_and_Data/01_DOMAIN_MODEL.md#7-run-snapshot-and-immutability:
+    stories:
+    - STORY-085
   10_Domain_and_Data/02_DTOS_AND_ENUMS.md#2-type-aliases:
     stories:
     - STORY-001
@@ -7740,6 +7775,9 @@ clauses:
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#61-generation-steps:
     stories:
     - STORY-034
+  11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#63-how-the-output-feeds-the-pipeline:
+    stories:
+    - STORY-085
   11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#8-error-handling:
     stories:
     - STORY-034
@@ -7891,6 +7929,9 @@ clauses:
   14_Process_and_Traceability/01_MODULE_INVENTORY.md#42-settings-stores-and-readiness-modules:
     stories:
     - STORY-039
+  14_Process_and_Traceability/01_MODULE_INVENTORY.md#44-pipeline-and-evaluation-modules:
+    stories:
+    - STORY-085
   14_Process_and_Traceability/01_MODULE_INVENTORY.md#5-adapters-modules:
     stories:
     - STORY-044
@@ -11065,6 +11106,7 @@ modules:
   backend/performance_task_generator/:
     stories:
     - STORY-034
+    - STORY-085
     - STORY-092
   backend/persistence/app_settings/:
     stories:
@@ -11147,6 +11189,7 @@ modules:
   backend/task_files/:
     stories:
     - STORY-031
+    - STORY-085
   backend/yaml_formatter/:
     stories:
     - STORY-031

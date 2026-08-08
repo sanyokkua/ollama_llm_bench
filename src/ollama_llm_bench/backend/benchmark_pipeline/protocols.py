@@ -2,7 +2,43 @@
 
 from typing import Protocol
 
-from ollama_llm_bench.backend.domain.models import BenchmarkRun, RunId, RunStartRequest
+from ollama_llm_bench.backend.domain.models import (
+    BenchmarkRun,
+    BenchmarkTask,
+    RunId,
+    RunStartRequest,
+)
+
+
+class RunTaskStager(Protocol):
+    """Expand a `RunStartRequest` into the frozen task rows a run will execute.
+
+    Pure: it builds tasks and persists nothing, so it needs no `run_id` and can
+    be called before the run header exists. That ordering is what lets
+    `BenchmarkFlowApi.start` know a run's real `total_tasks` at creation time.
+    """
+
+    def build(self, request: RunStartRequest, /) -> tuple[BenchmarkTask, ...]:
+        """Return the tasks `request` expands to, in execution order.
+
+        A `SYNTHETIC` request expands its `performance_config` grid; a `TASKS`/
+        `GRADED` request loads every path in `task_paths`. Fast-synchronous, but
+        the file-loading path performs blocking reads.
+
+        Args:
+            request: The run-start request assembled by the New Benchmark widget.
+
+        Returns:
+            The run's frozen tasks, each carrying its position as `task_order`.
+            Empty when the request names no tasks at all.
+
+        Raises:
+            TaskFileError: A path in `request.task_paths` could not be read or
+                parsed at all. `BenchmarkFlowApi.start` catches this and
+                surfaces it as a rejected run start; it never reaches `start`'s
+                own caller.
+        """
+        ...
 
 
 class BenchmarkFlowApi(Protocol):

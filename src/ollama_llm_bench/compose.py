@@ -66,7 +66,10 @@ from ollama_llm_bench.adapters.ui_gateways import (  # fmt: skip
 )
 from ollama_llm_bench.adapters.workspace_controller import make_workspace_controller
 from ollama_llm_bench.backend import mode_visibility
-from ollama_llm_bench.backend.benchmark_pipeline import make_benchmark_pipeline
+from ollama_llm_bench.backend.benchmark_pipeline import (  # fmt: skip
+    make_benchmark_pipeline,
+    make_run_task_stager,
+)
 from ollama_llm_bench.backend.charts import make_chart_aggregator
 from ollama_llm_bench.backend.concurrency import CancellationToken, RunDispatcher
 from ollama_llm_bench.backend.csv_export import make_table_serializer
@@ -90,6 +93,7 @@ from ollama_llm_bench.backend.infra import (  # fmt: skip
     make_system_clock,
 )
 from ollama_llm_bench.backend.log_formatting import make_log_formatter
+from ollama_llm_bench.backend.performance_task_generator import make_performance_task_generator
 from ollama_llm_bench.backend.persistence.app_settings import (  # fmt: skip
     DB_FILENAME,
     create_app_settings_store,
@@ -310,10 +314,11 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
         with contextlib.suppress(ConfigurationError):  # env-var may not resolve; degrade
             embedding_client = registry.get_client(emb_provider.provider_id)
     embedding_service = make_embedding_service(client=embedding_client, provider_id=embedding_provider_id, model_name=emb_model_name, snapshot=snapshot_builder.build_snapshot())  # fmt: skip
-    pipeline = make_benchmark_pipeline(results_store=res, runs_store=runs, tasks_store=tasks, inference_activity_store=gate, task_runner=task_runner, run_dispatcher=dispatcher, bus=bus, clock=clock, embedding_service=embedding_service, provider_registry=registry, settings_service=settings, run_snapshot_builder=snapshot_builder)  # fmt: skip
+    task_file_loader = make_task_file_loader()
+    task_stager = make_run_task_stager(performance_task_generator=make_performance_task_generator(), task_file_loader=task_file_loader)  # fmt: skip
+    pipeline = make_benchmark_pipeline(results_store=res, runs_store=runs, tasks_store=tasks, task_stager=task_stager, inference_activity_store=gate, task_runner=task_runner, run_dispatcher=dispatcher, bus=bus, clock=clock, embedding_service=embedding_service, provider_registry=registry, settings_service=settings, run_snapshot_builder=snapshot_builder)  # fmt: skip
     flow = make_qt_benchmark_flow(pipeline=pipeline)
 
-    task_file_loader = make_task_file_loader()
     task_file_validator = make_task_file_validator()
     yaml_formatter = make_yaml_formatter()
     native_pickers = make_native_pickers()
