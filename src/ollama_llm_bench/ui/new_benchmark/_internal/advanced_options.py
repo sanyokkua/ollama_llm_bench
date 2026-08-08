@@ -172,8 +172,12 @@ class _ControlRow:
 
 
 def _name_control(widget: QWidget, *, key: SettingKey) -> None:
-    """Set the objectName/accessibleName every row-factory control needs (STORY-098-AC-1)."""
-    widget.setObjectName(f"new_benchmark.advanced_options.{key}")
+    """Set the accessibleName every row-factory control needs (STORY-098-AC-1).
+
+    Each row factory sets its own, more specific ``objectName`` immediately after
+    calling this helper (e.g. ``"...{key}.checkbox"``); this helper no longer sets
+    ``objectName`` itself, since every current call site would only overwrite it.
+    """
     widget.setAccessibleName(_LABELS.get(key, key))
 
 
