@@ -672,6 +672,7 @@ def _seed_offline_database(app_data_root: Path) -> None:
 
 @pytest.fixture(scope="module")
 def registry_app(
+    request: pytest.FixtureRequest,
     tmp_path_factory: pytest.TempPathFactory,
     qapp: QApplication,
 ) -> Generator[AppHandle]:
@@ -684,9 +685,24 @@ def registry_app(
     used here, and why `QTest.mouseClick`/`QTest.qWait` are used instead for every click and
     wait in this fixture. `qapp` is pytest-qt's own session-scoped fixture (wider than this
     fixture's module scope, so it is safe to depend on directly here).
+
+    **Registers `_restore_home` and `handle.shutdown` via `request.addfinalizer` immediately
+    after each precondition they undo, not as post-`yield` teardown code.** Roughly 20 lines of
+    setup run between `build_app(...)` and `yield handle` -- `_wait_until` (twice),
+    `_open_and_dismiss_about_dialog`, `_open_benchmark_workspace_and_charts_tab`,
+    `_open_run_analysis_tab_and_generate_dialog`, `_open_task_editor_with_seeded_file` -- any of
+    which can raise. A plain post-`yield` teardown line only runs once the generator resumes
+    after `yield`, so a setup-time exception would skip it entirely: `build_app` starts the
+    non-daemon `pipeline-dispatcher` thread as a side effect of construction (same mechanism
+    `mounted_app_surfaces` in `tests/e2e/conftest.py` guards against), so a skipped
+    `handle.shutdown` leaves that thread parked forever and hangs the whole process at
+    interpreter exit; a skipped `_restore_home` leaks the monkeypatched `HOME`/`USERPROFILE`
+    into every later test. `request.addfinalizer` runs regardless of whether the fixture body
+    ever reaches `yield`.
     """
     tmp_path = tmp_path_factory.mktemp("registry_app")
     original_home, original_userprofile = _isolate_home(tmp_path)
+    request.addfinalizer(functools.partial(_restore_home, original_home, original_userprofile))
 
     profile = make_platform_detector().detect()
     app_data_root = create_app_data_dir(profile.app_data_root)
@@ -696,6 +712,7 @@ def registry_app(
     qapp.installEventFilter(dismiss_filter)
 
     handle = build_app(app=qapp, loop=QEventLoop())
+    request.addfinalizer(functools.partial(handle.shutdown, timeout_ms=_SHUTDOWN_TIMEOUT_MS))
     handle.window.show()
     _wait_until(handle.window.isVisible, timeout_ms=_IDLE_TIMEOUT_MS)
     _wait_until(lambda: _health_dot_settled(handle), timeout_ms=_IDLE_TIMEOUT_MS)
@@ -720,10 +737,10 @@ def registry_app(
     del generate_analysis_dialog
     qapp.removeEventFilter(dismiss_filter)
     handle.window.close()
+    # Drains the geometry debounce timer before the addfinalizer-registered `handle.shutdown`
+    # closes the database connection underneath it -- see `shutdown_handle`'s docstring in
+    # `tests/e2e/conftest.py` for why an undrained timer crashes a later, unrelated test.
     QTest.qWait(_GEOMETRY_DEBOUNCE_DRAIN_MS)
-    handle.shutdown(timeout_ms=_SHUTDOWN_TIMEOUT_MS)
-
-    _restore_home(original_home, original_userprofile)
 
 
 @pytest.mark.parametrize(
