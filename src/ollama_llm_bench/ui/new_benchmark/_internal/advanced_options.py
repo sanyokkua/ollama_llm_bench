@@ -16,7 +16,7 @@ against ``PER_RUN_OVERRIDABLE`` and fails on any gap.
 from collections.abc import Callable
 from typing import Final
 
-from PySide6.QtCore import QSignalBlocker, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -194,6 +194,7 @@ def _make_reasoning_effort_row(key: SettingKey, *, changed: Callable[[], None]) 
     combo = QComboBox()
     _name_control(combo, key=key)
     combo.setObjectName(f"new_benchmark.advanced_options.{key}.combo")
+    combo.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     combo.addItems(_REASONING_EFFORT_ITEMS)
     combo.currentTextChanged.connect(lambda _text: changed())
     return _ControlRow(

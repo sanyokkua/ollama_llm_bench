@@ -73,6 +73,7 @@ class RetrySelectionDialog(QDialog):
         self.filter_combo = QComboBox()
         self.filter_combo.setObjectName("common_dialogs.retry_selection.filter")
         self.filter_combo.setAccessibleName("Filter rows")
+        self.filter_combo.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         for option in RetryFilterOption:
             self.filter_combo.addItem(_FILTER_LABELS[option], option)
         self.filter_combo.setCurrentIndex(

@@ -12,7 +12,7 @@ mount their own tab views into them; this story constructs no tab content.
 from functools import partial
 from typing import Final
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -64,6 +64,7 @@ class ResultView(QWidget):
         self._run_dropdown = QComboBox()
         self._run_dropdown.setObjectName("result_widget.run_dropdown")
         self._run_dropdown.setAccessibleName("Select run")
+        self._run_dropdown.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._run_dropdown.currentIndexChanged.connect(self._on_dropdown_index_changed)
         root.addWidget(self._run_dropdown)
 

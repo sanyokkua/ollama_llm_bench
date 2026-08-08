@@ -20,7 +20,7 @@ still resets on every rebuild (a known limitation, noted in the owning story).
 
 from functools import partial
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFocusEvent
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -296,6 +296,7 @@ class FieldEditorWidget(QWidget):
     def _build_enum_control(self, row: FieldRowViewModel) -> QWidget:
         control = QComboBox()
         control.setObjectName(f"task_editor.field_editor.control.{row.field_name}")
+        control.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         control.addItems([member.value for member in Difficulty])
         control.setCurrentText(row.value or Difficulty.MEDIUM.value)
         control.currentTextChanged.connect(partial(self.field_enum_changed.emit, row.field_name))

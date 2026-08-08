@@ -14,7 +14,7 @@ signals (the passive-View rule).
 import functools
 from typing import cast
 
-from PySide6.QtCore import QSignalBlocker, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -153,6 +153,7 @@ class GeneralTabView(QWidget):
     def _build_enum_control(self, spec: FieldSpec) -> QComboBox:
         combo = QComboBox()
         combo.setObjectName(spec.setting_key)
+        combo.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         combo.addItems(list(spec.enum_choices))
         combo.currentTextChanged.connect(functools.partial(self._on_text_changed, spec.setting_key))
         return combo

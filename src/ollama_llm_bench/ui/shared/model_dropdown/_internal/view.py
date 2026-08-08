@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QSignalBlocker, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import QComboBox
 
 from ollama_llm_bench.backend.domain import ModelName, ProviderId
@@ -31,6 +31,7 @@ class ModelDropdownWidget(QComboBox):
         self._current_provider_id: ProviderId | None = None
         self.setProperty("role", "dropdown")
         self.setAccessibleName("Model")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.currentIndexChanged.connect(self._on_current_index_changed)
 
     def set_provider(self, provider_id: ProviderId) -> None:

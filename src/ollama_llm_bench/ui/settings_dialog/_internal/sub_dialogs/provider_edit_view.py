@@ -25,6 +25,7 @@ from typing import override
 import uuid
 
 import msgspec
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -132,6 +133,7 @@ class ProviderEditDialog(QDialog):
         self._type_combo = QComboBox()
         self._type_combo.setObjectName("settings_dialog.provider_edit.type")
         self._type_combo.setAccessibleName("Provider type")
+        self._type_combo.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         for provider_type, label in _PROVIDER_TYPE_LABELS:
             self._type_combo.addItem(label, provider_type.value)
         self._type_combo.setEnabled(self._is_new)
@@ -191,6 +193,7 @@ class ProviderEditDialog(QDialog):
         self._model_dropdown = QComboBox()
         self._model_dropdown.setObjectName("settings_dialog.provider_edit.model_dropdown")
         self._model_dropdown.setAccessibleName("Model")
+        self._model_dropdown.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._model_dropdown.currentIndexChanged.connect(self._refresh_run_button_state)
         self._model_stack.addWidget(self._model_dropdown)
         self._manual_model_edit = QLineEdit()

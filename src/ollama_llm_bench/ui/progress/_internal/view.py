@@ -10,7 +10,7 @@ store, and no backend service symbol.
 
 from typing import Final
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import (
     QComboBox,
@@ -237,6 +237,7 @@ class ProgressView(QWidget):
         self._log_verbosity_combo = QComboBox()
         self._log_verbosity_combo.setObjectName("progress.log.verbosity")
         self._log_verbosity_combo.setAccessibleName("Log verbosity")
+        self._log_verbosity_combo.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._log_verbosity_combo.addItems(_LOG_VERBOSITY_ITEMS)
         self._log_verbosity_combo.currentTextChanged.connect(self.log_verbosity_changed)
         self._log_search_edit = QLineEdit()

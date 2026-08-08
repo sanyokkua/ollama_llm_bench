@@ -18,7 +18,7 @@ exercised by any of this story's acceptance criteria.
 from functools import partial
 from typing import override
 
-from PySide6.QtCore import QPointF, QRectF, Signal
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QMouseEvent, QPainter, QPaintEvent
 from PySide6.QtWidgets import (
     QComboBox,
@@ -421,6 +421,7 @@ class ChartsTabView(QWidget):
         self._kind_dropdown = QComboBox()
         self._kind_dropdown.setObjectName("charts_tab.chart_kind_dropdown")
         self._kind_dropdown.setAccessibleName("Chart kind")
+        self._kind_dropdown.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._kind_dropdown.currentIndexChanged.connect(self._on_kind_index_changed)
         row.addWidget(self._kind_dropdown)
         row.addStretch()
@@ -547,6 +548,7 @@ class ChartsTabView(QWidget):
         combo.setObjectName(f"charts_tab.option.{control.key}")
         combo.setToolTip(control.label)
         combo.setAccessibleName(control.label)
+        combo.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         for choice in control.choices:
             combo.addItem(choice)
         index = combo.findText(control.value)

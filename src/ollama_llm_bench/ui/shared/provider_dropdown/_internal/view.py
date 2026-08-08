@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QSignalBlocker, Signal
+from PySide6.QtCore import QSignalBlocker, Qt, Signal
 from PySide6.QtWidgets import QComboBox
 
 from ollama_llm_bench.backend.domain import ProviderConfig
@@ -36,6 +36,7 @@ class ProviderDropdownWidget(QComboBox):
         self._provider_filter = provider_filter
         self.setProperty("role", "dropdown")
         self.setAccessibleName("Provider")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._populate()
         self.currentIndexChanged.connect(self._on_current_index_changed)
         event_bus.subscribe(
