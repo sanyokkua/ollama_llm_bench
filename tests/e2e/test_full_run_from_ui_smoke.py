@@ -336,6 +336,9 @@ def _latest_run_id(handle: AppHandle) -> RunId:
     return max(run.run_id for run in runs)
 
 
+@pytest.mark.allow_qt_warnings  # offscreen-only: showing the real main window makes the
+# offscreen platform plugin emit "This plugin does not support propagateSizeHints()".
+# Same reason `test_launch_idle_shutdown_smoke.py` marks its own launch tests.
 def test_run_started_from_ui_completes_and_persists_results(
     qtbot: QtBot,
     httpserver: HTTPServer,
@@ -368,6 +371,9 @@ def test_run_started_from_ui_completes_and_persists_results(
         shutdown_handle(handle)
 
 
+@pytest.mark.allow_qt_warnings  # offscreen-only: showing the real main window makes the
+# offscreen platform plugin emit "This plugin does not support propagateSizeHints()".
+# Same reason `test_launch_idle_shutdown_smoke.py` marks its own launch tests.
 def test_graded_run_produces_binary_verdicts(
     qtbot: QtBot,
     httpserver: HTTPServer,
@@ -402,6 +408,9 @@ def test_graded_run_produces_binary_verdicts(
         shutdown_handle(handle)
 
 
+@pytest.mark.allow_qt_warnings  # offscreen-only: showing the real main window makes the
+# offscreen platform plugin emit "This plugin does not support propagateSizeHints()".
+# Same reason `test_launch_idle_shutdown_smoke.py` marks its own launch tests.
 def test_result_widget_reflects_persisted_results(
     qtbot: QtBot,
     httpserver: HTTPServer,
@@ -435,6 +444,9 @@ def test_result_widget_reflects_persisted_results(
         shutdown_handle(handle)
 
 
+@pytest.mark.allow_qt_warnings  # offscreen-only: showing the real main window makes the
+# offscreen platform plugin emit "This plugin does not support propagateSizeHints()".
+# Same reason `test_launch_idle_shutdown_smoke.py` marks its own launch tests.
 def test_full_run_contacts_no_live_server(
     qtbot: QtBot,
     httpserver: HTTPServer,
