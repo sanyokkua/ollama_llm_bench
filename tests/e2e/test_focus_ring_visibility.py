@@ -28,6 +28,7 @@ _FOCUS_RETAINING_TYPES: tuple[type[QWidget], ...] = (
     QAbstractSpinBox,
     QAbstractItemView,
 )
+_MIN_EXPECTED_CHECKED = 17
 
 
 def _image_contains_color(image: QImage, color: QColor, *, tolerance: int = 8) -> bool:
@@ -122,6 +123,11 @@ def test_focus_retaining_input_renders_focus_ring_on_click(
         f"{len(violations)} control(s) failed the focus-ring check:\n" + "\n".join(violations)
     )
     assert checked > 0, (
-        f"no focus-retaining control was found to test ({len(skipped)} skipped as "
-        f"invisible/disabled: {skipped})"
+        f"no focus-retaining control was found to test ({len(skipped)} skipped as disabled: "
+        f"{skipped})"
+    )
+    assert checked >= _MIN_EXPECTED_CHECKED, (
+        f"only {checked} controls were verified (expected >= {_MIN_EXPECTED_CHECKED}); "
+        f"a regression may have disabled or hidden an entire surface's controls -- "
+        f"{len(skipped)} skipped as disabled: {skipped}"
     )
