@@ -426,21 +426,37 @@ platform). Run both before calling the story done.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-085.
-- [ ] A run started from the New Benchmark UI in every mode persists a non-empty task set and issues
-  at least one provider call.
-- [ ] The new tests pass under `just test-e2e` (offscreen) **and** under `just check` (native
-  platform), with no `QT_QPA_PLATFORM` set inside the test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The stale "SCOPE BOUNDARY (STORY-029 Task 9)" docstring and the `total_tasks` `NOTE` comment in
-  `backend/benchmark_pipeline/_internal/lifecycle.py` are removed or corrected — a stale docstring is
-  fixed in the same commit as the code it documents.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
-- [ ] The `total_tasks` reading flagged under "Design — task staging" has been raised with the owner.
+- [x] Every acceptance criterion has a passing test that names STORY-085. All seven are mapped in
+  `traceability.yaml`; AC-6 carries two.
+- [x] A run started from the New Benchmark UI in every mode persists a non-empty task set and issues
+  at least one provider call. Proven by AC-5/AC-6 (staging) and AC-4's chat-request floor.
+- [x] The new tests pass under `just test-e2e` (offscreen — 28 passed) **and** under `just check`
+  (native platform — the four are among its 2515 passed), with no `QT_QPA_PLATFORM` set inside the
+  test. They carry `@pytest.mark.allow_qt_warnings` for the offscreen plugin's
+  `propagateSizeHints()` warning, matching `test_launch_idle_shutdown_smoke.py`.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The stale "SCOPE BOUNDARY (STORY-029 Task 9)" docstring and the `total_tasks` `NOTE` comment in
+  `backend/benchmark_pipeline/_internal/lifecycle.py` are removed.
+- [x] The traceability record validates with no orphan clause and no orphan test — `just trace-check`
+  reports "OK (118 stories, 3942 tests collected, zero gaps)".
+- [x] The module inventory is unchanged.
+- [x] The `total_tasks` reading flagged under "Design — task staging" has been raised with the owner
+  and resolved to the result-row count; see the callout in that section.
+- [ ] **BLOCKED — `just check` is red, for a cause that predates this story.** 2 failed, 2515 passed
+  in 29:35. Both failures are native-platform-only a11y checks added by STORY-091:
+  `test_focus_ring_visibility.py::test_focus_retaining_input_renders_focus_ring_on_click` (4 combo
+  boxes do not report `hasFocus()` after a click) and
+  `test_click_target_size.py::test_every_clickable_control_meets_24px_minimum_hit_area` (5 controls
+  below the floor, e.g. `workspace_benchmark_button` at 75x20, `result_widget.run_dropdown` at
+  490x18). Exclusion test run and recorded: both fail identically in isolation on the current tree
+  **and** at baseline commit `efb06fa`, in a detached worktree with none of this story's code
+  present. They pass under the offscreen plugin, which is why `just test-e2e` and CI are green.
+  Fixing them means changing shared widget metrics across the shell — a separate story, not this
+  one. This box stays unticked until that story lands.
 - [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
-  `draft` → `ready`, and `just trace` re-run.
-- [ ] The next candidate stories are proposed in the closing report, including the follow-up story
+  `draft` → `ready`, and `just trace` re-run. Held: STORY-086's only dependency is STORY-085, which
+  cannot be `done` while the box above is open.
+- [x] The next candidate stories are proposed in the closing report, including the follow-up story
   for emitting `_summary_data_changed` / `_detailed_data_changed`.
 
 ## Unblocks and next steps
