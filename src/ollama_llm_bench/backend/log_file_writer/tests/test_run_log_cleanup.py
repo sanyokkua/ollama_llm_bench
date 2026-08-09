@@ -4,13 +4,28 @@ from pathlib import Path
 
 from ollama_llm_bench.backend.log_file_writer import cleanup_run_logs
 from ollama_llm_bench.backend.log_file_writer._internal.run_log_cleanup import (
+    DEFAULT_RUN_LOG_MAX_AGE_DAYS,
     cleanup_run_logs_by_count,
+    cleanup_run_logs_by_count_and_age,
 )
-from ollama_llm_bench.backend.log_file_writer.tests.conftest import FakePlatformDetector
+from ollama_llm_bench.backend.log_file_writer.tests.conftest import (
+    FAKE_NOW_UNIX_TS,
+    FakeClock,
+    FakePlatformDetector,
+)
 
 _KEEP_COUNT = 200
 _SEED_COUNT = 205
 _EXPECTED_DELETED_COUNT = _SEED_COUNT - _KEEP_COUNT
+_DAY_SECONDS = 86_400
+_AGE_CUTOFF_TS = FAKE_NOW_UNIX_TS - DEFAULT_RUN_LOG_MAX_AGE_DAYS * _DAY_SECONDS
+
+
+def _seed_run_log(run_log_dir: Path, *, run_id: int, unix_ts: int) -> Path:
+    """Create one ``run_<run_id>_<unix_ts>.log`` file and return its path."""
+    path = run_log_dir / f"run_{run_id}_{unix_ts}.log"
+    path.write_text("x", encoding="utf-8")
+    return path
 
 
 def test_startup_cleanup_prunes_oldest_to_200(
@@ -67,3 +82,76 @@ def test_cleanup_skips_non_file_entries(tmp_path: Path) -> None:
 
     assert deleted_count == 0
     assert (run_log_dir / "run_1_100.log").is_dir()
+
+
+def test_age_rule_deletes_only_files_older_than_the_cutoff(
+    tmp_path: Path, fake_clock: FakeClock
+) -> None:
+    """Proves: STORY-088-AC-2
+
+    With the count rule slack (far fewer than 200 files), a run log whose
+    encoded timestamp predates the 90-day cutoff is deleted and one that does
+    not is retained.
+    """
+    # Arrange
+    run_log_dir = tmp_path / "run"
+    run_log_dir.mkdir()
+    expired = _seed_run_log(run_log_dir, run_id=1, unix_ts=_AGE_CUTOFF_TS - 1)
+    fresh = _seed_run_log(run_log_dir, run_id=2, unix_ts=_AGE_CUTOFF_TS + 1)
+
+    # Act
+    deleted_count = cleanup_run_logs_by_count_and_age(
+        run_log_dir=run_log_dir,
+        keep_count=_KEEP_COUNT,
+        clock=fake_clock,
+        max_age_days=DEFAULT_RUN_LOG_MAX_AGE_DAYS,
+    )
+
+    # Assert
+    assert (deleted_count, expired.exists(), fresh.exists()) == (1, False, True)
+
+
+def test_age_rule_retains_a_file_exactly_at_the_cutoff(
+    tmp_path: Path, fake_clock: FakeClock
+) -> None:
+    """Proves: STORY-088-AC-2
+
+    The limit is "none older than 90 days" — a run log whose timestamp lands
+    exactly on the cutoff is not yet older than 90 days and survives.
+    """
+    # Arrange
+    run_log_dir = tmp_path / "run"
+    run_log_dir.mkdir()
+    boundary = _seed_run_log(run_log_dir, run_id=1, unix_ts=_AGE_CUTOFF_TS)
+
+    # Act
+    deleted_count = cleanup_run_logs_by_count_and_age(
+        run_log_dir=run_log_dir,
+        keep_count=_KEEP_COUNT,
+        clock=fake_clock,
+        max_age_days=DEFAULT_RUN_LOG_MAX_AGE_DAYS,
+    )
+
+    # Assert
+    assert (deleted_count, boundary.exists()) == (0, True)
+
+
+def test_age_rule_on_missing_directory_returns_zero(tmp_path: Path, fake_clock: FakeClock) -> None:
+    """Proves: STORY-088-AC-2
+
+    A ``logs/run/`` directory that does not yet exist is not an error under the
+    age rule either — cleanup reports zero deletions.
+    """
+    # Arrange
+    missing_dir = tmp_path / "does" / "not" / "exist"
+
+    # Act
+    deleted_count = cleanup_run_logs_by_count_and_age(
+        run_log_dir=missing_dir,
+        keep_count=_KEEP_COUNT,
+        clock=fake_clock,
+        max_age_days=DEFAULT_RUN_LOG_MAX_AGE_DAYS,
+    )
+
+    # Assert
+    assert deleted_count == 0
