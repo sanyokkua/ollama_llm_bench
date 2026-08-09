@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 from ollama_llm_bench.backend.infra import app_log_path, run_log_dir, run_log_path
-from ollama_llm_bench.backend.infra.protocols import PlatformDetector
+from ollama_llm_bench.backend.infra.protocols import Clock, PlatformDetector
 from ollama_llm_bench.backend.log_file_writer._internal.app_log_writer import (
     DEFAULT_ROTATION_BACKUP_COUNT,
     DEFAULT_ROTATION_MAX_BYTES,
@@ -16,7 +16,8 @@ from ollama_llm_bench.backend.log_file_writer._internal.app_log_writer import (
 )
 from ollama_llm_bench.backend.log_file_writer._internal.run_log_cleanup import (
     DEFAULT_RUN_LOG_KEEP_COUNT,
-    cleanup_run_logs_by_count,
+    DEFAULT_RUN_LOG_MAX_AGE_DAYS,
+    cleanup_run_logs_by_count_and_age,
 )
 from ollama_llm_bench.backend.log_file_writer._internal.run_log_writer import RunLogWriterImpl
 from ollama_llm_bench.backend.log_file_writer.protocols import AppLogWriter, RunLogWriter
@@ -73,20 +74,33 @@ def make_run_log_writer(
 
 
 @icontract.require(lambda keep_count: keep_count >= 0, "keep_count must be non-negative")
+@icontract.require(lambda max_age_days: max_age_days >= 0, "max_age_days must be non-negative")
 @icontract.ensure(lambda result: result >= 0)
 def cleanup_run_logs(
-    *, platform_detector: PlatformDetector, keep_count: int = DEFAULT_RUN_LOG_KEEP_COUNT
+    *,
+    platform_detector: PlatformDetector,
+    clock: Clock,
+    keep_count: int = DEFAULT_RUN_LOG_KEEP_COUNT,
+    max_age_days: int = DEFAULT_RUN_LOG_MAX_AGE_DAYS,
 ) -> int:
-    """Prune ``<app-data>/logs/run/`` down to ``keep_count`` files, oldest first (§8.2).
+    """Prune ``<app-data>/logs/run/`` to the §5 retention limits, oldest first.
 
-    Only the count rule is applied — the age and orphan rules are out of scope.
+    Applies both rules §5 requires — at most ``keep_count`` files and none older
+    than ``max_age_days`` — deleting oldest-timestamp-first until both hold. The
+    orphan rule is not applied here: identifying a log whose run was deleted
+    needs the runs store, which this module deliberately does not depend on
+    (STORY-115).
 
     Args:
         platform_detector: Supplies the resolved application-data root.
+        clock: The injected time source anchoring the age cutoff.
         keep_count: How many run-log files to retain (200 default).
+        max_age_days: The retention window in days (90 default).
 
     Returns:
         The number of files deleted.
     """
     log_dir: Path = run_log_dir(platform_detector)
-    return cleanup_run_logs_by_count(run_log_dir=log_dir, keep_count=keep_count)
+    return cleanup_run_logs_by_count_and_age(
+        run_log_dir=log_dir, keep_count=keep_count, clock=clock, max_age_days=max_age_days
+    )

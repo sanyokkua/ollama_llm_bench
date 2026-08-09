@@ -29,7 +29,7 @@ def _seed_run_log(run_log_dir: Path, *, run_id: int, unix_ts: int) -> Path:
 
 
 def test_startup_cleanup_prunes_oldest_to_200(
-    tmp_path: Path, fake_platform_detector: FakePlatformDetector
+    tmp_path: Path, fake_platform_detector: FakePlatformDetector, fake_clock: FakeClock
 ) -> None:
     """Proves: STORY-037-AC-2
 
@@ -45,7 +45,7 @@ def test_startup_cleanup_prunes_oldest_to_200(
     unrelated_file = run_log_dir / "notes.txt"
     unrelated_file.write_text("keep me", encoding="utf-8")
 
-    deleted_count = cleanup_run_logs(platform_detector=fake_platform_detector)
+    deleted_count = cleanup_run_logs(platform_detector=fake_platform_detector, clock=fake_clock)
 
     remaining_run_logs = sorted(run_log_dir.glob("run_*.log"))
     assert deleted_count == _EXPECTED_DELETED_COUNT
