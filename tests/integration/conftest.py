@@ -65,6 +65,7 @@ from ollama_llm_bench.backend.domain import (
     RunStartRequest,
     RunStatus,
 )
+from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.backend.infra import make_system_clock
 from ollama_llm_bench.backend.persistence.app_settings import (
     DB_FILENAME,
@@ -288,6 +289,33 @@ def _canned_run() -> BenchmarkRun:
         schema_version=1,
         created_at=_TIMESTAMP,
     )
+
+
+def _generate_analysis_collaborators(event_bus: EventBus) -> GenerateAnalysisCollaborators:
+    """Build the Generate Analysis dialog's collaborator bundle around any ``EventBus``.
+
+    Factored out so ``_build_common_dialogs`` and
+    ``tests/integration/test_generate_analysis_real_event_bus.py`` share one definition
+    of the three stub collaborators instead of drifting apart.
+    """
+    return GenerateAnalysisCollaborators(
+        dispatcher=_StubRunAnalysisDispatcher(),
+        provider_source=_StubProviderListSource(providers=(_canned_provider(),)),
+        model_fetcher=_StubModelFetcher(),
+        event_bus=event_bus,
+    )
+
+
+@pytest.fixture
+def make_generate_analysis_collaborators() -> Callable[[EventBus], GenerateAnalysisCollaborators]:
+    """Expose the Generate Analysis collaborator bundle to tests outside this file."""
+    return _generate_analysis_collaborators
+
+
+@pytest.fixture
+def canned_run() -> BenchmarkRun:
+    """The one run header the Generate Analysis dialog fixtures analyse."""
+    return _canned_run()
 
 
 def _canned_results() -> tuple[BenchmarkResult, ...]:
