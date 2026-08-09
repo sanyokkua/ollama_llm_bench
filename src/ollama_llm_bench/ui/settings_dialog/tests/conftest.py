@@ -49,6 +49,11 @@ class FakeEventBus:
     def subscribe(
         self, signal_name: str, handler: Callable[[object], None], owner: object | None = None
     ) -> Subscription:
+        # Mirrors QtEventBusDeliverer's icontract precondition (08-J §2) so this tier can
+        # never again accept what the real bus crashes on -- see STORY-118.
+        if owner is None:
+            message = "owner is required — a subscription with no owner is a programming error"
+            raise AssertionError(message)
         self._handlers.setdefault(signal_name, []).append(handler)
 
         def _cancel() -> None:

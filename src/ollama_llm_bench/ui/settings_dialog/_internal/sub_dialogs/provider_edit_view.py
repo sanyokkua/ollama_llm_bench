@@ -108,7 +108,7 @@ class ProviderEditDialog(QDialog):
         self.result_config: ProviderConfig | None = None
         self._gate_activity = InferenceActivity.IDLE
         self._activity_subscription = collaborators.event_bus.subscribe(
-            SIGNAL_INFERENCE_ACTIVITY_CHANGED, self._on_inference_activity_changed
+            SIGNAL_INFERENCE_ACTIVITY_CHANGED, self._on_inference_activity_changed, owner=self
         )
         self._build_ui()
         self._apply_working_copy()
