@@ -618,44 +618,6 @@ class _StubModelFetcher:
         on_success(provider_id, (_MODEL_NAME,))
 
 
-class _StubSubscription:
-    """Structural ``Subscription`` handle; cancellation is a no-op for a capture."""
-
-    def cancel(self) -> None:
-        return None
-
-
-class _StubGenerateAnalysisEventBus:
-    """Structural ``EventBus`` fake routing around a real production defect.
-
-    ``ui/common_dialogs/_internal/generate_analysis_view.py`` calls
-    ``event_bus.subscribe(signal, handler)`` three times with no ``owner=``
-    keyword. The real ``QtEventBusDeliverer.subscribe`` (used everywhere else
-    in this harness) carries an ``icontract`` precondition requiring a non-
-    ``None`` owner (08-J §2), so building this one dialog against the real
-    bus raises ``icontract.errors.ViolationError`` -- a genuine bug that would
-    crash any real user opening this dialog, masked in
-    ``ui/common_dialogs/tests/test_generate_analysis_dialog.py`` by that
-    module's own ``_FakeEventBus``, which accepts a missing owner silently.
-    This mirrors that same fake, scoped to this one dialog only, so both the
-    mockup-conformance screenshot harness (``test_screenshot_harness.py``) and
-    the accessibility-name walker (``test_a11y_names_shell.py``) can build
-    this dialog without hitting that defect. It changes no behaviour of its
-    own -- it only accepts the missing-owner calls the real bus would reject.
-    """
-
-    def subscribe(
-        self,
-        signal_name: str,
-        handler: Callable[[object], None],
-        owner: object | None = None,
-    ) -> _StubSubscription:
-        return _StubSubscription()
-
-    def emit(self, signal_name: str, payload: object) -> None:
-        return None
-
-
 def _canned_provider() -> ProviderConfig:
     """Return one enabled provider entry for the Generate Analysis dropdown."""
     return ProviderConfig(
@@ -793,9 +755,7 @@ def _build_common_dialogs(*, qtbot: QtBot) -> dict[str, QDialog]:
                 dispatcher=_StubRunAnalysisDispatcher(),
                 provider_source=_StubProviderListSource(providers=(_canned_provider(),)),
                 model_fetcher=_StubModelFetcher(),
-                # Not the shared real `bus` -- see `_StubGenerateAnalysisEventBus`'s
-                # docstring for the real production defect this routes around.
-                event_bus=_StubGenerateAnalysisEventBus(),
+                event_bus=bus,
             ),
         ),
     }

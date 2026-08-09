@@ -76,7 +76,6 @@ import ollama_llm_bench.compose as _compose_module
 from ollama_llm_bench.compose import AppHandle, build_app
 import ollama_llm_bench.ui.common_dialogs as _common_dialogs_module
 from ollama_llm_bench.ui.common_dialogs import (
-    GenerateAnalysisCollaborators,
     make_about_dialog as _real_make_about_dialog,
     make_generate_analysis_dialog as _real_make_generate_analysis_dialog,
 )
@@ -305,44 +304,6 @@ def _patched_attr(obj: object, name: str, value: object) -> Generator[None]:
         setattr(obj, name, original)
 
 
-class _NoOpGenerateAnalysisSubscription:
-    """No-op `Subscription` handle; cancellation does nothing."""
-
-    def cancel(self) -> None:
-        return None
-
-
-class _GenerateAnalysisEventBusFake:
-    """Structural `EventBus` fake routing this fixture around a real, still-unfixed
-    production defect.
-
-    `ui/common_dialogs/_internal/generate_analysis_view.py` calls
-    `event_bus.subscribe(signal, handler)` three times with no `owner=` keyword. The
-    real `QtEventBusDeliverer.subscribe` carries an `icontract` precondition requiring
-    a non-`None` owner (`08-J_event_bus_catalog.md` §2), so building this dialog
-    against the app's real event bus raises `icontract.errors.ViolationError` and
-    crashes the process -- a genuine defect first surfaced by STORY-087's screenshot
-    harness (see that story's Findings section) and worked around identically by
-    `tests/integration/conftest.py`'s `_StubGenerateAnalysisEventBus`. Restated here,
-    not imported, because fixtures do not cross the `tests/e2e` vs other test-tier
-    boundary (same rationale as this file's other restated helpers); global constraints
-    for this story forbid touching `src/`, so the fix itself is out of this story's
-    scope. It changes no behaviour of its own -- it only accepts the missing-owner
-    calls the real bus would reject.
-    """
-
-    def subscribe(
-        self,
-        signal_name: str,
-        handler: Callable[[object], None],
-        owner: object | None = None,
-    ) -> _NoOpGenerateAnalysisSubscription:
-        return _NoOpGenerateAnalysisSubscription()
-
-    def emit(self, signal_name: str, payload: object) -> None:
-        return None
-
-
 class _DismissReadinessModalOnShow(QObject):
     """App-wide event filter auto-dismissing the real NOT_READY `QMessageBox` the instant it
     is shown. Restated from `tests/e2e/conftest.py`'s identical class -- see that class's
@@ -488,12 +449,6 @@ def _open_run_analysis_tab_and_generate_dialog(handle: AppHandle) -> QDialog:
     captured_generate_analysis_dialog: list[QDialog] = []
 
     def _capture_generate_analysis(**kwargs: object) -> QDialog:
-        collaborators = cast("GenerateAnalysisCollaborators", kwargs["collaborators"])
-        # Route around the live `event_bus.subscribe(...)`-with-no-`owner=` defect this
-        # dialog's own constructor hits -- see `_GenerateAnalysisEventBusFake`'s docstring.
-        kwargs["collaborators"] = msgspec.structs.replace(
-            collaborators, event_bus=_GenerateAnalysisEventBusFake()
-        )
         dialog = _real_make_generate_analysis_dialog(**kwargs)  # type: ignore[arg-type]  # forwarding real controller kwargs
         captured_generate_analysis_dialog.append(dialog)
         return dialog
