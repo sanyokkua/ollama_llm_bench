@@ -1,8 +1,17 @@
 """Compiles a ThemeTokens container into the application-level QSS (08-D §16)."""
 
+from typing import Final
+
 from ollama_llm_bench.ui.theme.models import ThemeTokens
 
 _GENERIC_FAMILIES = frozenset({"sans-serif", "monospace"})
+
+# 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md §6: every clickable control offers a hit area
+# of at least 24x24 logical px. The application stylesheet switches these classes off the host
+# style onto Qt's QStyleSheetStyle, whose default metrics fall below that floor (a native
+# QComboBox hints 32px tall unstyled and 18px styled), so the floor is restored here -- at the
+# single styling authority that causes the collapse, class-wide, rather than per call site.
+_MIN_CLICK_TARGET_PX: Final = 24
 
 
 def _render_font_family(chain: tuple[str, ...]) -> str:
@@ -57,5 +66,14 @@ def render_stylesheet(tokens: ThemeTokens) -> str:
         "QTableView:focus, QListView:focus, QTreeView:focus {\n"
         f"    border: {tokens.focus_ring.outer_width}px solid {tokens.colors.border_focus};\n"
         "    outline: none;\n"
+        "}\n"
+        "\n"
+        "QComboBox, QAbstractSpinBox {\n"
+        f"    min-height: {_MIN_CLICK_TARGET_PX}px;\n"
+        "}\n"
+        "\n"
+        "QCheckBox::indicator {\n"
+        f"    width: {_MIN_CLICK_TARGET_PX}px;\n"
+        f"    height: {_MIN_CLICK_TARGET_PX}px;\n"
         "}\n"
     )

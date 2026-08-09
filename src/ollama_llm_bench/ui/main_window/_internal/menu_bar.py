@@ -16,6 +16,7 @@ from ollama_llm_bench.ui.main_window.models import MainWindowViewModel
 __all__: list[str] = ["MenuBarWidget"]
 
 _MENU_BAR_HEIGHT = 32
+_MIN_CLICK_TARGET_PX: Final = 24  # 08_ACCESSIBILITY_FLOOR.md §6 -- 24px click-target floor
 _DISABLED_SETTINGS_TOOLTIP: Final = "Disabled - a benchmark is in progress."
 _SETTINGS_TOOLTIP: Final = "Open the Settings dialog"
 _ABOUT_TOOLTIP: Final = "Application information: version, links, data folders"
@@ -49,6 +50,14 @@ class _WorkspaceSwitcherWidget(QWidget):
         self._group.setExclusive(True)
         self._group.addButton(self._benchmark_button)
         self._group.addButton(self._task_editor_button)
+        # 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md §6 (24x24 click target). A nested
+        # QWidget inside the menu bar's QHBoxLayout raises that layout's minimum height by
+        # 12px over its tallest child, so the bar's spec-fixed 32px (01_Main_Window §3) is
+        # 4px short of the 36px the layout asks for; Qt resolves the shortfall by shrinking
+        # this nested branch -- and only this branch -- to 20px, taking both buttons with it.
+        # An explicit minimum is honoured strictly, so the segments keep the floor inside the
+        # 32px bar. Measured: without it 77x20, with it 77x24.
+        self.setMinimumHeight(_MIN_CLICK_TARGET_PX)
         self._benchmark_button.setChecked(True)
         self._benchmark_button.clicked.connect(self._on_benchmark_clicked)
         self._task_editor_button.clicked.connect(self._on_task_editor_clicked)
