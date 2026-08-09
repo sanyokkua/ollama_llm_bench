@@ -1,7 +1,7 @@
 ---
 id: STORY-115
 title: Prune run logs at startup by adding the orphan rule and wiring the cleanup into launch
-status: draft
+status: ready
 spec_clauses:
   - 10_Domain_and_Data/07_FILE_LAYOUT.md#82-run-log-cleanup
   - 12_Quality_and_NFRs/03_OBSERVABILITY.md#42-run-log-retention

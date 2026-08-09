@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-09T11:59:52Z'
+generated_at: '2026-08-09T15:47:35Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5272,7 +5272,7 @@ stories:
         - tests/integration/test_screenshot_harness.py::test_mockup_conformance_report_covers_every_screen[09-light]
   STORY-088:
     title: Close three known test debts — Gemini contract leg, run-log retention, and a shared resume fixture
-    status: ready
+    status: done
     spec_clauses:
     - 12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#5-run-log-and-backup-retention
     - 12_Quality_and_NFRs/07_RESOURCE_LIMITS.md#7-resource-limits-summary
@@ -5285,11 +5285,18 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-088-AC-1:
-        tests: []
+        tests:
+        - tests/contract/test_llm_client_contract.py::test_module_docstring_lists_every_registered_leg
       STORY-088-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/log_file_writer/tests/test_run_log_cleanup.py::test_age_rule_deletes_only_files_older_than_the_cutoff
+        - src/ollama_llm_bench/backend/log_file_writer/tests/test_run_log_cleanup.py::test_age_rule_on_missing_directory_returns_zero
+        - src/ollama_llm_bench/backend/log_file_writer/tests/test_run_log_cleanup.py::test_age_rule_retains_a_file_exactly_at_the_cutoff
+        - tests/integration/test_run_log_retention.py::test_startup_prune_caps_run_logs_to_200_files_and_90_days
+        - tests/integration/test_run_log_retention.py::test_startup_prune_lets_the_count_rule_govern_when_it_removes_more
       STORY-088-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/resume_benchmark/tests/test_actions.py::test_export_uses_shared_compose_filename_fixture
   STORY-089:
     title: Assert every icon-only and ambiguous control uses its pinned name, objectName, and tooltip app-wide
     status: done
@@ -6186,7 +6193,7 @@ stories:
         tests: []
   STORY-115:
     title: Prune run logs at startup by adding the orphan rule and wiring the cleanup into launch
-    status: draft
+    status: ready
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#2-launch--order-of-operations
     - 10_Domain_and_Data/07_FILE_LAYOUT.md#82-run-log-cleanup

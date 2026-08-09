@@ -1,7 +1,7 @@
 ---
 id: STORY-088
 title: Close three known test debts — Gemini contract leg, run-log retention, and a shared resume fixture
-status: ready
+status: done
 spec_clauses:
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#7a-the-provider-wire-stub-transport-level-test-double
