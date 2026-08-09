@@ -3,32 +3,40 @@ provider adapters (wire-stub-backed, §7a) and their ``testing.py`` fakes,
 proving each fake is a faithful stand-in for its real adapter.
 
 Source of truth: ``docs/v3_specification/16_Engineering_Standards/07_TESTING_STANDARD.md``
-§6a; ``docs/stories/story-018-openai-compatible-provider-adapter.md`` and
-``docs/stories/story-019-anthropic-provider-adapter.md`` Definition of Done
+§6a; ``docs/stories/story-018-openai-compatible-provider-adapter.md``,
+``docs/stories/story-019-anthropic-provider-adapter.md`` and
+``docs/stories/story-020-gemini-provider-adapter.md`` Definition of Done
 ("The ``LLMClient`` shared contract-test suite (§6a) runs against both the real
 adapter (wire stub, §7a) and the module's ``testing.py`` fake, and both legs
 pass.").
 
-This is the **first** contract suite in the codebase — STORY-018 is the first
-concrete ``LLMClient`` provider adapter to ship alongside its ``testing.py`` fake;
-STORY-019 adds the ``ANTHROPIC`` real/fake legs onto the same suite. Every
-assertion below is a genuine ``LLMClient`` Protocol-level behavioural contract
-(``08_Cross_Cutting/08-E_interfaces_contracts.md`` §10: return shapes, the
-never-raises rules for ``probe_health``/``test_inference``) — never a
-provider-specific wire detail. The suite is parametrized
-``params=["openai_real", "openai_fake", "anthropic_real", "anthropic_fake"]``
-via the ``llm_client`` fixture below; every leg must pass in the pull-request
-gate. ``embed``/``list_models`` are OpenAI-only Protocol-level assertions
-(``test_embed_returns_tuple_of_floats``, ``test_list_models_returns_tuple_of_strings``)
-because Anthropic's ``LLMClient`` deliberately raises immediately from both —
-per-provider-type behaviour §6.9, not a Protocol-level contract every
+This is the **first** contract suite in the codebase — STORY-018 shipped the
+first concrete ``LLMClient`` provider adapter alongside its ``testing.py``
+fake; STORY-019 and STORY-020 added the Anthropic and Gemini legs onto the same
+suite. Every assertion below is a genuine ``LLMClient`` Protocol-level
+behavioural contract (``08_Cross_Cutting/08-E_interfaces_contracts.md`` §10:
+return shapes, the never-raises rules for ``probe_health``/``test_inference``)
+— never a provider-specific wire detail.
+
+The ``llm_client`` fixture is parametrized over six legs: ``openai_real``,
+``openai_fake``, ``anthropic_real``, ``anthropic_fake``, ``gemini_real`` and
+``gemini_fake``. Every leg must pass in the pull-request gate.
+``test_module_docstring_lists_every_registered_leg`` (STORY-088-AC-1) asserts
+this paragraph and the fixture's registered legs stay in step.
+
+``embed`` and ``list_models`` are asserted on the embedding/discovery-capable
+legs only, through the separate ``embedding_capable_llm_client`` fixture —
+``openai_real``, ``openai_fake``, ``gemini_real`` and ``gemini_fake``.
+Anthropic's ``LLMClient`` deliberately raises immediately from both, which is
+per-provider-type behaviour (§6.9), not a Protocol-level contract every
 implementation shares; STORY-019's own colocated
 ``tests/test_probe_and_embed.py`` proves the Anthropic raise-immediately
 contract instead.
 
 The real legs reuse the wire-stub fixture patterns already established in
-``src/ollama_llm_bench/backend/provider_openai_compatible/tests/conftest.py``
-and ``src/ollama_llm_bench/backend/provider_anthropic/tests/conftest.py``
+``src/ollama_llm_bench/backend/provider_openai_compatible/tests/conftest.py``,
+``src/ollama_llm_bench/backend/provider_anthropic/tests/conftest.py`` and
+``src/ollama_llm_bench/backend/provider_gemini/tests/conftest.py``
 (``FakeClock``, ``FakeEventBus``, the ``threaded=True`` httpserver override)
 rather than duplicating them — this module imports those helpers directly.
 Each fake leg constructs the module's own fake from its ``testing.py`` and
@@ -38,7 +46,9 @@ wire-stub responses (non-empty ``text``, a populated embedding vector, etc.).
 
 from collections.abc import Iterator
 import json
+import re
 from ssl import SSLContext
+from typing import Final
 
 import httpx
 import pytest
@@ -368,16 +378,17 @@ def _build_llm_client(param: str, httpserver: HTTPServer) -> LLMClient:
     return _make_gemini_fake_client()
 
 
-@pytest.fixture(
-    params=[
-        "openai_real",
-        "openai_fake",
-        "anthropic_real",
-        "anthropic_fake",
-        "gemini_real",
-        "gemini_fake",
-    ]
+_LLM_CLIENT_LEGS: Final[tuple[str, ...]] = (
+    "openai_real",
+    "openai_fake",
+    "anthropic_real",
+    "anthropic_fake",
+    "gemini_real",
+    "gemini_fake",
 )
+
+
+@pytest.fixture(params=list(_LLM_CLIENT_LEGS))
 def llm_client(request: pytest.FixtureRequest, httpserver: HTTPServer) -> LLMClient:
     """Parametrized ``LLMClient`` under test: each real wire-stub-backed
     adapter and its ``testing.py`` fake — every leg runs every test below."""
@@ -408,6 +419,22 @@ def embedding_capable_llm_client(
 def clock() -> FakeClock:
     """A fresh ``FakeClock`` used only to build the ``CancellationToken`` below."""
     return FakeClock()
+
+
+def test_module_docstring_lists_every_registered_leg() -> None:
+    """Proves: STORY-088-AC-1
+
+    The module docstring names exactly the legs the ``llm_client`` fixture is
+    parametrized over — no documented leg missing from the fixture, no fixture
+    leg missing from the docstring — so the docstring cannot silently rot the
+    next time a provider adapter is added.
+    """
+    # Arrange
+    docstring = __doc__ or ""
+    # Act
+    documented = set(re.findall(r"``([a-z]+_(?:real|fake))``", docstring))
+    # Assert
+    assert documented == set(_LLM_CLIENT_LEGS)
 
 
 def test_chat_returns_chat_response_with_text(llm_client: LLMClient, clock: FakeClock) -> None:
