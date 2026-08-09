@@ -40,8 +40,8 @@ def _bucket_label(size: int, /) -> str:
     try:
         return SIZE_BUCKETS[size]
     except KeyError as exc:
-        message = (
-            f"PerformanceConfig size {size} has no matching size bucket "
-            "(known: 64, 256, 1024, 4096, 16384)"
-        )
+        # Derived from the table rather than restated, so the §8 message can never name a
+        # bucket set the lookup above does not actually accept (STORY-092).
+        known = ", ".join(str(bucket) for bucket in sorted(SIZE_BUCKETS))
+        message = f"PerformanceConfig size {size} has no matching size bucket (known: {known})"
         raise ContractViolationError(message=message) from exc

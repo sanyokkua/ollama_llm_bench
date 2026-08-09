@@ -12,10 +12,15 @@ pure, stateless, and Qt-free; it persists nothing itself.
 """
 
 from ollama_llm_bench.backend.performance_task_generator.api import (
+    SIZE_BUCKETS,
     make_performance_task_generator,
 )
 from ollama_llm_bench.backend.performance_task_generator.protocols import (
     PerformanceTaskGenerator,
 )
 
-__all__: list[str] = ["PerformanceTaskGenerator", "make_performance_task_generator"]
+__all__: list[str] = [
+    "SIZE_BUCKETS",
+    "PerformanceTaskGenerator",
+    "make_performance_task_generator",
+]
