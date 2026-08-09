@@ -1,7 +1,7 @@
 ---
 id: STORY-085
 title: Drive a complete benchmark run from the UI through the real pipeline with fake providers
-status: ready
+status: done
 spec_clauses:
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#7-testing-the-qt-free-backend-headlessly

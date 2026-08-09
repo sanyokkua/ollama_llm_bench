@@ -52,7 +52,7 @@ class _WorkspaceSwitcherWidget(QWidget):
         self._group.addButton(self._task_editor_button)
         # 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md §6 (24x24 click target). A nested
         # QWidget inside the menu bar's QHBoxLayout raises that layout's minimum height by
-        # 12px over its tallest child, so the bar's spec-fixed 32px (01_Main_Window §3) is
+        # 12px over its tallest child, so the bar's spec-fixed 32px (01_Main_Window §2) is
         # 4px short of the 36px the layout asks for; Qt resolves the shortfall by shrinking
         # this nested branch -- and only this branch -- to 20px, taking both buttons with it.
         # An explicit minimum is honoured strictly, so the segments keep the floor inside the

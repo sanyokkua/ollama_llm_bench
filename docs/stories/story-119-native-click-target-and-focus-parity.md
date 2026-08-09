@@ -1,12 +1,15 @@
 ---
 id: STORY-119
 title: Raise the theme's minimum control sizes to the 24x24 click-target floor and make the focus-ring check pass on the native platform
-status: ready
+status: done
 spec_clauses:
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#6-click-target-size
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#5-focus-indication
   - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
+  - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#4-mouse-only-operation
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
+  - 01_Main_Window/description.md#2-window-layout
+  - 01_Main_Window/description.md#14-accessibility
 modules:
   - ui/theme/
   - ui/main_window/
@@ -49,14 +52,17 @@ is finished and parked at `ready` for exactly this reason.
   - `QCheckBox::indicator { width: 24px; height: 24px }` — the checkbox violation is width
     (19x24), and `min-width` on `QCheckBox` itself is the wrong lever: it grows the *contents*
     box beside the indicator, giving a 43 px-wide widget without enlarging the aim target.
-    Sizing the indicator subcontrol gives 26x24, and a pixel histogram of the grabbed widget in
-    both themes, checked and unchecked, is byte-identical to before — the glyph is unchanged,
-    only the hit area grows.
+    Sizing the indicator subcontrol gives 26x24 and moves the **real** click rect to 24x24 — see
+    "Third finding" for why the obvious alternatives do not. The drawn glyph is platform-dependent:
+    on macOS it stays at its native size inside the larger box (pixel histogram byte-identical in
+    both themes, checked and unchecked), while under the Fusion style used offscreen and on
+    Linux/Windows it scales up with the indicator. That visual change is deliberate — see "Second
+    finding".
   - **No `QPushButton` rule.** A styled `QPushButton` already hints 24 px tall; adding
     `min-height: 24px` inflates it to 32 because `padding: 4px 8px` applies, which would then not
     fit the menu bar. The two 20 px buttons are not a stylesheet problem — see below.
 - `src/ollama_llm_bench/ui/main_window/_internal/menu_bar.py` — `_WorkspaceSwitcherWidget` gains
-  `setMinimumHeight(24)`. **`_MENU_BAR_HEIGHT` stays 32**: `01_Main_Window/description.md` §3
+  `setMinimumHeight(24)`. **`_MENU_BAR_HEIGHT` stays 32**: `01_Main_Window/description.md` §2
   pins the menu bar at "Fixed height 32 px", so raising it is not available. The real cause,
   reproduced in isolation with no application code, is that a nested `QWidget` inside a
   `QHBoxLayout` raises that layout's minimum height by 12 px over its tallest child — the bar's
@@ -139,7 +145,7 @@ is finished and parked at `ready` for exactly this reason.
   `menu_bar.py` sets `_MENU_BAR_HEIGHT = 32` and `setFixedHeight(_MENU_BAR_HEIGHT)` with zero
   layout margins, and its two workspace buttons currently render 75x20 even though a bare styled
   `QPushButton` hints 24. Never shrink the buttons back under the floor to fit the bar. Raising
-  `_MENU_BAR_HEIGHT` is **not** an available fix either: `01_Main_Window/description.md` §3 pins
+  `_MENU_BAR_HEIGHT` is **not** an available fix either: `01_Main_Window/description.md` §2 pins
   the bar at "Fixed height 32 px". The floor and the pinned height are compatible — see "In
   scope" for the nested-layout cause and the one-line fix that satisfies both.
 - **The class-wide QSS change alters control heights on every screen.** That is the accepted cost
@@ -267,6 +273,47 @@ control the user still cannot hit. The chosen rule is the only one that moves th
 AC-1 keeps the rect assertion, because that is the method §10 names. The gap is recorded here:
 a follow-up story should verify `SE_CheckBoxClickRect`/`hitButton` for composite controls, so the
 floor cannot be met on paper by a widget that merely reserves space.
+
+## Independent conformance review — findings carried to the owner
+
+A `spec-conformance-reviewer` re-derived the ACs from the cited clauses and returned **conforms
+with concerns**. One finding was a real defect and is fixed; the rest are escalations.
+
+**Fixed during review.** The AC-3 architecture test could not detect `QGuiApplication.platformName()`
+— the exact spelling AC-3 names — because attribute names were matched only against the skip set.
+The walker now matches attribute names, bare names and string constants against both sets, and
+covers `importorskip`, `skipIf`, `skipUnless`, `sys.platform`, and bare `"offscreen"`/`"cocoa"`
+literals. Falsified with all three spellings (`QGuiApplication.platformName()`, `sys.platform`,
+`pytest.importorskip`): each reddens the check, and the check passes again once removed.
+
+**Escalation 1 — §4's click-focus mandate now has no combo-box coverage.** §4 ("Visible focus on
+click … the only path by which focus is reached") is a product mandate, not just a verification
+mechanism. Narrowing the click-based test to non-combo types leaves that mandate unverified for
+combos, while STORY-091 stays `done` and `trace-check` stays green — the gate cannot see the
+erosion. Stated plainly: this story's recommended resolution of the §5-versus-§10 conflict is
+**already in force in the test suite**. Ratifying it is a formality; rejecting it means the gate
+goes red again and a different mechanism must be found. That is the owner's call to make knowingly.
+
+**Escalation 2 — the 22 px status bar cannot host a 24 px click target.** `01_Main_Window`
+§2 pins the status bar at "Fixed height 22 px", and §4.2 makes the health dot clickable
+(`status_bar.py` forwards `MouseButtonPress` on it). It structurally cannot reach 24 px inside a
+22 px bar. It is never measured today because `make_health_dot` returns a plain `QWidget`, outside
+the walker's interactive types. This is the same shape of collision as the menu bar, but without a
+nested-layout escape hatch — it needs a ruling, not a fix.
+
+**Escalation 3 — AC-1 is narrower than §6.** The walker collects only `QAbstractButton`,
+`QComboBox`, `QLineEdit`, `QTextEdit`, `QAbstractSpinBox`, `QAbstractItemView`, and excludes
+anything parented inside a composite. So §6's explicitly enumerated dropdown chevrons,
+delegate-painted table-row selection checkboxes, chip-remove glyphs, menu items and title-bar
+close glyphs are never measured. AC-1 should be read as "no regression in the measurable set",
+not "§6 is now met". Inherited from STORY-091's walker design; worth its own story alongside the
+`SE_CheckBoxClickRect` gap in "Third finding".
+
+**Noted, no action.** After this change, `08_ACCESSIBILITY_FLOOR.md` §9's statement that "all
+sizes derive from the design tokens in 08-D rather than from fixed pixel literals" is no longer
+literally true of the emitted stylesheet. The 24 px floor is a specification constant rather than
+a design token, and Qt treats stylesheet `px` as logical pixels, so text-scaling behaviour is
+unaffected — but §9 is the clause a future reviewer will trip over.
 
 ## Open spec conflict — owner ruling required
 

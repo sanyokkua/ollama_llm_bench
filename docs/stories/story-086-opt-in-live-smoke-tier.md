@@ -1,7 +1,7 @@
 ---
 id: STORY-086
 title: Add an opt-in, env-gated live smoke tier against a local Ollama and LM Studio
-status: draft
+status: ready
 spec_clauses:
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#3-test-layout
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol

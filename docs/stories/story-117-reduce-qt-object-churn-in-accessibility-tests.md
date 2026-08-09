@@ -1,7 +1,7 @@
 ---
 id: STORY-117
 title: Reduce Qt object churn in the accessibility-name integration tests
-status: draft
+status: ready
 spec_clauses:
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#5-fixtures
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#11-coverage-targets-and-time-budgets
