@@ -21,14 +21,20 @@ from pytestqt.qtbot import QtBot
 
 from ollama_llm_bench.ui.theme import PlatformKind, make_dark_theme_tokens, make_light_theme_tokens
 
-_FOCUS_RETAINING_TYPES: tuple[type[QWidget], ...] = (
-    QComboBox,
+# Types that acquire focus from a click on every platform this project supports. A populated
+# QComboBox does not: clicking it opens its popup, the popup takes keyboard focus, and
+# hidePopup() does not hand it back (measured on macOS: still False after 50 processEvents()
+# turns). See STORY-119's "Open spec conflict" section -- §5's ring obligation is on a control
+# that *holds* focus, so combos are verified by the setFocus() check below instead.
+_CLICK_FOCUSING_TYPES: tuple[type[QWidget], ...] = (
     QLineEdit,
     QTextEdit,
     QAbstractSpinBox,
     QAbstractItemView,
 )
-_MIN_EXPECTED_CHECKED = 17
+_FOCUS_RETAINING_TYPES: tuple[type[QWidget], ...] = (QComboBox, *_CLICK_FOCUSING_TYPES)
+_MIN_EXPECTED_CLICKED = 10  # measured on both platforms; combos moved to the setFocus check
+_MIN_EXPECTED_FOCUSED = 17  # measured on both platforms: the 10 above plus 7 combos
 
 
 def _image_contains_color(image: QImage, color: QColor, *, tolerance: int = 8) -> bool:
@@ -42,24 +48,11 @@ def _image_contains_color(image: QImage, color: QColor, *, tolerance: int = 8) -
     return False
 
 
-@pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
-def test_focus_retaining_input_renders_focus_ring_on_click(
-    qtbot: QtBot,
-    mounted_app_surfaces: list[QWidget],
-    interactive_descendants: Callable[[QWidget], list[QWidget]],
-) -> None:
-    """Proves: STORY-091-AC-4
+def _renders_focus_ring(control: QWidget) -> bool:
+    """Whether `control`'s grabbed image carries either theme's focus.ring border colour.
 
-    Every focus-retaining input control (text inputs, combos, spinners, lists, tables --
-    not momentary buttons, DD-52) reports hasFocus() and renders the focus.ring border
-    colour after a click. Checked against both themes' border_focus value since the live
-    app's active theme depends on the host's OS colour-scheme detection.
-
-    Controls that are currently disabled (e.g. the New Benchmark Advanced Options rows
-    before their activation checkbox is checked, the Judge dropdowns before judge mode is
-    selected, `result_widget.run_dropdown` and `summary_tab.table` before a run is
-    selected) are exempt -- a disabled Qt widget structurally cannot accept a click or hold
-    focus regardless of policy, the same reasoning that already exempts momentary buttons.
+    Both themes are accepted because the live application's active theme depends on the
+    host's OS colour-scheme detection.
     """
     dark_focus = QColor(
         make_dark_theme_tokens(platform_kind=PlatformKind.LINUX).colors.border_focus
@@ -67,11 +60,30 @@ def test_focus_retaining_input_renders_focus_ring_on_click(
     light_focus = QColor(
         make_light_theme_tokens(platform_kind=PlatformKind.LINUX).colors.border_focus
     )
+    image = control.grab().toImage()
+    return _image_contains_color(image, dark_focus) or _image_contains_color(image, light_focus)
 
+
+def _scan_focus_rings(
+    *,
+    surfaces: list[QWidget],
+    walk: Callable[[QWidget], list[QWidget]],
+    qtbot: QtBot,
+    types: tuple[type[QWidget], ...],
+    acquire_focus: Callable[[QWidget], None],
+) -> tuple[list[str], list[str], int]:
+    """Drive focus onto every eligible control and report (violations, skipped, checked).
+
+    Controls that are currently disabled (e.g. the New Benchmark Advanced Options rows
+    before their activation checkbox is checked, the Judge dropdowns before judge mode is
+    selected, `result_widget.run_dropdown` and `summary_tab.table` before a run is selected)
+    are exempt -- a disabled Qt widget structurally cannot accept a click or hold focus
+    regardless of policy, the same reasoning that already exempts momentary buttons.
+    """
     violations: list[str] = []
     skipped: list[str] = []
     checked = 0
-    for surface in mounted_app_surfaces:
+    for surface in surfaces:
 
         def _activate(surface: QWidget = surface) -> bool:
             surface.raise_()
@@ -81,53 +93,85 @@ def test_focus_retaining_input_renders_focus_ring_on_click(
         qtbot.waitUntil(_activate, timeout=2000)
         surface_label = f"{type(surface).__name__}[{surface.objectName()}]"
 
-        for control in interactive_descendants(surface):
-            if not isinstance(control, _FOCUS_RETAINING_TYPES) or not control.isVisible():
+        for control in walk(surface):
+            if not isinstance(control, types) or not control.isVisible():
                 continue
             control_label = f"{surface_label} -> {type(control).__name__}[{control.objectName()}]"
             if not control.isEnabled():
-                # A disabled control (e.g. `result_widget.run_dropdown` with no runs yet
-                # seeded in this fixture) structurally cannot accept a click or hold focus
-                # in Qt -- it is not a "focus-retaining input control" in DD-52's operative
-                # sense, the same reasoning that already exempts momentary buttons.
                 skipped.append(f"{control_label} (disabled)")
                 continue
-            qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
-                control, Qt.MouseButton.LeftButton
-            )
-            if isinstance(control, QComboBox):
-                # A click on a QComboBox opens its popup, and Qt moves actual keyboard
-                # focus to the popup's internal QListView for the duration -- hasFocus()
-                # on the combo itself is therefore False while the popup is showing, by
-                # Qt's own design (needed for arrow-key item navigation), not a product
-                # defect. Closing the popup -- the same as a user selecting an item or
-                # clicking away -- returns focus to the combo, matching the settled state
-                # DD-52's ring requirement actually describes.
-                control.hidePopup()
+            acquire_focus(control)
             if not control.hasFocus():
-                violations.append(f"{control_label} did not report hasFocus() after a click")
+                violations.append(f"{control_label} did not report hasFocus()")
                 continue
-
-            image = control.grab().toImage()
-            if not (
-                _image_contains_color(image, dark_focus)
-                or _image_contains_color(image, light_focus)
-            ):
-                violations.append(
-                    f"{control_label} does not render the focus.ring border colour after a click"
-                )
+            if not _renders_focus_ring(control):
+                violations.append(f"{control_label} does not render the focus.ring border colour")
                 continue
             checked += 1
+    return violations, skipped, checked
+
+
+@pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
+def test_focus_retaining_input_renders_focus_ring_on_click(
+    qtbot: QtBot,
+    mounted_app_surfaces: list[QWidget],
+    interactive_descendants: Callable[[QWidget], list[QWidget]],
+) -> None:
+    """Proves: STORY-091-AC-4
+
+    Every focus-retaining input control that acquires focus from a click on every platform
+    (text inputs, text areas, spinners, lists, tables -- not momentary buttons, DD-52, and
+    not combo boxes, whose popup takes focus on macOS: STORY-119) reports hasFocus() and
+    renders the focus.ring border colour after a click.
+    """
+    violations, skipped, checked = _scan_focus_rings(
+        surfaces=mounted_app_surfaces,
+        walk=interactive_descendants,
+        qtbot=qtbot,
+        types=_CLICK_FOCUSING_TYPES,
+        acquire_focus=lambda control: qtbot.mouseClick(  # type: ignore[no-untyped-call]  # pytest-qt provides no type stubs
+            control, Qt.MouseButton.LeftButton
+        ),
+    )
 
     assert not violations, (
-        f"{len(violations)} control(s) failed the focus-ring check:\n" + "\n".join(violations)
+        f"{len(violations)} control(s) failed the focus-ring check after a click:\n"
+        + "\n".join(violations)
     )
-    assert checked > 0, (
-        f"no focus-retaining control was found to test ({len(skipped)} skipped as disabled: "
-        f"{skipped})"
+    assert checked >= _MIN_EXPECTED_CLICKED, (
+        f"only {checked} controls were verified (expected >= {_MIN_EXPECTED_CLICKED}); "
+        f"a regression may have disabled or hidden an entire surface's controls -- "
+        f"{len(skipped)} skipped as disabled: {skipped}"
     )
-    assert checked >= _MIN_EXPECTED_CHECKED, (
-        f"only {checked} controls were verified (expected >= {_MIN_EXPECTED_CHECKED}); "
+
+
+@pytest.mark.allow_qt_warnings  # offscreen plugin warns on propagateSizeHints()
+def test_focus_retaining_input_renders_focus_ring_while_it_holds_focus(
+    qtbot: QtBot,
+    mounted_app_surfaces: list[QWidget],
+    interactive_descendants: Callable[[QWidget], list[QWidget]],
+) -> None:
+    """Proves: STORY-119-AC-2
+
+    Every focus-retaining input control -- combos included -- renders the focus.ring border
+    colour while it holds focus, on the native platform and offscreen alike. Focus is driven
+    with setFocus() rather than a click because §5's obligation is on a control that *holds*
+    focus, and a populated combo box does not retain click focus on macOS (STORY-119).
+    """
+    violations, skipped, checked = _scan_focus_rings(
+        surfaces=mounted_app_surfaces,
+        walk=interactive_descendants,
+        qtbot=qtbot,
+        types=_FOCUS_RETAINING_TYPES,
+        acquire_focus=lambda control: control.setFocus(),
+    )
+
+    assert not violations, (
+        f"{len(violations)} control(s) failed the focus-ring check while holding focus:\n"
+        + "\n".join(violations)
+    )
+    assert checked >= _MIN_EXPECTED_FOCUSED, (
+        f"only {checked} controls were verified (expected >= {_MIN_EXPECTED_FOCUSED}); "
         f"a regression may have disabled or hidden an entire surface's controls -- "
         f"{len(skipped)} skipped as disabled: {skipped}"
     )

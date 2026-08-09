@@ -64,3 +64,23 @@ def test_stylesheet_renders_focus_ring_for_focus_retaining_input_types(
     assert "QTreeView:focus" in stylesheet
     assert f"{tokens.focus_ring.outer_width}px solid {tokens.colors.border_focus}" in stylesheet
     assert "QPushButton:focus" not in stylesheet
+
+
+def test_stylesheet_holds_interactive_classes_to_the_24px_click_target_floor(
+    qapp: QApplication,
+) -> None:
+    """Proves: STORY-119-AC-1
+
+    build_stylesheet() emits the minimum-size rules that keep the classes this stylesheet
+    pulls onto Qt's QStyleSheetStyle at or above the 24x24 logical-pixel click-target floor
+    (08_ACCESSIBILITY_FLOOR.md §6). Combos and spin boxes get a content min-height; the
+    checkbox violation is width, so its indicator subcontrol is sized instead -- min-width on
+    QCheckBox itself grows the contents box beside the indicator (19px -> 43px wide) rather
+    than the hit area.
+    """
+    tokens = make_dark_theme_tokens(platform_kind=PlatformKind.LINUX)
+
+    stylesheet = build_stylesheet(tokens)
+
+    assert "QComboBox, QAbstractSpinBox {\n    min-height: 24px;\n}" in stylesheet
+    assert "QCheckBox::indicator {\n    width: 24px;\n    height: 24px;\n}" in stylesheet

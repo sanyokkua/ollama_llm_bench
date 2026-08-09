@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-08T16:42:11Z'
+generated_at: '2026-08-09T09:39:52Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -6261,6 +6261,30 @@ stories:
         tests: []
       STORY-118-AC-4:
         tests: []
+  STORY-119:
+    title: Raise the theme's minimum control sizes to the 24x24 click-target floor and make the focus-ring check pass on the native platform
+    status: ready
+    spec_clauses:
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#10-verification-method
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#5-focus-indication
+    - 12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#6-click-target-size
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
+    modules:
+    - ui/main_window/
+    - ui/theme/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-119-AC-1:
+        tests:
+        - src/ollama_llm_bench/ui/theme/tests/test_build_stylesheet.py::test_stylesheet_holds_interactive_classes_to_the_24px_click_target_floor
+        - tests/e2e/test_click_target_size.py::test_no_walked_control_is_below_the_click_target_floor_in_either_dimension
+      STORY-119-AC-2:
+        tests:
+        - tests/e2e/test_focus_ring_visibility.py::test_focus_retaining_input_renders_focus_ring_while_it_holds_focus
+      STORY-119-AC-3:
+        tests:
+        - tests/architecture/test_accessibility_e2e_platform_parity.py::test_accessibility_e2e_checks_carry_no_platform_skip[test_click_target_size.py]
+        - tests/architecture/test_accessibility_e2e_platform_parity.py::test_accessibility_e2e_checks_carry_no_platform_skip[test_focus_ring_visibility.py]
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -7871,6 +7895,7 @@ clauses:
     stories:
     - STORY-090
     - STORY-091
+    - STORY-119
   12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#11-accessibility-floor-summary:
     stories:
     - STORY-089
@@ -7881,9 +7906,11 @@ clauses:
   12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#5-focus-indication:
     stories:
     - STORY-091
+    - STORY-119
   12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#6-click-target-size:
     stories:
     - STORY-091
+    - STORY-119
   12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md#7-accessible-names:
     stories:
     - STORY-089
@@ -8054,6 +8081,7 @@ clauses:
     - STORY-085
     - STORY-086
     - STORY-094
+    - STORY-119
   16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid:
     stories:
     - STORY-081
@@ -11239,6 +11267,7 @@ modules:
     - STORY-105
     - STORY-114
     - STORY-117
+    - STORY-119
   ui/new_benchmark/:
     stories:
     - STORY-054
@@ -11324,3 +11353,4 @@ modules:
     - STORY-087
     - STORY-090
     - STORY-091
+    - STORY-119
