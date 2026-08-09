@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-09T15:47:35Z'
+generated_at: '2026-08-09T22:01:08Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2639,6 +2639,7 @@ stories:
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_defines_no_async_function[tests/test_determinism.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_defines_no_async_function[tests/test_grid_expansion.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_defines_no_async_function[tests/test_ordering.py]
+        - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_defines_no_async_function[tests/test_size_buckets_public.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_defines_no_async_function[tests/test_synthetic_fields.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_defines_no_async_function[tests/test_validation.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_imports_no_qt_or_asyncio[__init__.py]
@@ -2654,6 +2655,7 @@ stories:
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_imports_no_qt_or_asyncio[tests/test_determinism.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_imports_no_qt_or_asyncio[tests/test_grid_expansion.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_imports_no_qt_or_asyncio[tests/test_ordering.py]
+        - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_imports_no_qt_or_asyncio[tests/test_size_buckets_public.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_imports_no_qt_or_asyncio[tests/test_synthetic_fields.py]
         - tests/architecture/test_performance_task_generator_module.py::test_performance_task_generator_module_imports_no_qt_or_asyncio[tests/test_validation.py]
       STORY-034-AC-2:
@@ -5398,11 +5400,20 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-092-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/performance_task_generator/tests/test_size_buckets_public.py::test_public_bucket_table_is_immutable
+        - src/ollama_llm_bench/backend/performance_task_generator/tests/test_size_buckets_public.py::test_public_bucket_table_is_the_canonical_mapping
       STORY-092-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_offered_sizes_equal_generator_published_table[offered_input_sizes]
+        - src/ollama_llm_bench/ui/new_benchmark/_internal/tests/test_performance_matrix.py::test_offered_sizes_equal_generator_published_table[offered_output_sizes]
       STORY-092-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_synthetic_size_bucket_round_trip.py::test_every_offered_bucket_is_accepted_by_the_generator[LG]
+        - tests/integration/test_synthetic_size_bucket_round_trip.py::test_every_offered_bucket_is_accepted_by_the_generator[MD]
+        - tests/integration/test_synthetic_size_bucket_round_trip.py::test_every_offered_bucket_is_accepted_by_the_generator[SM]
+        - tests/integration/test_synthetic_size_bucket_round_trip.py::test_every_offered_bucket_is_accepted_by_the_generator[XL]
+        - tests/integration/test_synthetic_size_bucket_round_trip.py::test_every_offered_bucket_is_accepted_by_the_generator[XS]
   STORY-093:
     title: Close Phase 12 with per-edge-case test attribution, an auditable risk-mitigation sweep, and the real architecture and data-model docs
     status: draft

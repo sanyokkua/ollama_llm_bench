@@ -1,9 +1,10 @@
-"""Unit tests for the Performance Matrix section widget defaults (STORY-071)."""
+"""Unit tests for the Performance Matrix section widget defaults (STORY-071, STORY-092)."""
 
 from PySide6.QtWidgets import QCheckBox, QSpinBox
 import pytest
 from pytestqt.qtbot import QtBot
 
+from ollama_llm_bench.backend.performance_task_generator import SIZE_BUCKETS
 from ollama_llm_bench.ui.new_benchmark._internal.performance_matrix import (
     PerformanceMatrixSectionWidget,
 )
@@ -74,6 +75,27 @@ def test_repeats_stepper_default_and_range(qtbot: QtBot) -> None:
     stepper = widget.findChild(QSpinBox, "new_benchmark.performance_matrix.repeats")
     assert stepper is not None
     assert (stepper.value(), stepper.minimum(), stepper.maximum()) == (3, 1, 20)  # type: ignore[unreachable]  # mypy false positive with narrowing
+
+
+@pytest.mark.parametrize("axis_property", ["offered_input_sizes", "offered_output_sizes"])
+def test_offered_sizes_equal_generator_published_table(
+    axis_property: str,
+    qtbot: QtBot,
+) -> None:
+    """Proves: STORY-092-AC-2
+
+    On a fresh widget, the token targets the Input Size toggles offer and the
+    token targets the Output Size toggles offer each equal exactly the key set of
+    the Performance Task Generator's published bucket table — so the generator's
+    §4 precondition holds by construction, not by coincidence.
+    """
+    # Arrange
+    widget = PerformanceMatrixSectionWidget()
+    qtbot.addWidget(widget)
+    # Act
+    offered = getattr(widget, axis_property)
+    # Assert
+    assert set(offered) == set(SIZE_BUCKETS)
 
 
 def test_selected_sizes_expose_bucket_token_targets(qtbot: QtBot) -> None:
