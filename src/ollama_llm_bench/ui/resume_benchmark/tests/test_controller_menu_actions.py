@@ -11,7 +11,6 @@ not just derivation).
 """
 
 from collections.abc import Callable
-import re
 
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QMenu, QWidget
@@ -41,11 +40,11 @@ from ollama_llm_bench.ui.resume_benchmark._internal.context_menu import build_co
 from ollama_llm_bench.ui.resume_benchmark._internal.controller import ResumeBenchmarkController
 from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import COL_MODE, COL_NAME
 from ollama_llm_bench.ui.resume_benchmark.models import ResumeBenchmarkCollaborators
+from ollama_llm_bench.ui.resume_benchmark.tests.conftest import FakeExportFilenameHelper
 
 _INTERNAL_ACTIONS = "ollama_llm_bench.ui.resume_benchmark._internal.actions"
 _COMMON_DIALOGS = "ollama_llm_bench.ui.common_dialogs"
 _EXPECTED_SIGNAL_COUNT = 9
-_SANITIZE_RE = re.compile(r"[^A-Za-z0-9._-]")
 
 
 class _NoopSubscription:
@@ -211,17 +210,6 @@ class _FakeResumeGateway:
         return f"{table}-{fmt}-payload\n"
 
 
-class _FakeExportFilenameHelper:
-    """Real sanitisation + ``Run_<run_id>`` fallback (05_EXPORT_FORMATS.md §2)."""
-
-    def compose_filename(self, *, run: BenchmarkRun, kind: str, ext: str) -> str:
-        sanitized = _SANITIZE_RE.sub("_", run.run_name or "")
-        collapsed = re.sub(r"_+", "_", sanitized)
-        stripped = collapsed.strip("_").lstrip(".")[:80]
-        base = stripped or f"Run_{run.run_id}"
-        return f"{base}_{kind}.{ext}"
-
-
 def _run(run_id: int, *, run_name: str | None = "Alpha") -> BenchmarkRun:
     return BenchmarkRun(
         run_id=run_id,
@@ -261,7 +249,10 @@ class _StubResumeView(QWidget):
 
 
 def _make_controller(
-    gateway: _FakeResumeGateway, *, bus: _RecordingEventBus
+    gateway: _FakeResumeGateway,
+    *,
+    bus: _RecordingEventBus,
+    export_filenames: FakeExportFilenameHelper,
 ) -> tuple[ResumeBenchmarkController, QWidget]:
     controller = ResumeBenchmarkController(
         collaborators=ResumeBenchmarkCollaborators(
@@ -269,7 +260,7 @@ def _make_controller(
             event_bus=bus,
             native_pickers=_FakeNativePickers(),
             file_system_actions=_FakeFileSystemActions(),
-            export_filenames=_FakeExportFilenameHelper(),
+            export_filenames=export_filenames,
         )
     )
     view = _StubResumeView()
@@ -278,7 +269,9 @@ def _make_controller(
     return controller, view
 
 
-def test_bind_subscribes_to_every_expected_signal(qtbot: QtBot) -> None:
+def test_bind_subscribes_to_every_expected_signal(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056 (controller EventBus subscriptions)
 
     bind() subscribes to every event listed in the widget's spec §7.
@@ -287,13 +280,15 @@ def test_bind_subscribes_to_every_expected_signal(qtbot: QtBot) -> None:
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
     # Act
-    _controller, view = _make_controller(gateway, bus=bus)
+    _controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
     # Assert
     assert len(bus.subscribed_signals) == len(set(bus.subscribed_signals)) == _EXPECTED_SIGNAL_COUNT
 
 
-def test_on_sort_header_clicked_toggles_direction_and_persists(qtbot: QtBot) -> None:
+def test_on_sort_header_clicked_toggles_direction_and_persists(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056-AC-1
 
     Clicking a new column header sorts descending by default and persists
@@ -302,7 +297,7 @@ def test_on_sort_header_clicked_toggles_direction_and_persists(qtbot: QtBot) -> 
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
 
     # Act
@@ -321,7 +316,9 @@ def test_on_sort_header_clicked_toggles_direction_and_persists(qtbot: QtBot) -> 
     assert gateway.set_sort_calls[-1] == ("mode", True)
 
 
-def test_on_context_menu_requested_with_no_bound_view_is_a_noop() -> None:
+def test_on_context_menu_requested_with_no_bound_view_is_a_noop(
+    export_filename_helper: FakeExportFilenameHelper,
+) -> None:
     """Proves: STORY-056 (controller robustness)
 
     on_context_menu_requested is a no-op before a view is bound.
@@ -333,7 +330,7 @@ def test_on_context_menu_requested_with_no_bound_view_is_a_noop() -> None:
             event_bus=_RecordingEventBus(),
             native_pickers=_FakeNativePickers(),
             file_system_actions=_FakeFileSystemActions(),
-            export_filenames=_FakeExportFilenameHelper(),
+            export_filenames=export_filename_helper,
         )
     )
     # Act / Assert (raises nothing)
@@ -341,7 +338,7 @@ def test_on_context_menu_requested_with_no_bound_view_is_a_noop() -> None:
 
 
 def test_on_context_menu_requested_builds_and_execs_menu(
-    qtbot: QtBot, mocker: MockerFixture
+    qtbot: QtBot, mocker: MockerFixture, export_filename_helper: FakeExportFilenameHelper
 ) -> None:
     """Proves: STORY-056-AC-4
 
@@ -351,7 +348,7 @@ def test_on_context_menu_requested_builds_and_execs_menu(
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
     fake_menu = mocker.Mock()
     fake_menu.actions.return_value = []
@@ -368,7 +365,9 @@ def test_on_context_menu_requested_builds_and_execs_menu(
     fake_menu.exec.assert_called_once()
 
 
-def test_menu_actions_trigger_their_handlers(qtbot: QtBot, mocker: MockerFixture) -> None:
+def test_menu_actions_trigger_their_handlers(
+    qtbot: QtBot, mocker: MockerFixture, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056-AC-5, AC-6
 
     Each wired context-menu action invokes its handler when triggered.
@@ -381,7 +380,7 @@ def test_menu_actions_trigger_their_handlers(qtbot: QtBot, mocker: MockerFixture
 
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
     row = controller.table_model.visible_row(0)
     menu = build_context_menu(row=row, parent=view)
@@ -429,7 +428,11 @@ def _trigger(menu: QMenu, object_name: str) -> None:
     ],
 )
 def test_export_invokes_serialize_table_per_action(
-    qtbot: QtBot, object_name: str, expected_table: str, expected_fmt: str
+    qtbot: QtBot,
+    object_name: str,
+    expected_table: str,
+    expected_fmt: str,
+    export_filename_helper: FakeExportFilenameHelper,
 ) -> None:
     """Proves: STORY-072-AC-1
 
@@ -440,7 +443,7 @@ def test_export_invokes_serialize_table_per_action(
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
     row = controller.table_model.visible_row(0)
     menu = build_context_menu(row=row, parent=view)
@@ -454,7 +457,7 @@ def test_export_invokes_serialize_table_per_action(
 
 
 def test_resume_run_clicked_opens_dialog_and_calls_resume_run(
-    qtbot: QtBot, mocker: MockerFixture
+    qtbot: QtBot, mocker: MockerFixture, export_filename_helper: FakeExportFilenameHelper
 ) -> None:
     """Proves: STORY-057-AC-4
 
@@ -469,7 +472,7 @@ def test_resume_run_clicked_opens_dialog_and_calls_resume_run(
     make_dialog_mock = mocker.patch(
         f"{_COMMON_DIALOGS}.make_resume_summary_dialog", return_value=fake_dialog
     )
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
     controller.on_row_selected(1)
 
@@ -483,7 +486,7 @@ def test_resume_run_clicked_opens_dialog_and_calls_resume_run(
 
 
 def test_resume_run_clicked_with_no_selection_is_a_noop(
-    qtbot: QtBot, mocker: MockerFixture
+    qtbot: QtBot, mocker: MockerFixture, export_filename_helper: FakeExportFilenameHelper
 ) -> None:
     """Proves: STORY-057-AC-4
 
@@ -493,7 +496,7 @@ def test_resume_run_clicked_with_no_selection_is_a_noop(
     make_dialog_mock = mocker.patch(f"{_COMMON_DIALOGS}.make_resume_summary_dialog")
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
 
     # Act
@@ -503,7 +506,9 @@ def test_resume_run_clicked_with_no_selection_is_a_noop(
     make_dialog_mock.assert_not_called()
 
 
-def test_retry_context_menu_action_opens_retry_dialog(qtbot: QtBot, mocker: MockerFixture) -> None:
+def test_retry_context_menu_action_opens_retry_dialog(
+    qtbot: QtBot, mocker: MockerFixture, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-057-AC-5
 
     Triggering action_retry from the context menu opens the Retry Selection
@@ -518,7 +523,7 @@ def test_retry_context_menu_action_opens_retry_dialog(qtbot: QtBot, mocker: Mock
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
     gateway._results_by_run_id[1] = (_pending_result(1),)  # test-fake setup
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
     row = controller.table_model.visible_row(0)
     menu = build_context_menu(row=row, parent=view)
@@ -532,7 +537,9 @@ def test_retry_context_menu_action_opens_retry_dialog(qtbot: QtBot, mocker: Mock
     fake_dialog.exec.assert_called_once()
 
 
-def test_splice_row_updates_existing_row_in_place(qtbot: QtBot) -> None:
+def test_splice_row_updates_existing_row_in_place(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056 (event-driven row splice)
 
     _splice_row replaces just the touched row's data, leaving other rows
@@ -541,7 +548,7 @@ def test_splice_row_updates_existing_row_in_place(qtbot: QtBot) -> None:
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1), _run(2, run_name="Beta")))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
     gateway._runs[1] = _run(1, run_name="Alpha Renamed")
 
@@ -552,7 +559,9 @@ def test_splice_row_updates_existing_row_in_place(qtbot: QtBot) -> None:
     assert controller.table_model.rowCount() == 2  # noqa: PLR2004
 
 
-def test_on_run_touched_ignores_unrelated_payload(qtbot: QtBot) -> None:
+def test_on_run_touched_ignores_unrelated_payload(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056 (event subscription robustness)
 
     _on_run_touched ignores a payload that is not one of the run-touched
@@ -561,14 +570,16 @@ def test_on_run_touched_ignores_unrelated_payload(qtbot: QtBot) -> None:
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
 
     # Act / Assert (raises nothing, no rebuild triggered by an unrelated payload)
     controller._on_run_touched(object())
 
 
-def test_on_run_touched_splices_matching_payload(qtbot: QtBot) -> None:
+def test_on_run_touched_splices_matching_payload(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056 (event-driven row splice)
 
     _on_run_touched splices the row named by a matching event's run_id.
@@ -576,7 +587,7 @@ def test_on_run_touched_splices_matching_payload(qtbot: QtBot) -> None:
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
     event = RunAnalysisReceivedEvent(
         run_id=1, run_mode=RunMode.TASKS, analysis_markdown="x", generated_at="2024-01-01T00:00:00Z"
@@ -589,7 +600,9 @@ def test_on_run_touched_splices_matching_payload(qtbot: QtBot) -> None:
     assert controller.table_model.rowCount() == 1
 
 
-def test_on_external_run_id_changed_updates_selection_state(qtbot: QtBot) -> None:
+def test_on_external_run_id_changed_updates_selection_state(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056-AC-2
 
     _on_external_run_id_changed syncs internal selection state when another
@@ -598,7 +611,7 @@ def test_on_external_run_id_changed_updates_selection_state(qtbot: QtBot) -> Non
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
 
     # Act -- ignored: not a RunIdChangedEvent
@@ -613,7 +626,9 @@ def test_on_external_run_id_changed_updates_selection_state(qtbot: QtBot) -> Non
     assert controller._selected_run_id == 1
 
 
-def test_on_task_file_changed_rebuilds_all_rows(qtbot: QtBot) -> None:
+def test_on_task_file_changed_rebuilds_all_rows(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056 (task-file over-refresh, accepted per plan)
 
     _on_task_file_changed triggers a full rebuild.
@@ -621,7 +636,7 @@ def test_on_task_file_changed_rebuilds_all_rows(qtbot: QtBot) -> None:
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
 
     # Act
@@ -631,7 +646,9 @@ def test_on_task_file_changed_rebuilds_all_rows(qtbot: QtBot) -> None:
     assert controller.table_model.rowCount() == 1
 
 
-def test_rename_context_for_returns_current_name_and_default(qtbot: QtBot) -> None:
+def test_rename_context_for_returns_current_name_and_default(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056-AC-6
 
     rename_context_for returns the run's current custom name and the
@@ -640,7 +657,7 @@ def test_rename_context_for_returns_current_name_and_default(qtbot: QtBot) -> No
     # Arrange
     bus = _RecordingEventBus()
     gateway = _FakeResumeGateway(runs=(_run(1, run_name="Custom"),))
-    controller, view = _make_controller(gateway, bus=bus)
+    controller, view = _make_controller(gateway, bus=bus, export_filenames=export_filename_helper)
     qtbot.addWidget(view)
 
     # Act

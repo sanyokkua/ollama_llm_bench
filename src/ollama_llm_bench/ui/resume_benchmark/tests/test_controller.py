@@ -1,7 +1,6 @@
 """Colocated unit tests for the Resume widget controller (STORY-056)."""
 
 from collections.abc import Callable, Mapping
-import re
 from typing import cast
 
 from PySide6.QtCore import QItemSelectionModel
@@ -32,8 +31,7 @@ from ollama_llm_bench.ui.resume_benchmark._internal.run_table_model import (
     RunTableModel,
 )
 from ollama_llm_bench.ui.resume_benchmark.models import ResumeBenchmarkCollaborators
-
-_SANITIZE_RE = re.compile(r"[^A-Za-z0-9._-]")
+from ollama_llm_bench.ui.resume_benchmark.tests.conftest import FakeExportFilenameHelper
 
 
 class _NoopSubscription:
@@ -184,17 +182,6 @@ class _FakeResumeGateway:
         return f"{table}-{fmt}-payload\n"
 
 
-class _FakeExportFilenameHelper:
-    """Real sanitisation + ``Run_<run_id>`` fallback (05_EXPORT_FORMATS.md §2)."""
-
-    def compose_filename(self, *, run: BenchmarkRun, kind: str, ext: str) -> str:
-        sanitized = _SANITIZE_RE.sub("_", run.run_name or "")
-        collapsed = re.sub(r"_+", "_", sanitized)
-        stripped = collapsed.strip("_").lstrip(".")[:80]
-        base = stripped or f"Run_{run.run_id}"
-        return f"{base}_{kind}.{ext}"
-
-
 def _run(run_id: int, *, run_name: str = "Alpha") -> BenchmarkRun:
     return BenchmarkRun(
         run_id=run_id,
@@ -210,7 +197,9 @@ def _run(run_id: int, *, run_name: str = "Alpha") -> BenchmarkRun:
     )
 
 
-def test_selection_emits_run_id_changed_and_clears_on_filter_out(qtbot: QtBot) -> None:
+def test_selection_emits_run_id_changed_and_clears_on_filter_out(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056-AC-2
 
     Selecting a row emits _run_id_changed with its run_id; when the selected
@@ -227,7 +216,7 @@ def test_selection_emits_run_id_changed_and_clears_on_filter_out(qtbot: QtBot) -
             event_bus=bus,
             native_pickers=_FakeNativePickers(),
             file_system_actions=_FakeFileSystemActions(),
-            export_filenames=_FakeExportFilenameHelper(),
+            export_filenames=export_filename_helper,
         )
     )
     controller.load_initial_rows()
@@ -251,7 +240,9 @@ def controller_last(bus: _RecordingEventBus, signal_name: str) -> RunIdChangedEv
     return payload
 
 
-def test_load_initial_rows_applies_persisted_sort(qtbot: QtBot) -> None:
+def test_load_initial_rows_applies_persisted_sort(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056-AC-1
 
     load_initial_rows reads the persisted sort column/direction and applies
@@ -265,7 +256,7 @@ def test_load_initial_rows_applies_persisted_sort(qtbot: QtBot) -> None:
             event_bus=_RecordingEventBus(),
             native_pickers=_FakeNativePickers(),
             file_system_actions=_FakeFileSystemActions(),
-            export_filenames=_FakeExportFilenameHelper(),
+            export_filenames=export_filename_helper,
         )
     )
 
@@ -276,7 +267,9 @@ def test_load_initial_rows_applies_persisted_sort(qtbot: QtBot) -> None:
     assert controller.table_model.rowCount() == 1
 
 
-def test_resume_widget_constructs_and_shows_with_no_error_logs(qtbot: QtBot) -> None:
+def test_resume_widget_constructs_and_shows_with_no_error_logs(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056-AC-7
 
     make_resume_benchmark_widget constructs and shows with a fake
@@ -289,7 +282,7 @@ def test_resume_widget_constructs_and_shows_with_no_error_logs(qtbot: QtBot) -> 
         event_bus=_RecordingEventBus(),
         native_pickers=_FakeNativePickers(),
         file_system_actions=_FakeFileSystemActions(),
-        export_filenames=_FakeExportFilenameHelper(),
+        export_filenames=export_filename_helper,
     )
 
     # Act
@@ -304,7 +297,9 @@ def test_resume_widget_constructs_and_shows_with_no_error_logs(qtbot: QtBot) -> 
     assert not any(entry["log_level"] in {"error", "critical"} for entry in captured)
 
 
-def test_selection_restored_across_sort_reset_with_view_mounted(qtbot: QtBot) -> None:
+def test_selection_restored_across_sort_reset_with_view_mounted(
+    qtbot: QtBot, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-056-AC-2 (gap fix: selection restore across a model reset, §3.3)
 
     ``RunTableModel.set_sort`` (like ``set_rows``/``set_search_term``) calls
@@ -325,7 +320,7 @@ def test_selection_restored_across_sort_reset_with_view_mounted(qtbot: QtBot) ->
         event_bus=bus,
         native_pickers=_FakeNativePickers(),
         file_system_actions=_FakeFileSystemActions(),
-        export_filenames=_FakeExportFilenameHelper(),
+        export_filenames=export_filename_helper,
     )
     widget = make_resume_benchmark_widget(collaborators=collaborators)
     qtbot.addWidget(widget)

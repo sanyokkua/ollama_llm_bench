@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 from pathlib import Path
-import re
 
 import msgspec
 from PySide6.QtWidgets import QMessageBox, QWidget
@@ -39,10 +38,10 @@ from ollama_llm_bench.ui.resume_benchmark.models import (
     ResumeBenchmarkCollaborators,
     TableExportRequest,
 )
+from ollama_llm_bench.ui.resume_benchmark.tests.conftest import FakeExportFilenameHelper
 
 _INTERNAL = "ollama_llm_bench.ui.resume_benchmark._internal.actions"
 _EXPECTED_NEW_RUN_ID = 999
-_SANITIZE_RE = re.compile(r"[^A-Za-z0-9._-]")
 _NOT_YET_AVAILABLE_MESSAGE = "Export not yet available"
 _SECRET_PAYLOAD = 'prompt,response\n"api_key=sk-test-123 Authorization: Bearer abc",ok\n'  # noqa: S105  # fixture text proving no-redaction, not a real credential
 
@@ -525,22 +524,6 @@ class _FakeFileSystemActions:
         raise NotImplementedError
 
 
-class _FakeExportFilenameHelper:
-    """Real sanitisation + ``Run_<run_id>`` fallback (05_EXPORT_FORMATS.md §2)."""
-
-    def compose_filename(self, *, run: BenchmarkRun, kind: str, ext: str) -> str:
-        sanitized = _sanitize(run.run_name or "")
-        base = sanitized if sanitized else f"Run_{run.run_id}"
-        return f"{base}_{kind}.{ext}"
-
-
-def _sanitize(name: str) -> str:
-    replaced = _SANITIZE_RE.sub("_", name)
-    collapsed = re.sub(r"_+", "_", replaced)
-    stripped = collapsed.strip("_").lstrip(".")
-    return stripped[:80]
-
-
 class _FakeSecretPayloadGateway(_FakeResumeGateway):
     """A ``ResumeGateway`` fake whose ``serialize_table`` returns secret-shaped
     text, to prove ``export_table`` applies no redaction transform to it."""
@@ -556,17 +539,20 @@ def _make_export_collaborators(
     native_pickers: _FakeNativePickers,
     file_system_actions: _FakeFileSystemActions,
     event_bus: _RecordingEventBus,
+    export_filenames: FakeExportFilenameHelper,
 ) -> ResumeBenchmarkCollaborators:
     return ResumeBenchmarkCollaborators(
         gateway=gateway,
         event_bus=event_bus,
         native_pickers=native_pickers,
         file_system_actions=file_system_actions,
-        export_filenames=_FakeExportFilenameHelper(),
+        export_filenames=export_filenames,
     )
 
 
-def test_export_writes_payload_and_no_placeholder_toast(tmp_path: Path) -> None:
+def test_export_writes_payload_and_no_placeholder_toast(
+    tmp_path: Path, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-072-AC-2
 
     Given a run is selected and the user picks a save destination, when the
@@ -586,6 +572,7 @@ def test_export_writes_payload_and_no_placeholder_toast(tmp_path: Path) -> None:
         native_pickers=native_pickers,
         file_system_actions=file_system_actions,
         event_bus=event_bus,
+        export_filenames=export_filename_helper,
     )
     request = TableExportRequest(run_id=1, table="summary", fmt="csv")
 
@@ -604,7 +591,9 @@ def test_export_writes_payload_and_no_placeholder_toast(tmp_path: Path) -> None:
     )
 
 
-def test_export_writes_payload_verbatim_without_redaction(tmp_path: Path) -> None:
+def test_export_writes_payload_verbatim_without_redaction(
+    tmp_path: Path, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-072-AC-3
 
     Given serialize_table returns a payload containing secret-shaped text,
@@ -625,6 +614,7 @@ def test_export_writes_payload_verbatim_without_redaction(tmp_path: Path) -> Non
         native_pickers=native_pickers,
         file_system_actions=file_system_actions,
         event_bus=event_bus,
+        export_filenames=export_filename_helper,
     )
     request = TableExportRequest(run_id=1, table="summary", fmt="csv")
 
@@ -651,7 +641,11 @@ def test_export_writes_payload_verbatim_without_redaction(tmp_path: Path) -> Non
     ],
 )
 def test_export_prefills_canonical_filename(
-    run_name: str, table: str, fmt: str, expected_suggested_name: str
+    run_name: str,
+    table: str,
+    fmt: str,
+    expected_suggested_name: str,
+    export_filename_helper: FakeExportFilenameHelper,
 ) -> None:
     """Proves: STORY-072-AC-4
 
@@ -672,6 +666,7 @@ def test_export_prefills_canonical_filename(
         native_pickers=native_pickers,
         file_system_actions=file_system_actions,
         event_bus=event_bus,
+        export_filenames=export_filename_helper,
     )
     request = TableExportRequest(run_id=1, table=table, fmt=fmt)
 
@@ -683,7 +678,9 @@ def test_export_prefills_canonical_filename(
     assert native_pickers.last_options.suggested_name == expected_suggested_name
 
 
-def test_export_write_failure_toasts_and_writes_nothing(tmp_path: Path) -> None:
+def test_export_write_failure_toasts_and_writes_nothing(
+    tmp_path: Path, export_filename_helper: FakeExportFilenameHelper
+) -> None:
     """Proves: STORY-072 (EC-RB-10)
 
     A write failure while exporting a Summary/Details table -- the target
@@ -701,6 +698,7 @@ def test_export_write_failure_toasts_and_writes_nothing(tmp_path: Path) -> None:
         native_pickers=native_pickers,
         file_system_actions=file_system_actions,
         event_bus=event_bus,
+        export_filenames=export_filename_helper,
     )
     request = TableExportRequest(run_id=1, table="summary", fmt="csv")
 
@@ -763,3 +761,36 @@ def test_show_run_log_file_toasts_on_os_adapter_error() -> None:
     message = event_bus.last_message()
     assert message is not None
     assert message.severity == "error"
+
+
+def test_export_uses_shared_compose_filename_fixture(
+    tmp_path: Path, export_filename_helper: FakeExportFilenameHelper
+) -> None:
+    """Proves: STORY-088-AC-3
+
+    The export action's suggested target filename is exactly what the shared
+    ``conftest.py`` fixture's ``compose_filename`` returns, so every resume test
+    module consumes one fake instead of each defining or re-importing a copy —
+    ``test_actions.py``, ``test_controller.py``,
+    ``test_controller_menu_actions.py`` and ``test_resume_footer.py``.
+    """
+    # Arrange
+    run = _run(1, status=RunStatus.COMPLETED)
+    gateway = _FakeResumeGateway(run=run, tasks=(), results=())
+    native_pickers = _FakeNativePickers(save_path=str(tmp_path / "summary.csv"))
+    collaborators = _make_export_collaborators(
+        gateway=gateway,
+        native_pickers=native_pickers,
+        file_system_actions=_FakeFileSystemActions(),
+        event_bus=_RecordingEventBus(),
+        export_filenames=export_filename_helper,
+    )
+    request = TableExportRequest(run_id=1, table="summary", fmt="csv")
+    expected = export_filename_helper.compose_filename(run=run, kind="Summary", ext="csv")
+
+    # Act
+    export_table(collaborators=collaborators, request=request)
+
+    # Assert
+    assert native_pickers.last_options is not None
+    assert native_pickers.last_options.suggested_name == expected
