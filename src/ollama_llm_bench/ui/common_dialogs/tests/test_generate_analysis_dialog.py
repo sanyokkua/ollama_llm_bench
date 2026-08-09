@@ -69,6 +69,13 @@ class _FakeEventBus:
     def subscribe(
         self, signal_name: str, handler: Callable[[object], None], owner: object | None = None
     ) -> Subscription:
+        # Mirrors QtEventBusDeliverer.subscribe's icontract precondition (08-J §2): a
+        # subscription with no owner is a programming error rejected at subscribe time.
+        # Without this the unit tier silently accepts what the real bus crashes on --
+        # which is exactly how STORY-118's live crash shipped with a green gate.
+        if owner is None:
+            message = "owner is required — a subscription with no owner is a programming error"
+            raise AssertionError(message)
         self._handlers.setdefault(signal_name, []).append(handler)
 
         def _cancel() -> None:

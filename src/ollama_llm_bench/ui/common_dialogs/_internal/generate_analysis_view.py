@@ -106,13 +106,13 @@ class GenerateAnalysisDialog(QDialog):
         self._settled = False
         event_bus = collaborators.event_bus
         self._gate_subscription = event_bus.subscribe(
-            SIGNAL_INFERENCE_ACTIVITY_CHANGED, self._on_inference_activity_changed
+            SIGNAL_INFERENCE_ACTIVITY_CHANGED, self._on_inference_activity_changed, owner=self
         )
         self._progress_subscription = event_bus.subscribe(
-            SIGNAL_INFERENCE_PROGRESS, self._on_inference_progress
+            SIGNAL_INFERENCE_PROGRESS, self._on_inference_progress, owner=self
         )
         self._analysis_subscription = event_bus.subscribe(
-            SIGNAL_RUN_ANALYSIS_RECEIVED, self._on_run_analysis_received
+            SIGNAL_RUN_ANALYSIS_RECEIVED, self._on_run_analysis_received, owner=self
         )
         self._build_ui(collaborators.model_fetcher)
         self._apply_default_selection()
