@@ -4,6 +4,10 @@ Source of truth: ``02_New_Benchmark_Widget/description.md`` §4.2 (captions, ran
 XS+SM defaults), ``mode_specifics/synthetic.md`` §3, and the size-bucket table in
 ``11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md`` §2.3 — each toggle
 carries its bucket's numeric token target, the only values the generator accepts.
+Those token targets are **not** restated here: they are read from the Performance
+Task Generator's published ``SIZE_BUCKETS`` table, so the generator's §4
+precondition ("every numeric value corresponds to a defined size bucket") holds by
+construction rather than by two copies happening to agree (STORY-092).
 The selection is per-session in-memory state only; every fresh construction
 restores the XS+SM default (never persisted).
 """
@@ -13,45 +17,44 @@ from typing import Final
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QCheckBox, QLabel, QSpinBox, QVBoxLayout, QWidget
 
+from ollama_llm_bench.backend.performance_task_generator import SIZE_BUCKETS
+
 __all__: list[str] = ["PerformanceMatrixSectionWidget"]
 
 _REPEATS_MIN: Final[int] = 1
 _REPEATS_MAX: Final[int] = 20
 _REPEATS_DEFAULT: Final[int] = 3
 
-# (size key, bucket token target, default checked, input caption, output caption)
-_SIZE_ROWS: Final[tuple[tuple[str, int, bool, str, str], ...]] = (
+# (size key, default checked, input caption, output caption) — the four UI-only columns
+# fixed by §4.2. The fifth value each row needs, its bucket token target, is zipped on from
+# SIZE_BUCKETS in ascending order at construction time; the rows are ordered to match.
+_SIZE_ROWS: Final[tuple[tuple[str, bool, str, str], ...]] = (
     (
         "XS",
-        64,
         True,
         "XS — ~5 tok · 1 sentence · 7 words",
         "XS — ~1 sentence · ~15 words · ~25 tok",
     ),
     (
         "SM",
-        256,
         True,
         "SM — ~50 tok · 1 paragraph · 70 words",
         "SM — ~5 sentences · ~75 words · ~125 tok",
     ),
     (
         "MD",
-        1024,
         False,
         "MD — ~250 tok · 1 page · 380 words",
         "MD — ~20 sentences · ~300 words · ~500 tok",
     ),
     (
         "LG",
-        4096,
         False,
         "LG — ~1500 tok · long doc · 2300 words",
         "LG — ~100 sentences · ~1500 words · ~2500 tok",
     ),
     (
         "XL",
-        16384,
         False,
         "XL — ~3500 tok · very long · 5300 words",
         "XL — ~500 sentences · ~7500 words · ~12500 tok",
@@ -88,8 +91,11 @@ class PerformanceMatrixSectionWidget(QWidget):
         self, layout: QVBoxLayout, *, title: str, group: str, boxes: dict[int, QCheckBox]
     ) -> None:
         layout.addWidget(_section_title(title))
-        for row in _SIZE_ROWS:
-            size_key, tokens, default_checked, input_caption, output_caption = row
+        # strict=True is load-bearing: if the generator's published table and the §4.2 row
+        # list ever fall out of step, construction raises loudly instead of silently pairing
+        # a caption with the wrong token target.
+        for tokens, row in zip(sorted(SIZE_BUCKETS), _SIZE_ROWS, strict=True):
+            size_key, default_checked, input_caption, output_caption = row
             caption = input_caption if group == "input" else output_caption
             box = QCheckBox(caption)
             box.setObjectName(f"new_benchmark.performance_matrix.{group}.{size_key}")
@@ -99,6 +105,16 @@ class PerformanceMatrixSectionWidget(QWidget):
             box.toggled.connect(self._on_matrix_input_changed)
             boxes[tokens] = box
             layout.addWidget(box)
+
+    @property
+    def offered_input_sizes(self) -> tuple[int, ...]:
+        """Every Input Size toggle's token target, ascending, checked or not."""
+        return tuple(self._input_boxes)
+
+    @property
+    def offered_output_sizes(self) -> tuple[int, ...]:
+        """Every Output Size toggle's token target, ascending, checked or not."""
+        return tuple(self._output_boxes)
 
     @property
     def selected_input_sizes(self) -> tuple[int, ...]:
