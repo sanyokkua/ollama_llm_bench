@@ -14,6 +14,26 @@ observed. It never changes a widget -- a real discrepancy becomes its own story.
 Verdicts: `conforms`, `discrepancy`, `not-applicable`. Any `discrepancy` row
 must say what differs in Notes.
 
+## Standing discrepancy — checkbox indicator size (STORY-119)
+
+Applies to **every screen carrying a checkbox**, so it is recorded once here rather than repeated
+in each screen's table.
+
+The mockups draw a 14 px checkbox (`.checkbox{width:14px;height:14px}`, e.g.
+`02_New_Benchmark_Widget/mockup.html:40`). The accessibility floor
+(`12_Quality_and_NFRs/08_ACCESSIBILITY_FLOOR.md` §6) requires 24 x 24 logical pixels for "every
+checkbox and toggle" and calls anything smaller a release-blocking defect. A 14 px checkbox cannot
+satisfy that, so the two documents conflict and the floor takes precedence.
+
+Since STORY-119 the application therefore renders a 24 x 24 checkbox indicator. Verdict:
+**discrepancy** against the mockups, deliberately — the captures are correct and the mockups are
+below the floor. Measured evidence, including why the alternative (padding the widget rather than
+the indicator) would have satisfied the automated check without enlarging the real hit area, is in
+`docs/stories/story-119-native-click-target-and-focus-parity.md`.
+
+Resolving this in favour of the mockups' proportions would be a change to §6 or to the mockups,
+and needs its own story. It must not be resolved by shrinking the control back under the floor.
+
 ## Screen 01 — Main Window
 
 Mockup: `docs/v3_specification/01_Main_Window/mockup.html`
