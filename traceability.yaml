@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-09T09:44:19Z'
+generated_at: '2026-08-09T11:59:52Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -6243,7 +6243,7 @@ stories:
         tests: []
   STORY-118:
     title: Bind the Generate Analysis dialog's event-bus subscriptions to its own lifetime
-    status: ready
+    status: done
     spec_clauses:
     - 07_Common_Dialogs/generate_analysis_dialog.md#8-confirm-behaviour-and-the-single-inference-gate
     - 07_Common_Dialogs/generate_analysis_dialog.md#81-live-progress-line-during-the-analysis-call
@@ -6251,16 +6251,23 @@ stories:
     - 16_Engineering_Standards/05_ERROR_HANDLING_STANDARD.md#2-the-error-category-model
     modules:
     - ui/common_dialogs/
+    - ui/settings_dialog/
     edge_cases: []
     acceptance_criteria:
       STORY-118-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_generate_analysis_real_event_bus.py::test_dialog_constructs_against_the_real_event_bus
       STORY-118-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_generate_analysis_real_event_bus.py::test_dialog_subscriptions_are_bound_to_dialog_lifetime[_inference_activity_changed]
+        - tests/integration/test_generate_analysis_real_event_bus.py::test_dialog_subscriptions_are_bound_to_dialog_lifetime[_inference_progress]
+        - tests/integration/test_generate_analysis_real_event_bus.py::test_dialog_subscriptions_are_bound_to_dialog_lifetime[_run_analysis_received]
       STORY-118-AC-3:
-        tests: []
+        tests:
+        - tests/e2e/test_generate_analysis_button_opens_dialog.py::test_generate_analysis_button_opens_dialog_with_the_real_event_bus
       STORY-118-AC-4:
-        tests: []
+        tests:
+        - tests/architecture/test_event_bus_subscription_ownership.py::test_every_subscribe_call_site_passes_owner
   STORY-119:
     title: Raise the theme's minimum control sizes to the 24x24 click-target floor and make the focus-ring check pass on the native platform
     status: done
@@ -11330,6 +11337,7 @@ modules:
     - STORY-099
     - STORY-110
     - STORY-113
+    - STORY-118
   ui/shared/:
     stories:
     - STORY-051

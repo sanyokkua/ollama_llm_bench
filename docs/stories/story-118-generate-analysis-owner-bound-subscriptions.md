@@ -1,7 +1,7 @@
 ---
 id: STORY-118
 title: Bind the Generate Analysis dialog's event-bus subscriptions to its own lifetime
-status: ready
+status: done
 spec_clauses:
   - 08_Cross_Cutting/08-J_event_bus_catalog.md#2-subscription-ownership-binding-rule
   - 07_Common_Dialogs/generate_analysis_dialog.md#8-confirm-behaviour-and-the-single-inference-gate
@@ -9,6 +9,7 @@ spec_clauses:
   - 16_Engineering_Standards/05_ERROR_HANDLING_STANDARD.md#2-the-error-category-model
 modules:
   - ui/common_dialogs/
+  - ui/settings_dialog/
 acceptance_criteria:
   - STORY-118-AC-1
   - STORY-118-AC-2
@@ -40,17 +41,27 @@ that have been hiding the defect.
 - `ui/common_dialogs/_internal/generate_analysis_view.py`: pass the dialog itself as the owner
   on all three `event_bus.subscribe(...)` calls in `GenerateAnalysisDialog.__init__`
   (`_inference_activity_changed`, `_inference_progress`, `_run_analysis_received`).
-- Removing the two harness workarounds that exist only because of this defect, so both harnesses
-  build the dialog against the application's real event bus:
+- `ui/settings_dialog/_internal/sub_dialogs/provider_edit_view.py`: pass the dialog itself as
+  the owner on the single `event_bus.subscribe(...)` call in `ProviderEditDialog.__init__`
+  (`_inference_activity_changed`). Found while planning this story, not when it was written:
+  it is the same defect and the same live crash (Settings → Providers → Add/Edit Provider),
+  and AC-4's repo-wide guard cannot pass while it stands. Unlike the Generate Analysis
+  dialog, no harness ever built this dialog against the real bus, so nothing was masking it.
+- Removing the harness workarounds that exist only because of this defect, so every harness
+  builds the dialog against the application's real event bus:
   - `_StubGenerateAnalysisEventBus` in `tests/integration/conftest.py` and the
     `event_bus=_StubGenerateAnalysisEventBus()` override at its single call site;
+  - the byte-identical copy of that same class in `tests/e2e/conftest.py` and its call site.
+    Not listed when this story was written; found during implementation by grepping for the
+    two named fakes. Deleting only the named two would have left the e2e tier still masked;
   - `_GenerateAnalysisEventBusFake` (and its `_NoOpGenerateAnalysisSubscription`) in
     `tests/e2e/test_icon_only_registry_conformance.py`, together with the
     `msgspec.structs.replace(..., event_bus=...)` line that installs it.
-- Tightening the colocated unit double `_FakeEventBus` in
-  `src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py` so it rejects a
-  `None` owner exactly as the real bus does, so the unit tier can never re-mask this class of
-  defect.
+- Tightening the colocated unit doubles — `_FakeEventBus` in
+  `src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py` and
+  `FakeEventBus` in `src/ollama_llm_bench/ui/settings_dialog/tests/conftest.py` — so they
+  reject a `None` owner exactly as the real bus does, so the unit tier can never re-mask this
+  class of defect.
 - A repository-wide architecture guard that fails the gate if any `src/` call site subscribes
   without an owner again.
 
@@ -138,9 +149,14 @@ then the Generate Analysis dialog becomes visible and the application is still r
 
 ### STORY-118-AC-4
 
-For every call to `subscribe(...)` on an event bus anywhere under `src/ollama_llm_bench/`
-— excluding the two declarations of `subscribe` itself, in `backend/events/protocols.py` and
-`adapters/qt_event_bus/_internal/deliverer.py` — the call passes an `owner` argument.
+For every call to `subscribe(...)` on an event bus anywhere under `src/ollama_llm_bench/`, the
+call passes an `owner` argument.
+
+The exclusion this criterion originally named — "the two declarations of `subscribe` itself" —
+is corrected as factually wrong on both counts, without changing what the criterion enforces. A
+walk over `ast.Call` nodes never visits a `FunctionDef`, so no exclusion is needed; and there
+are 28 `def subscribe` declarations under `src/` (3 production, 25 colocated test doubles), not
+2\. Measured at implementation time: 95 `subscribe` call sites, 4 of them owner-less.
 
 ## Test plan
 
@@ -149,31 +165,56 @@ For every call to `subscribe(...)` on an event bus anywhere under `src/ollama_ll
   constructs the dialog through `make_generate_analysis_dialog`. Negative control: temporarily
   drop the `owner` argument in the source and confirm the test fails with
   `icontract.errors.ViolationError` — do not "prove" this by deleting the assertion.
+
 - STORY-118-AC-2 — integration, same file,
   `test_dialog_subscriptions_are_bound_to_dialog_lifetime`, one
   `@pytest.mark.parametrize` case per signal in the AC-2 table. Emits each signal once with the
   dialog alive and once after `deleteLater()` plus a `qtbot` round-trip, asserting the handler
   ran only the first time.
+
 - STORY-118-AC-3 — e2e, `tests/e2e/test_generate_analysis_button_opens_dialog.py`,
   `test_generate_analysis_button_opens_dialog_with_the_real_event_bus`. Uses the existing
-  assembled-app e2e fixture with no event-bus substitution, schedules the dismissal with
-  `QTimer.singleShot` before clicking, and asserts the dialog is visible.
+  assembled-app e2e fixtures with no event-bus substitution, plus a module-local fixture that
+  seeds one completed run (the shared `offline_app_data_root` seeds none, and the Run Analysis
+  tab's Generate button is unreachable without a selected run).
+
+  The dismissal is an app-wide `Show`-event filter, **not** the `QTimer.singleShot` armed
+  before the click that this story's Design constraints called for. `ResultController`
+  ends in `dialog.exec()` (`ui/results/_internal/controller.py:177`), so a timer at a guessed
+  delay that fires before the dialog exists finds nothing, and the modal then opens into a
+  nested loop nothing unwinds — hanging the run with no output. This is the same reasoning,
+  and the same delayed-reject detail, already recorded on `tests/e2e/conftest.py`'s
+  `_DismissReadinessModalOnShow`. The constraint's intent — never `exec()` a dialog from a
+  test, never let a modal block the suite — is met.
+
 - STORY-118-AC-4 — architecture,
   `tests/architecture/test_event_bus_subscription_ownership.py`,
-  `test_every_subscribe_call_site_passes_owner`. AST-walks `src/ollama_llm_bench/`, collects every
-  `Call` whose function attribute is `subscribe`, skips the two `FunctionDef` declarations named
-  in AC-4, and asserts each remaining call carries an `owner` keyword.
+  `test_every_subscribe_call_site_passes_owner`. AST-walks `src/ollama_llm_bench/`, collects
+  every `Call` whose function attribute is `subscribe`, and asserts each carries an `owner`
+  keyword. No exclusion list — see the correction recorded under AC-4.
+
 - No `edge_cases:` entries: this story restores specified behaviour on the happy path and adds no
   new error condition of its own. The dialog's own edge cases (EC-GA-\*) remain owned by
   STORY-065.
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-118.
-- [ ] `_StubGenerateAnalysisEventBus` and `_GenerateAnalysisEventBusFake` no longer exist, and
-  both harnesses build the dialog against the real event bus.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/common_dialogs/`.
-- [ ] The full `just check` gate is green — required, not optional, because
-  `tests/integration/conftest.py` is a shared fixture.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [x] Every acceptance criterion has a passing test that names STORY-118. AC-1/AC-2:
+  `tests/integration/test_generate_analysis_real_event_bus.py` (4 passed). AC-3:
+  `tests/e2e/test_generate_analysis_button_opens_dialog.py` (1 passed, native and offscreen).
+  AC-4: `tests/architecture/test_event_bus_subscription_ownership.py` (1 passed, zero
+  offenders). AC-1 and AC-3 each falsified by removing `, owner=self` from
+  `generate_analysis_view.py:109` and confirming the failure was
+  `icontract.errors.ViolationError` — not by deleting an assertion.
+- [x] `_StubGenerateAnalysisEventBus` (both copies) and `_GenerateAnalysisEventBusFake` no
+  longer exist, and every harness builds the dialog against the real event bus. Verified by
+  `grep -rn` across `tests/` and `src/`: no matches.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for `ui/common_dialogs/` and
+  `ui/settings_dialog/` — all three run inside the gate below.
+- [x] The full `just check` gate is green — required, not optional, because
+  `tests/integration/conftest.py` is a shared fixture. **2525 passed in 1034.33s (17m14s),
+  exit 0, zero failures.**
+- [x] The traceability record validates with no orphan clause and no orphan test.
+  `just trace-check`: OK (119 stories, 3953 tests collected, zero gaps).
+- [x] The module inventory is unchanged — `ui/settings_dialog/` was already listed; only this
+  story's `modules:` front-matter widened to name it.
