@@ -11,9 +11,11 @@ had ``task_file_validator``; no ``ValidationCascade`` Protocol exists anywhere i
 spec tree (verified by repository grep), so none is added here.
 """
 
+from collections.abc import Callable
 from enum import StrEnum
 
 import msgspec
+from PySide6.QtWidgets import QWidget
 
 from ollama_llm_bench.adapters.clipboard import Clipboard
 from ollama_llm_bench.adapters.file_system_actions import FileSystemActions
@@ -28,6 +30,7 @@ __all__: list[str] = [
     "FileRowViewModel",
     "TaskEditorCollaborators",
     "TaskEditorViewModel",
+    "TaskEditorWorkspace",
     "TaskRowViewModel",
     "ToolbarViewModel",
     "ValidationState",
@@ -75,6 +78,20 @@ class TaskEditorCollaborators(msgspec.Struct, frozen=True, kw_only=True, gc=Fals
     native_pickers: NativePickers
     file_system_actions: FileSystemActions
     clipboard: Clipboard
+
+
+class TaskEditorWorkspace(msgspec.Struct, frozen=True, kw_only=True, gc=False):
+    """The mountable Task Editor workspace plus the two quit-sequence hooks the
+    composition root injects into ``make_main_window`` (STORY-114).
+
+    The hooks cross the boundary as plain callables so ``ui/main_window/`` never
+    imports ``ui/task_editor/``; ``compose.py`` reads them off this handle exactly
+    as it already does for the Settings-open and About-open callbacks.
+    """
+
+    widget: QWidget
+    dirty_buffer_count: Callable[[], int]
+    save_all_buffers: Callable[[], tuple[str, ...]]
 
 
 class FileRowViewModel(msgspec.Struct, frozen=True, kw_only=True, gc=False):

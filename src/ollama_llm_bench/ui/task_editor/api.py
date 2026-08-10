@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QWidget
 from ollama_llm_bench.backend.events import EventBus
 from ollama_llm_bench.ui.task_editor._internal.controller import TaskEditorController
 from ollama_llm_bench.ui.task_editor._internal.view import TaskEditorView
-from ollama_llm_bench.ui.task_editor.models import TaskEditorCollaborators
+from ollama_llm_bench.ui.task_editor.models import TaskEditorCollaborators, TaskEditorWorkspace
 
 __all__: list[str] = ["make_task_editor_workspace"]
 
@@ -36,8 +36,10 @@ __all__: list[str] = ["make_task_editor_workspace"]
     ),
     "every collaborator is required, wired by a later composition-root story",
 )
-@icontract.ensure(lambda result: isinstance(result, QWidget))
-def make_task_editor_workspace(*, bus: EventBus, collaborators: TaskEditorCollaborators) -> QWidget:
+@icontract.ensure(lambda result: isinstance(result.widget, QWidget))
+def make_task_editor_workspace(
+    *, bus: EventBus, collaborators: TaskEditorCollaborators
+) -> TaskEditorWorkspace:
     """Construct the mountable Task Editor workspace shell.
 
     Args:
@@ -46,8 +48,11 @@ def make_task_editor_workspace(*, bus: EventBus, collaborators: TaskEditorCollab
             workspace's controller depends on (D-R-06).
 
     Returns:
-        A QWidget ready to mount into the Main Window central region, opened
-        in its Empty state (no file loaded yet).
+        A ``TaskEditorWorkspace`` handle carrying the ``QWidget`` to mount into
+        the Main Window central region -- opened in its Empty state, no file
+        loaded yet -- plus the two quit-sequence hooks (``dirty_buffer_count``,
+        ``save_all_buffers``) the composition root passes to
+        ``make_main_window`` as plain callables (STORY-114).
     """
     controller = TaskEditorController(collaborators=collaborators, event_bus=bus)
     view = TaskEditorView()
@@ -80,4 +85,8 @@ def make_task_editor_workspace(*, bus: EventBus, collaborators: TaskEditorCollab
     view.field_chip_values_changed.connect(controller.on_field_chip_values_changed)
     controller.bind(view)
     controller.load_initial_state()
-    return view
+    return TaskEditorWorkspace(
+        widget=view,
+        dirty_buffer_count=controller.dirty_buffer_count,
+        save_all_buffers=controller.save_all_buffers,
+    )

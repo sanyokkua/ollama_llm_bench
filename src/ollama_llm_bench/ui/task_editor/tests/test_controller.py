@@ -35,6 +35,7 @@ from ollama_llm_bench.backend.task_files import (
 )
 from ollama_llm_bench.backend.task_files.testing import FakeTaskFileLoader
 from ollama_llm_bench.backend.yaml_formatter import make_yaml_formatter
+from ollama_llm_bench.ui.task_editor._internal.controller import TaskEditorController
 from ollama_llm_bench.ui.task_editor._internal.view_model_select import (
     select_task_editor_view_model,
 )
@@ -49,6 +50,7 @@ from ollama_llm_bench.ui.task_editor.tests.conftest import (
 )
 
 _TWO_TASKS_AFTER_SAVE = 2
+_TWO_DIRTY_BUFFERS = 2
 
 
 def _collaborators(
@@ -93,6 +95,14 @@ def _file_result_with_field_error(source_path: str, field_name: str) -> FileVali
             ),
         ),
     )
+
+
+def _seed_clean_task_file(
+    path: Path, *, task_id: str, validator: ScratchAwareTaskFileValidator
+) -> None:
+    """Write a one-task YAML file at ``path`` and register a clean result for it."""
+    path.write_text(f"tasks:\n  - task_id: {task_id}\n    question: Q?\n", encoding="utf-8")
+    validator.set_validation_result(str(path), make_clean_validation_result(str(path)))
 
 
 def test_run_started_marks_in_use_files(qtbot: QtBot, tmp_path: Path) -> None:
@@ -485,3 +495,145 @@ def test_validation_summary_clicked_focuses_first_warning_task(
 
     # Assert
     assert controller._active_task_index == 1
+
+
+# ---- STORY-114: the quit-sequence hooks on the controller's public surface ----
+
+
+def _open_two_buffers_one_broken(
+    *, qtbot: QtBot, tmp_path: Path
+) -> tuple[TaskEditorController, Path, Path]:
+    """Open one clean and one hard-error buffer, both dirty (STORY-114).
+
+    Mirrors ``test_controller_save_and_dialog_branches.py``'s
+    ``..._save_all_holds_when_a_hard_error_remains`` fixture shape verbatim.
+    """
+    clean_path = tmp_path / "clean.yaml"
+    clean_path.write_text("tasks:\n  - task_id: c1\n    question: Qc?\n", encoding="utf-8")
+    broken_path = tmp_path / "broken.yaml"
+    broken_path.write_text("tasks:\n  - task_id: t1\n    question: Qb?\n", encoding="utf-8")
+    validator = ScratchAwareTaskFileValidator()
+    validator.set_validation_result(str(clean_path), make_clean_validation_result(str(clean_path)))
+    validator.set_validation_result(
+        str(broken_path), _file_result_with_field_error(str(broken_path), "question")
+    )
+    native_pickers = FakeNativePickers()
+    native_pickers.set_open_file_result((str(clean_path), str(broken_path)))
+    controller, _bus = make_bound_task_editor_controller(
+        qtbot=qtbot,
+        collaborators=_collaborators(
+            gateway=FakeTaskEditorGateway(), native_pickers=native_pickers, validator=validator
+        ),
+    )
+    controller.on_open_file_clicked()
+    controller.on_add_task_clicked()  # dirties the broken buffer (the active one)
+    controller.on_file_row_selected(0)
+    controller.on_add_task_clicked()  # dirties the clean buffer
+    return controller, clean_path, broken_path
+
+
+def test_save_all_buffers_returns_the_names_of_files_it_could_not_save(
+    qtbot: QtBot, tmp_path: Path
+) -> None:
+    """Proves: STORY-114-AC-3
+
+    Given two dirty buffers of which one holds a hard validation error, when
+    save_all_buffers() runs, then the error-free buffer is written and the
+    unsaveable file's name comes back as data (never as a raised error).
+    """
+    # Arrange
+    controller, _clean_path, _broken_path = _open_two_buffers_one_broken(
+        qtbot=qtbot, tmp_path=tmp_path
+    )
+
+    # Act
+    unsaved = controller.save_all_buffers()
+
+    # Assert
+    assert unsaved == ("broken.yaml",)
+
+
+def test_save_all_buffers_writes_the_error_free_buffer(qtbot: QtBot, tmp_path: Path) -> None:
+    """Proves: STORY-114-AC-3
+
+    The buffer without a hard error is written to disk even though its sibling
+    could not be saved -- a hard error holds the quit, it does not abandon the
+    files that were saveable.
+    """
+    # Arrange
+    controller, clean_path, _broken_path = _open_two_buffers_one_broken(
+        qtbot=qtbot, tmp_path=tmp_path
+    )
+
+    # Act
+    controller.save_all_buffers()
+
+    # Assert
+    assert clean_path.read_text(encoding="utf-8").count("task_id:") == _TWO_TASKS_AFTER_SAVE
+
+
+def test_save_all_buffers_returns_empty_when_every_dirty_buffer_saves(
+    qtbot: QtBot, tmp_path: Path
+) -> None:
+    """Proves: STORY-114-AC-2
+
+    Given every dirty buffer is free of hard errors, when save_all_buffers()
+    runs, then nothing is reported back as unsaveable and the quit may proceed.
+    """
+    # Arrange
+    source_path = tmp_path / "saveable.yaml"
+    source_path.write_text("tasks:\n  - task_id: s1\n    question: Qs?\n", encoding="utf-8")
+    validator = ScratchAwareTaskFileValidator()
+    validator.set_validation_result(
+        str(source_path), make_clean_validation_result(str(source_path))
+    )
+    native_pickers = FakeNativePickers()
+    native_pickers.set_open_file_result((str(source_path),))
+    controller, _bus = make_bound_task_editor_controller(
+        qtbot=qtbot,
+        collaborators=_collaborators(
+            gateway=FakeTaskEditorGateway(), native_pickers=native_pickers, validator=validator
+        ),
+    )
+    controller.on_open_file_clicked()
+    controller.on_add_task_clicked()
+
+    # Act
+    unsaved = controller.save_all_buffers()
+
+    # Assert
+    assert unsaved == ()
+
+
+def test_dirty_buffer_count_counts_only_dirty_buffers(qtbot: QtBot, tmp_path: Path) -> None:
+    """Proves: STORY-114-AC-1
+
+    Given three open buffers of which two hold unsaved edits, when the quit
+    sequence asks for the dirty count, then it is two -- the untouched buffer
+    is not counted.
+    """
+    # Arrange
+    first, second, third = (tmp_path / "f0.yaml", tmp_path / "f1.yaml", tmp_path / "f2.yaml")
+    validator = ScratchAwareTaskFileValidator()
+    _seed_clean_task_file(first, task_id="t0", validator=validator)
+    _seed_clean_task_file(second, task_id="t1", validator=validator)
+    _seed_clean_task_file(third, task_id="t2", validator=validator)
+    native_pickers = FakeNativePickers()
+    native_pickers.set_open_file_result((str(first), str(second), str(third)))
+    controller, _bus = make_bound_task_editor_controller(
+        qtbot=qtbot,
+        collaborators=_collaborators(
+            gateway=FakeTaskEditorGateway(), native_pickers=native_pickers, validator=validator
+        ),
+    )
+    controller.on_open_file_clicked()
+    controller.on_file_row_selected(0)
+    controller.on_add_task_clicked()
+    controller.on_file_row_selected(2)
+    controller.on_add_task_clicked()
+
+    # Act
+    count = controller.dirty_buffer_count()
+
+    # Assert
+    assert count == _TWO_DIRTY_BUFFERS

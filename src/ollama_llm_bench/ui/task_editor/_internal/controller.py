@@ -521,11 +521,8 @@ class TaskEditorController:
         self._push_view_model()
 
     def on_save_all_clicked(self) -> None:
-        logger.debug("task_editor_save_all_clicked", dirty_count=self._dirty_buffer_count())
-        for buffer in self._buffers:
-            if buffer.is_dirty and is_saveable(buffer):
-                self._save_buffer(buffer)
-        self._push_view_model()
+        logger.debug("task_editor_save_all_clicked", dirty_count=self.dirty_buffer_count())
+        self.save_all_buffers()
 
     def _save_buffer(self, buffer: TaskBuffer) -> bool:
         if buffer.is_in_use_by_run and not dialogs.confirm_in_use_save():
@@ -558,8 +555,39 @@ class TaskEditorController:
         logger.debug("task_editor_save_succeeded", path=buffer.source_path)
         return True
 
-    def _dirty_buffer_count(self) -> int:
+    def dirty_buffer_count(self) -> int:
+        """Return how many open buffers hold unsaved edits (STORY-114-AC-1).
+
+        Fast and synchronous; called from the GUI thread by the application-level
+        quit sequence through the callable ``compose.py`` injects into
+        ``make_main_window``.
+        """
         return sum(1 for buffer in self._buffers if buffer.is_dirty)
+
+    def save_all_buffers(self) -> tuple[str, ...]:
+        """Save every dirty buffer that has no hard error; report the rest as data.
+
+        A dirty file that still holds a hard validation error cannot be written
+        (§3.7) -- that is an ordinary, expected outcome, so it comes back as a
+        value the quit path inspects, never as a raised error (STORY-114-AC-2,
+        AC-3).
+
+        The result is derived from which buffers are *still dirty afterwards*
+        rather than from ``_save_buffer``'s return value, deliberately: a buffer
+        skipped by ``is_saveable`` never reaches ``_save_buffer`` at all, and the
+        same "still dirty" reading also covers an in-use-by-run save the user
+        declined and a ``SaveResult`` that failed. Every case where an edit would
+        otherwise be lost therefore holds the quit.
+
+        Returns:
+            The display names of the buffers still dirty once every saveable
+            buffer has been written -- empty when everything saved.
+        """
+        for buffer in self._buffers:
+            if buffer.is_dirty and is_saveable(buffer):
+                self._save_buffer(buffer)
+        self._push_view_model()
+        return tuple(Path(buffer.source_path).name for buffer in self._buffers if buffer.is_dirty)
 
     # ---- leave/quit guard (STORY-069-AC-6) -----------------------------------
 
@@ -570,7 +598,14 @@ class TaskEditorController:
 
     def confirm_and_prepare_quit(self) -> bool:
         """Run the quit-confirmation flow (§3.7); ``True`` means the quit may
-        proceed."""
+        proceed.
+
+        **No production caller (STORY-114).** The application-level quit prompt
+        is owned by ``ui/main_window/_internal/close_handler.py``, which reaches
+        this controller through ``dirty_buffer_count``/``save_all_buffers``
+        instead. Retained as the counterpart of ``confirm_and_prepare_leave``,
+        which remains the live path for the still-unowned leave half of §3.7.
+        """
         return self._resolve_dirty_buffers(dialog=dialogs.confirm_quit)
 
     def _resolve_dirty_buffers(self, *, dialog: Callable[[int], str]) -> bool:

@@ -54,7 +54,7 @@ def test_add_and_duplicate_task_id_generation(qtbot: QtBot, tmp_path: Path) -> N
         clipboard=FakeClipboard(),
         file_system_actions=FakeFileSystemActions(),
     )
-    widget = make_task_editor_workspace(bus=FakeEventBus(), collaborators=collaborators)
+    widget = make_task_editor_workspace(bus=FakeEventBus(), collaborators=collaborators).widget
     qtbot.addWidget(widget)
     open_file_button = cast(
         "QPushButton", widget.findChild(QPushButton, "task_editor.toolbar.open_file")

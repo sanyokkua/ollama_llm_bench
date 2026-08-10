@@ -388,7 +388,7 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
 
     def _make_task_editor_workspace() -> QWidget:
         te_collabs = TaskEditorCollaborators(gateway=task_editor_gateway, task_file_loader=task_file_loader, task_file_validator=task_file_validator, yaml_formatter=yaml_formatter, file_change_watcher=file_change_watcher, native_pickers=native_pickers, file_system_actions=fsa, clipboard=clipboard)  # fmt: skip
-        return make_task_editor_workspace(bus=bus, collaborators=te_collabs)
+        return make_task_editor_workspace(bus=bus, collaborators=te_collabs).widget
 
     # One QStackedWidget both the WorkspaceController and shell host. Fix 3: the *final* switch_to lands on the persisted `ui.active_workspace` (not hardcoded "benchmark"); the other workspace primes first so both pages get built.
     persisted_workspace = settings.get_str("ui.active_workspace")

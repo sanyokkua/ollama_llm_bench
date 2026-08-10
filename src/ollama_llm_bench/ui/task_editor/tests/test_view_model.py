@@ -159,7 +159,7 @@ def test_task_editor_workspace_constructs_and_shows_with_no_error_logs(
         _isolated_structlog_defaults(),
         structlog.testing.capture_logs() as logs,
     ):
-        widget = make_task_editor_workspace(bus=bus, collaborators=task_editor_collaborators)
+        widget = make_task_editor_workspace(bus=bus, collaborators=task_editor_collaborators).widget
         qtbot.addWidget(widget)
         widget.show()
         qtbot.wait(0)

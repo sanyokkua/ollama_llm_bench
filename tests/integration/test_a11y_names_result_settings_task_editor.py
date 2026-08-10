@@ -211,7 +211,7 @@ def _build_task_editor_widget(*, qtbot: QtBot, mocker: MockerFixture, tmp_path: 
             file_system_actions=mocker.Mock(spec=FileSystemActions),
             clipboard=mocker.Mock(spec=Clipboard),
         ),
-    )
+    ).widget
     qtbot.addWidget(widget)
     open_file_button = cast(
         "QAbstractButton", widget.findChild(QAbstractButton, "task_editor.toolbar.open_file")

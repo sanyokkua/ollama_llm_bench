@@ -66,7 +66,14 @@ def confirm_leave(dirty_count: int) -> str:
 
 def confirm_quit(dirty_count: int) -> str:
     """The quit-confirmation dialog (§3.7): quitting the application with dirty
-    buffers. Returns ``"save_all"``, ``"discard_all"``, or ``"cancel"``."""
+    buffers. Returns ``"save_all"``, ``"discard_all"``, or ``"cancel"``.
+
+    **No production caller (STORY-114).** The application-level quit prompt is
+    owned by ``ui/main_window/_internal/close_handler.py``, which drives this
+    module's controller through the ``dirty_buffer_count``/``save_all_buffers``
+    callables ``compose.py`` injects. This function is retained as the
+    counterpart of ``confirm_leave``, the live path for the leave half of §3.7.
+    """
     return _confirm_save_discard_cancel(title="Quit", dirty_count=dirty_count)
 
 
