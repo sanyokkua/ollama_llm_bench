@@ -39,6 +39,7 @@ _DEFAULT_SHUTDOWN_TIMEOUT_MS = 5000
 _RUNNING_QUIT_TITLE = "Quit"
 _RUNNING_QUIT_TEXT = "Stop the benchmark and quit?"
 _UNSAVED_BUFFERS_TITLE = "Unsaved changes"
+_UNSAVED_HELD_TITLE = "Cannot save"
 
 
 class CloseHandler:
@@ -54,7 +55,7 @@ class CloseHandler:
         event_bus: EventBus,
         notifications: NotificationService,
         dirty_buffer_count: Callable[[], int] = lambda: 0,
-        save_all_buffers: Callable[[], None] = lambda: None,
+        save_all_buffers: Callable[[], tuple[str, ...]] = lambda: (),
         on_confirmed_quit: Callable[[], None],
         shutdown_timeout_ms: int = _DEFAULT_SHUTDOWN_TIMEOUT_MS,
     ) -> None:
@@ -68,13 +69,19 @@ class CloseHandler:
             notifications: Retained for parity with the controller's collaborator set;
                 this handler itself raises no notification.
             dirty_buffer_count: Returns the Task Editor's current dirty-buffer count.
-                Defaults to always-zero because the Task Editor does not exist yet
-                (STORY-114 wires the real hook) -- additive, not a signature change a
-                caller must adapt to.
+                Defaults to always-zero so a caller with no Task Editor to consult
+                (every test rig, and any future shell built without the workspace)
+                simply never sees the unsaved-buffers prompt; ``compose.py`` supplies
+                the real supplier (STORY-114).
             save_all_buffers: Invoked exactly once, before the quit proceeds, when the
-                user chooses "Save all" at the unsaved-buffers prompt. Defaults to a
-                no-op for the same reason ``dirty_buffer_count`` defaults to zero --
-                STORY-114 wires the real per-file save behind this hook.
+                user chooses "Save all" at the unsaved-buffers prompt. Returns the
+                display names of the dirty files it could **not** save -- a file
+                still holding a hard validation error cannot be written (§3.7). A
+                non-empty return **holds the quit**: those names are reported to the
+                user and ``on_confirmed_quit`` never runs, so the user can resolve or
+                discard them rather than losing the edits. Defaults to reporting
+                nothing unsaved, for the same reason ``dirty_buffer_count`` defaults
+                to zero.
             on_confirmed_quit: Invoked once every confirmation has resolved toward
                 quitting.
             shutdown_timeout_ms: The bound on the wait for ``_run_stopped`` after a
@@ -142,9 +149,29 @@ class CloseHandler:
                 return
             if outcome == "save_all":
                 logger.debug("quit_saving_all_buffers")
-                self._save_all_buffers()
+                unsaved = self._save_all_buffers()
+                if unsaved:
+                    logger.debug("quit_held_unsaveable_files", file_count=len(unsaved))
+                    self._report_unsaveable_files(unsaved)
+                    return
         logger.debug("quit_confirmed")
         self._on_confirmed_quit()
+
+    @staticmethod
+    def _report_unsaveable_files(names: tuple[str, ...]) -> None:
+        """Report the dirty files that could not be saved and hold the quit (§3.7)."""
+        box = QMessageBox()
+        box.setWindowTitle(_UNSAVED_HELD_TITLE)
+        box.setText(
+            "These files still have errors and were not saved:\n"
+            + "\n".join(names)
+            + "\n\nResolve or discard them, then quit again."
+        )
+        close_button = box.addButton("Close", QMessageBox.ButtonRole.AcceptRole)
+        close_button.setObjectName("main_window.quit_unsaved_held.close_button")
+        close_button.setAccessibleName("Close")
+        box.setDefaultButton(close_button)
+        box.exec()
 
     @staticmethod
     def _confirm_running_benchmark_quit() -> bool:

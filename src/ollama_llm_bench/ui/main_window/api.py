@@ -99,7 +99,7 @@ def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators pe
     settings_requested: Callable[[], None] | None = None,
     about_requested: Callable[[], None] | None = None,
     dirty_buffer_count: Callable[[], int] = lambda: 0,
-    save_all_buffers: Callable[[], None] = lambda: None,
+    save_all_buffers: Callable[[], tuple[str, ...]] = lambda: (),
 ) -> QMainWindow:
     """Construct the application shell.
 
@@ -138,14 +138,17 @@ def make_main_window(  # noqa: PLR0913  # ten distinct required collaborators pe
             which already declares and defaults this parameter.
         dirty_buffer_count: Optional callback returning the Task Editor's current
             dirty-buffer count (STORY-080); forwarded unchanged to ``CloseHandler``,
-            which already declares and defaults this parameter to always-zero. The
-            real Task Editor supplier is STORY-114's — this parameter only makes it
-            injectable without reopening this module again.
+            which already declares and defaults this parameter to always-zero.
+            ``compose.py`` supplies the Task Editor's own supplier (STORY-114); it
+            arrives as a plain callable so this module never imports
+            ``ui/task_editor/``.
         save_all_buffers: Optional callback invoked once, before a confirmed quit
             proceeds, when the user chooses "Save all" at the unsaved-buffers prompt
-            (STORY-080); forwarded unchanged to ``CloseHandler``, which already
-            declares and defaults this parameter to a no-op. The real per-file save
-            implementation is STORY-114's.
+            (STORY-080); forwarded unchanged to ``CloseHandler``. It returns the
+            display names of the dirty files it could **not** save, and a non-empty
+            return **holds the quit** -- those files are reported to the user and the
+            shell stays open (§3.7). Like ``dirty_buffer_count`` it crosses from
+            ``ui/task_editor/`` as a plain callable wired by ``compose.py``.
 
     Returns:
         The fully wired top-level ``QMainWindow``, ready to be shown.

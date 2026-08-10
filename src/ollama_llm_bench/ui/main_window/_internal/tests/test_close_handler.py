@@ -213,12 +213,18 @@ def _assert_quit_confirmation_outcome(  # noqa: PLR0913  # nine collaborators/ex
     monkeypatch.setattr(CloseHandler, "_confirm_unsaved_buffers", _confirm_buffers)
     confirmed_quit_calls: list[None] = []
     save_all_calls: list[None] = []
+
+    def _save_all() -> tuple[str, ...]:
+        """Record the call and report every buffer as saved (STORY-114's contract)."""
+        save_all_calls.append(None)
+        return ()
+
     close_handler = CloseHandler(
         gateway=gateway,
         event_bus=event_bus,
         notifications=notifications,
         dirty_buffer_count=lambda: 3,
-        save_all_buffers=lambda: save_all_calls.append(None),
+        save_all_buffers=_save_all,
         on_confirmed_quit=lambda: confirmed_quit_calls.append(None),
         shutdown_timeout_ms=80,
     )
@@ -312,3 +318,39 @@ def test_confirmation_paths_produce_documented_outcomes_per_ac2_table(  # noqa: 
         notifications=notifications,
         monkeypatch=monkeypatch,
     )
+
+
+def test_save_all_holds_the_quit_when_a_file_cannot_be_saved(
+    gateway: FakeMainWindowGateway,
+    event_bus: FakeEventBus,
+    notifications: FakeNotificationService,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Proves: STORY-114-AC-3
+
+    Given the user chooses "Save all" and one dirty file still holds a hard
+    validation error, when save-all returns that file's name, then the quit is
+    held -- on_confirmed_quit is never called -- and the file is reported.
+    """
+    # Arrange
+    gateway.set_run_active(False)
+    monkeypatch.setattr(CloseHandler, "_confirm_unsaved_buffers", lambda _self: "save_all")
+    reported: list[tuple[str, ...]] = []
+    monkeypatch.setattr(
+        CloseHandler, "_report_unsaveable_files", staticmethod(reported.append)
+    )
+    confirmed_quit_calls: list[None] = []
+    close_handler = CloseHandler(
+        gateway=gateway,
+        event_bus=event_bus,
+        notifications=notifications,
+        dirty_buffer_count=lambda: 2,
+        save_all_buffers=lambda: ("broken.yaml",),
+        on_confirmed_quit=lambda: confirmed_quit_calls.append(None),
+    )
+
+    # Act
+    close_handler.request_close()
+
+    # Assert
+    assert (confirmed_quit_calls, reported) == ([], [("broken.yaml",)])
