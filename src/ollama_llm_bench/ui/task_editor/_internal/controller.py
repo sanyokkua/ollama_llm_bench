@@ -12,7 +12,7 @@ seam (D-R-06).
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from PySide6.QtCore import QTimer
 import structlog
@@ -79,6 +79,10 @@ _DEFAULT_VALIDATION_DEBOUNCE_MS = 250
 _PREVIEW_DEBOUNCE_MS = 200
 _SETTING_AUTO_FORMAT_ON_SAVE = "task_editor.auto_format_on_save"
 _SETTING_VALIDATION_DEBOUNCE_MS = "task_editor.validation_debounce_ms"
+# `type SettingKey = str`, so the plain string satisfies the gateway signature --
+# importing SettingKey from backend.domain would breach this file's allow-list
+# (tests/architecture/test_task_editor_module.py).
+_SETTING_LAST_FOLDER: Final[str] = "ui.task_editor_last_folder"
 _COULD_NOT_OPEN_MESSAGE = "Could not open the selected file"
 _SEED_YAML_TEXT = (
     "schema_version: 1\n"
@@ -181,23 +185,46 @@ class TaskEditorController:
             self._gateway.get_setting(_SETTING_VALIDATION_DEBOUNCE_MS)
         )
 
+    # ---- last-folder persistence (§6, STORY-114-AC-5) ----------------------
+
+    def _remember_last_folder(self, folder: str) -> None:
+        """Persist ``folder`` as the Task Editor's last location (§6).
+
+        §6's table and STORY-114-AC-5 name exactly three triggers -- open file,
+        open folder, new file -- so drag-drop (``on_files_dropped``) and a recent-
+        file click deliberately do *not* write this setting.
+        """
+        self._gateway.set_setting(_SETTING_LAST_FOLDER, folder)
+
+    def _last_folder(self) -> str | None:
+        """Return the persisted last folder the pickers pre-fill with (§6)."""
+        return self._gateway.get_setting(_SETTING_LAST_FOLDER) or None
+
     # ---- open / create -----------------------------------------------------
 
     def on_open_file_clicked(self) -> None:
         logger.debug("task_editor_open_file_clicked")
         paths = self._native_pickers.open_file(
             FilePickerOptions(
-                title="Open Task File", filters=("*.yaml", "*.yml"), allow_multiple=True
+                title="Open Task File",
+                start_dir=self._last_folder(),
+                filters=("*.yaml", "*.yml"),
+                allow_multiple=True,
             )
         )
+        if paths:
+            self._remember_last_folder(str(Path(paths[0]).parent))
         for path in paths:
             self._open_path(path)
 
     def on_open_folder_clicked(self) -> None:
         logger.debug("task_editor_open_folder_clicked")
-        folder = self._native_pickers.open_folder(FolderPickerOptions(title="Open Task Folder"))
+        folder = self._native_pickers.open_folder(
+            FolderPickerOptions(title="Open Task Folder", start_dir=self._last_folder())
+        )
         if folder is None:
             return
+        self._remember_last_folder(folder)
         for path in _top_level_yaml_files(folder):
             self._open_path(path)
 
@@ -205,11 +232,15 @@ class TaskEditorController:
         logger.debug("task_editor_new_file_clicked")
         path = self._native_pickers.save_file(
             SavePickerOptions(
-                title="New Task File", suggested_name="tasks.yaml", filters=("*.yaml",)
+                title="New Task File",
+                suggested_name="tasks.yaml",
+                start_dir=self._last_folder(),
+                filters=("*.yaml",),
             )
         )
         if path is None:
             return
+        self._remember_last_folder(str(Path(path).parent))
         self._file_system_actions.write_text_file(path=path, content=_SEED_YAML_TEXT)
         self._open_path(path)
 
