@@ -8,10 +8,13 @@ count), EC-TASK-8 (an Add-Folder selection with no .yaml/.yml file -> toast, no 
 """
 
 from pathlib import Path
+from typing import override
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QMimeData, Qt, Signal
+from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QLabel,
     QListWidget,
     QListWidgetItem,
     QPushButton,
@@ -38,6 +41,35 @@ __all__: list[str] = ["TaskFilesSectionWidget"]
 logger = structlog.get_logger(__name__)
 
 _YAML_SUFFIXES = (".yaml", ".yml")
+_NO_YAML_IN_FOLDER_MESSAGE = "No YAML files found in the selected folder."
+
+
+def _top_level_yaml_files(folder: Path) -> tuple[str, ...]:
+    """Return the folder's own ``.yaml``/``.yml`` files, sorted, without recursing."""
+    return tuple(
+        sorted(
+            str(path)
+            for path in folder.iterdir()
+            if path.is_file() and path.suffix.lower() in _YAML_SUFFIXES
+        )
+    )
+
+
+def _droppable_paths(mime: QMimeData) -> tuple[str, ...]:
+    """Return the local YAML files and folders a drag payload carries.
+
+    A drag holding anything else -- non-local URLs, plain text, a ``.json`` file --
+    yields an empty tuple, so ``dragEnterEvent`` can refuse it outright rather than
+    accepting a drop the widget cannot honour (``description.md`` §5).
+    """
+    if not mime.hasUrls():
+        return ()
+    candidates = tuple(url.toLocalFile() for url in mime.urls() if url.isLocalFile())
+    return tuple(
+        path
+        for path in candidates
+        if Path(path).is_dir() or Path(path).suffix.lower() in _YAML_SUFFIXES
+    )
 
 
 class TaskFilesSectionWidget(QWidget):
@@ -72,7 +104,6 @@ class TaskFilesSectionWidget(QWidget):
         self._rows: dict[str, TaskFileRowViewModel] = {}
         self.last_inline_error: str | None = None
         self.last_toast_message: str | None = None
-        # TODO: drag-and-drop acceptance is not yet wired to a dragEnterEvent/dropEvent handler
         self.setAcceptDrops(True)
         self._build_ui()
 
@@ -82,6 +113,13 @@ class TaskFilesSectionWidget(QWidget):
         self._list.setObjectName("new_benchmark.task_files.list")
         self._list.setAccessibleName("Selected task files")
         layout.addWidget(self._list)
+
+        self._error_label = QLabel()
+        self._error_label.setObjectName("new_benchmark.task_files.error_label")
+        self._error_label.setAccessibleName("Task file error")
+        self._error_label.setWordWrap(True)
+        self._error_label.setVisible(False)
+        layout.addWidget(self._error_label)
 
         button_row = QHBoxLayout()
         self._add_file_button = QPushButton("Add File")
@@ -130,10 +168,7 @@ class TaskFilesSectionWidget(QWidget):
     def _on_add_folder_clicked(self) -> None:
         folder = self._pickers.open_folder(FolderPickerOptions(title="Add Task Folder"))
         if folder is not None:
-            yaml_paths = tuple(
-                str(p) for p in Path(folder).iterdir() if p.suffix.lower() in _YAML_SUFFIXES
-            )
-            self.add_folder_for_test(folder, yaml_paths)
+            self.add_folder_for_test(folder, _top_level_yaml_files(Path(folder)))
 
     def _on_remove_clicked(self) -> None:
         selected = self._list.selectedItems()
@@ -156,18 +191,24 @@ class TaskFilesSectionWidget(QWidget):
     def add_folder_for_test(self, folder_path: str, yaml_paths: tuple[str, ...]) -> None:
         """Test helper: drive the same Add-Folder path a real folder pick uses."""
         if not yaml_paths:
-            self.last_toast_message = "No YAML files found in the selected folder."
+            self.last_toast_message = _NO_YAML_IN_FOLDER_MESSAGE
             logger.debug("task_files_add_folder_empty", folder_path=folder_path)
             return
         self._load_and_append(yaml_paths)
 
+    def _set_inline_error(self, message: str | None) -> None:
+        """Record and render the inline task-file error, hiding the row when there is none."""
+        self.last_inline_error = message
+        self._error_label.setText(message or "")
+        self._error_label.setVisible(message is not None)
+
     def _load_and_append(self, paths: tuple[str, ...]) -> None:
-        self.last_inline_error = None
+        self._set_inline_error(None)
         for source_path in paths:
             try:
                 tasks = self._loader.load(source_path)
             except TaskFileError as exc:
-                self.last_inline_error = exc.message
+                self._set_inline_error(exc.message)
                 logger.debug(
                     "task_files_load_rejected", source_path=source_path, reason=exc.message
                 )
@@ -197,3 +238,41 @@ class TaskFilesSectionWidget(QWidget):
                 platform_kind=self._platform_kind,
             )
             self._list.setItemWidget(item, badge)
+
+    @override
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        """Accept a drag only when it carries local YAML files or folders (§5)."""
+        if _droppable_paths(event.mimeData()):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    @override
+    def dropEvent(self, event: QDropEvent) -> None:
+        """Load dropped YAML files and folders through the Add File/Add Folder path (§4.3)."""
+        paths = _droppable_paths(event.mimeData())
+        logger.debug("task_files_paths_dropped", path_count=len(paths))
+        self._load_dropped_paths(paths)
+        event.acceptProposedAction()
+
+    def _load_dropped_paths(self, paths: tuple[str, ...]) -> None:
+        """Expand every dropped folder to its top-level YAML files, then load the lot.
+
+        ``TaskFileLoader`` takes one file path at a time and has no folder concept,
+        so folder expansion happens here -- exactly as ``_on_add_folder_clicked``
+        does it for the Add Folder button.
+        """
+        files: list[str] = []
+        dropped_a_folder = False
+        for source_path in paths:
+            candidate = Path(source_path)
+            if not candidate.is_dir():
+                files.append(source_path)
+                continue
+            dropped_a_folder = True
+            files.extend(_top_level_yaml_files(candidate))
+        if dropped_a_folder and not files:
+            self.last_toast_message = _NO_YAML_IN_FOLDER_MESSAGE
+            logger.debug("task_files_drop_folder_empty", path_count=len(paths))
+            return
+        self._load_and_append(tuple(files))
