@@ -1,7 +1,7 @@
 ---
 id: STORY-084
 title: Complete drag-and-drop of task files onto the New Benchmark task-files list
-status: ready
+status: done
 spec_clauses:
   - 02_New_Benchmark_Widget/description.md#43-task-files--task-benchmark-and-graded-benchmark
   - 02_New_Benchmark_Widget/description.md#5-behaviour-per-element
@@ -130,18 +130,34 @@ then the loader rejects that file, an inline error is surfaced, and no row is ad
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-084.
-- [ ] EC-TASK-1 has a passing test.
-- [ ] The `# TODO` at `ui/new_benchmark/_internal/task_files.py:75` is deleted, and no `# TODO`
+- [x] Every acceptance criterion has a passing test that names STORY-084 —
+  `tests/integration/test_new_benchmark_drag_drop.py`, 4 passed natively and offscreen.
+- [x] EC-TASK-1 has a passing test —
+  `test_dropping_malformed_file_shows_inline_error_and_adds_no_row`.
+- [x] The `# TODO` at `ui/new_benchmark/_internal/task_files.py:75` is deleted, and no `# TODO`
   about unwired drag-and-drop remains in `ui/new_benchmark/`.
-- [ ] The `ui/new_benchmark/__init__.py` module docstring no longer claims any part of the widget is
+- [x] The `ui/new_benchmark/__init__.py` module docstring no longer claims any part of the widget is
   stubbed.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
-- [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
-  `draft` → `ready`, and `just trace` re-run.
-- [ ] The next candidate stories are proposed in the closing report.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules — and repo-wide:
+  1064 source files clean, 5 import contracts kept, 1363 architecture tests passed.
+- [x] The traceability record validates with no orphan clause and no orphan test — `just trace-check`
+  OK, 119 stories, 3995 tests, zero gaps.
+- [x] The module inventory is unchanged.
+- [x] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
+  `draft` → `ready`, and `just trace` re-run. STORY-093 stays `draft`: STORY-086 and STORY-092 are
+  still `ready`, and STORY-082 is `superseded`.
+- [x] The next candidate stories are proposed in the closing report.
+
+**Gate caveat.** The full behaviour suite completed **offscreen**: 2560 passed, with 1 failure and
+16 errors all in `tests/integration/` and all proven pre-existing — running `tests/integration`
+with and without this story's new test file produced an *identical* 17-item failure list, the only
+delta being this story's 4 extra passes. Natively, `just check` never reached the end: three
+consecutive runs died with a native crash (SIGSEGV at 89%, SIGBUS at 53%, SIGSEGV at 45%), each
+inside CPython's cyclic GC or Qt fixture teardown, each in a module this story does not touch
+(`ui/progress`, `ui/conftest`, `ui/task_editor`), and each with **zero** test failures beforehand.
+The third of those runs excluded this story's test file entirely and still crashed. This is the
+known un-root-caused native GC flake, which has worsened from roughly 1-in-3 to 3-of-3 and now
+warrants its own story.
 
 ## Unblocks and next steps
 

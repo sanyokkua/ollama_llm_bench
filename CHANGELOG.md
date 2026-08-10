@@ -17,6 +17,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Drag-and-drop onto the New Benchmark "Task Files" section now works. Dropping YAML task files
+  or folders onto the list parses them through the same Task File Loader the Add File / Add
+  Folder buttons use and appends a row per file with its `(N tasks)` badge; a folder contributes
+  its own top-level `.yaml`/`.yml` files. A drag carrying anything else is refused at drag-enter,
+  so the cursor never promises a drop the widget cannot honour. The section previously called
+  `setAcceptDrops(True)` with no handlers behind it, so the cursor invited a drop and releasing
+  did nothing at all (STORY-084).
+
 - `ui/task_editor/` public surface: `make_task_editor_workspace` now returns a frozen
   `TaskEditorWorkspace` handle — the mountable widget plus the two quit-sequence hooks
   (`dirty_buffer_count`, `save_all_buffers`) — instead of a bare `QWidget`. Callers that only
@@ -683,6 +691,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   while the modal is up. Per `08_Cross_Cutting/08-M_app_lifecycle.md` §5 (STORY-081).
 
 ### Fixed
+
+- A malformed task file added to a New Benchmark run is no longer rejected in silence. The
+  loader's message was recorded on the widget but never rendered anywhere, so a file that failed
+  to parse simply produced no row and no explanation; it now appears as an inline error under the
+  Task Files list, and the line is hidden whenever there is no error (STORY-084).
+
+- Adding a task folder no longer treats a *directory* whose name ends in `.yaml` as a task file.
+  The folder scan behind the Add Folder button matched on file extension alone with no
+  is-a-file check, so such a directory was handed to the Task File Loader as if it were a
+  document (STORY-084).
 
 - Quitting no longer silently destroys unsaved task-file edits. The quit confirmation asks
   "Save changes to N file(s)?" with the real number of unsaved files — until now the count was

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-10T07:42:41Z'
+generated_at: '2026-08-10T12:48:00Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5150,7 +5150,7 @@ stories:
         - tests/integration/test_menu_opens_dialogs.py::test_about_action_opens_about_dialog
   STORY-084:
     title: Complete drag-and-drop of task files onto the New Benchmark task-files list
-    status: ready
+    status: done
     spec_clauses:
     - 02_New_Benchmark_Widget/description.md#13-edge-cases
     - 02_New_Benchmark_Widget/description.md#43-task-files--task-benchmark-and-graded-benchmark
@@ -5161,11 +5161,15 @@ stories:
     - EC-TASK-1
     acceptance_criteria:
       STORY-084-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_new_benchmark_drag_drop.py::test_drag_enter_accepts_yaml_files_in_task_modes
+        - tests/integration/test_new_benchmark_drag_drop.py::test_drag_enter_ignores_a_drag_without_yaml_paths
       STORY-084-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_new_benchmark_drag_drop.py::test_dropping_valid_task_files_appends_rows
       STORY-084-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_new_benchmark_drag_drop.py::test_dropping_malformed_file_shows_inline_error_and_adds_no_row
   STORY-085:
     title: Drive a complete benchmark run from the UI through the real pipeline with fake providers
     status: done
@@ -10902,6 +10906,10 @@ edge_cases:
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
+    - tests/integration/test_new_benchmark_drag_drop.py::test_drag_enter_accepts_yaml_files_in_task_modes
+    - tests/integration/test_new_benchmark_drag_drop.py::test_drag_enter_ignores_a_drag_without_yaml_paths
+    - tests/integration/test_new_benchmark_drag_drop.py::test_dropping_malformed_file_shows_inline_error_and_adds_no_row
+    - tests/integration/test_new_benchmark_drag_drop.py::test_dropping_valid_task_files_appends_rows
   EC-TASK-2:
     stories:
     - STORY-055
