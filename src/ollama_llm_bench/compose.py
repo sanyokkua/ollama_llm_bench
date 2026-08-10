@@ -158,7 +158,11 @@ from ollama_llm_bench.ui.resume_benchmark import (  # fmt: skip
 )
 from ollama_llm_bench.ui.settings_dialog import SettingsDialogCollaborators, make_settings_dialog
 from ollama_llm_bench.ui.shared import ensure_tab_bar_scroll_buttons_meet_click_target
-from ollama_llm_bench.ui.task_editor import TaskEditorCollaborators, make_task_editor_workspace
+from ollama_llm_bench.ui.task_editor import (  # fmt: skip
+    TaskEditorCollaborators,
+    TaskEditorWorkspace,
+    make_task_editor_workspace,
+)
 from ollama_llm_bench.ui.theme import (  # fmt: skip
     PlatformKind as UiPlatformKind,
     ThemeSetting,
@@ -386,9 +390,13 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
         splitter.setSizes([360, 580, 500])
         return splitter
 
+    te_handle: TaskEditorWorkspace | None = None
+
     def _make_task_editor_workspace() -> QWidget:
+        nonlocal te_handle
         te_collabs = TaskEditorCollaborators(gateway=task_editor_gateway, task_file_loader=task_file_loader, task_file_validator=task_file_validator, yaml_formatter=yaml_formatter, file_change_watcher=file_change_watcher, native_pickers=native_pickers, file_system_actions=fsa, clipboard=clipboard)  # fmt: skip
-        return make_task_editor_workspace(bus=bus, collaborators=te_collabs).widget
+        te_handle = make_task_editor_workspace(bus=bus, collaborators=te_collabs)
+        return te_handle.widget
 
     # One QStackedWidget both the WorkspaceController and shell host. Fix 3: the *final* switch_to lands on the persisted `ui.active_workspace` (not hardcoded "benchmark"); the other workspace primes first so both pages get built.
     persisted_workspace = settings.get_str("ui.active_workspace")
@@ -403,11 +411,18 @@ def build_app(*, app: QApplication, loop: QEventLoop) -> AppHandle:  # noqa: PLR
         sd_collabs = SettingsDialogCollaborators(gateway=settings_gateway, event_bus=bus, native_pickers=native_pickers, clipboard=clipboard, file_system_actions=fsa, notifications=notifications, theme_manager=theme_manager, platform_kind=plat)  # fmt: skip
         make_settings_dialog(collaborators=sd_collabs, parent=window).exec()
 
+    # The None guards are real: _make_task_editor_workspace is a *lazy* workspace factory. It happens to run above (the double switch_to primes both pages) before make_main_window, but the hooks must stay correct if that ordering ever changes.
+    def _dirty_buffer_count() -> int:
+        return te_handle.dirty_buffer_count() if te_handle is not None else 0
+
+    def _save_all_buffers() -> tuple[str, ...]:
+        return te_handle.save_all_buffers() if te_handle is not None else ()
+
     def _open_about() -> None:
         ab_collabs = AboutDialogCollaborators(clipboard=clipboard, file_system_actions=fsa, event_bus=bus)  # fmt: skip
         make_about_dialog(collaborators=ab_collabs, version=app_version, data_folder_path=str(app_data_root), parent=window).exec()  # fmt: skip
 
-    window = make_main_window(event_bus=bus, gateway=main_window_gateway, workspace=workspace_controller, notifications=notifications, file_system_actions=fsa, container=workspace_region, status_bar=status_bar, app_version=app_version, settings_requested=_open_settings, about_requested=_open_about)  # fmt: skip
+    window = make_main_window(event_bus=bus, gateway=main_window_gateway, workspace=workspace_controller, notifications=notifications, file_system_actions=fsa, container=workspace_region, status_bar=status_bar, app_version=app_version, settings_requested=_open_settings, about_requested=_open_about, dirty_buffer_count=_dirty_buffer_count, save_all_buffers=_save_all_buffers)  # fmt: skip
     return AppHandle(window=window, write_conn=write_conn, write_lock=lock, task_runner=task_runner, run_dispatcher=dispatcher, http_client=http_client, instance_lock=instance_lock, loop=loop, flow=flow)  # fmt: skip
 
 
