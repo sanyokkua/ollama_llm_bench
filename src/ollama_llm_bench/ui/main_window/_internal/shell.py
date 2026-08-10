@@ -96,6 +96,17 @@ class MainWindowShell(QMainWindow):
         """The ``QStackedWidget`` region the real ``WorkspaceController`` switches pages on."""
         return self._workspace_region
 
+    @property
+    def is_quitting(self) -> bool:
+        """Whether the confirmed-quit path has already begun closing this window.
+
+        Read by the controller so a queued Event Bus delivery that drains *after*
+        the quit was confirmed does not act on an application that is shutting
+        down -- by then the ordered shutdown may already have closed the database
+        (STORY-114).
+        """
+        return self._quitting
+
     def set_on_show_callback(self, callback: Callable[[], None]) -> None:
         """Register the callback the deferred readiness-probe tick invokes on first show."""
         self._on_show_callback = callback

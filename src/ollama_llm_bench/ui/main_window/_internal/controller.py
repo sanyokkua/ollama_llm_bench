@@ -261,6 +261,14 @@ class MainWindowController:
         self._render()
 
     def _on_workspace_changed(self, event: WorkspaceChangedEvent) -> None:
+        if self._shell.is_quitting:
+            # Event Bus delivery is queued, so a switch made in the same event-loop
+            # turn as the quit can still drain after the confirmed-quit path closed
+            # the window -- by which point the ordered shutdown may have closed the
+            # write connection, and persisting would raise on it. Nothing is lost:
+            # the confirmed-quit path already flushed this setting (api.py).
+            logger.debug("workspace_changed_ignored_while_quitting", workspace=event.workspace)
+            return
         self._active_workspace = event.workspace
         # §6 requires the write on *every* switch, so the setting survives a crash
         # or a kill -- the quit-time write in api.py is an idempotent flush, not the

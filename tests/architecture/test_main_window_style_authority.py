@@ -75,3 +75,19 @@ def test_main_window_does_not_import_asyncio_or_qasync() -> None:
         .should_not_import("qasync")
         .check("ollama_llm_bench")
     )
+
+
+def test_main_window_does_not_import_task_editor() -> None:
+    """Proves: STORY-114 Definition of Done
+
+    ui/main_window/ never imports ui/task_editor/ -- the two quit callables
+    (dirty_buffer_count, save_all_buffers) cross the boundary as plain callables
+    injected by compose.py, exactly as the Settings-open and About-open callbacks
+    already do (D-R-06).
+    """
+    (
+        archrule("main-window-does-not-import-task-editor")
+        .match("ollama_llm_bench.ui.main_window*")
+        .should_not_import("ollama_llm_bench.ui.task_editor")
+        .check("ollama_llm_bench")
+    )

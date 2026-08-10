@@ -699,3 +699,27 @@ def test_setting_written_per_trigger(
 
     # Assert
     assert harness.gateway.set_active_workspace_calls == [workspace]
+
+
+def test_workspace_change_after_a_confirmed_quit_is_not_persisted(
+    make_harness: Callable[..., MainWindowHarness],
+) -> None:
+    """Proves: STORY-114-AC-5
+
+    Given the confirmed-quit path has already closed the window, when a queued
+    _workspace_changed drains afterwards, then nothing is persisted -- the
+    ordered shutdown may have closed the database by then, and the quit path
+    already flushed this setting.
+    """
+    # Arrange
+    harness = make_harness()
+    harness.shell.force_close()
+
+    # Act
+    harness.event_bus.emit(
+        SIGNAL_WORKSPACE_CHANGED,
+        WorkspaceChangedEvent(workspace="task_editor", previous_workspace="benchmark"),
+    )
+
+    # Assert
+    assert harness.gateway.set_active_workspace_calls == []

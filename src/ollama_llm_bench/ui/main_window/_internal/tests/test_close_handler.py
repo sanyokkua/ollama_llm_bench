@@ -336,9 +336,7 @@ def test_save_all_holds_the_quit_when_a_file_cannot_be_saved(
     gateway.set_run_active(False)
     monkeypatch.setattr(CloseHandler, "_confirm_unsaved_buffers", lambda _self: "save_all")
     reported: list[tuple[str, ...]] = []
-    monkeypatch.setattr(
-        CloseHandler, "_report_unsaveable_files", staticmethod(reported.append)
-    )
+    monkeypatch.setattr(CloseHandler, "_report_unsaveable_files", staticmethod(reported.append))
     confirmed_quit_calls: list[None] = []
     close_handler = CloseHandler(
         gateway=gateway,
