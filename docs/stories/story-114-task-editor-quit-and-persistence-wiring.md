@@ -1,7 +1,7 @@
 ---
 id: STORY-114
 title: Wire the Task Editor into the quit sequence and give its persisted settings their writers
-status: ready
+status: done
 spec_clauses:
   - 09_Task_Editor/description.md#37-leave-confirmation-and-quit-confirmation
   - 09_Task_Editor/description.md#6-persistence
@@ -57,7 +57,9 @@ writers the specification says they should have but which no code supplies.
 - **`ui.task_editor_last_folder` gets a writer.** The Task Editor persists it through its gateway
   whenever a file or folder is opened or created, so the Open and New File pickers pre-fill with
   the user's last location on the next launch. The setting key already exists in the settings
-  registry and in `TaskEditorGateway.set_workspace_setting`; nothing calls it.
+  registry and in `TaskEditorGateway.set_setting`; nothing calls it. (An earlier draft named
+  this method `set_workspace_setting`, which exists nowhere in `src/` — the gateway method is
+  `set_setting`.)
 - **`ui.active_workspace` gets its on-switch writer.** `MainWindowController` already handles the
   workspace-changed event and already holds `MainWindowGateway.set_active_workspace(...)`; this
   story has that handler persist the new workspace on every switch, so the setting survives a crash
@@ -70,7 +72,11 @@ writers the specification says they should have but which no code supplies.
   consumes; it does not change the dialog.
 - **The `dirty_buffer_count` / `save_all_buffers` parameters on `make_main_window` and
   `CloseHandler`** — added by STORY-080. This story injects real implementations into parameters
-  that already exist.
+  that already exist. *One correction to that framing:* AC-3 cannot be met without widening
+  `save_all_buffers`'s type from `Callable[[], None]` to `Callable[[], tuple[str, ...]]` and
+  teaching `CloseHandler` to hold the quit on a non-empty result. That change to
+  `close_handler.py` is in scope. What stays out of scope is the *dialog* itself — its three
+  choices, its text, and its buttons are unchanged.
 - **The ordered shutdown, the WAL checkpoint, the crash-recovery sweep, and the quit-time
   `ui.active_workspace` write** — all owned by STORY-080. This story adds only the *on every
   switch* write that the Task Editor's own persistence table requires in addition.
@@ -216,6 +222,24 @@ no pause, no stop, no cancel — and the quit proceeds through the standard shut
 1. Propose the next stories to pick up, ranked, in the closing report rather than stopping
    silently. Rank whichever of STORY-093's remaining dependencies are still open ahead of
    STORY-093 itself, since it cannot start until they land.
+
+## Implementation notes (added on completion)
+
+- **The Task Editor's own quit prompt is retained but is leave-only.**
+  `TaskEditorController.confirm_and_prepare_quit` and `dialogs.confirm_quit` have never had a
+  production caller; `CloseHandler` owns the application-level prompt. Both now carry a
+  docstring saying so. `confirm_and_prepare_leave` remains the live path for the leave half of
+  §3.7, which is still unowned.
+- **`ui.active_workspace` is not written once the shell is quitting.** Event Bus delivery is
+  queued, so a workspace switch made in the same event-loop turn as a quit can drain *after*
+  the confirmed-quit path closed the window — by which point the ordered shutdown may have
+  closed the write connection, and the write raises `Cannot operate on a closed database`. The
+  full gate surfaced this as 27 logged errors across `tests/integration` (0 before the write
+  was added). `MainWindowController` now ignores a workspace change when
+  `MainWindowShell.is_quitting`; nothing is lost, because the confirmed-quit path already
+  flushed the setting.
+- **The picker pre-fill (§6's read side) is included**, not only the write: all three picker
+  option structs already carried `start_dir`.
 
 ## Notes
 

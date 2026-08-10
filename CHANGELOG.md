@@ -17,6 +17,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `ui/task_editor/` public surface: `make_task_editor_workspace` now returns a frozen
+  `TaskEditorWorkspace` handle — the mountable widget plus the two quit-sequence hooks
+  (`dirty_buffer_count`, `save_all_buffers`) — instead of a bare `QWidget`. Callers that only
+  need the widget read `.widget`. The hooks cross to the application shell as plain callables
+  wired in `compose.py`, so `ui/main_window/` still never imports `ui/task_editor/`
+  (STORY-114).
+
 - Accessible names across the application shell, the seven shared modal dialogs, and the shared
   visual primitives (`ui/main_window/`, `ui/common_dialogs/`, `ui/shared/`): every interactive
   control now reports a non-empty accessible name, so assistive technology can announce it and a
@@ -676,6 +683,28 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   while the modal is up. Per `08_Cross_Cutting/08-M_app_lifecycle.md` §5 (STORY-081).
 
 ### Fixed
+
+- Quitting no longer silently destroys unsaved task-file edits. The quit confirmation asks
+  "Save changes to N file(s)?" with the real number of unsaved files — until now the count was
+  hard-wired to zero, so the prompt could never appear and every unsaved edit was lost without a
+  word. "Save all" writes each file; "Discard all" writes none. A file that still holds a hard
+  validation error cannot be written, so it is now named back to the user and the quit is
+  **held**, giving them the chance to fix or discard it instead of losing the edits. Quitting
+  during a benchmark run is unchanged: the run is untouched and shutdown follows its normal
+  path. Per `09_Task_Editor/description.md` §3.7, `08_Cross_Cutting/08-M_app_lifecycle.md` §7
+  and EC-TE-11 (STORY-114).
+
+- The Task Editor remembers the last folder you opened. `ui.task_editor_last_folder` is written
+  whenever a file or folder is opened or a new file is created, and pre-fills the Open File,
+  Open Folder, and New File pickers — previously the key existed but nothing ever wrote it, so
+  every picker started wherever the OS chose. Per `09_Task_Editor/description.md` §6
+  (STORY-114).
+
+- The active workspace now survives a crash. `ui.active_workspace` is persisted on every switch
+  rather than only at a clean quit, so an unexpected exit no longer reopens the wrong workspace.
+  A switch that arrives after the quit has been confirmed is ignored, since the shutdown may
+  already have closed the database and the quit path has flushed the setting already. Per
+  `09_Task_Editor/description.md` §6 (STORY-114).
 
 - Circuit breaker: a new conformance test pins, across all three breaker states (`CLOSED`,
   `TRIPPED`, `PROBING`), that a per-task inference which exhausts its retry ladder on

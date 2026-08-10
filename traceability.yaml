@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-09T22:01:08Z'
+generated_at: '2026-08-10T07:42:41Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -6178,7 +6178,7 @@ stories:
         - tests/architecture/test_result_gateway_delivers_ui_declared_analysis_type.py::test_regenerate_run_analysis_delivers_the_ui_declared_result_type
   STORY-114:
     title: Wire the Task Editor into the quit sequence and give its persisted settings their writers
-    status: ready
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#7-quit-sequence
     - 09_Task_Editor/description.md#37-leave-confirmation-and-quit-confirmation
@@ -6191,17 +6191,34 @@ stories:
     - EC-TE-11
     acceptance_criteria:
       STORY-114-AC-1:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_dirty_buffer_count_counts_only_dirty_buffers
+        - tests/integration/test_task_editor_quit_integration.py::test_unsaved_prompt_reports_the_real_dirty_buffer_count
       STORY-114-AC-2:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_returns_empty_when_every_dirty_buffer_saves
+        - tests/integration/test_task_editor_quit_integration.py::test_save_all_writes_every_clean_dirty_buffer
       STORY-114-AC-3:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_save_all_holds_the_quit_when_a_file_cannot_be_saved
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_returns_the_names_of_files_it_could_not_save
+        - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_writes_the_error_free_buffer
+        - tests/integration/test_task_editor_quit_integration.py::test_save_all_holds_the_quit_when_a_file_has_a_hard_error
       STORY-114-AC-4:
-        tests: []
+        tests:
+        - tests/integration/test_task_editor_quit_integration.py::test_discard_all_writes_nothing_and_quits
       STORY-114-AC-5:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_setting_written_per_trigger[benchmark]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_setting_written_per_trigger[task_editor]
+        - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_workspace_change_after_a_confirmed_quit_is_not_persisted
+        - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_pickers_prefill_from_the_persisted_last_folder
+        - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[new_file]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[open_file]
+        - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[open_folder]
       STORY-114-AC-6:
-        tests: []
+        tests:
+        - tests/integration/test_task_editor_quit_integration.py::test_quit_with_dirty_buffers_during_a_run_never_touches_run_control
   STORY-115:
     title: Prune run logs at startup by adding the orphan rule and wiring the cleanup into launch
     status: ready
@@ -10956,7 +10973,24 @@ edge_cases:
   EC-TE-11:
     stories:
     - STORY-114
-    tests: []
+    tests:
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_save_all_holds_the_quit_when_a_file_cannot_be_saved
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_setting_written_per_trigger[benchmark]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_setting_written_per_trigger[task_editor]
+    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_workspace_change_after_a_confirmed_quit_is_not_persisted
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_dirty_buffer_count_counts_only_dirty_buffers
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_returns_empty_when_every_dirty_buffer_saves
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_returns_the_names_of_files_it_could_not_save
+    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_writes_the_error_free_buffer
+    - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_pickers_prefill_from_the_persisted_last_folder
+    - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[new_file]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[open_file]
+    - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[open_folder]
+    - tests/integration/test_task_editor_quit_integration.py::test_discard_all_writes_nothing_and_quits
+    - tests/integration/test_task_editor_quit_integration.py::test_quit_with_dirty_buffers_during_a_run_never_touches_run_control
+    - tests/integration/test_task_editor_quit_integration.py::test_save_all_holds_the_quit_when_a_file_has_a_hard_error
+    - tests/integration/test_task_editor_quit_integration.py::test_save_all_writes_every_clean_dirty_buffer
+    - tests/integration/test_task_editor_quit_integration.py::test_unsaved_prompt_reports_the_real_dirty_buffer_count
   EC-WS-1:
     stories:
     - STORY-061
