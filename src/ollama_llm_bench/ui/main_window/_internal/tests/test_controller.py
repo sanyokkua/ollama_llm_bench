@@ -3,7 +3,7 @@ STORY-053-AC-3, EC-SET-1).
 """
 
 from collections.abc import Callable
-from typing import cast
+from typing import Final, cast
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QPushButton, QWidget
@@ -673,3 +673,29 @@ def test_about_action_click_invokes_the_optional_callback(
 
     # Assert
     assert harness.about_requested_calls == [None]
+
+
+_WORKSPACE_ROWS: Final[list[str]] = ["task_editor", "benchmark"]
+
+
+@pytest.mark.parametrize("workspace", _WORKSPACE_ROWS, ids=_WORKSPACE_ROWS)
+def test_setting_written_per_trigger(
+    workspace: str, make_harness: Callable[..., MainWindowHarness]
+) -> None:
+    """Proves: STORY-114-AC-5
+
+    Given the active workspace changes, when the shell handles the
+    _workspace_changed event, then ui.active_workspace is persisted with the
+    new workspace -- on every switch, not only at quit (§6).
+    """
+    # Arrange
+    harness = make_harness()
+
+    # Act
+    harness.event_bus.emit(
+        SIGNAL_WORKSPACE_CHANGED,
+        WorkspaceChangedEvent(workspace=workspace, previous_workspace="benchmark"),
+    )
+
+    # Assert
+    assert harness.gateway.set_active_workspace_calls == [workspace]

@@ -91,6 +91,7 @@ class FakeMainWindowGateway:
         self._is_run_active = False
         self.set_window_geometry_calls: list[str] = []
         self.set_splitter_sizes_calls: list[str] = []
+        self.set_active_workspace_calls: list[str] = []
         self.shutdown_calls: list[int] = []
         self.reprobe_calls = 0
 
@@ -113,6 +114,7 @@ class FakeMainWindowGateway:
 
     def set_active_workspace(self, value: str) -> None:
         self._active_workspace = value
+        self.set_active_workspace_calls.append(value)
 
     def get_theme(self) -> str:
         return self._theme

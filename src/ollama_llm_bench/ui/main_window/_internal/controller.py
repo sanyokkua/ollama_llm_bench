@@ -262,6 +262,11 @@ class MainWindowController:
 
     def _on_workspace_changed(self, event: WorkspaceChangedEvent) -> None:
         self._active_workspace = event.workspace
+        # §6 requires the write on *every* switch, so the setting survives a crash
+        # or a kill -- the quit-time write in api.py is an idempotent flush, not the
+        # only one. QtWorkspaceController.switch_to short-circuits a same-workspace
+        # call before emitting, so this fires exactly once per real change.
+        self._gateway.set_active_workspace(event.workspace)
         logger.debug("workspace_changed_reflected", workspace=event.workspace)
         self._render()
 
