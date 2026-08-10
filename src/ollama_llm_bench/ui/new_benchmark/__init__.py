@@ -1,7 +1,6 @@
-"""New Benchmark configuration surface (STORY-054): mode selector, section
-visibility, selection store, Task Files, Test Models. Judge/Advanced/Start
-(STORY-055) and Performance Matrix content (a new, not-yet-drafted future story)
-are stubbed.
+"""New Benchmark configuration surface: mode selector, section visibility,
+selection store, Task Files (with drag-and-drop), Test Models, Judge, Advanced
+Options, the Performance Matrix, and Start.
 
 Source of truth: ``docs/v3_specification/02_New_Benchmark_Widget/``. Public
 surface is ``make_new_benchmark_widget`` plus the ``NewBenchmarkCollaborators``
