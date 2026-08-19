@@ -45,7 +45,7 @@ the timeout is raised from the `create()` call, not from stream iteration. Measu
 `read=120` the headers arrive at **1.083 s** and the largest gap between server-sent-event lines
 after that is **0.033 s**. Driving the real production client with a 120 000 ms budget fails in
 **0.67 s** with `HttpTimeoutError` (from `openai.APITimeoutError`) raised at
-`backend/provider_openai_compatible/_internal/client_impl.py:130` — the `except` around
+`backend/provider_openai_compatible/_internal/client_impl.py:137` — the `except` around
 `create()` at `:114-130` — not in `chat_stream_impl.__next__`. A heartbeat added inside `__next__`
 would have left the defect entirely unfixed while appearing to fix it.
 
@@ -103,10 +103,21 @@ is no consumer that benefits from failing it faster.
 
 - **Positive** — The live tier can reach a cold local model instead of failing at 0.505 s. The
   transport deadline now equals the budget the Adaptive Timeout Service computed, and it is
-  enforceable while the socket is blocked. `test_deadline.py` is untouched: given the
-  no-resumption result, the two tests in it pin behaviour that is correct for this SDK, and the
-  earlier claim in `live-defects-found.md` that they pinned a specification violation is
-  withdrawn.
+  enforceable while the socket is blocked. Measured against real cold models: `gemma4:12b-mlx`
+  went from `HttpTimeoutError` at 0.652 s to a completed reply at 7.101 s (ttft 7097 ms), and
+  `granite4.1:3b` from 0.677 s to 11.830 s (ttft 11822 ms). `test_deadline.py`'s **assertions** are
+  untouched: given the no-resumption result, the two tests in it pin behaviour that is correct for
+  this SDK, and the earlier claim in `live-defects-found.md` that they pinned a specification
+  violation is withdrawn. Only its docstring changed, because it named the now-deleted
+  `_STREAM_READ_TIMEOUT_S` constant.
+- **Negative — the worst-case wall-clock bound widens from `budget + 0.5 s` to `2 x budget`.** A
+  provider that streams right up to the deadline and then goes silent passes
+  `chat_stream_impl.__next__`'s between-chunks deadline check at `deadline - epsilon` and then blocks
+  for a further full read timeout — 240 s at the 120 s production budget. The bound stays finite and
+  deterministic, so SPEC-015 still holds, and both measured stall shapes landed at approximately
+  1x budget (silent stub 1.648 s and dribbling stub 1.523 s, on a 1.5 s budget). Tightening it means
+  re-arming the timeout inside `__next__` per chunk, which was out of scope here. Accepted
+  deliberately; folded into STORY-120.
 - **Negative — EC-RUN-19's user-visible promise is not delivered today and was never delivered.**
   There is no live, monotonically increasing "Waiting for first token — N.N s" counter during
   provider silence, because no timer-driven heartbeat exists anywhere in the application and the
