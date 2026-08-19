@@ -26,6 +26,7 @@ import os
 from pathlib import Path
 import socket
 import sqlite3
+import threading
 from typing import Final, cast
 from urllib.parse import urlparse
 import warnings
@@ -49,6 +50,7 @@ from ollama_llm_bench.backend.domain import (
     RunStartRequest,
     RunStatus,
 )
+from ollama_llm_bench.backend.errors import AppError
 from ollama_llm_bench.backend.infra import make_system_clock
 from ollama_llm_bench.backend.persistence.app_settings import (
     DB_FILENAME,
@@ -121,10 +123,35 @@ RUN_TIMEOUT_MS: Final[int] = 300_000
 """A real model is far slower than the wire stub's canned bytes; STORY-085's 30s ceiling is not
 enough for a cold first token on a freshly loaded model."""
 
-SHUTDOWN_TIMEOUT_MS: Final[int] = 2_000
+SHUTDOWN_TIMEOUT_MS: Final[int] = 30_000
+"""Bounds `handle.shutdown()`'s dispatcher-thread join only -- `RUN_TIMEOUT_MS` above already
+bounds the run itself. This is deliberately far above the 2_000ms this tier copied verbatim
+from the offline `tests/e2e/` tier, which never runs a real inference call and so never blocks
+the dispatcher thread mid-`chat_stream`.
+
+`OpenAICompatibleClientSettings.hard_cancel_max_ms` (`provider_openai_compatible/models.py`)
+documents a 2_000ms *intended* hard-cancel budget, but `CancellationToken.__init__`'s own
+docstring says enforcing it "belongs to a later dispatcher story" -- today a hard cancel only
+closes the raw stream via `add_hard_cancel_hook` and relies on the OS to unblock whatever
+socket read the dispatcher thread is parked in, which is platform-dependent and itself
+unbounded in the worst case. 2_000ms is therefore not a safety margin over that at all: on the
+`RUN_TIMEOUT_MS` failure path (a real model that never produces a token), the dispatcher thread
+can still be blocked in a bare socket read with nothing to unblock it until the close()
+propagates. 30_000ms gives roughly 15x headroom over the documented-but-unenforced 2_000ms
+bound while staying two orders of magnitude below `RUN_TIMEOUT_MS`, so a merely-slow shutdown
+still finishes inside this bound. A shutdown that is genuinely stuck past this bound is not
+masked by a silent `Thread.join` timeout -- it is caught immediately below by
+`_assert_dispatcher_thread_stopped`, which fails the test loudly instead of letting
+`Py_Finalize` hang the process forever after the summary prints."""
+
 GEOMETRY_DEBOUNCE_DRAIN_MS: Final[int] = 300
 MODAL_DISMISS_DELAY_MS: Final[int] = 100
 WINDOW_VISIBLE_TIMEOUT_MS: Final[int] = 5_000
+
+_DISPATCHER_THREAD_NAME: Final[str] = "pipeline-dispatcher"
+"""Verified against `_DISPATCHER_THREAD_NAME` in
+`adapters/qt_benchmark_flow/_internal/dispatcher_thread.py:25` -- the non-daemon thread
+`AppHandle.shutdown` must join before this fixture's caller returns."""
 
 _CHECKING_HEALTH_LABEL: Final[str] = "Checking"
 """The status-bar health dot's in-flight label; anything else means readiness settled."""
@@ -136,6 +163,10 @@ what models does it have?" before the app is built -- so it needs no persisted r
 
 _NO_RUN_CREATED_SENTINEL: Final[int] = 0
 """``BenchmarkFlowApi.start`` returns this instead of a run id when it refuses the request."""
+
+_THIS_DIR: Final[Path] = Path(__file__).parent
+"""This conftest's own directory, used by ``pytest_collection_modifyitems`` below to scope the
+auto-applied ``live_local`` marker to items collected under here and nowhere else."""
 
 TINY_TASK_FILE_BODY: Final[str] = """schema_version: 1
 tasks:
@@ -172,6 +203,27 @@ def server_reachable(base_url: str, *, timeout_s: float = REACHABILITY_TIMEOUT_S
             return True
     except OSError:
         return False
+
+
+def _lookup_known_base_url[T](mapping: Mapping[str, T], base_url: str, *, mapping_name: str) -> T:
+    """Look up ``base_url`` in one of this tier's ``{OLLAMA,LMSTUDIO}_BASE_URL``-keyed maps.
+
+    Both ``ollama_base_url`` and ``lmstudio_base_url`` are the only fixtures this tier exposes
+    today, so every real caller hits the two known keys. This exists so a future third local
+    provider fixture (llama.cpp is already seeded at ``provider_order`` 2 and one line away)
+    that gets added to one map and not the other fails with a message naming exactly which map
+    is missing the entry, instead of a bare ``KeyError`` with no context.
+
+    Raises:
+        KeyError: ``base_url`` is not a key of ``mapping``.
+    """
+    try:
+        return mapping[base_url]
+    except KeyError as exc:
+        raise KeyError(
+            f"{base_url!r} is not a known live-local base URL in {mapping_name} -- extend "
+            "it for any newly seeded local provider (e.g. llama.cpp)"
+        ) from exc
 
 
 @pytest.fixture(autouse=True)
@@ -302,7 +354,9 @@ def _seed_single_live_provider(*, base_url: str, model_name: str) -> ProviderIdS
     Returns:
         The ``provider_id`` the store assigned to the enabled row.
     """
-    live_order = LIVE_PROVIDER_ORDER_BY_BASE_URL[base_url]
+    live_order = _lookup_known_base_url(
+        LIVE_PROVIDER_ORDER_BY_BASE_URL, base_url, mapping_name="LIVE_PROVIDER_ORDER_BY_BASE_URL"
+    )
     app_data_root = _create_app_data_root_with_schema()
     db_path = app_data_root / DB_FILENAME
     write_conn, lock = open_write_connection(db_path)
@@ -378,6 +432,27 @@ class _DismissReadinessModalOnShow(QObject):
         return False
 
 
+def _assert_dispatcher_thread_stopped() -> None:
+    """Fail loudly if the non-daemon ``pipeline-dispatcher`` thread is still alive.
+
+    ``RunDispatcher.shutdown`` (DD-38) joins the dispatcher thread with a bounded timeout but
+    returns silently if that join times out (DD-44) -- a thread left alive here is exactly the
+    condition that hangs CPython's ``Py_Finalize`` forever at interpreter exit, *after* pytest
+    has already printed its summary, so it reads like success. Calling this immediately after
+    every ``handle.shutdown(...)`` converts that silent, un-diagnosable hang into an immediate,
+    named test failure at the point the defect actually occurred.
+
+    Raises:
+        AssertionError: A thread named ``_DISPATCHER_THREAD_NAME`` is still alive.
+    """
+    live_thread_names = {thread.name for thread in threading.enumerate()}
+    assert _DISPATCHER_THREAD_NAME not in live_thread_names, (
+        f"{_DISPATCHER_THREAD_NAME!r} thread is still alive after handle.shutdown("
+        f"timeout_ms={SHUTDOWN_TIMEOUT_MS}) -- the dispatcher join timed out silently and "
+        "this process will hang at interpreter exit instead of returning"
+    )
+
+
 @pytest.fixture
 def shutdown_handle(qtbot: QtBot) -> Callable[[AppHandle], None]:
     """Run the ordered shutdown the way production does -- window first, then handle.
@@ -407,6 +482,12 @@ def shutdown_handle(qtbot: QtBot) -> Callable[[AppHandle], None]:
     ``handle.shutdown(...)`` -- the actual root-cause fix for the non-daemon
     ``pipeline-dispatcher`` thread hang. The ``shiboken6.isValid`` guard skips the redundant
     close cleanly, and the ``try/finally`` guarantees ``handle.shutdown(...)`` always runs.
+
+    **Asserts the dispatcher thread actually stopped, immediately after ``shutdown(...)``.**
+    ``handle.shutdown(timeout_ms=SHUTDOWN_TIMEOUT_MS)`` can itself return without the thread
+    having joined (see ``SHUTDOWN_TIMEOUT_MS``'s docstring) -- ``_assert_dispatcher_thread_stopped``
+    turns that silent case into an immediate, named failure here rather than a hang at
+    interpreter exit.
     """
 
     def _shutdown(handle: AppHandle) -> None:
@@ -416,6 +497,7 @@ def shutdown_handle(qtbot: QtBot) -> Callable[[AppHandle], None]:
             qtbot.wait(GEOMETRY_DEBOUNCE_DRAIN_MS)
         finally:
             handle.shutdown(timeout_ms=SHUTDOWN_TIMEOUT_MS)
+            _assert_dispatcher_thread_stopped()
 
     return _shutdown
 
@@ -476,7 +558,11 @@ def live_client_factory(qapp: QApplication) -> Generator[Callable[[str], LLMClie
     so no fake bus is needed and none is used), a real inference-activity store, a real
     ``httpx.Client``. No fake and no wire stub stands in for the provider here; that is the
     entire point of this tier (ADR-0011). The client is built through the package's PUBLIC
-    ``make_openai_client`` factory, never ``_internal``.
+    ``make_openai_client`` factory, never ``_internal``. Exactly one clock and one event bus are
+    constructed and shared between the client's own collaborators and the inference-activity
+    store, matching ``compose.py``'s own wiring (one of each for the whole app) -- two of
+    either would let the inference-activity store publish onto a bus the client itself never
+    reads from, or timestamp against a clock the client never reads from.
 
     ``resolved_api_key`` is ``""`` and ``api_key_raw`` is ``None``: Ollama and LM Studio are
     keyless, and the field holds only a bare env-var NAME when it holds anything at all --
@@ -486,12 +572,12 @@ def live_client_factory(qapp: QApplication) -> Generator[Callable[[str], LLMClie
     ``PROBE_TIMEOUT_MS`` therefore bounds discovery only.
     """
     http_client = httpx.Client()
+    clock = make_system_clock()
+    event_bus = make_qt_event_bus_deliverer()
     collaborators = OpenAICompatibleClientCollaborators(
-        clock=make_system_clock(),
-        event_bus=make_qt_event_bus_deliverer(),
-        inference_activity_store=make_inference_activity_store(
-            clock=make_system_clock(), event_bus=make_qt_event_bus_deliverer()
-        ),
+        clock=clock,
+        event_bus=event_bus,
+        inference_activity_store=make_inference_activity_store(clock=clock, event_bus=event_bus),
         http_client=http_client,
     )
     settings = OpenAICompatibleClientSettings(
@@ -513,16 +599,21 @@ def live_client_factory(qapp: QApplication) -> Generator[Callable[[str], LLMClie
         return client
 
     yield _make
-    for client in built:
-        # `LLMClient` does not declare `close()`; the concrete `OpenAICompatibleClient` has it.
-        cast("OpenAICompatibleClientProtocolWithClose", client).close()
-    http_client.close()
+    try:
+        for client in built:
+            # `LLMClient` does not declare `close()`; the concrete client has it.
+            cast("_OpenAICompatibleClientProtocolWithClose", client).close()
+    finally:
+        # A `finally`, not a second unguarded loop line: one failing `client.close()` must not
+        # skip closing the shared `httpx.Client` those clients were all built on top of.
+        http_client.close()
 
 
-class OpenAICompatibleClientProtocolWithClose:
+class _OpenAICompatibleClientProtocolWithClose:
     """Typing-only stand-in naming the ``close()`` the concrete client has but ``LLMClient``
     does not declare. Never instantiated -- ``mypy --strict`` does not cover this directory, so
-    this exists purely to keep the ``cast`` above readable."""
+    this exists purely to keep the ``cast`` above readable. Private: not part of this
+    conftest's fixtures-only contract."""
 
     def close(self) -> None:  # pragma: no cover - never called on this class
         """Release the client's transport resources."""
@@ -597,6 +688,13 @@ def live_smoke(
 
     Shutdown is owned by ``build_live_app``'s finaliser, not by a ``finally`` here: registering
     it at build time is what makes it run even when a wait below times out.
+
+    Skips (never lets a raw taxonomy exception escape mid-fixture) when the server answers TCP
+    but the probe/discovery client itself raises talking to it -- e.g. LM Studio running with
+    its OpenAI-compatible API disabled, so ``GET /v1/models`` errors even though the port is
+    open. ``client.list_models()`` translates that into an ``AppError`` leaf (boundary
+    translation, ``error-handling-standard.md``); this is exactly the same "not set up for the
+    live tier" condition the unreachable-server and no-models skips already cover.
     """
 
     def _run(base_url: str) -> LiveSmokeOutcome:
@@ -606,10 +704,21 @@ def live_smoke(
                 f"start it, or leave this tier unrun"
             )
         client = live_client_factory(base_url)
-        health = client.probe_health()
-        models = client.list_models()
+        try:
+            health = client.probe_health()
+            models = client.list_models()
+        except AppError as exc:
+            pytest.skip(
+                f"{base_url} answered TCP but talking to it raised "
+                f"{type(exc).__name__}: {exc} -- confirm its OpenAI-compatible API is enabled "
+                f"and reachable, then re-run this tier"
+            )
         if not models:
-            pytest.skip(_NO_MODELS_GUIDANCE[base_url])
+            pytest.skip(
+                _lookup_known_base_url(
+                    _NO_MODELS_GUIDANCE, base_url, mapping_name="_NO_MODELS_GUIDANCE"
+                )
+            )
 
         model_name = str(models[0])
         rig = build_live_app(base_url, model_name)
@@ -662,3 +771,24 @@ def expected_live_smoke_outcome() -> LiveSmokeOutcome:
         run_status=RunStatus.COMPLETED,
         first_result_status=ResultStatus.COMPLETED,
     )
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Auto-apply the ``live_local`` marker to every item collected under this directory.
+
+    Belt-and-suspenders for the module docstring's claim that ``pyproject.toml``'s
+    ``addopts`` (``-m "not live_local"``) deselects this whole tier from a bare ``pytest``
+    invocation: that claim is only true if every test module under here actually carries the
+    marker. Tasks 4/5's test modules are expected to declare ``@pytest.mark.live_local``
+    explicitly too, and this hook is idempotent with that -- ``Item.add_marker`` is a no-op if
+    the marker is already present, so declaring it twice is harmless. This closes off the
+    "a new test module under this directory forgot the marker" failure mode entirely, rather
+    than relying on every future author remembering it.
+
+    Scoped to items whose collected path is inside this conftest's own directory: this hook,
+    unlike a fixture, is not path-scoped by pytest and would otherwise run against every item
+    in the whole session once this conftest is loaded at all.
+    """
+    for item in items:
+        if item.path.is_relative_to(_THIS_DIR):
+            item.add_marker(pytest.mark.live_local)
