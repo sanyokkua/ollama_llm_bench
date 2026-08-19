@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-19T16:10:21Z'
+generated_at: '2026-08-19T18:52:24Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5221,7 +5221,7 @@ stories:
         - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_run_terminal_recomputes_summary_details_and_charts
   STORY-086:
     title: Add an opt-in, env-gated live smoke tier against a local Ollama and LM Studio
-    status: in-progress
+    status: done
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#5-the-readiness-probe
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
@@ -6350,7 +6350,7 @@ stories:
         - tests/architecture/test_accessibility_e2e_platform_parity.py::test_accessibility_e2e_checks_carry_no_platform_skip[test_focus_ring_visibility.py]
   STORY-120:
     title: Deliver the live waiting-for-first-token counter with a timer-driven heartbeat and resolve the Anthropic streaming read timeout
-    status: draft
+    status: ready
     spec_clauses:
     - 04_Progress_Widget/description.md#711-inference-progress-sub-row-context--benchmark_task
     - 08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-19

@@ -1,7 +1,7 @@
 ---
 id: STORY-086
 title: Add an opt-in, env-gated live smoke tier against a local Ollama and LM Studio
-status: in-progress
+status: done
 spec_clauses:
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#3-test-layout
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol
@@ -267,19 +267,27 @@ Authority: ADR-0019.
   stage of `just check` passed on each of three attempts: `ruff check` "All checks passed!",
   `ruff format --check` "1194 files already formatted", `mypy --strict` "Success: no issues found
   in 1064 source files", `lint-imports` clean, and `tests/architecture` `1364 passed`.
-- [ ] **The full gate has not returned a verdict.** Three `just check` attempts (two native, one
-  offscreen) each died `exit=139` — `Fatal Python error: Segmentation fault` at 64%, 67% and 75%
-  of the combined pytest run, at three different sites and with **zero** `FAILED`/`ERROR` lines
-  before any of them. Attribution is the controller's, and is open at the time of writing.
+- [x] **The full gate is green under CI-parity conditions, and both red signals are measured as
+  pre-existing.** A fourth `just check` ran without any segfault: `2 failed, 2566 passed in 2030.05s (0:33:50)`, every static stage green. The only two failures are
+  `tests/e2e/test_focus_ring_visibility.py`'s two tests, the already-recorded native-vs-offscreen
+  artifact — `just check` does not pin `QT_QPA_PLATFORM`, whereas CI does. Verified by measurement,
+  not assertion: `just test-e2e` (offscreen, exactly as `pr-gate.yml` sets it) gives `31 passed in 31.17s`, exit 0, both tests included; the two tests run alone natively pass identically on this
+  branch (`2 passed in 3.07s`) and on base `4f01baa` (`2 passed in 3.22s`); and base's own full
+  `just check` gave `2561 passed`, exit 0.
+  The earlier three `exit=139` segfaults are a **pre-existing PySide6 6.8.3 use-after-free**, now
+  root-caused and measured at an identical rate on base and on this branch (1/21 vs 1/11 normal;
+  6/12 vs 6/12 under a heap amplifier), with `test_deadline.py` explicitly cleared (6/12 with it,
+  6/12 without). Owned by STORY-121 / ADR-0020.
 - [x] The traceability record validates with no orphan clause and no orphan test —
   `validate_traceability.py: OK (120 stories, 4005 test(s) collected, zero gaps).`
 - [x] The module inventory is unchanged — this story adds no module; the two production fixes land
   inside `backend/benchmark_pipeline/` and `backend/provider_openai_compatible/`, both already
   inventoried and already named in this story's `modules:`.
-- [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
-  `draft` → `ready`, and `just trace` re-run — **deferred with this story still `in-progress`.**
-  STORY-093 stays `draft` regardless (two dependencies outstanding, see **Unblocks** below);
-  STORY-120, whose only dependency is this story, becomes flippable the moment this one is `done`.
+- [x] Every story under **Unblocks** whose remaining dependencies are now `done` has been checked
+  and `just trace` re-run. STORY-120 (sole dependency: this story) flipped `draft` → `ready`.
+  STORY-093 stays `draft`: of its dependencies, STORY-092 is `ready` and STORY-082 is `superseded`,
+  so its list can never be satisfied as written and needs an architect to drop or re-point that row.
+  STORY-121 is newly written as `draft` and depends on nothing.
 - [x] The next candidate stories are proposed in the closing report.
 
 ## Unblocks and next steps

@@ -1,7 +1,7 @@
 ---
 id: STORY-120
 title: Deliver the live waiting-for-first-token counter with a timer-driven heartbeat and resolve the Anthropic streaming read timeout
-status: draft
+status: ready
 spec_clauses:
   - 08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-19
   - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#69-live-inference-progress-emission
