@@ -30,6 +30,8 @@ jobs:
           uv run mypy --strict src \
             tests/architecture/test_gateway_protocol_assignability.py \
             tests/unit/test_common_dialog_gateway_structural_satisfaction.py
+      # Bare invocation: `pyproject.toml`'s addopts `-m "not live_local"` keeps ADR-0011's
+      # opt-in live tier out of the release quality gate (STORY-086).
       - run: uv run pytest -q
 
   audit:

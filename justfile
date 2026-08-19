@@ -45,6 +45,13 @@ test:
 test-e2e:
     QT_QPA_PLATFORM=offscreen uv run pytest tests/e2e -q
 
+# The opt-in live tier alone (ADR-0011). Requires a local Ollama and/or LM Studio; each
+# provider's test skips cleanly within a bounded connection timeout when its server is
+# absent. Never part of `just check` or CI -- `pyproject.toml`'s addopts deselects it.
+# The command-line -m overrides that addopts entry.
+test-live:
+    OLLAMA_BENCH_LIVE_LOCAL_TESTS=1 uv run pytest tests/live_local -m live_local -q
+
 coverage-layers:
     # per-layer branch-coverage gate — see docs/v3_specification/16_Engineering_Standards/07_TESTING_STANDARD.md §11
     uv run pytest --cov=ollama_llm_bench --cov-report=
