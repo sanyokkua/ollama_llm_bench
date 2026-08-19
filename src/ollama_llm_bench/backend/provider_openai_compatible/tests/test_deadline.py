@@ -6,11 +6,11 @@ Source of truth: ``docs/stories/story-018-openai-compatible-provider-adapter.md`
 ``docs/v3_specification/11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md`` §6.3
 (the finite-deadline invariant, SPEC-015).
 
-The last two tests are regression guards for the live defect STORY-086's opt-in tier
-found: the streaming call's transport ``read`` timeout used to be a fixed 0.5 s, and a
-local provider withholds the HTTP response headers until generation begins, so every
-cold model failed with a timeout before its first token. They carry no ``Proves:`` line
-because they guard a defect rather than an acceptance criterion.
+The last two tests prove STORY-086-AC-6, the acceptance criterion minted for the live
+defect STORY-086's opt-in tier found: the streaming call's transport ``read`` timeout
+used to be a fixed 0.5 s, and a local provider withholds the HTTP response headers until
+generation begins, so every cold model failed with a timeout before its first token.
+See ``docs/adr/0019-streaming-read-timeout-is-the-remaining-budget.md``.
 """
 
 from collections.abc import Callable, Generator
@@ -172,8 +172,10 @@ def test_stream_read_timeout_handed_to_the_sdk_is_the_request_budget(
     fake_clock: FakeClock,
     make_client: Callable[..., OpenAICompatibleClient],
 ) -> None:
-    """Regression guard (STORY-086 live defect): the streaming call's transport ``read``
-    timeout is ``ChatRequest.timeout_ms``, not a fixed sub-second constant.
+    """Proves: STORY-086-AC-6
+
+    The streaming call's transport ``read`` timeout is ``ChatRequest.timeout_ms``, not a
+    fixed sub-second constant.
 
     Given a request carrying an 8 s budget, when ``chat`` is called, then the
     ``httpx.Timeout`` the SDK hands to the transport carries ``read=8.0`` — and
@@ -216,8 +218,10 @@ def test_cold_start_within_budget_streams_instead_of_timing_out(
     fake_clock: FakeClock,
     make_client: Callable[..., OpenAICompatibleClient],
 ) -> None:
-    """Regression guard (STORY-086 live defect): a first token slower than a second, but
-    inside the call's budget, completes rather than raising ``HttpTimeoutError``.
+    """Proves: STORY-086-AC-6
+
+    A first token slower than a second, but inside the call's budget, completes rather
+    than raising ``HttpTimeoutError``.
 
     Given the endpoint withholds its response headers for 1.5 s — what a cold local model
     does — and the request's budget is 8 s, when ``chat`` is called, then it returns the

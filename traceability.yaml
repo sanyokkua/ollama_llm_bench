@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-19T15:21:42Z'
+generated_at: '2026-08-19T16:10:21Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -2161,11 +2161,12 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_complete_or_advance_skips_combine_verdict_when_all_grading_disabled
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_eligible_for_phase_excludes_rows_already_past_or_failed
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_group_by_provider_and_model_preserves_first_seen_order
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[inference-False-False-False-None]
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[judge_check-True-True-True-None]
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[keyword_check-True-False-False-None]
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[keyword_check-True-False-True-awaiting_judge_check]
-        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[keyword_check-True-True-True-awaiting_cosine_check]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[inference-graded-False-False-False-None]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[inference-tasks-True-True-True-None]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[judge_check-graded-True-True-True-None]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[keyword_check-graded-True-False-False-None]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[keyword_check-graded-True-False-True-awaiting_judge_check]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_next_status_after_phase_routes_per_08b_state_machine[keyword_check-graded-True-True-True-awaiting_cosine_check]
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_phase_applies_matches_the_mode_applicability_table[inference-synthetic-False-False-False-True]
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_phase_applies_matches_the_mode_applicability_table[judge_check-graded-True-True-False-False]
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_phase_applies_matches_the_mode_applicability_table[keyword_check-graded-False-True-True-False]
@@ -2174,6 +2175,7 @@ stories:
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_phase_applies_matches_the_mode_applicability_table[keyword_check-tasks-True-True-True-False]
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching.py::test_phase_order_is_the_five_phases_in_spec_order
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching_drain.py::test_no_row_enters_a_later_phase_before_the_earlier_phase_fully_drains
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_batching_drain.py::test_run_all_phases_never_dispatches_a_grading_phase_unit_under_a_non_graded_mode
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_cosine_unit_completes_when_judge_disabled
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_inference_attempt_then_finalize_advances_to_completed
         - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_build_judge_attempt_then_finalize_completes_with_resolved_outcome
@@ -5232,14 +5234,25 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-086-AC-1:
-        tests: []
+        tests:
+        - tests/live_local/test_ollama_live_smoke.py::test_ollama_probe_discover_and_tiny_run
       STORY-086-AC-2:
-        tests: []
+        tests:
+        - tests/live_local/test_lmstudio_live_smoke.py::test_lmstudio_probe_discover_and_tiny_run
       STORY-086-AC-3:
-        tests: []
+        tests:
+        - tests/unit/test_live_tier_gating.py::test_live_tests_skip_when_opt_in_unset_or_server_absent
       STORY-086-AC-4:
         tests:
         - tests/architecture/test_live_tier_excluded_from_gate.py::test_live_local_marker_excluded_from_default_selection
+      STORY-086-AC-5:
+        tests:
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_finalize_inference_success_completes_non_grading_mode_with_all_toggles_enabled[synthetic]
+        - src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py::test_finalize_inference_success_completes_non_grading_mode_with_all_toggles_enabled[tasks]
+      STORY-086-AC-6:
+        tests:
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_deadline.py::test_cold_start_within_budget_streams_instead_of_timing_out
+        - src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_deadline.py::test_stream_read_timeout_handed_to_the_sdk_is_the_request_budget
   STORY-087:
     title: Capture every spec screen in both themes and review the captures against the mockups
     status: done

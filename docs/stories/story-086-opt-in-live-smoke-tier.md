@@ -1,7 +1,7 @@
 ---
 id: STORY-086
 title: Add an opt-in, env-gated live smoke tier against a local Ollama and LM Studio
-status: ready
+status: in-progress
 spec_clauses:
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#3-test-layout
   - 16_Engineering_Standards/07_TESTING_STANDARD.md#6a-shared-contract-test-suite-per-protocol
@@ -16,11 +16,14 @@ acceptance_criteria:
   - STORY-086-AC-2
   - STORY-086-AC-3
   - STORY-086-AC-4
+  - STORY-086-AC-5
+  - STORY-086-AC-6
 edge_cases: []
 depends_on:
   - STORY-085
 adrs:
   - ADR-0011
+  - ADR-0019
 owner: tester
 estimate: M
 ---
@@ -49,6 +52,15 @@ is cited below only for the constraints the tier must not violate.
   terminal status against that live server.
 - Clean auto-skip when the opt-in variable is unset or the target server is not reachable — no
   failure, no hang.
+- `scripts/_traceability_lib.py` passes `-m ""` when collecting, so `just trace` still sees the
+  deselected live tests and `just trace-check` does not report their acceptance criteria as
+  unproven.
+- The two provider modules share their probe/discover/run body through a `live_smoke` fixture in
+  `tests/live_local/conftest.py`. They cannot share it by import: pytest registers a plain
+  `conftest.py` under the bare name `conftest`, so with several conftests collected
+  `from conftest import ...` silently returns whichever was imported last.
+- **Added mid-story, owner-approved:** the two production fixes the tier's first real run uncovered
+  (AC-5 and AC-6 below).
 
 ### The three mechanics that must be got right, or the build breaks
 
@@ -127,13 +139,31 @@ clean auto-skip — and assigns all of it to this story.
 
 - The tier is opt-in by `OLLAMA_BENCH_LIVE_LOCAL_TESTS=1` and carries the `live_local` marker; the
   default `just check` / CI selection never runs it.
+
 - A missing opt-in variable or an unreachable server results in a clean `pytest.skip`, never a
   failure and never a hang — the reachability check uses a bounded connection timeout.
+
 - The tiny live run uses the real OpenAI-compatible adapter, the real readiness service, and the
   real pipeline; no fake and no wire stub stands in for the provider in this tier — that is the
   entire point of it.
-- The tier adds no production-code change: it is test infrastructure plus the `pyproject.toml`
-  marker/`addopts` entries and the two workflow updates.
+
+- **The tier was planned to add no production-code change — that is no longer true, by owner
+  decision.** The tier is test infrastructure plus the `pyproject.toml` marker/`addopts` entries
+  and the two workflow updates; but on its first real run against a live Ollama it found two
+  spec-violating defects in `src/`, neither of which the offline suite can see by construction.
+  The owner approved fixing both inside this story (2026-08-19), so the story also ships:
+
+  - a fix in `backend/benchmark_pipeline/_internal/units.py` (with `stability_phase.py`) so a
+    non-grading run reaches `COMPLETED` instead of parking in `AWAITING_KEYWORD_CHECK` —
+    acceptance criterion **STORY-086-AC-5**;
+  - a fix in `backend/provider_openai_compatible/_internal/client_impl.py` so the streaming call's
+    transport `read` timeout is the call's own budget instead of a fixed 0.5 s — acceptance
+    criterion **STORY-086-AC-6**, ratified by **ADR-0019**.
+
+  The `src/` licence extends to those two defects only. The second fix's remaining work — the
+  timer-driven heartbeat the specification's own wording describes, and the byte-for-byte
+  identical construct in `backend/provider_anthropic/_internal/client_impl.py` that was left
+  unchanged because its transport is unverified — is carried by **STORY-120**.
 
 ## Acceptance criteria
 
@@ -165,35 +195,92 @@ Given a bare `uv run pytest` invocation (the shape used by `just test`, `just co
 when the suite runs,
 then no test carrying the `live_local` marker is selected.
 
+### STORY-086-AC-5
+
+Given a benchmark run whose mode does not grade (for example `TASKS`) and the shipped default
+settings (the keyword and cosine checks both enabled),
+when inference succeeds,
+then the result row reaches `COMPLETED` rather than parking in `AWAITING_KEYWORD_CHECK`.
+
+Authority: `08_Cross_Cutting/08-B_benchmark_state_machine.md:245` —
+`RUNNING_INFERENCE --> COMPLETED: inference succeeded, mode does not grade`.
+
+### STORY-086-AC-6
+
+Given a streaming chat call,
+when the provider withholds output for longer than a second,
+then the call's transport read timeout is the call's own remaining adaptive budget rather than a
+fixed sub-second constant, so a cold model is not failed as a timeout.
+
+Authority: ADR-0019.
+
 ## Test plan
 
 - STORY-086-AC-1 — live (`live_local` marker), `tests/live_local/test_ollama_live_smoke.py`,
   `test_ollama_probe_discover_and_tiny_run`.
 - STORY-086-AC-2 — live (`live_local` marker), `tests/live_local/test_lmstudio_live_smoke.py`,
   `test_lmstudio_probe_discover_and_tiny_run`.
-- STORY-086-AC-3 — live (`live_local` marker), `tests/live_local/test_live_tier_gating.py`,
-  `test_live_tests_skip_when_opt_in_unset_or_server_absent`.
+- STORY-086-AC-3 — unit, `tests/unit/test_live_tier_gating.py`,
+  `test_live_tests_skip_when_opt_in_unset_or_server_absent` — deliberately **outside** the tier and
+  unmarked, so it runs in the offline gate. A criterion asserting "these tests skip on a machine
+  with no server" must be proven on machines with no server; a proving test inside the tier would
+  itself be skipped there.
 - STORY-086-AC-4 — architecture, `tests/architecture/test_live_tier_excluded_from_gate.py`,
   `test_live_local_marker_excluded_from_default_selection` — reads `pyproject.toml` and asserts
   (a) `live_local` appears in `[tool.pytest.ini_options].markers`, and (b) `addopts` contains an
   `-m` expression that excludes `live_local`. This test runs in the offline gate and is the one
   guard that survives on a machine with no Ollama installed.
+- STORY-086-AC-5 — unit (colocated),
+  `src/ollama_llm_bench/backend/benchmark_pipeline/tests/test_units.py`,
+  `test_finalize_inference_success_completes_non_grading_mode_with_all_toggles_enabled`
+  (parametrised over `SYNTHETIC` and `TASKS`) — enables all three grading toggles, so it cannot
+  pass against the pre-fix code.
+- STORY-086-AC-6 — unit (colocated),
+  `src/ollama_llm_bench/backend/provider_openai_compatible/tests/test_deadline.py`,
+  `test_stream_read_timeout_handed_to_the_sdk_is_the_request_budget` (pins the timeout value as it
+  reaches the transport) and `test_cold_start_within_budget_streams_instead_of_timing_out` (pins
+  the consequence: a 1.5 s header withhold inside an 8 s budget streams instead of raising).
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-086.
-- [ ] `live_local` is declared in `pyproject.toml`'s `markers` list, so `--strict-markers` does not
-  error at collection.
-- [ ] `addopts` excludes `live_local` by default, and a bare `uv run pytest` collects zero tests
-  from `tests/live_local/` on a machine with no live server.
-- [ ] Both `.github/workflows/pr-gate.yml` and `.github/workflows/release.yml` are updated and
-  verified to select no `live_local` test.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
+- [ ] **Met for five criteria of six — AC-2 is the exception, and it is not ticked.** Every
+  acceptance criterion has a proving test named in the Test plan, and AC-1, AC-3, AC-4, AC-5 and
+  AC-6 each have a recorded passing run. AC-2 does not. LM Studio on the development machine is
+  wedged: it holds `:1234` open but never answers HTTP (`curl -m 8 http://localhost:1234/v1/models`
+  returns `http_code=000` after the full timeout, while Ollama answers `200` in 0.034 s), so
+  `test_lmstudio_probe_discover_and_tiny_run` degrades to a clean, bounded skip
+  ("answered TCP but talking to it raised `HttpTimeoutError`", ~10.6 s) rather than passing.
+  The test exists, is correct, and is proven to degrade cleanly — but **a skip is not a pass**, and
+  its passing leg stays unexercised until the owner restarts LM Studio and re-runs `just test-live`.
+- [x] `live_local` is declared in `pyproject.toml`'s `markers` list, so `--strict-markers` does not
+  error at collection — proven by
+  `tests/architecture/test_live_tier_excluded_from_gate.py::test_live_local_marker_excluded_from_default_selection`,
+  which the reviewer independently falsified in four sabotage variants.
+- [x] `addopts` excludes `live_local` by default, and a bare `uv run pytest` collects zero tests
+  from `tests/live_local/` on a machine with no live server — measured: a bare collect reports
+  `4001/4003 tests collected (2 deselected)`, exactly the tier's two tests, and zero `live_local/`
+  node IDs.
+- [x] Both `.github/workflows/pr-gate.yml` and `.github/workflows/release.yml` are updated and
+  verified to select no `live_local` test — checked by running each workflow's test command
+  verbatim in collect-only mode and grepping the node IDs for `live_local/`: zero hits from both.
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules — every static
+  stage of `just check` passed on each of three attempts: `ruff check` "All checks passed!",
+  `ruff format --check` "1194 files already formatted", `mypy --strict` "Success: no issues found
+  in 1064 source files", `lint-imports` clean, and `tests/architecture` `1364 passed`.
+- [ ] **The full gate has not returned a verdict.** Three `just check` attempts (two native, one
+  offscreen) each died `exit=139` — `Fatal Python error: Segmentation fault` at 64%, 67% and 75%
+  of the combined pytest run, at three different sites and with **zero** `FAILED`/`ERROR` lines
+  before any of them. Attribution is the controller's, and is open at the time of writing.
+- [x] The traceability record validates with no orphan clause and no orphan test —
+  `validate_traceability.py: OK (120 stories, 4005 test(s) collected, zero gaps).`
+- [x] The module inventory is unchanged — this story adds no module; the two production fixes land
+  inside `backend/benchmark_pipeline/` and `backend/provider_openai_compatible/`, both already
+  inventoried and already named in this story's `modules:`.
 - [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
-  `draft` → `ready`, and `just trace` re-run.
-- [ ] The next candidate stories are proposed in the closing report.
+  `draft` → `ready`, and `just trace` re-run — **deferred with this story still `in-progress`.**
+  STORY-093 stays `draft` regardless (two dependencies outstanding, see **Unblocks** below);
+  STORY-120, whose only dependency is this story, becomes flippable the moment this one is `done`.
+- [x] The next candidate stories are proposed in the closing report.
 
 ## Unblocks and next steps
 
@@ -202,6 +289,15 @@ then no test carrying the `live_local` marker is selected.
 - **STORY-093** — the Phase-12 traceability, risk, and architecture documentation story. Flip it
   `draft` → `ready` **only once every other story it depends on is `done`**: STORY-076 through
   STORY-089, STORY-091, STORY-092, and STORY-114. STORY-086 is one input among many.
+  **Checked at this story's closeout and left `draft`:** two of its seventeen dependencies are not
+  `done` — STORY-092 is `ready` (authored, unimplemented) and STORY-082 is `superseded` (replaced
+  by ADR-0013 and STORY-100..103, so it can never become `done`; whoever flips STORY-093 will have
+  to drop that row or record the supersession explicitly).
+- **STORY-120** — the timer-driven inference heartbeat and the unresolved Anthropic streaming read
+  timeout, both spun out of this story's Bug B. Added here because it was authored during this
+  story, after the section above was written. Its only `depends_on` entry is STORY-086, so it
+  becomes `ready` by the rule in `14_Process_and_Traceability/02_STORY_FORMAT.md` §8 as soon as
+  this story is `done` — flip it then, together with the `status:` flip here.
 
 **What to do on completion**
 

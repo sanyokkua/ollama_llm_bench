@@ -364,9 +364,11 @@ def _make_inference_outcome(
 def test_finalize_inference_success_completes_non_grading_mode_with_all_toggles_enabled(
     mocker: MockerFixture, run_mode: RunMode
 ) -> None:
-    """A non-grading run completes at inference even with every toggle on.
+    """Proves: STORY-086-AC-5
 
-    Regression test for a live defect: `eval.phase_keyword_enabled` and
+    A non-grading run completes at inference even with every toggle on.
+
+    Regression test for the live defect STORY-086's opt-in tier found: `eval.phase_keyword_enabled` and
     `eval.phase_cosine_enabled` default to true and are read for every run
     regardless of mode, so a plain SYNTHETIC/TASKS run used to route its rows
     into AWAITING_KEYWORD_CHECK — a phase `_internal.grouping.phase_applies`
