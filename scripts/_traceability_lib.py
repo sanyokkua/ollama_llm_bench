@@ -450,8 +450,18 @@ def _parse_node_id(node_id: str) -> tuple[Path, str, str | None] | None:
 
 
 def _run_pytest_collect_only() -> subprocess.CompletedProcess[str]:
+    """Collect every test, including tiers `addopts` deselects by default.
+
+    `pyproject.toml`'s `addopts` carries `-m "not live_local"` so a bare `pytest` never
+    runs ADR-0011's opt-in live tier. Traceability is a different question from selection:
+    a live test still proves an acceptance criterion, and a `done` story whose AC has an
+    empty `tests` list fails `validate_traceability.py`. pytest honours only the last `-m`
+    it is given and treats an empty expression as "no filtering", so the trailing `-m ""`
+    below overrides `addopts` and restores full discovery. Collection imports test modules;
+    it contacts no server (STORY-086).
+    """
     return subprocess.run(
-        [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", "-m", ""],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,

@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-10T12:48:00Z'
+generated_at: '2026-08-19T14:03:48Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5219,7 +5219,7 @@ stories:
         - src/ollama_llm_bench/ui/results/tests/test_controller.py::test_run_terminal_recomputes_summary_details_and_charts
   STORY-086:
     title: Add an opt-in, env-gated live smoke tier against a local Ollama and LM Studio
-    status: ready
+    status: in-progress
     spec_clauses:
     - 08_Cross_Cutting/08-M_app_lifecycle.md#5-the-readiness-probe
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
@@ -5238,7 +5238,8 @@ stories:
       STORY-086-AC-3:
         tests: []
       STORY-086-AC-4:
-        tests: []
+        tests:
+        - tests/architecture/test_live_tier_excluded_from_gate.py::test_live_local_marker_excluded_from_default_selection
   STORY-087:
     title: Capture every spec screen in both themes and review the captures against the mockups
     status: done
