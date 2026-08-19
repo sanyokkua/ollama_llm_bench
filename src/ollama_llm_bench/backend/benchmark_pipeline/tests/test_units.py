@@ -15,9 +15,11 @@ production.
 
 from collections.abc import Iterator
 
+import pytest
 from pytest_mock import MockerFixture
 
 from ollama_llm_bench.backend.benchmark_pipeline._internal.units import (
+    _InferenceAttemptOutcome,
     build_cosine_unit,
     build_inference_attempt,
     build_judge_attempt,
@@ -39,6 +41,7 @@ from ollama_llm_bench.backend.domain.models import (
     ErrorKind,
     ResolutionLayer,
     ResultStatus,
+    RunMode,
     Verdict,
 )
 from ollama_llm_bench.backend.evaluation.models import (
@@ -280,9 +283,9 @@ def test_build_inference_attempt_then_finalize_advances_to_completed(
 ) -> None:
     """Proves: STORY-029-AC-1
 
-    A successful inference call in a non-grading mode (every grading
-    toggle disabled) routes straight to COMPLETED with no verdict — driven
-    through the STORY-030 attempt-builder-then-finalize split exactly as
+    A successful inference call in a GRADED run with every grading toggle
+    disabled routes straight to COMPLETED with no verdict — driven through
+    the STORY-030 attempt-builder-then-finalize split exactly as
     `run_task_with_stability` drives it in production.
     """
     result = make_benchmark_result(status=ResultStatus.PENDING)
@@ -316,6 +319,7 @@ def test_build_inference_attempt_then_finalize_advances_to_completed(
         result=result,
         task=task,
         bus=bus,
+        run_mode=RunMode.GRADED,
         keyword_enabled=False,
         cosine_enabled=False,
         judge_enabled=False,
@@ -326,3 +330,69 @@ def test_build_inference_attempt_then_finalize_advances_to_completed(
     assert patch.sanitized_response == "Paris."
     assert patch.verdict is None
     assert patch.resolution_layer is ResolutionLayer.SKIP
+
+
+def _make_inference_outcome(
+    mocker: MockerFixture, *, result: BenchmarkResult
+) -> _InferenceAttemptOutcome:
+    """Drive one successful inference attempt over mocked collaborators."""
+    chat_stream: ChatStream = _FakeChatStream(
+        chunks=(ChatChunk(content="Paris.", delta_tokens=3),),
+        response=ChatResponse(
+            text="Paris.", total_time_ms=500, ttft_ms=100, prompt_tokens=10, completion_tokens=3
+        ),
+    )
+    client = mocker.Mock()
+    client.chat_stream.return_value = chat_stream
+    provider_registry = mocker.Mock(spec=ProviderRegistry)
+    provider_registry.get_client.return_value = client
+    sanity_checker = mocker.Mock(spec=SanityChecker)
+    sanity_checker.check.return_value = True
+    build_attempt = build_inference_attempt(
+        result=result,
+        task=make_task(),
+        provider_registry=provider_registry,
+        sanity_checker=sanity_checker,
+        clock=FakeClock(),
+        bus=mocker.Mock(spec=EventBus),
+        token=make_cancellation_token(),
+    )
+    return build_attempt(30_000)()
+
+
+@pytest.mark.parametrize("run_mode", [RunMode.SYNTHETIC, RunMode.TASKS])
+def test_finalize_inference_success_completes_non_grading_mode_with_all_toggles_enabled(
+    mocker: MockerFixture, run_mode: RunMode
+) -> None:
+    """A non-grading run completes at inference even with every toggle on.
+
+    Regression test for a live defect: `eval.phase_keyword_enabled` and
+    `eval.phase_cosine_enabled` default to true and are read for every run
+    regardless of mode, so a plain SYNTHETIC/TASKS run used to route its rows
+    into AWAITING_KEYWORD_CHECK — a phase `_internal.grouping.phase_applies`
+    refuses to execute outside GRADED. The rows parked there forever and the
+    run could never settle COMPLETED. 08-B §5.1 puts the mode gate on the
+    transition itself: `RUNNING_INFERENCE --> COMPLETED: inference succeeded,
+    mode does not grade`, with `verdict` unset (08-B §5) and
+    `ResolutionLayer.SKIP` — "the run mode did not grade; no verdict was
+    produced" (10/02_DTOS_AND_ENUMS §4.5).
+    """
+    result = make_benchmark_result(status=ResultStatus.PENDING)
+    outcome = _make_inference_outcome(mocker, result=result)
+
+    finalize = finalize_inference_success(
+        result=result,
+        task=make_task(),
+        bus=mocker.Mock(spec=EventBus),
+        run_mode=run_mode,
+        keyword_enabled=True,
+        cosine_enabled=True,
+        judge_enabled=True,
+    )
+    patch = finalize(outcome)
+
+    assert (patch.status, patch.verdict, patch.resolution_layer) == (
+        ResultStatus.COMPLETED,
+        None,
+        ResolutionLayer.SKIP,
+    )

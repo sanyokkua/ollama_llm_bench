@@ -168,6 +168,7 @@ def test_next_status_after_phase_routes_per_08b_state_machine(
     phase is enabled.
     """
     result = _next_status_after_phase(
+        run_mode=RunMode.GRADED,
         completed_phase=completed_phase,
         keyword_enabled=keyword_enabled,
         cosine_enabled=cosine_enabled,
@@ -184,6 +185,7 @@ def test_complete_or_advance_returns_next_awaiting_status_with_no_verdict() -> N
     combined verdict — combine_verdict runs only on the terminal phase.
     """
     status, verdict, resolution_layer = _complete_or_advance(
+        run_mode=RunMode.GRADED,
         completed_phase=Phase.KEYWORD_CHECK,
         keyword_enabled=True,
         cosine_enabled=True,
@@ -207,6 +209,7 @@ def test_complete_or_advance_combines_verdict_on_terminal_grading_phase() -> Non
     exactly once and its result is threaded onto the COMPLETED patch.
     """
     status, verdict, resolution_layer = _complete_or_advance(
+        run_mode=RunMode.GRADED,
         completed_phase=Phase.KEYWORD_CHECK,
         keyword_enabled=True,
         cosine_enabled=False,
@@ -232,6 +235,7 @@ def test_complete_or_advance_skips_combine_verdict_when_all_grading_disabled() -
     icontract precondition on an all-None-verdict input).
     """
     status, verdict, resolution_layer = _complete_or_advance(
+        run_mode=RunMode.GRADED,
         completed_phase=Phase.INFERENCE,
         keyword_enabled=False,
         cosine_enabled=False,

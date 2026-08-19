@@ -51,6 +51,7 @@ from ollama_llm_bench.backend.domain.models import (
     ResolutionLayer,
     ResultPatch,
     ResultStatus,
+    RunMode,
     Verdict,
 )
 from ollama_llm_bench.backend.errors import AppError, TaskCancelledError
@@ -107,20 +108,38 @@ _AWAITING_STATUS_FOR_PHASE: Final[dict[Phase, ResultStatus]] = {
 
 
 def _next_status_after_phase(
-    *, completed_phase: Phase, keyword_enabled: bool, cosine_enabled: bool, judge_enabled: bool
+    *,
+    run_mode: RunMode,
+    completed_phase: Phase,
+    keyword_enabled: bool,
+    cosine_enabled: bool,
+    judge_enabled: bool,
 ) -> ResultStatus | None:
     """Return the next `AWAITING_*` status after `completed_phase` (08-B §5.1).
 
+    The run mode gates the routing before the per-dimension toggles are even
+    consulted: 08-B §5.1 spells the transition out as
+    `RUNNING_INFERENCE --> COMPLETED: inference succeeded, mode does not grade`,
+    and `_internal.grouping.phase_applies` refuses to execute any grading phase
+    outside `RunMode.GRADED`. Routing a `SYNTHETIC`/`TASKS` row into an
+    `AWAITING_*` status would therefore park it forever in a phase that never
+    runs, and the run could never settle `COMPLETED`.
+
     Args:
+        run_mode: The run's fixed mode; only `GRADED` ever routes into a
+            grading phase.
         completed_phase: The phase that just finished for this row.
         keyword_enabled: Whether the keyword phase is enabled for this run.
         cosine_enabled: Whether the cosine phase is enabled for this run.
         judge_enabled: Whether the judge phase is enabled for this run.
 
     Returns:
-        The next `AWAITING_*` status to route into, or `None` when no later
-        grading phase is enabled — the caller then routes to `COMPLETED`.
+        The next `AWAITING_*` status to route into, or `None` when the mode
+        does not grade or no later grading phase is enabled — the caller then
+        routes to `COMPLETED`.
     """
+    if run_mode is not RunMode.GRADED:
+        return None
     enabled_by_phase = {
         Phase.KEYWORD_CHECK: keyword_enabled,
         Phase.COSINE_CHECK: cosine_enabled,
@@ -137,6 +156,7 @@ def _complete_or_advance(  # noqa: PLR0913  # each parameter disambiguates a dis
     # toggles, the sanity outcome, the three accumulated per-phase verdicts, and the
     # force-judge setting) — mirrors combine_verdict_impl's own flat-parameter design
     *,
+    run_mode: RunMode,
     completed_phase: Phase,
     keyword_enabled: bool,
     cosine_enabled: bool,
@@ -150,6 +170,7 @@ def _complete_or_advance(  # noqa: PLR0913  # each parameter disambiguates a dis
     """Decide the next status and, only on the terminal grading phase, the verdict.
 
     Args:
+        run_mode: The run's fixed mode; only `GRADED` grades at all.
         completed_phase: The phase that just finished for this row.
         keyword_enabled: Whether the keyword phase is enabled for this run.
         cosine_enabled: Whether the cosine phase is enabled for this run.
@@ -163,8 +184,11 @@ def _complete_or_advance(  # noqa: PLR0913  # each parameter disambiguates a dis
     Returns:
         A `(status, verdict, resolution_layer)` triple. `verdict` and
         `resolution_layer` are both `None` unless `status` is `COMPLETED`.
+        A row completing without any grading carries no `verdict` and
+        `ResolutionLayer.SKIP`.
     """
     next_status = _next_status_after_phase(
+        run_mode=run_mode,
         completed_phase=completed_phase,
         keyword_enabled=keyword_enabled,
         cosine_enabled=cosine_enabled,
@@ -172,7 +196,10 @@ def _complete_or_advance(  # noqa: PLR0913  # each parameter disambiguates a dis
     )
     if next_status is not None:
         return next_status, None, None
-    if not (keyword_enabled or cosine_enabled or judge_enabled):
+    if run_mode is not RunMode.GRADED or not (keyword_enabled or cosine_enabled or judge_enabled):
+        # 08-B §5 — `verdict` is "unset for a non-grading mode"; 02_DTOS_AND_ENUMS
+        # §4.5 defines `ResolutionLayer.SKIP` as exactly "the run mode did not
+        # grade; no verdict was produced".
         return ResultStatus.COMPLETED, None, ResolutionLayer.SKIP
     combined = combine_verdict(
         sanity_check_passed=sanity_check_passed,
@@ -244,6 +271,10 @@ def build_keyword_unit(  # noqa: PLR0913  # one parameter per distinct collabora
                 raise
             return contain_unit_failure(exc)
         status, verdict, resolution_layer = _complete_or_advance(
+            # a grading phase only ever executes under RunMode.GRADED
+            # (`_internal.grouping.phase_applies`), so the mode is fixed here for
+            # the same reason `keyword_enabled` is
+            run_mode=RunMode.GRADED,
             completed_phase=Phase.KEYWORD_CHECK,
             keyword_enabled=True,
             cosine_enabled=cosine_enabled,
@@ -301,6 +332,9 @@ def build_cosine_unit(
                 raise
             return contain_unit_failure(exc)
         status, verdict, resolution_layer = _complete_or_advance(
+            # a grading phase only ever executes under RunMode.GRADED
+            # (`_internal.grouping.phase_applies`)
+            run_mode=RunMode.GRADED,
             completed_phase=Phase.COSINE_CHECK,
             keyword_enabled=True,
             cosine_enabled=True,
@@ -430,6 +464,9 @@ def finalize_judge_success(
             ),
         )
         status, verdict, resolution_layer = _complete_or_advance(
+            # a grading phase only ever executes under RunMode.GRADED
+            # (`_internal.grouping.phase_applies`)
+            run_mode=RunMode.GRADED,
             completed_phase=Phase.JUDGE_CHECK,
             keyword_enabled=True,
             cosine_enabled=True,
@@ -603,12 +640,13 @@ def build_inference_attempt(  # noqa: PLR0913  # each parameter is a distinct
 
 def finalize_inference_success(  # noqa: PLR0913  # each parameter is a distinct
     # input the winning-attempt combination step needs (the row, the task supplying
-    # the sent prompt, the bus, and the three per-run grading toggles) — no natural
-    # sub-grouping exists that would not obscure the call site
+    # the sent prompt, the bus, the run mode, and the three per-run grading toggles)
+    # — no natural sub-grouping exists that would not obscure the call site
     *,
     result: BenchmarkResult,
     task: BenchmarkTask,
     bus: EventBus,
+    run_mode: RunMode,
     keyword_enabled: bool,
     cosine_enabled: bool,
     judge_enabled: bool,
@@ -620,6 +658,9 @@ def finalize_inference_success(  # noqa: PLR0913  # each parameter is a distinct
         task: The frozen task supplying the question that was sent.
         bus: The application event bus, for the `_inference_completed`
             per-task event this finalizer emits.
+        run_mode: The run's fixed mode; a non-`GRADED` run routes straight to
+            `COMPLETED` here (08-B §5.1) rather than into a grading phase that
+            will never execute.
         keyword_enabled: Whether the keyword phase is enabled for this run.
         cosine_enabled: Whether the cosine phase is enabled for this run.
         judge_enabled: Whether the judge phase is enabled for this run.
@@ -648,6 +689,7 @@ def finalize_inference_success(  # noqa: PLR0913  # each parameter is a distinct
             ),
         )
         status, verdict, resolution_layer = _complete_or_advance(
+            run_mode=run_mode,
             completed_phase=Phase.INFERENCE,
             keyword_enabled=keyword_enabled,
             cosine_enabled=cosine_enabled,

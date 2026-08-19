@@ -40,7 +40,6 @@ import shiboken6
 
 from ollama_llm_bench.adapters.qt_event_bus import make_qt_event_bus_deliverer
 from ollama_llm_bench.backend.domain import (
-    BenchmarkRunSettingEntry,
     ModelDescriptor,
     ProviderConfig,
     ProviderIdStr,
@@ -137,25 +136,6 @@ what models does it have?" before the app is built -- so it needs no persisted r
 
 _NO_RUN_CREATED_SENTINEL: Final[int] = 0
 """``BenchmarkFlowApi.start`` returns this instead of a run id when it refuses the request."""
-
-_NO_GRADING_OVERRIDES: Final[tuple[BenchmarkRunSettingEntry, ...]] = (
-    BenchmarkRunSettingEntry(setting_key="eval.phase_keyword_enabled", setting_value="false"),
-    BenchmarkRunSettingEntry(setting_key="eval.phase_cosine_enabled", setting_value="false"),
-)
-"""Turn the keyword and cosine phases off for this tier's run, via the public
-``RunStartRequest.setting_overrides`` surface.
-
-**Without these the run never reaches ``COMPLETED``.** ``eval.phase_keyword_enabled`` and
-``eval.phase_cosine_enabled`` both default to ``"true"`` and, unlike
-``eval.phase_judge_enabled``, are NOT forced off for a non-``GRADED`` run
-(``benchmark_pipeline/_internal/lifecycle.py::_resolve_phase_toggles``). The ``INFERENCE``
-finalizer reads them raw and routes each row to ``AWAITING_KEYWORD_CHECK``
-(``units.py::_complete_or_advance``), while ``run_all_phases`` skips ``KEYWORD_CHECK``
-entirely for a non-``GRADED`` mode (``grouping.py::phase_applies``). The rows then sit in a
-non-terminal status forever and the run settles ``STOPPED``. With all three toggles off,
-``_complete_or_advance`` returns ``COMPLETED``/``ResolutionLayer.SKIP`` directly -- verified
-by calling both functions against the real modules.
-"""
 
 TINY_TASK_FILE_BODY: Final[str] = """schema_version: 1
 tasks:
@@ -608,7 +588,12 @@ def live_smoke(
     ``RunMode.TASKS`` is the smallest real run this app can perform: ``phase_applies`` runs only
     ``INITIALIZATION`` and ``INFERENCE`` for any non-``GRADED`` mode, so no judge model is built
     and ``run_needs_embeddings`` short-circuits to ``False`` before the DD-48 embedding probe.
-    See ``_NO_GRADING_OVERRIDES`` for the one thing that still has to be turned off by hand.
+    The request carries no ``setting_overrides``: the run must reach ``COMPLETED`` on this
+    app's shipped defaults, which leave ``eval.phase_keyword_enabled`` and
+    ``eval.phase_cosine_enabled`` ``"true"``. 08-B section 5.1 gates the transition on the mode
+    -- ``RUNNING_INFERENCE --> COMPLETED: inference succeeded, mode does not grade`` -- so a
+    non-``GRADED`` row completes at inference no matter how those toggles are set. Overriding
+    them here would route around exactly the defect this tier caught on its first live run.
 
     Shutdown is owned by ``build_live_app``'s finaliser, not by a ``finally`` here: registering
     it at build time is what makes it run even when a wait below times out.
@@ -642,7 +627,6 @@ def live_smoke(
                 run_mode=RunMode.TASKS,
                 test_models=(ModelDescriptor(provider_id=rig.provider_id, model_name=model_name),),
                 task_paths=(str(tiny_task_file),),
-                setting_overrides=_NO_GRADING_OVERRIDES,
             )
         )
         if run_id == _NO_RUN_CREATED_SENTINEL:

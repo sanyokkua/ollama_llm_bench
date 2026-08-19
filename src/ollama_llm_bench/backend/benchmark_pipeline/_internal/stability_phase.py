@@ -50,6 +50,7 @@ from ollama_llm_bench.backend.domain.models import (
     ProviderIdStr,
     ResultPatch,
     ResultStatus,
+    RunMode,
 )
 from ollama_llm_bench.backend.errors import ContractViolationError
 from ollama_llm_bench.backend.evaluation.protocols import JudgeEvaluator, SanityChecker
@@ -135,6 +136,7 @@ def run_stability_phase(  # noqa: PLR0913  # every keyword-only argument is a
             tasks_by_id=tasks_by_id,
             sanity_checker=sanity_checker,
             token=token,
+            run_mode=run.run_mode,
             keyword_enabled=keyword_enabled,
             cosine_enabled=cosine_enabled,
             judge_enabled=judge_enabled,
@@ -172,6 +174,7 @@ def _run_inference_phase(  # noqa: PLR0913  # each parameter is a distinct
     tasks_by_id: dict[str, BenchmarkTask],
     sanity_checker: SanityChecker,
     token: CancellationToken,
+    run_mode: RunMode,
     keyword_enabled: bool,
     cosine_enabled: bool,
     judge_enabled: bool,
@@ -217,6 +220,7 @@ def _run_inference_phase(  # noqa: PLR0913  # each parameter is a distinct
             result=result,
             task=tasks_by_id[result.task_id],
             bus=collaborators.bus,
+            run_mode=run_mode,
             keyword_enabled=keyword_enabled,
             cosine_enabled=cosine_enabled,
             judge_enabled=judge_enabled,
