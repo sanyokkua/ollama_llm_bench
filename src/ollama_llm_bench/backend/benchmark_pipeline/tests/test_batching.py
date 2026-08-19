@@ -113,10 +113,18 @@ def test_group_by_provider_and_model_preserves_first_seen_order() -> None:
 
 
 @pytest.mark.parametrize(
-    ("completed_phase", "keyword_enabled", "cosine_enabled", "judge_enabled", "expected"),
+    (
+        "completed_phase",
+        "run_mode",
+        "keyword_enabled",
+        "cosine_enabled",
+        "judge_enabled",
+        "expected",
+    ),
     [
         (
             Phase.KEYWORD_CHECK,
+            RunMode.GRADED,
             True,
             True,
             True,
@@ -124,6 +132,7 @@ def test_group_by_provider_and_model_preserves_first_seen_order() -> None:
         ),
         (
             Phase.KEYWORD_CHECK,
+            RunMode.GRADED,
             True,
             False,
             True,
@@ -131,6 +140,7 @@ def test_group_by_provider_and_model_preserves_first_seen_order() -> None:
         ),
         (
             Phase.KEYWORD_CHECK,
+            RunMode.GRADED,
             True,
             False,
             False,
@@ -138,6 +148,7 @@ def test_group_by_provider_and_model_preserves_first_seen_order() -> None:
         ),
         (
             Phase.JUDGE_CHECK,
+            RunMode.GRADED,
             True,
             True,
             True,
@@ -145,16 +156,31 @@ def test_group_by_provider_and_model_preserves_first_seen_order() -> None:
         ),
         (
             Phase.INFERENCE,
+            RunMode.GRADED,
             False,
             False,
             False,
             None,
         ),
+        (
+            # A non-GRADED run never routes into a grading phase, even when
+            # every per-dimension toggle is enabled — the mode gate (08-B
+            # §5.1) is checked before the toggles are even consulted.
+            Phase.INFERENCE,
+            RunMode.TASKS,
+            True,
+            True,
+            True,
+            None,
+        ),
     ],
 )
-def test_next_status_after_phase_routes_per_08b_state_machine(
+def test_next_status_after_phase_routes_per_08b_state_machine(  # noqa: PLR0913  # one
+    # parameter per parametrize column; 08-B §5.1's state machine is inherently
+    # this wide and splitting it would obscure the mapping
     *,
     completed_phase: Phase,
+    run_mode: RunMode,
     keyword_enabled: bool,
     cosine_enabled: bool,
     judge_enabled: bool,
@@ -165,10 +191,10 @@ def test_next_status_after_phase_routes_per_08b_state_machine(
     08-B §5.1's state machine: a completed phase advances to the next
     *enabled* grading phase's AWAITING_* status, skipping any disabled
     phase, or returns None (route to COMPLETED) when no later grading
-    phase is enabled.
+    phase is enabled or the run mode does not grade at all.
     """
     result = _next_status_after_phase(
-        run_mode=RunMode.GRADED,
+        run_mode=run_mode,
         completed_phase=completed_phase,
         keyword_enabled=keyword_enabled,
         cosine_enabled=cosine_enabled,

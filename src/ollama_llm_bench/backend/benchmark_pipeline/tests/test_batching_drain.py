@@ -102,3 +102,53 @@ def test_no_row_enters_a_later_phase_before_the_earlier_phase_fully_drains(
     )
 
     assert keyword_check_index < first_cosine_check_index
+
+
+def test_run_all_phases_never_dispatches_a_grading_phase_unit_under_a_non_graded_mode(
+    fake_clock: Clock,
+) -> None:
+    """Proves: STORY-029-AC-1
+
+    Regression guard for the mode gate `_internal.grouping.phase_applies`
+    enforces (08-B §5.1): `run_all_phases` never dispatches a unit for
+    KEYWORD_CHECK/COSINE_CHECK/JUDGE_CHECK while the run's mode is not
+    GRADED — even when a row already sits in an AWAITING_* grading status
+    (a state a non-GRADED run should never produce on its own, but exactly
+    the shape a future partially-grading mode, or a grading unit misrouted
+    outside `run_all_phases`, could reintroduce) and every per-dimension
+    toggle is enabled. Proven by driving the real `run_all_phases` loop
+    end to end and recording which phases it actually asked for a unit —
+    not by re-asserting `phase_applies`'s own return value directly.
+    """
+    awaiting_keyword = make_benchmark_result(
+        result_id=1, status=ResultStatus.AWAITING_KEYWORD_CHECK
+    )
+    awaiting_cosine = make_benchmark_result(result_id=2, status=ResultStatus.AWAITING_COSINE_CHECK)
+    awaiting_judge = make_benchmark_result(result_id=3, status=ResultStatus.AWAITING_JUDGE_CHECK)
+    results_store = FakeResultsStore(initial=(awaiting_keyword, awaiting_cosine, awaiting_judge))
+    token = CancellationToken(clock=fake_clock)
+    dispatched_phases: list[Phase] = []
+
+    def _tracking_unit_factory_for_phase(
+        phase: Phase, result: BenchmarkResult
+    ) -> Callable[[], ResultPatch]:
+        dispatched_phases.append(phase)
+
+        def _run() -> ResultPatch:
+            return ResultPatch(status=ResultStatus.COMPLETED)
+
+        return _run
+
+    run_all_phases(
+        run_mode=RunMode.TASKS,
+        keyword_enabled=True,
+        cosine_enabled=True,
+        judge_enabled=True,
+        run_id=1,
+        runner=_InlineTaskRunner(),
+        token=token,
+        results_store=results_store,
+        unit_factory_for_phase=_tracking_unit_factory_for_phase,
+    )
+
+    assert dispatched_phases == []

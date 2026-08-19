@@ -432,29 +432,72 @@ class _DismissReadinessModalOnShow(QObject):
         return False
 
 
-def _assert_dispatcher_thread_stopped() -> None:
-    """Fail loudly if the non-daemon ``pipeline-dispatcher`` thread is still alive.
+def _live_dispatcher_thread_idents() -> frozenset[int]:
+    """Return the ``ident`` of every currently-live thread named ``pipeline-dispatcher``.
 
-    ``RunDispatcher.shutdown`` (DD-38) joins the dispatcher thread with a bounded timeout but
-    returns silently if that join times out (DD-44) -- a thread left alive here is exactly the
-    condition that hangs CPython's ``Py_Finalize`` forever at interpreter exit, *after* pytest
-    has already printed its summary, so it reads like success. Calling this immediately after
-    every ``handle.shutdown(...)`` converts that silent, un-diagnosable hang into an immediate,
-    named test failure at the point the defect actually occurred.
+    A snapshot helper, not an assertion -- ``build_live_app`` calls this immediately before
+    ``build_app`` so it can diff against the same call made immediately after, isolating
+    exactly the one thread this build started (see ``_capture_dispatcher_thread``).
+    """
+    return frozenset(
+        thread.ident
+        for thread in threading.enumerate()
+        if thread.name == _DISPATCHER_THREAD_NAME and thread.ident is not None
+    )
+
+
+def _capture_dispatcher_thread(*, idents_before: frozenset[int]) -> threading.Thread:
+    """Return the ``pipeline-dispatcher`` `Thread` object this build just started.
+
+    Diffs the live ``pipeline-dispatcher``-named threads against ``idents_before`` (a
+    snapshot taken immediately before ``build_app``) instead of trusting the thread's name
+    alone -- a name match is process-wide and cannot distinguish this build's own thread from
+    an earlier test's zombie thread that shares the same name (see
+    ``_assert_dispatcher_thread_stopped``).
 
     Raises:
-        AssertionError: A thread named ``_DISPATCHER_THREAD_NAME`` is still alive.
+        AssertionError: No newly-started ``pipeline-dispatcher`` thread is found -- ``build_app``
+            did not start one, or it already exited before this could observe it.
     """
-    live_thread_names = {thread.name for thread in threading.enumerate()}
-    assert _DISPATCHER_THREAD_NAME not in live_thread_names, (
-        f"{_DISPATCHER_THREAD_NAME!r} thread is still alive after handle.shutdown("
-        f"timeout_ms={SHUTDOWN_TIMEOUT_MS}) -- the dispatcher join timed out silently and "
-        "this process will hang at interpreter exit instead of returning"
+    for thread in threading.enumerate():
+        if thread.name == _DISPATCHER_THREAD_NAME and thread.ident not in idents_before:
+            return thread
+    raise AssertionError(
+        f"no newly-started {_DISPATCHER_THREAD_NAME!r} thread found after build_app() -- "
+        "expected exactly one (DD-38)"
+    )
+
+
+def _assert_dispatcher_thread_stopped(dispatcher_thread: threading.Thread) -> None:
+    """Fail loudly if THIS build's ``pipeline-dispatcher`` thread is still alive.
+
+    Asserts on the specific `Thread` object ``build_live_app`` captured at build time
+    (``_capture_dispatcher_thread``), never on a process-wide ``threading.enumerate()`` name
+    match. ``RunDispatcher.shutdown`` (DD-38) joins the dispatcher thread with a bounded
+    timeout but returns silently if that join times out (DD-44) -- a thread left alive here is
+    exactly the condition that hangs CPython's ``Py_Finalize`` forever at interpreter exit,
+    *after* pytest has already printed its summary, so it reads like success. Calling this
+    immediately after every ``handle.shutdown(...)`` converts that silent, un-diagnosable hang
+    into an immediate, named test failure at the point the defect actually occurred.
+
+    Scoping the check to the one `Thread` object this build started also avoids
+    misattribution: if an earlier test's dispatcher genuinely wedged, its zombie thread stays
+    alive under the same name, and a name-scoped check would fire for every later test too,
+    hiding which test actually hung. Checking this specific instance's `.is_alive()` instead
+    means only the test whose own dispatcher failed to stop reports the failure.
+
+    Raises:
+        AssertionError: ``dispatcher_thread`` is still alive.
+    """
+    assert not dispatcher_thread.is_alive(), (
+        f"{_DISPATCHER_THREAD_NAME!r} thread (ident={dispatcher_thread.ident}) is still alive "
+        f"after handle.shutdown(timeout_ms={SHUTDOWN_TIMEOUT_MS}) -- the dispatcher join timed "
+        "out silently and this process will hang at interpreter exit instead of returning"
     )
 
 
 @pytest.fixture
-def shutdown_handle(qtbot: QtBot) -> Callable[[AppHandle], None]:
+def shutdown_handle(qtbot: QtBot) -> Callable[[AppHandle, threading.Thread], None]:
     """Run the ordered shutdown the way production does -- window first, then handle.
 
     Restated verbatim from ``tests/e2e/conftest.py``; every guard below is load-bearing.
@@ -487,17 +530,19 @@ def shutdown_handle(qtbot: QtBot) -> Callable[[AppHandle], None]:
     ``handle.shutdown(timeout_ms=SHUTDOWN_TIMEOUT_MS)`` can itself return without the thread
     having joined (see ``SHUTDOWN_TIMEOUT_MS``'s docstring) -- ``_assert_dispatcher_thread_stopped``
     turns that silent case into an immediate, named failure here rather than a hang at
-    interpreter exit.
+    interpreter exit. Takes the specific ``dispatcher_thread`` object ``build_live_app``
+    captured at build time, not a name lookup, so this assertion cannot be fooled by an
+    unrelated earlier test's zombie thread of the same name.
     """
 
-    def _shutdown(handle: AppHandle) -> None:
+    def _shutdown(handle: AppHandle, dispatcher_thread: threading.Thread) -> None:
         try:
             if shiboken6.isValid(handle.window):
                 handle.window.close()
             qtbot.wait(GEOMETRY_DEBOUNCE_DRAIN_MS)
         finally:
             handle.shutdown(timeout_ms=SHUTDOWN_TIMEOUT_MS)
-            _assert_dispatcher_thread_stopped()
+            _assert_dispatcher_thread_stopped(dispatcher_thread)
 
     return _shutdown
 
@@ -507,7 +552,7 @@ def build_live_app(
     request: pytest.FixtureRequest,
     qapp: QApplication,
     isolated_home: Path,
-    shutdown_handle: Callable[[AppHandle], None],
+    shutdown_handle: Callable[[AppHandle, threading.Thread], None],
 ) -> Generator[Callable[[str, str], LiveAppRig]]:
     """Build the real composed app against an app-data root seeded for one live provider.
 
@@ -524,6 +569,13 @@ def build_live_app(
     the ``removeEventFilter`` below -- so the modal filter is still installed while the app
     shuts down.
 
+    **Captures the specific dispatcher `Thread` object around ``build_app``, not just its
+    name.** ``_live_dispatcher_thread_idents()`` is snapshotted immediately before ``build_app``
+    and diffed immediately after (``_capture_dispatcher_thread``), so the object handed to
+    ``shutdown_handle`` is unambiguously *this* build's own thread -- never an unrelated
+    zombie thread an earlier wedged test left behind under the same ``pipeline-dispatcher``
+    name.
+
     ``isolated_home`` must be active before ``_seed_single_live_provider`` runs: both it and
     ``build_app`` resolve the app-data root through the same platform detector, which reads
     ``HOME`` on macOS.
@@ -533,8 +585,10 @@ def build_live_app(
 
     def _build(base_url: str, model_name: str) -> LiveAppRig:
         provider_id = _seed_single_live_provider(base_url=base_url, model_name=model_name)
+        idents_before = _live_dispatcher_thread_idents()
         handle = build_app(app=qapp, loop=QEventLoop())
-        request.addfinalizer(functools.partial(shutdown_handle, handle))
+        dispatcher_thread = _capture_dispatcher_thread(idents_before=idents_before)
+        request.addfinalizer(functools.partial(shutdown_handle, handle, dispatcher_thread))
         return LiveAppRig(handle=handle, provider_id=provider_id)
 
     yield _build
@@ -780,10 +834,13 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     ``addopts`` (``-m "not live_local"``) deselects this whole tier from a bare ``pytest``
     invocation: that claim is only true if every test module under here actually carries the
     marker. Tasks 4/5's test modules are expected to declare ``@pytest.mark.live_local``
-    explicitly too, and this hook is idempotent with that -- ``Item.add_marker`` is a no-op if
-    the marker is already present, so declaring it twice is harmless. This closes off the
-    "a new test module under this directory forgot the marker" failure mode entirely, rather
-    than relying on every future author remembering it.
+    explicitly too; ``_pytest.nodes.Node.add_marker`` appends to ``own_markers``
+    unconditionally with no de-duplication, so a module declaring the marker explicitly ends up
+    with it twice, not once -- harmless in practice, since both ``-m`` selection and
+    ``--strict-markers`` tolerate a repeated marker, but this hook is not itself a no-op
+    against an already-marked item. This closes off the "a new test module under this
+    directory forgot the marker" failure mode entirely, rather than relying on every future
+    author remembering it.
 
     Scoped to items whose collected path is inside this conftest's own directory: this hook,
     unlike a fixture, is not path-scoped by pytest and would otherwise run against every item
