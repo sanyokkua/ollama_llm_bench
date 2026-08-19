@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-19T18:52:24Z'
+generated_at: '2026-08-19T18:57:55Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -6381,6 +6381,28 @@ stories:
         tests: []
       STORY-120-AC-6:
         tests: []
+  STORY-121:
+    title: Eliminate the native crash caused by the PySide6 connection-registry use-after-free
+    status: draft
+    spec_clauses:
+    - 16_Engineering_Standards/02_TOOLCHAIN.md#7-dependency-version-policy
+    - 16_Engineering_Standards/02_TOOLCHAIN.md#8-consolidated-version-table
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#11-coverage-targets-and-time-budgets
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment
+    - 16_Engineering_Standards/07_TESTING_STANDARD.md#8-testing-pyside6-widgets
+    modules:
+    - ui/progress/
+    - ui/task_editor/
+    edge_cases: []
+    acceptance_criteria:
+      STORY-121-AC-1:
+        tests: []
+      STORY-121-AC-2:
+        tests: []
+      STORY-121-AC-3:
+        tests: []
+      STORY-121-AC-4:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -8142,6 +8164,12 @@ clauses:
   16_Engineering_Standards/01_PROJECT_STRUCTURE.md#8-import-boundaries:
     stories:
     - STORY-113
+  16_Engineering_Standards/02_TOOLCHAIN.md#7-dependency-version-policy:
+    stories:
+    - STORY-121
+  16_Engineering_Standards/02_TOOLCHAIN.md#8-consolidated-version-table:
+    stories:
+    - STORY-121
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#11-concurrency-stack-stdlib--qt-only--no-asyncio-no-anyio:
     stories:
     - STORY-120
@@ -8198,6 +8226,7 @@ clauses:
   16_Engineering_Standards/07_TESTING_STANDARD.md#11-coverage-targets-and-time-budgets:
     stories:
     - STORY-117
+    - STORY-121
   16_Engineering_Standards/07_TESTING_STANDARD.md#12-the-ci-test-environment:
     stories:
     - STORY-081
@@ -8205,6 +8234,7 @@ clauses:
     - STORY-086
     - STORY-094
     - STORY-119
+    - STORY-121
   16_Engineering_Standards/07_TESTING_STANDARD.md#2-the-test-pyramid:
     stories:
     - STORY-081
@@ -8227,6 +8257,9 @@ clauses:
     stories:
     - STORY-085
     - STORY-088
+  16_Engineering_Standards/07_TESTING_STANDARD.md#8-testing-pyside6-widgets:
+    stories:
+    - STORY-121
   16_Engineering_Standards/08_CICD_AND_PACKAGING.md#11-minimum-os-versions:
     stories:
     - STORY-094
@@ -11438,6 +11471,7 @@ modules:
     - STORY-089
     - STORY-098
     - STORY-107
+    - STORY-121
   ui/results/:
     stories:
     - STORY-061
@@ -11494,6 +11528,7 @@ modules:
     - STORY-112
     - STORY-114
     - STORY-116
+    - STORY-121
   ui/theme/:
     stories:
     - STORY-049
