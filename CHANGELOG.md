@@ -692,6 +692,15 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A model that takes longer than half a second to produce its first token no longer fails the
+  whole call. The OpenAI-compatible client pinned the streaming HTTP `read` timeout to a fixed
+  0.5 s, and a local provider (Ollama, LM Studio, llama.cpp) sends no response headers at all
+  until generation begins — so every *cold* model timed out before it had emitted anything, and
+  the task was recorded as `FAILED_TIMEOUT`. The `read` timeout is now the call's own remaining
+  budget (`ChatRequest.timeout_ms`), which is finite, is the deadline the Adaptive Timeout Service
+  actually computed, and — unlike the between-chunks elapsed check — can interrupt a thread
+  blocked in a socket read. Per ADR-0019 (STORY-086).
+
 - A malformed task file added to a New Benchmark run is no longer rejected in silence. The
   loader's message was recorded on the widget but never rendered anywhere, so a file that failed
   to parse simply produced no row and no explanation; it now appears as an inline error under the

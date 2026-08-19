@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-19T14:03:48Z'
+generated_at: '2026-08-19T15:21:42Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -6335,6 +6335,39 @@ stories:
         tests:
         - tests/architecture/test_accessibility_e2e_platform_parity.py::test_accessibility_e2e_checks_carry_no_platform_skip[test_click_target_size.py]
         - tests/architecture/test_accessibility_e2e_platform_parity.py::test_accessibility_e2e_checks_carry_no_platform_skip[test_focus_ring_visibility.py]
+  STORY-120:
+    title: Deliver the live waiting-for-first-token counter with a timer-driven heartbeat and resolve the Anthropic streaming read timeout
+    status: draft
+    spec_clauses:
+    - 04_Progress_Widget/description.md#711-inference-progress-sub-row-context--benchmark_task
+    - 08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-19
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#61-the-unified-contract
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#62-transport-streaming-and-time-to-first-token
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm
+    - 11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#66-mid-stream-cancellation
+    - 11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#69-live-inference-progress-emission
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#11-concurrency-stack-stdlib--qt-only--no-asyncio-no-anyio
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#8-thread-boundary-rules
+    - 16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#9-ui-update-coalescing
+    modules:
+    - backend/benchmark_pipeline/
+    - backend/provider_anthropic/
+    - backend/provider_openai_compatible/
+    edge_cases:
+    - EC-RUN-19
+    acceptance_criteria:
+      STORY-120-AC-1:
+        tests: []
+      STORY-120-AC-2:
+        tests: []
+      STORY-120-AC-3:
+        tests: []
+      STORY-120-AC-4:
+        tests: []
+      STORY-120-AC-5:
+        tests: []
+      STORY-120-AC-6:
+        tests: []
 clauses:
   01_Main_Window/description.md#10-event-bus-integration:
     stories:
@@ -6493,6 +6526,9 @@ clauses:
   04_Progress_Widget/description.md#71-inference-progress-row-and-judge-progress-row:
     stories:
     - STORY-059
+  04_Progress_Widget/description.md#711-inference-progress-sub-row-context--benchmark_task:
+    stories:
+    - STORY-120
   04_Progress_Widget/description.md#8-benchmark-event-log-panel:
     stories:
     - STORY-060
@@ -7080,6 +7116,9 @@ clauses:
   08_Cross_Cutting/08-I_edge_cases.md#EC-PROV-4b:
     stories:
     - STORY-073
+  08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-19:
+    stories:
+    - STORY-120
   08_Cross_Cutting/08-I_edge_cases.md#EC-RUN-1a:
     stories:
     - STORY-074
@@ -7454,6 +7493,9 @@ clauses:
   11_Services_and_Algorithms/01_SERVICE_INVENTORY.md#49-embeddingmodelclassifier:
     stories:
     - STORY-026
+  11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#61-the-unified-contract:
+    stories:
+    - STORY-120
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#610-exception-translation:
     stories:
     - STORY-018
@@ -7462,12 +7504,14 @@ clauses:
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#62-transport-streaming-and-time-to-first-token:
     stories:
     - STORY-018
+    - STORY-120
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#63-the-chat-algorithm:
     stories:
     - STORY-018
     - STORY-019
     - STORY-020
     - STORY-021
+    - STORY-120
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#64-the-chat_stream-surface:
     stories:
     - STORY-018
@@ -7487,6 +7531,7 @@ clauses:
     - STORY-019
     - STORY-020
     - STORY-021
+    - STORY-120
   11_Services_and_Algorithms/02_LLM_CLIENT_PROTOCOL.md#67-the-embedding-surface:
     stories:
     - STORY-018
@@ -7552,6 +7597,7 @@ clauses:
   11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#69-live-inference-progress-emission:
     stories:
     - STORY-059
+    - STORY-120
   11_Services_and_Algorithms/04_EVALUATION_PIPELINE.md#7-configuration:
     stories:
     - STORY-028
@@ -8083,6 +8129,9 @@ clauses:
   16_Engineering_Standards/01_PROJECT_STRUCTURE.md#8-import-boundaries:
     stories:
     - STORY-113
+  16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#11-concurrency-stack-stdlib--qt-only--no-asyncio-no-anyio:
+    stories:
+    - STORY-120
   16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#12-anti-patterns:
     stories:
     - STORY-110
@@ -8111,6 +8160,10 @@ clauses:
     stories:
     - STORY-040
     - STORY-044
+    - STORY-120
+  16_Engineering_Standards/04_CONCURRENCY_STANDARD.md#9-ui-update-coalescing:
+    stories:
+    - STORY-120
   16_Engineering_Standards/05_ERROR_HANDLING_STANDARD.md#2-the-error-category-model:
     stories:
     - STORY-118
@@ -10553,6 +10606,7 @@ edge_cases:
   EC-RUN-19:
     stories:
     - STORY-059
+    - STORY-120
     tests:
     - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_inference_generating_label_marks_heuristic_estimate
     - src/ollama_llm_bench/ui/progress/tests/test_current_task_controller.py::test_format_retry_label_renders_attempt_over_total_and_reason
@@ -11154,6 +11208,7 @@ modules:
     - STORY-100
     - STORY-101
     - STORY-102
+    - STORY-120
   backend/charts/:
     stories:
     - STORY-033
@@ -11262,6 +11317,7 @@ modules:
     stories:
     - STORY-019
     - STORY-077
+    - STORY-120
   backend/provider_gemini/:
     stories:
     - STORY-020
@@ -11272,6 +11328,7 @@ modules:
     - STORY-018
     - STORY-077
     - STORY-086
+    - STORY-120
   backend/provider_registry/:
     stories:
     - STORY-017

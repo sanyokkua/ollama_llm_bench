@@ -50,7 +50,6 @@ __all__: list[str] = ["OpenAICompatibleClient"]
 _MODEL_ID_TRUNCATE_LEN = 64
 _CANNED_PROMPT = "Reply with the single word: ok"
 _RESPONSE_EXCERPT_LEN = 200
-_STREAM_READ_TIMEOUT_S = 0.5
 _STREAM_WRITE_TIMEOUT_S = 5.0
 _STREAM_POOL_TIMEOUT_S = 5.0
 _GATE_BUSY_MESSAGE = "An inference activity is already in flight."
@@ -111,6 +110,14 @@ class OpenAICompatibleClient:
         """Execute a chat call, returning a synchronous stream of chunks (DD-51)."""
         t0 = self._clock.monotonic_ms()
         context = self._error_context(model=request.model)
+        # `read` is this call's own remaining budget, not a fixed sub-second constant.
+        # `t0` is taken immediately above, so the remaining budget at `create()` time is
+        # exactly `request.timeout_ms`. A sub-second `read` cannot be used here: a local
+        # provider withholds the HTTP response headers until generation begins, and httpx's
+        # `read` timeout governs that header wait, so a cold model failed every call before
+        # its first token. It also cannot be recovered from -- `openai`'s `Stream.__stream__`
+        # closes the response in a `finally`, so a `ReadTimeout` destroys the stream rather
+        # than yielding a resumable gap.
         try:
             raw_stream = self._sdk_client.chat.completions.create(
                 model=request.model,
@@ -121,7 +128,7 @@ class OpenAICompatibleClient:
                 temperature=request.temperature,
                 timeout=httpx.Timeout(
                     connect=self._settings.connect_timeout_ms / 1000,
-                    read=_STREAM_READ_TIMEOUT_S,
+                    read=request.timeout_ms / 1000,
                     write=_STREAM_WRITE_TIMEOUT_S,
                     pool=_STREAM_POOL_TIMEOUT_S,
                 ),
