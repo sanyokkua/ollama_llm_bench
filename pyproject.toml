@@ -252,6 +252,11 @@ addopts = [
   "--strict-markers",
   "--strict-config",
   "-ra",
+  # ADR-0011: the opt-in live tier never runs in `just check` or CI. pytest honours only
+  # the LAST -m it is given, so this must stay a single entry -- STORY-094's packaging
+  # tier extends this expression rather than appending its own -m.
+  "-m",
+  "not live_local",
 ]
 markers = [
   "unit: Fast isolated unit tests",
@@ -259,6 +264,7 @@ markers = [
   "slow: Tests exceeding the standard time budget",
   "property: Hypothesis-driven property tests",
   "allow_qt_warnings: Test may emit Qt warnings without failing",
+  "live_local: Opt-in tests against a real local Ollama / LM Studio server (ADR-0011); never run in CI",
 ]
 
 [tool.coverage.run]
