@@ -1,6 +1,6 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-20T12:31:29Z'
-generator_version: 1
+generated_at: '2026-08-20T14:36:50Z'
+generator_version: 2
 stories:
   STORY-001:
     title: Define the shared domain DTOs, enums, type aliases, and constrained types
@@ -5434,7 +5434,7 @@ stories:
         - tests/integration/test_synthetic_size_bucket_round_trip.py::test_every_offered_bucket_is_accepted_by_the_generator[XS]
   STORY-093:
     title: Close Phase 12 with per-edge-case test attribution, an auditable risk-mitigation sweep, and the real architecture and data-model docs
-    status: ready
+    status: done
     spec_clauses:
     - 12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep
     - 12_Quality_and_NFRs/06_DATA_INTEGRITY.md#3-the-single-writer-discipline
@@ -5450,15 +5450,20 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-093-AC-1:
-        tests: []
+        tests:
+        - tests/unit/test_traceability_edge_case_map.py::test_edge_case_lists_only_the_test_that_declares_it
       STORY-093-AC-2:
-        tests: []
+        tests:
+        - tests/unit/test_traceability_edge_case_map.py::test_edge_case_without_a_covers_declaration_keeps_the_legacy_attribution
       STORY-093-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_risk_mitigation_checklist.py::test_every_risk_row_names_a_concrete_artifact_or_a_waiver
       STORY-093-AC-4:
-        tests: []
+        tests:
+        - src/ollama_llm_bench/backend/errors/tests/test_redaction_fuzz.py::test_no_denylist_pattern_survives_either_redaction_surface
       STORY-093-AC-5:
-        tests: []
+        tests:
+        - tests/integration/test_architecture_docs_present.py::test_architecture_readme_and_data_model_exist_and_are_not_stubs
   STORY-094:
     title: Add the per-OS PyInstaller onedir packaging specs and an opt-in packaged-artifact smoke-launch tier
     status: ready
@@ -6262,7 +6267,7 @@ stories:
         tests: []
   STORY-116:
     title: Bring the Task Editor edge-case catalog under the traceability gate
-    status: draft
+    status: ready
     spec_clauses:
     - 09_Task_Editor/description.md#9-edge-cases
     - 14_Process_and_Traceability/03_TRACEABILITY.md#5-validating-the-record
@@ -8393,26 +8398,12 @@ edge_cases:
     stories:
     - STORY-032
     tests:
-    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_falls_back_when_sanitisation_yields_empty
-    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_is_traversal_safe_and_bounded
-    - src/ollama_llm_bench/backend/csv_export/tests/test_details_escaping.py::test_details_cell_with_comma_quote_newline_and_pipe
-    - src/ollama_llm_bench/backend/csv_export/tests/test_summary_serialization.py::test_summary_csv_and_markdown_share_thirteen_columns
     - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_cell_content_is_verbatim_no_prefix
-    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
-    - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
-    - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
   EC-EXP-2:
     stories:
     - STORY-032
     tests:
-    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_falls_back_when_sanitisation_yields_empty
-    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_is_traversal_safe_and_bounded
     - src/ollama_llm_bench/backend/csv_export/tests/test_details_escaping.py::test_details_cell_with_comma_quote_newline_and_pipe
-    - src/ollama_llm_bench/backend/csv_export/tests/test_summary_serialization.py::test_summary_csv_and_markdown_share_thirteen_columns
-    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_cell_content_is_verbatim_no_prefix
-    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
-    - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
-    - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
   EC-FL-10:
     stories:
     - STORY-037
@@ -9352,68 +9343,13 @@ edge_cases:
     stories:
     - STORY-066
     tests:
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-11:
     stories:
     - STORY-066
     tests:
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-1a:
     stories:
     - STORY-074
@@ -9705,130 +9641,27 @@ edge_cases:
     stories:
     - STORY-065
     tests:
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
     - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
   EC-PROV-5:
     stories:
     - STORY-066
     tests:
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-5b:
     stories:
     - STORY-066
     tests:
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-5c:
     stories:
     - STORY-066
     tests:
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-PROV-6:
     stories:
     - STORY-055
     - STORY-066
     tests:
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
@@ -9838,28 +9671,12 @@ edge_cases:
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
@@ -9869,41 +9686,11 @@ edge_cases:
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
-    - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-PROV-7:
     stories:
     - STORY-066
     tests:
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_auto_check_on_open_requests_probe_all
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_embedding_diagnostic
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_readiness_refresh_repaints_health_from_fresh_gateway_read
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_gate_busy_notifies_and_leaves_health_unchanged
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_maps_auth_failure_to_missing_env
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_test_connection_probes_working_copy
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_api_key_field_rejects_non_env_var_name
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_duplicate_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_rename_to_persisted_name_blocks_save
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_run_inference_disabled_until_model_named
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_edit.py::test_test_buttons_gated_on_inference_activity
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[None-False-none-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-False-env \u2717-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-ready]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_auth_badge_is_independent_of_health_dot_status[OPENAI_API_KEY-True-env \u2713-unreachable]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_each_provider_test_status_is_mapped
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[missing_env-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[ready-live]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[unreachable-down]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[untested-not_tested]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_health_dot_per_status[zero_models-reachable_no_models]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[None-False-none]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-False-env \u2717]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_provider_auth_badge_is_pure_function_of_credential_resolution[OPENAI_API_KEY-True-env \u2713]
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_provider_table_model.py::test_providers_table_model_satisfies_qt_model_contract
   EC-RD-3:
     stories:
     - STORY-002
@@ -10038,67 +9825,7 @@ edge_cases:
     stories:
     - STORY-002
     tests:
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_except_exception_does_not_catch_programmer_error
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpConnectionError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[HttpTimeoutError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[MissingEnvVarError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ModelNotAvailableError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderAuthError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderBadRequestError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderContentFilterError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderOverloadedError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderQuotaExhaustedError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderRateLimitedError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_mixed_inheritance_mro_gives_category_root[ProviderServerError]
-    - src/ollama_llm_bench/backend/errors/tests/test_hierarchy.py::test_programmer_error_is_outside_exception
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ConfigurationError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseDiskFullError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[DatabaseLockedError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[EmbeddingUnavailableError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpConnectionError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[HttpTimeoutError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[LLMOutputParseError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[MissingEnvVarError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ModelNotAvailableError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[OsAdapterError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[PersistenceError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderAuthError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderBadRequestError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContentFilterError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderContextLengthError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderOverloadedError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderQuotaExhaustedError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderRateLimitedError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[ProviderServerError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskCancelledError]
-    - src/ollama_llm_bench/backend/errors/tests/test_leaf_catalogue.py::test_leaf_category_kind_and_status_mapping[TaskFileError]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_clean_text_passes_through_unchanged
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-01_openai_key]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-02_anthropic_key]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-03_google_key]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-04_github_token]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-05_azure_key]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-06_bearer_token]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-07_authorization_header]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-08_api_key_kv]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-09_jwt]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-10_generic_long_token]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-13a_underscore_free_lookalike_still_redacted]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_denylist_patterns_and_env_var_exception[RT-18_multiple_secrets_in_one_line]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_env_var_name_exception_leaves_value_unchanged
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_password_is_redacted_via_processor
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_never_log_key_short_value_is_redacted_by_name_not_regex
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_applies_length_cap_after_substitution
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redact_length_cap_rt15_nine_thousand_chars_no_secret
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_non_safe_field_with_same_shape_is_still_redacted
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[empty_string]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_none_and_empty_return_empty_string[none]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_repeated_secret_every_occurrence_replaced
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[correlation_id]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[model_digest]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[result_id]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[run_id]
-    - src/ollama_llm_bench/backend/errors/tests/test_redaction.py::test_redaction_edge_cases_safe_field_name_exempt_from_value_shape_patterns[task_id]
+    - src/ollama_llm_bench/backend/errors/tests/test_redaction_fuzz.py::test_no_denylist_pattern_survives_either_redaction_surface
   EC-RES-1:
     stories:
     - STORY-033
@@ -10219,68 +9946,13 @@ edge_cases:
     - STORY-062
     - STORY-063
     tests:
-    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_falls_back_when_sanitisation_yields_empty
-    - src/ollama_llm_bench/backend/csv_export/tests/test_compose_export_filename.py::test_filename_is_traversal_safe_and_bounded
-    - src/ollama_llm_bench/backend/csv_export/tests/test_details_escaping.py::test_details_cell_with_comma_quote_newline_and_pipe
-    - src/ollama_llm_bench/backend/csv_export/tests/test_summary_serialization.py::test_summary_csv_and_markdown_share_thirteen_columns
-    - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_cell_content_is_verbatim_no_prefix
     - src/ollama_llm_bench/backend/csv_export/tests/test_verbatim_content.py::test_same_model_name_across_providers_yields_distinct_unmerged_rows
-    - src/ollama_llm_bench/backend/html_rendering/tests/test_escaping_safety.py::test_result_detail_escapes_markup_and_emits_no_active_html
-    - src/ollama_llm_bench/backend/html_rendering/tests/test_section_omission.py::test_synthetic_result_omits_grading_section
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[None-muted]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[cosine-info]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[judge-info]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[keyword-info]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_layer[skip-muted]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_cosine_check-info]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_judge_check-info]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[awaiting_keyword_check-info]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[completed-success]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[errored-error]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_inference-error]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_judge_timeout-error]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_provider-error]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[failed_timeout-error]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[pending-info]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_status[running_inference-info]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[None-muted]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[fail-error]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_badge_role_for_verdict[pass-success]
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_maps_attempt_history_rows
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_phase_evaluations_include_keyword_and_judge_rows
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_renders_em_dash_value_for_none_cosine_score
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_build_detail_panel_renders_ordered_sections_with_em_dashes
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_chip_domains_lists_two_providers_of_the_same_model_separately
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_composite_key_keeps_rows_distinct
-    - src/ollama_llm_bench/ui/results/_internal/details_tab/tests/test_select.py::test_single_result_drilldown_narrows_to_one_model_and_task
-    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_empty_aggregate_renders_em_dash
-    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_models_filter_removes_whole_rows_rather_than_reaggregating
-    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_row_scoped_filter_reaggregates
-    - src/ollama_llm_bench/ui/results/_internal/summary_tab/tests/test_select.py::test_same_model_two_providers_stay_distinct
-    - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_chart_drilldown_applies_and_persists_filter
-    - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_export_uses_details_table_when_details_tab_is_active
-    - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_status_verdict_badge_roles
-    - src/ollama_llm_bench/ui/results/tests/test_details_tab.py::test_task_detail_panel_renders_full_record
-    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[csv]
-    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_export_mirrors_visible_rows[markdown]
-    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[graded]
-    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[synthetic]
-    - src/ollama_llm_bench/ui/results/tests/test_summary_tab.py::test_offered_columns_per_mode[tasks]
   EC-RES-3:
     stories:
     - STORY-065
     tests:
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
     - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
     - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
   EC-RES-4:
     stories:
     - STORY-033
@@ -10445,28 +10117,7 @@ edge_cases:
     stories:
     - STORY-055
     tests:
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[max_timeout_less_than_min_timeout]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_enabled_judge_provider_while_required]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[no_validation_entries]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
-    - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-RUN-11:
     stories:
     - STORY-057
@@ -10513,17 +10164,7 @@ edge_cases:
     stories:
     - STORY-065
     tests:
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
     - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
   EC-RUN-13:
     stories:
     - STORY-016
@@ -10570,37 +10211,13 @@ edge_cases:
     - STORY-015
     - STORY-065
     tests:
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_fresh_store_starts_idle_and_not_busy[fake]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_fresh_store_starts_idle_and_not_busy[real]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_current_lease_returns_store_to_idle[fake]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_current_lease_returns_store_to_idle[real]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_stale_lease_is_a_noop[fake]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_release_with_stale_lease_is_a_noop[real]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_held_store_returns_none[fake]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_held_store_returns_none[real]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_idle_store_returns_lease_matching_activity[fake]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_contract.py::test_try_acquire_on_idle_store_returns_lease_matching_activity[real]
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_acquire_holds_gate_and_emits_activity_changed
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_gate_is_mutually_exclusive_under_concurrent_acquire
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_release_frees_gate_and_is_idempotent
-    - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_gate.py::test_superseded_lease_release_never_frees_successor_hold
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_late_release_after_watchdog_noops_and_reacquire_succeeds
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[benchmark_run_never]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[judge_analysis_10min]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[provider_test_60s]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_auto_release_per_activity[readiness_probe_30s]
     - src/ollama_llm_bench/backend/stores/inference_activity/tests/test_watchdog.py::test_watchdog_does_not_fire_before_its_timeout_elapses
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_gate_busy_keeps_dialog_open_and_re_enables_on_idle
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_generate_analysis_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_generate_analysis_dialog.py::test_model_filter_and_confirm_dispatch
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_failed_regeneration_preserves_prior_narrative
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_full_narrative_and_metadata_rendered
     - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_generate_button_label_and_gate_binding
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_metadata_line_falls_back_to_bare_model_name_without_provider_name
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_not_requested]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[absent_running]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[failed_no_prior]
-    - src/ollama_llm_bench/ui/results/tests/test_run_analysis_tab.py::test_tab_state_per_condition[generating]
   EC-RUN-17:
     stories:
     - STORY-059
@@ -10778,14 +10395,6 @@ edge_cases:
     - STORY-055
     tests:
     - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
@@ -10795,10 +10404,6 @@ edge_cases:
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
-    - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-RUN-4:
     stories:
     - STORY-053
@@ -10937,20 +10542,7 @@ edge_cases:
     stories:
     - STORY-067
     tests:
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_clean_closes_immediately
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_close_when_dirty_opens_discard_confirmation_and_cancel_keeps_dialog_open
     - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_applies_known_keys_and_skips_unknown_keys_on_confirm
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_import_button_routes_exported_provider_config_file_back_through_provider_import
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_reset_confirmed_wipes_and_reseeds_atomically
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_nothing_when_a_hard_error_is_present
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_save_writes_providers_and_settings_atomically_then_emits_events_and_cleans
-    - src/ollama_llm_bench/ui/settings_dialog/tests/test_controller.py::test_settings_dialog_shows_general_tab_and_all_footer_buttons
-    - tests/architecture/test_story_067_settings_general_and_transactions.py::test_general_tab_registers_no_setting_key_outside_field_registry
-    - tests/integration/test_settings_reset.py::test_reset_replace_providers_rolls_back_on_constraint_violation
-    - tests/integration/test_settings_reset.py::test_reset_replace_providers_wipes_and_reseeds_atomically
-    - tests/integration/test_settings_reset.py::test_reset_to_defaults_protocol_commits_to_wiping_every_settings_row
-    - tests/integration/test_settings_reset.py::test_settings_wipe_now_has_a_real_delete_all_method
-    - tests/integration/test_settings_save.py::test_atomic_save_writes_both_and_emits_events
   EC-SET-3:
     stories:
     - STORY-067
@@ -10992,40 +10584,12 @@ edge_cases:
     - STORY-054
     - STORY-084
     tests:
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_controller.py::test_mode_selector_restores_and_persists_last_mode_via_gateway
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[synthetic-expected_visible0]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[tasks-expected_visible1]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_clear_all_scopes_to_browsed_provider
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_contains_reflects_current_membership
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_remove_deletes_exactly_one_pair
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_selection_preserved_across_provider_switch
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_smoke.py::test_new_benchmark_widget_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_added_file_shows_task_count_badge
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_empty_folder_adds_no_row
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_whole_file_parse_error_adds_no_row
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
-    - tests/integration/test_new_benchmark_drag_drop.py::test_drag_enter_accepts_yaml_files_in_task_modes
-    - tests/integration/test_new_benchmark_drag_drop.py::test_drag_enter_ignores_a_drag_without_yaml_paths
     - tests/integration/test_new_benchmark_drag_drop.py::test_dropping_malformed_file_shows_inline_error_and_adds_no_row
-    - tests/integration/test_new_benchmark_drag_drop.py::test_dropping_valid_task_files_appends_rows
   EC-TASK-2:
     stories:
     - STORY-055
     tests:
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_preflight_recheck_refuses_open_when_no_model_reachable
-    - src/ollama_llm_bench/ui/common_dialogs/tests/test_run_summary_dialog.py::test_run_summary_dialog_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_only_changed_overrides_are_carried
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_advanced_options.py::test_unchecking_discards_dirty_keys
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[graded_on]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[synthetic_off]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_analysis_toggle_default_per_mode[tasks_off]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_judge_section.py::test_judge_model_dropdown_follows_provider
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_gated_on_inference_activity
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_prov_6_missing_env_var]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_run_3_no_reachable_test_model]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[ec_task_2_duplicate_task_id]
@@ -11035,52 +10599,16 @@ edge_cases:
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[soft_warning_only_streaming_unconfirmed]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[tasks_or_graded_no_task_files]
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_validation_and_start.py::test_start_button_reflects_validator_severity[zero_models_selected]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_leaves_judge_model_none_when_provider_or_model_unset
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_maps_every_field
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_view_model_select.py::test_build_run_start_request_omits_overrides_when_not_overridden
-    - tests/integration/test_new_benchmark_start.py::test_confirm_run_summary_starts_run_and_locks
   EC-TASK-3:
     stories:
     - STORY-054
     tests:
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_controller.py::test_mode_selector_restores_and_persists_last_mode_via_gateway
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[synthetic-expected_visible0]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[tasks-expected_visible1]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_clear_all_scopes_to_browsed_provider
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_contains_reflects_current_membership
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_remove_deletes_exactly_one_pair
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_selection_preserved_across_provider_switch
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_smoke.py::test_new_benchmark_widget_constructs_and_shows_with_no_error_logs
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_added_file_shows_task_count_badge
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_empty_folder_adds_no_row
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_whole_file_parse_error_adds_no_row
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
   EC-TASK-8:
     stories:
     - STORY-054
     tests:
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_controller.py::test_mode_selector_restores_and_persists_last_mode_via_gateway
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_restores_and_persists_last_mode
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_mode_selector.py::test_set_mode_does_not_emit_mode_changed
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[graded-expected_visible2]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[synthetic-expected_visible0]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_section_visibility.py::test_visible_sections_match_policy_per_mode[tasks-expected_visible1]
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_clear_all_scopes_to_browsed_provider
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_contains_reflects_current_membership
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_remove_deletes_exactly_one_pair
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_selection_store.py::test_selection_preserved_across_provider_switch
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_smoke.py::test_new_benchmark_widget_constructs_and_shows_with_no_error_logs
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_added_file_shows_task_count_badge
     - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_empty_folder_adds_no_row
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_task_files.py::test_whole_file_parse_error_adds_no_row
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_clear_all_scopes_to_browsed_provider_via_widget
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_hide_embedding_models_filters_available_list
-    - src/ollama_llm_bench/ui/new_benchmark/tests/test_test_models_section.py::test_toggling_a_model_adds_it_to_the_selection_store
   EC-TE-11:
     stories:
     - STORY-114
@@ -11153,41 +10681,12 @@ edge_cases:
     stories:
     - STORY-069
     tests:
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_empty_question_via_real_validator_disables_save
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[golden_answer]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[question]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_missing_required_field_disables_save[task_id]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_skips_hard_error_files
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_successful_save_emits_task_file_changed
-    - src/ollama_llm_bench/ui/task_editor/tests/test_dialogs.py::test_dirty_leave_shows_save_choice_dialog
-    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_chip_input_supports_add_remove_and_paste_split
-    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[cosine_enabled]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[difficulty]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[question]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[required_terms]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_field_rows.py::test_control_kind_per_field[task_id]
     - src/ollama_llm_bench/ui/task_editor/tests/test_yaml_preview.py::test_preview_renders_for_hard_error_file
   EC-WS-4:
     stories:
     - STORY-068
     tests:
-    - src/ollama_llm_bench/ui/task_editor/tests/test_buffer.py::test_form_b_c_to_a_and_unknown_key_preserved[form_b_bare_sequence]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_buffer.py::test_form_b_c_to_a_and_unknown_key_preserved[form_c_single_mapping]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_file_change_watcher_trigger_marks_external_changed
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_run_started_marks_in_use_files
     - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_workspace_switch_commits_field_edit
-    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[changed_on_disk]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[hard_errors]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[saved_and_valid]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[soft_warnings]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_file_badge_per_state[unsaved_edits]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_in_use_by_run_renders_marker_alongside_badge
-    - src/ollama_llm_bench/ui/task_editor/tests/test_files_pane.py::test_reload_pending_takes_precedence_over_error_and_dirty
-    - src/ollama_llm_bench/ui/task_editor/tests/test_tasks_pane.py::test_add_and_duplicate_task_id_generation
-    - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_empty_to_with_files_transition
-    - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_save_all_count_and_enabled_with_mixed_dirty_files
-    - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_save_all_count_counts_dirty_error_file_but_disables_save_all
-    - src/ollama_llm_bench/ui/task_editor/tests/test_view_model.py::test_task_editor_workspace_constructs_and_shows_with_no_error_logs
 modules:
   adapters/clipboard/:
     stories:

@@ -1,7 +1,7 @@
 ---
 id: STORY-093
 title: Close Phase 12 with per-edge-case test attribution, an auditable risk-mitigation sweep, and the real architecture and data-model docs
-status: ready
+status: done
 spec_clauses:
   - 14_Process_and_Traceability/03_TRACEABILITY.md#4-generating-the-record
   - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#1-purpose-and-scope
@@ -213,15 +213,15 @@ beginning "Until that documentation exists".
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-093.
-- [ ] `just trace` regenerates a byte-identical record on a second run, and `just trace-check` exits
+- [x] Every acceptance criterion has a passing test that names STORY-093.
+- [x] `just trace` regenerates a byte-identical record on a second run, and `just trace-check` exits
   0 with zero gaps repo-wide.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules and for `scripts/`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
-- [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules and for `scripts/`.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+- [x] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
   `draft` → `ready`, and `just trace` re-run.
-- [ ] The next candidate stories are proposed in the closing report.
+- [x] The next candidate stories are proposed in the closing report.
 
 ## Unblocks and next steps
 

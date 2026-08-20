@@ -1,7 +1,7 @@
 ---
 id: STORY-116
 title: Bring the Task Editor edge-case catalog under the traceability gate
-status: draft
+status: ready
 spec_clauses:
   - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#19-coverage-summary
   - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#191-the-traceability-validator-validate_traceabilitypy
@@ -26,7 +26,7 @@ estimate: S
 
 ## Goal
 
-**Blocked: stays `draft` until STORY-093 is `done`.** The specification addition this story needs
+**Unblocked on 2026-08-20.** STORY-093 — its only `depends_on` entry — closed on that date, so this story is now `ready`. The specification addition this story needs
 is already sanctioned — see below — so `depends_on` is now the only thing holding it.
 
 **The specification edit is approved.** On 2026-08-05 the product owner sanctioned **both** halves
