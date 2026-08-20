@@ -1,7 +1,7 @@
 ---
 id: STORY-116
 title: Bring the Task Editor edge-case catalog under the traceability gate
-status: ready
+status: done
 spec_clauses:
   - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#19-coverage-summary
   - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#191-the-traceability-validator-validate_traceabilitypy
@@ -180,20 +180,20 @@ The validator demands a proving test for a Task Editor identifier only when a st
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-116.
+- [x] Every acceptance criterion has a passing test that names STORY-116.
 - [x] The product owner's sanction for the specification addition is recorded in this story's Notes,
   with a date, before any edit to `docs/v3_specification/` is made. **Granted 2026-08-05**, covering
   the fifteen mapping rows and the three index corrections.
-- [ ] The catalog registration and the mapping rows land in the **same** commit — either half alone
+- [x] The catalog registration and the mapping rows land in the **same** commit — either half alone
   turns `just trace-check` red.
-- [ ] `just trace` regenerates a byte-identical record on a second run, and `just trace-check` exits
+- [x] `just trace` regenerates a byte-identical record on a second run, and `just trace-check` exits
   0 with zero gaps repo-wide.
-- [ ] `mypy --strict` and `ruff` pass for `scripts/`.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
-- [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
+- [x] `mypy --strict` and `ruff` pass for `scripts/`.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+- [x] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
   `draft` → `ready`, and `just trace` re-run.
-- [ ] The next candidate stories are proposed in the closing report.
+- [x] The next candidate stories are proposed in the closing report.
 
 ## Unblocks and next steps
 

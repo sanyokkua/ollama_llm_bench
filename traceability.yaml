@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-20T14:36:50Z'
+generated_at: '2026-08-20T15:42:09Z'
 generator_version: 2
 stories:
   STORY-001:
@@ -6267,7 +6267,7 @@ stories:
         tests: []
   STORY-116:
     title: Bring the Task Editor edge-case catalog under the traceability gate
-    status: ready
+    status: done
     spec_clauses:
     - 09_Task_Editor/description.md#9-edge-cases
     - 14_Process_and_Traceability/03_TRACEABILITY.md#5-validating-the-record
@@ -6279,11 +6279,28 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-116-AC-1:
-        tests: []
+        tests:
+        - tests/unit/test_traceability_task_editor_catalog.py::test_task_editor_catalog_contributes_its_fifteen_ids
       STORY-116-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_no_task_editor_id_is_unmapped_or_dangling
       STORY-116-AC-3:
-        tests: []
+        tests:
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-01]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-02]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-03]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-04]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-05]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-06]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-07]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-08]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-09]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-10]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-11]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-12]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-13]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-14]
+        - tests/integration/test_traceability_gate_covers_task_editor.py::test_proving_test_is_demanded_only_for_a_claimed_id[EC-TE-15]
   STORY-117:
     title: Reduce Qt object churn in the accessibility-name integration tests
     status: done
@@ -10613,23 +10630,7 @@ edge_cases:
     stories:
     - STORY-114
     tests:
-    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_close_handler.py::test_save_all_holds_the_quit_when_a_file_cannot_be_saved
-    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_setting_written_per_trigger[benchmark]
-    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_setting_written_per_trigger[task_editor]
-    - src/ollama_llm_bench/ui/main_window/_internal/tests/test_controller.py::test_workspace_change_after_a_confirmed_quit_is_not_persisted
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_dirty_buffer_count_counts_only_dirty_buffers
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_returns_empty_when_every_dirty_buffer_saves
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_returns_the_names_of_files_it_could_not_save
-    - src/ollama_llm_bench/ui/task_editor/tests/test_controller.py::test_save_all_buffers_writes_the_error_free_buffer
-    - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_pickers_prefill_from_the_persisted_last_folder
-    - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[new_file]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[open_file]
-    - src/ollama_llm_bench/ui/task_editor/tests/test_persistence_writes.py::test_setting_written_per_trigger[open_folder]
-    - tests/integration/test_task_editor_quit_integration.py::test_discard_all_writes_nothing_and_quits
     - tests/integration/test_task_editor_quit_integration.py::test_quit_with_dirty_buffers_during_a_run_never_touches_run_control
-    - tests/integration/test_task_editor_quit_integration.py::test_save_all_holds_the_quit_when_a_file_has_a_hard_error
-    - tests/integration/test_task_editor_quit_integration.py::test_save_all_writes_every_clean_dirty_buffer
-    - tests/integration/test_task_editor_quit_integration.py::test_unsaved_prompt_reports_the_real_dirty_buffer_count
   EC-WS-1:
     stories:
     - STORY-061

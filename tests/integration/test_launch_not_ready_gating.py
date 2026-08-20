@@ -9,7 +9,7 @@ enabled run-start affordance for an environment that cannot run a benchmark."
 
 Earlier STORY-081 work proved the Start-button gate and the explanatory-modal trigger at
 the unit level, against a harness that stands in for the real application. This module is
-the integration-tier proof required by ``06_EDGE_CASE_TO_TEST_MAPPING.md``:267 -- it drives
+the integration-tier proof required by ``06_EDGE_CASE_TO_TEST_MAPPING.md``:282 -- it drives
 the real, fully composed application (``compose.build_app``) through a genuinely
 totally-failed readiness probe and asserts on the real Start button, the real status-bar
 health dot, the real ``NotificationService.show_error`` call, and the real workspace
