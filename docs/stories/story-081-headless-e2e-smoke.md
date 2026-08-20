@@ -114,7 +114,7 @@ the failure is surfaced in the status bar and an explanatory modal (EC-M-5).
   `test_readiness_probe_total_failure_resolves_not_ready_and_gates_run_start`. Covers EC-M-5.
 
   **Correction:** the story originally planned this test under `tests/e2e/`. It is proven in
-  `tests/integration/` instead, matching `06_EDGE_CASE_TO_TEST_MAPPING.md:267`, which assigns
+  `tests/integration/` instead, matching `06_EDGE_CASE_TO_TEST_MAPPING.md:282`, which assigns
   EC-M-5 the `integration` tier and `tests/integration/` as its proving module — the same
   placement as every sibling app-lifecycle edge case, EC-M-1 through EC-M-4.
 

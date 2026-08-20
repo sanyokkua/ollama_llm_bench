@@ -295,6 +295,8 @@ def test_quit_with_dirty_buffers_during_a_run_never_touches_run_control(
 ) -> None:
     """Proves: STORY-114-AC-6
 
+    Covers: EC-TE-11
+
     Given a run is in progress and the Task Editor holds dirty buffers, when the
     user quits and answers both confirmations toward quitting, then the Task
     Editor issues no run-control call -- no pause, no stop -- and the quit runs
