@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass, field
+import functools
 from pathlib import Path
 import re
 import subprocess
@@ -62,6 +63,8 @@ OPTIONAL_STORY_FIELDS = {"edge_cases", "depends_on", "adrs"}
 ALLOWED_STORY_FIELDS = REQUIRED_STORY_FIELDS | OPTIONAL_STORY_FIELDS
 
 PROVES_RE = re.compile(r"^\s*Proves:\s*(STORY-\d{3}-AC-\d+)\s*$")
+_COVERS_LINE_RE = re.compile(r"^\s*Covers:")
+_COVERS_EC_ID_RE = re.compile(r"EC-[A-Z]+-\d+[a-f]?")
 
 
 @dataclass(frozen=True)
@@ -389,6 +392,7 @@ def load_mapped_edge_case_ids() -> set[str]:
 class CollectedTest:
     node_id: str
     proves: str | None
+    covers: tuple[str, ...] = ()
 
 
 def _iter_function_defs(
@@ -397,37 +401,52 @@ def _iter_function_defs(
     return [node for node in body if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)]
 
 
-def _find_class_body(tree: ast.Module, class_name: str) -> list[ast.stmt] | None:
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == class_name:
-            return node.body
-    return None
+@functools.cache
+def _docstrings_by_qualname(file_path: Path) -> dict[tuple[str | None, str], str]:
+    """Every function docstring in one test module, keyed by (class name or None, function
+    name).
 
-
-def _extract_first_docstring_line(
-    source: str, function_name: str, class_name: str | None
-) -> str | None:
+    Memoised per file path: a module contributes many collected node ids, and parsing it once
+    per node would mean thousands of redundant `ast.parse` calls across the suite. Returns an
+    empty mapping for a file that cannot be read or parsed, so an unparseable module degrades
+    to "declares nothing" rather than aborting collection.
+    """
     try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return None
+        tree = ast.parse(file_path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return {}
 
-    target_body = tree.body
-    if class_name is not None:
-        found_body = _find_class_body(tree, class_name)
-        if found_body is None:
-            return None
-        target_body = found_body
-
-    for func in _iter_function_defs(target_body):
-        if func.name != function_name:
-            continue
+    docstrings: dict[tuple[str | None, str], str] = {}
+    for func in _iter_function_defs(tree.body):
         docstring = ast.get_docstring(func)
-        if docstring is None:
-            return None
-        lines = docstring.splitlines()
-        return lines[0] if lines else ""
-    return None
+        if docstring is not None:
+            docstrings[(None, func.name)] = docstring
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        for method in _iter_function_defs(node.body):
+            docstring = ast.get_docstring(method)
+            if docstring is not None:
+                docstrings[(node.name, method.name)] = docstring
+    return docstrings
+
+
+def _extract_covers_ids(lines: list[str]) -> tuple[str, ...]:
+    """Every edge-case id named on a `Covers:` docstring line, in declaration order, deduped.
+
+    Deliberately lenient, per 06_EDGE_CASE_TO_TEST_MAPPING.md Section 1: a `Covers:` line may
+    name things that are not edge cases (a spec section, a test-scenario id), and several such
+    lines already exist in the suite. Those yield no ids and are ignored rather than rejected.
+    """
+    ids: list[str] = []
+    for line in lines:
+        if not _COVERS_LINE_RE.match(line):
+            continue
+        for match in _COVERS_EC_ID_RE.finditer(line):
+            ec_id = match.group(0)
+            if ec_id not in ids:
+                ids.append(ec_id)
+    return tuple(ids)
 
 
 def _parse_node_id(node_id: str) -> tuple[Path, str, str | None] | None:
@@ -469,23 +488,33 @@ def _run_pytest_collect_only() -> subprocess.CompletedProcess[str]:
     )
 
 
-def _proves_id_for_node(node_id: str) -> str | None:
+def _declarations_for_node(node_id: str) -> tuple[str | None, tuple[str, ...]]:
+    """The `Proves:` acceptance-criterion id and the `Covers:` edge-case ids one test declares.
+
+    `Proves:` is read from the docstring's first line only -- that grammar is unchanged.
+    `Covers:` is read from any subsequent line.
+    """
     parsed = _parse_node_id(node_id)
     if parsed is None:
-        return None
+        return None, ()
     file_path, function_name, class_name = parsed
     if not file_path.is_file():
-        return None
-    source = file_path.read_text(encoding="utf-8")
-    first_line = _extract_first_docstring_line(source, function_name, class_name)
-    if first_line is None:
-        return None
-    match = PROVES_RE.match(first_line)
-    return match.group(1) if match else None
+        return None, ()
+    docstring = _docstrings_by_qualname(file_path).get((class_name, function_name))
+    if docstring is None:
+        return None, ()
+    lines = docstring.splitlines()
+    proves_match = PROVES_RE.match(lines[0]) if lines else None
+    return (
+        proves_match.group(1) if proves_match else None,
+        _extract_covers_ids(lines[1:]),
+    )
 
 
 def collect_tests() -> tuple[list[CollectedTest], bool]:
-    """Run `pytest --collect-only -q` and read each collected test's `Proves:` docstring line.
+    """Run `pytest --collect-only -q` and read each collected test's docstring declarations.
+
+    Reads the `Proves:` acceptance-criterion line and any `Covers:` edge-case line.
 
     Returns (collected tests, collection_ok). `collection_ok` is False only when pytest
     produced no usable node-id output at all (a genuine collection failure) -- a non-zero
@@ -501,8 +530,8 @@ def collect_tests() -> tuple[list[CollectedTest], bool]:
     if not node_ids and result.returncode != 0:
         return [], False
 
-    tests = [
-        CollectedTest(node_id=node_id, proves=_proves_id_for_node(node_id))
-        for node_id in sorted(node_ids)
-    ]
+    tests = []
+    for node_id in sorted(node_ids):
+        proves, covers = _declarations_for_node(node_id)
+        tests.append(CollectedTest(node_id=node_id, proves=proves, covers=covers))
     return tests, True

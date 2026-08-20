@@ -177,12 +177,15 @@ def main() -> int:
         return 1
 
     proves_index: dict[str, list[str]] = {}
+    covers_index: dict[str, list[str]] = {}
     for test in collected_tests:
         if test.proves is not None:
             proves_index.setdefault(test.proves, []).append(test.node_id)
+        for ec_id in test.covers:
+            covers_index.setdefault(ec_id, []).append(test.node_id)
 
     generated_at = ""
-    record = build_record(stories, proves_index, generated_at=generated_at)
+    record = build_record(stories, proves_index, covers_index, generated_at=generated_at)
     module_inventory = load_module_inventory()
 
     all_failures: list[str] = []
