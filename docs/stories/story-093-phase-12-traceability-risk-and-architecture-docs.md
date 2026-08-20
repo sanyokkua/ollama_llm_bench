@@ -1,7 +1,7 @@
 ---
 id: STORY-093
 title: Close Phase 12 with per-edge-case test attribution, an auditable risk-mitigation sweep, and the real architecture and data-model docs
-status: draft
+status: ready
 spec_clauses:
   - 14_Process_and_Traceability/03_TRACEABILITY.md#4-generating-the-record
   - 14_Process_and_Traceability/06_EDGE_CASE_TO_TEST_MAPPING.md#1-purpose-and-scope
@@ -48,8 +48,13 @@ estimate: M
 
 ## Goal
 
-**Blocked:** stays `draft` until every story in its `depends_on` list is `done` — it is the phase
-closer and is picked up last.
+**Unblocked on 2026-08-20.** This is the phase closer and is picked up last, so it stayed `draft`
+until every story in its `depends_on` list was resolved. That condition now holds. Sixteen of the
+seventeen are `done`; the seventeenth, STORY-082, is `superseded` by STORY-101 in the
+circuit-breaker probe remediation, which counts as resolved rather than outstanding — the same
+reading the already-`done` STORY-030 and STORY-075 rely on, since both depend on STORY-023, also
+superseded by STORY-101. STORY-092 was the last dependency still open, and it closed on
+2026-08-20.
 
 Bring the project's own quality record to a state where it can be trusted. Three things are wrong
 today. The traceability generator credits every edge case a story claims with every test that story

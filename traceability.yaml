@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-20T10:17:02Z'
+generated_at: '2026-08-20T12:31:29Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -5405,7 +5405,7 @@ stories:
         - tests/architecture/test_no_custom_keyboard_shortcuts.py::test_no_custom_shortcut_accelerator_or_mnemonic_is_registered
   STORY-092:
     title: Expose the synthetic-size bucket table on the generator's public surface and consume it from the New Benchmark widget
-    status: ready
+    status: done
     spec_clauses:
     - 02_New_Benchmark_Widget/description.md#42-performance-matrix--synthetic-benchmark-only
     - 02_New_Benchmark_Widget/description.md#6-validation-rules
@@ -5434,7 +5434,7 @@ stories:
         - tests/integration/test_synthetic_size_bucket_round_trip.py::test_every_offered_bucket_is_accepted_by_the_generator[XS]
   STORY-093:
     title: Close Phase 12 with per-edge-case test attribution, an auditable risk-mitigation sweep, and the real architecture and data-model docs
-    status: draft
+    status: ready
     spec_clauses:
     - 12_Quality_and_NFRs/04_ERROR_RECOVERY.md#4-the-result-row-recovery-sweep
     - 12_Quality_and_NFRs/06_DATA_INTEGRITY.md#3-the-single-writer-discipline

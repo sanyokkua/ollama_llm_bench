@@ -1,7 +1,7 @@
 ---
 id: STORY-092
 title: Expose the synthetic-size bucket table on the generator's public surface and consume it from the New Benchmark widget
-status: ready
+status: done
 spec_clauses:
   - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#23-size-definitions
   - 11_Services_and_Algorithms/21_PERFORMANCE_TASK_GENERATOR.md#4-preconditions
@@ -187,18 +187,18 @@ produces a `PerformanceConfig` the generator expands without raising:
 
 ## Definition of done
 
-- [ ] Every acceptance criterion has a passing test that names STORY-092.
-- [ ] The widget-local copy of the token targets is gone: a grep or architecture check confirms the
+- [x] Every acceptance criterion has a passing test that names STORY-092.
+- [x] The widget-local copy of the token targets is gone: a grep or architecture check confirms the
   literals `64`, `256`, `1024`, `4096`, `16384` appear as size-bucket targets only in
   `backend/performance_task_generator/`, and no longer in `ui/new_benchmark/`.
-- [ ] `_SIZE_ROWS` still supplies the §4.2 size keys, default-checked flags, and captions unchanged
+- [x] `_SIZE_ROWS` still supplies the §4.2 size keys, default-checked flags, and captions unchanged
   — the Performance Matrix renders exactly as it did before.
-- [ ] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
-- [ ] The traceability record validates with no orphan clause and no orphan test.
-- [ ] The module inventory is unchanged.
-- [ ] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
+- [x] `mypy --strict`, `ruff`, and `import-linter` pass for the touched modules.
+- [x] The traceability record validates with no orphan clause and no orphan test.
+- [x] The module inventory is unchanged.
+- [x] Every story under **Unblocks** whose remaining dependencies are now `done` has been flipped
   `draft` → `ready`, and `just trace` re-run.
-- [ ] The next candidate stories are proposed in the closing report.
+- [x] The next candidate stories are proposed in the closing report.
 
 ## Unblocks and next steps
 
@@ -253,3 +253,28 @@ Once STORY-092's acceptance-criteria tests pass:
   STORY-077's notes as "a future story's job" with no such story ever written. That work is tracked
   as item 1 of the recorded gap list until it is storied; it is deliberately **not** part of
   STORY-092.
+
+- **The implementation landed on 2026-08-10; the story was closed on 2026-08-20.** All three
+  commits are on `feature/spec-v3-implementation`: `da8854b` published `SIZE_BUCKETS` on the
+  generator's public surface, `2b407e3` derived the Performance Matrix token targets from it, and
+  `5ec8aa8` added the AC-1/AC-2/AC-3 tests plus the `ui/new_benchmark/` drift guard and
+  regenerated the traceability record. The session then moved straight on to STORY-088,
+  STORY-084, STORY-114, STORY-086 and STORY-117 without running the close, so the story sat at
+  `ready` with finished work behind it. The ten-day gap between the commit dates and this `done`
+  flip is that oversight and nothing else — no further implementation happened in between.
+  Closing it required only the missing CHANGELOG entry for the new public symbol, an independent
+  spec-conformance review, and a green `just check`.
+
+- **Two concerns the closing conformance review raised, neither introduced by this story and
+  neither a blocker — both are for the owner.** First, the spec is internally inconsistent about
+  the XS…XL ↔ `tiny`…`xlarge` pairing this story's premise rests on: `02_New_Benchmark_Widget`
+  §4.2's captions advertise `~5`/`~50`/`~250`/`~1500`/`~3500` tokens while §2.3's targets for the
+  same five buckets are 64/256/1024/4096/16384, and neither document states that §4.2's XS row
+  *is* §2.3's `tiny` row. Ascending-order alignment is the only sensible reading and is what the
+  code encodes, but it is an inference. This is pre-existing from STORY-071, and this story
+  forbids touching the captions, so it is recorded rather than resolved. Second, importing the
+  generator's package root puts a concrete `backend/*` implementation into the UI's import graph,
+  which `16_Engineering_Standards/01_PROJECT_STRUCTURE.md`'s folder table does not list among the
+  `backend/` packages `ui/*` may import — no `import-linter` contract catches it, and there is
+  precedent (`ui/new_benchmark/_internal/view.py` imports `backend.mode_visibility`), but the
+  tension is structural and cannot be fixed by relocating the constant.

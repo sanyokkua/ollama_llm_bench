@@ -17,6 +17,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- `backend/performance_task_generator/` public surface: `SIZE_BUCKETS`, the fixed synthetic
+  size-bucket table, is now published from the module root as an immutable mapping of token target
+  to bucket label — `64 → tiny`, `256 → small`, `1024 → medium`, `4096 → large`,
+  `16384 → xlarge`. The New Benchmark Performance Matrix now reads the five token targets behind
+  its Input Size and Output Size toggles from that table instead of restating them, so the sizes
+  the widget offers equal the sizes the generator accepts by construction. The numbers were
+  previously written out twice, once in each module, and the two copies could drift apart in
+  silence: the widget would have gone on offering a size the generator no longer recognised, and
+  choosing it would have made the generator reject the configuration and abort run creation
+  (STORY-092).
+
 - Drag-and-drop onto the New Benchmark "Task Files" section now works. Dropping YAML task files
   or folders onto the list parses them through the same Task File Loader the Add File / Add
   Folder buttons use and appends a row per file with its `(N tasks)` badge; a folder contributes
