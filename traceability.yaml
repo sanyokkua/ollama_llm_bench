@@ -1,5 +1,5 @@
 # traceability.yaml — GENERATED. Do not edit by hand. Regenerate with `just trace`.
-generated_at: '2026-08-19T18:57:55Z'
+generated_at: '2026-08-20T10:17:02Z'
 generator_version: 1
 stories:
   STORY-001:
@@ -6281,7 +6281,7 @@ stories:
         tests: []
   STORY-117:
     title: Reduce Qt object churn in the accessibility-name integration tests
-    status: ready
+    status: done
     spec_clauses:
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#11-coverage-targets-and-time-budgets
     - 16_Engineering_Standards/07_TESTING_STANDARD.md#5-fixtures
@@ -6291,9 +6291,11 @@ stories:
     edge_cases: []
     acceptance_criteria:
       STORY-117-AC-1:
-        tests: []
+        tests:
+        - tests/integration/test_a11y_names_shell.py::test_the_shell_and_the_dialogs_are_built_once_for_the_whole_module
       STORY-117-AC-2:
-        tests: []
+        tests:
+        - tests/integration/test_a11y_names_shell.py::test_nothing_shared_between_tests_is_mutable_or_qt_owned
   STORY-118:
     title: Bind the Generate Analysis dialog's event-bus subscriptions to its own lifetime
     status: done

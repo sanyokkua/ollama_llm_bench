@@ -25,8 +25,8 @@ every test that depends on it (directly, or transitively through `seeded_app_dat
 
 **No cross-module import.** `_seed_setting`, `_shutdown`, `_build_common_dialogs`, and
 `_DISPATCHER_SHUTDOWN_TIMEOUT_MS` stay module-private here and are handed to test modules only
-through the `seed_setting`, `shutdown_handle`, `common_dialogs`, and
-`dispatcher_shutdown_timeout_ms` fixtures below -- pytest auto-injects fixtures by name, so no
+through the `seed_setting`, `shutdown_handle`, `common_dialogs` /
+`common_dialogs_factory`, and `dispatcher_shutdown_timeout_ms` fixtures below -- pytest auto-injects fixtures by name, so no
 test module needs `from tests.integration.conftest import ...`. There are zero `__init__.py`
 files anywhere under `tests/`; adding one just to support that kind of import would be a wider,
 unrelated change to how this repository's test tree is packaged.
@@ -378,7 +378,19 @@ def _build_common_dialogs(*, qtbot: QtBot) -> dict[str, QDialog]:
 
 
 @pytest.fixture
-def common_dialogs(qtbot: QtBot) -> dict[str, QDialog]:
+def common_dialogs_factory(qtbot: QtBot) -> Callable[[], dict[str, QDialog]]:
+    """Build the seven shared modal dialogs on demand rather than on fixture request.
+
+    `common_dialogs` below is the eager form and stays the default. A caller that must
+    control *when* the seven dialogs are constructed -- because it builds them once and
+    caches what it read off them (STORY-117) -- takes this factory instead, so merely
+    depending on the fixture costs nothing.
+    """
+    return functools.partial(_build_common_dialogs, qtbot=qtbot)
+
+
+@pytest.fixture
+def common_dialogs(common_dialogs_factory: Callable[[], dict[str, QDialog]]) -> dict[str, QDialog]:
     """All seven shared modal dialogs, built with canned data and stub gateways.
 
     Both the mockup-conformance screenshot harness and the accessibility-name walker
@@ -388,7 +400,7 @@ def common_dialogs(qtbot: QtBot) -> dict[str, QDialog]:
     canned data here satisfies every one of those preconditions, so a `None` means
     the canned data regressed and the narrowing below must keep failing loudly.
     """
-    return _build_common_dialogs(qtbot=qtbot)
+    return common_dialogs_factory()
 
 
 _DISPATCHER_SHUTDOWN_TIMEOUT_MS = 2000
