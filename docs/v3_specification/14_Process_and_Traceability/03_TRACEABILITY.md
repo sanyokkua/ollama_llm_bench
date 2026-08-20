@@ -161,7 +161,7 @@ def test_resume_selects_only_resumable_rows() -> None:
 | No orphan story | A story names no spec clause, or names a `done` status with an acceptance criterion that has no test. |
 | Acceptance criterion proven | A `done` story has an acceptance criterion with an empty `tests` list. |
 | No orphan test | A test whose docstring declares `Proves: STORY-NNN-AC-N` names a criterion that no story defines. |
-| Edge-case covered | The validator collects every `EC-` identifier defined across **all** catalogs — `08_Cross_Cutting/08-I_edge_cases.md` plus the scoped domain catalogs (`EC-IMP-*` import, `EC-EXP-*` export, `EC-FL-*` file layout, `EC-RD-*` redaction, `EC-M-*` lifecycle) — and fails if any of them appears in no story's `edge_cases` and in no test, or if `06_EDGE_CASE_TO_TEST_MAPPING.md` cites an `EC-` id defined in no catalog (a dangling row). The catalogs are the source of truth, not the mapping list (D-R-08; see `06_EDGE_CASE_TO_TEST_MAPPING.md` §14.1). |
+| Edge-case covered | The validator collects every `EC-` identifier defined across **all** catalogs — `08_Cross_Cutting/08-I_edge_cases.md` plus the scoped domain catalogs (`EC-IMP-*` import, `EC-EXP-*` export, `EC-FL-*` file layout, `EC-RD-*` redaction, `EC-M-*` lifecycle, `EC-TE-*` Task Editor) — and fails if any of them appears in no story's `edge_cases` and in no test, or if `06_EDGE_CASE_TO_TEST_MAPPING.md` cites an `EC-` id defined in no catalog (a dangling row). The catalogs are the source of truth, not the mapping list (D-R-08; see `06_EDGE_CASE_TO_TEST_MAPPING.md` §14.1). |
 | Acyclic dependencies | The `depends_on` graph across all stories contains a cycle. |
 | Record fresh | Re-running the generator produces a file that differs from the committed `traceability.yaml`. |
 

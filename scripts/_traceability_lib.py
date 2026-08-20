@@ -29,6 +29,7 @@ TRACEABILITY_PATH = REPO_ROOT / "traceability.yaml"
 EDGE_CASE_CATALOGS = [
     SPEC_ROOT / "08_Cross_Cutting" / "08-I_edge_cases.md",
     SPEC_ROOT / "08_Cross_Cutting" / "08-M_app_lifecycle.md",
+    SPEC_ROOT / "09_Task_Editor" / "description.md",
     SPEC_ROOT / "10_Domain_and_Data" / "06_IMPORT_FORMATS.md",
     SPEC_ROOT / "10_Domain_and_Data" / "05_EXPORT_FORMATS.md",
     SPEC_ROOT / "10_Domain_and_Data" / "07_FILE_LAYOUT.md",
